@@ -468,7 +468,7 @@
     G.shotClock = Math.max(0, D.clock === undefined ? 24 : D.clock);
     const st = STYLES[D.style];
     $('#ftmsg').hidden = false;
-    $('#ftmsg').textContent = D.over ? `Total ${D.score}` : `Dunk ${D.n + 1} of ${D.def.dunks} · ${st[0]} · Move changes it`;
+    $('#ftmsg').textContent = D.over ? `Total ${D.score}` : `Dunk ${D.n + 1} of ${D.def.dunks} · ${st[0]} · Style changes it`;
     if (D.over && G.ball.state !== 'shot') { D.endT = (D.endT || 0) + dt; if (D.endT > 2.6) finish(); }
   }
   function dunkLands(s) {

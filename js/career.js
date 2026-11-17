@@ -115,7 +115,7 @@
       <p class="mute">${cur && cur.me ? `As ${esc(PB.full(me))}, with your ratings and badges.` : 'As a practice shooter (80 overall).'}</p>
       <button class="big" id="p3">3-Point Contest<small>five racks, money balls, 60 seconds</small></button>
       <button class="ghost" id="pc">Spot-up drill<small>the combine's fifteen shots in 45 seconds</small></button>
-      <button class="ghost" id="pd">Dunk Contest<small>three dunks, five judges; Move picks the dunk</small></button></div>`);
+      <button class="ghost" id="pd">Dunk Contest<small>three dunks, five judges; Style picks the dunk</small></button></div>`);
     $('#bk').onclick = title;
     const go = kind => { scr().hidden = true; PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: me.id, drill: kind, dunks: 3, qlen: 1, level: S.level, floor: t,
       onEnd: r => { const d = r.drill || { score: 0, made: 0, att: 0 };
@@ -555,7 +555,7 @@
         <button class="big" id="asg">Play the All-Star Game</button><button class="ghost" id="asgsim">Sim it</button></div>` + card;
       if (C.contest === 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>3-Point Contest</h3><p>Five racks, five balls each, 60 seconds; the last ball of every rack is the money ball, worth two. Seven of the league's best shooters are waiting.</p>
         <button class="big" id="contest">Take the floor</button><button class="ghost" id="nocontest">Pass this year</button></div>` + card;
-      if (C.dunk === 'invited' && C.contest !== 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>Dunk Contest</h3><p>Two dunks in the first round, the top two go to the final for two more. Five judges, ten points each. Pick the dunk with Move; take off from as far out as you dare.</p>
+      if (C.dunk === 'invited' && C.contest !== 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>Dunk Contest</h3><p>Two dunks in the first round, the top two go to the final for two more. Five judges, ten points each. Pick the dunk with the Style button; take off from as far out as you dare.</p>
         <button class="big" id="dunk">Take the floor</button><button class="ghost" id="nodunk">Pass this year</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
       body = card + (C.phase === 'playoffs' ? bracketCard() : '') + `
