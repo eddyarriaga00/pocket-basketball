@@ -530,6 +530,19 @@
     R.loadModel();
   };
 
+  /* indexed geometries with the same attributes, end to end in one */
+  function mergeGeo(list) {
+    const names = Object.keys(list[0].attributes), out = new T.BufferGeometry(), idx = [];
+    let base = 0;
+    for (const n of names) {
+      const sz = list[0].attributes[n].itemSize, arr = new Float32Array(list.reduce((a, g) => a + g.attributes[n].array.length, 0));
+      let o = 0; for (const g of list) { arr.set(g.attributes[n].array, o); o += g.attributes[n].array.length; }
+      out.setAttribute(n, new T.BufferAttribute(arr, sz));
+    }
+    for (const g of list) { for (const i of g.index.array) idx.push(i + base); base += g.attributes.position.count; g.dispose(); }
+    out.setIndex(idx);
+    return out;
+  }
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
   R.build = (home) => {
     for (const m of meshes.values()) scene.remove(m.root);
@@ -551,18 +564,20 @@
     pool.rotation.x = -Math.PI / 2; pool.position.y = 0.015; scene.add(pool);
     /* stands: tiers on all four sides */
     const crowd = crowdTexture();
-    crowdMaps = [];
+    /* all 44 tiers of each kind in one mesh: two draws for the whole crowd instead of eighty-eight */
+    const sideM = crowd.clone(), endM = crowd.clone();
+    sideM.needsUpdate = endM.needsUpdate = true; sideM.repeat.set(6, 1); endM.repeat.set(3, 1);
+    crowdMaps = [sideM, endM];
+    const sides = [], ends = [];
     for (let i = 0; i < 11; i++) {
       const h = 3 + i * 3.2, d = 8 + i * 5;
       for (const side of [-1, 1]) {
-        const m = new T.Mesh(new T.BoxGeometry(5, 3.2, 150), new T.MeshLambertMaterial({ map: crowd.clone(), color: 0x8a8890 }));
-        m.material.map.needsUpdate = true; m.material.map.repeat.set(6, 1); crowdMaps.push(m.material.map);
-        m.position.set(side * (25 + d), h - 1.6, 0); scene.add(m);
-        const e = new T.Mesh(new T.BoxGeometry(80 + d * 2, 3.2, 5), new T.MeshLambertMaterial({ map: crowd.clone(), color: 0x8a8890 }));
-        e.material.map.needsUpdate = true; e.material.map.repeat.set(3, 1); crowdMaps.push(e.material.map);
-        e.position.set(0, h - 1.6, side * (47 + 10 + d)); scene.add(e);
+        sides.push(new T.BoxGeometry(5, 3.2, 150).translate(side * (25 + d), h - 1.6, 0));
+        ends.push(new T.BoxGeometry(80 + d * 2, 3.2, 5).translate(0, h - 1.6, side * (47 + 10 + d)));
       }
     }
+    scene.add(new T.Mesh(mergeGeo(sides), new T.MeshLambertMaterial({ map: sideM, color: 0x8a8890 })));
+    scene.add(new T.Mesh(mergeGeo(ends), new T.MeshLambertMaterial({ map: endM, color: 0x8a8890 })));
     /* the center-hung scoreboard: four screens over center court showing the score and the clock, and a ring of light */
     const jc = document.createElement('canvas'); jc.width = 512; jc.height = 256;
     board = { cv: jc, g: jc.getContext('2d'), tex: new T.CanvasTexture(jc), key: '' }; board.tex.colorSpace = T.SRGBColorSpace;
