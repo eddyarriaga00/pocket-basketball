@@ -379,6 +379,8 @@
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = 'attribute float region;\nattribute vec3 kpos;\nvarying float vRegion;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRegion = region; vK = kpos;');
+      /* a rim light: the edge of the body catches light, so players pop off the floor */
+      sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
       sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nvarying float vRegion;\nvarying vec3 vK;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
   vec3 rc = vRegion < 0.5 ? cSkin : vRegion < 1.5 ? cJersey : vRegion < 2.5 ? cShorts : vRegion < 3.5 ? cShoe : vRegion < 4.5 ? cSock : cTrim;
@@ -393,11 +395,14 @@
     else if (kPat > 5.5 && top && abs(vK.x + (vK.y - 1.18) * 0.85) < 0.016) rc = cAlt;
     if (bot && kPat > 2.5 && kPat < 3.5 && vK.y < 0.918) rc = cAlt;   // the chest band's partner: a hem band on the shorts
   }
+  if (vRegion > 2.5 && vRegion < 3.5 && vK.y < 0.512) rc = vec3(0.96);                    // the sole
+  if (vRegion > 3.5 && vRegion < 4.5 && vK.y > 0.596 && vK.y < 0.607) rc = cAlt;           // a stripe at the top of the sock
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit2';
+    m.customProgramCacheKey = () => 'pb-kit3';
     return m;
   }
+  const HEAD = 1.13;
   const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
   /* the face as one geometry with vertex colors: two eyes, two pupils, two brows */
   const FACE_MAT = new T.MeshBasicMaterial({ vertexColors: true });
@@ -405,9 +410,9 @@
     const parts = [];
     const add = (g, color, x, y, z, rz) => { g.rotateZ(rz || 0); g.translate(x, y, z); const c = new T.Color(color), n = g.attributes.position.count, col = new Float32Array(n * 3); for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; } g.setAttribute('color', new T.BufferAttribute(col, 3)); parts.push(g.index ? g.toNonIndexed() : g); };
     for (const sx of [-1, 1]) {
-      add(new T.SphereGeometry(H * 0.0085, 6, 4), 0xf2efe8, sx * H * 0.018, 0, 0);
-      add(new T.SphereGeometry(H * 0.0048, 6, 4), 0x120c08, sx * H * 0.018, 0, H * 0.006);
-      add(new T.BoxGeometry(H * 0.022, H * 0.004, H * 0.004), 0x120c08, sx * H * 0.019, H * 0.014, H * 0.002, -sx * 0.12);
+      add(new T.SphereGeometry(H * 0.0105, 8, 6), 0xf2efe8, sx * H * 0.019, 0, 0);
+      add(new T.SphereGeometry(H * 0.0062, 8, 6), 0x120c08, sx * H * 0.019, -H * 0.001, H * 0.0075);
+      add(new T.BoxGeometry(H * 0.024, H * 0.0055, H * 0.005), 0x120c08, sx * H * 0.02, H * 0.0165, H * 0.003, -sx * 0.12);
     }
     add(new T.BoxGeometry(H * 0.022, H * 0.0035, H * 0.004), 0x3a1d14, 0, -H * 0.03, H * 0.002);         // the mouth
     const nose = new T.ConeGeometry(H * 0.006, H * 0.014, 5); nose.rotateX(Math.PI / 2); add(nose, 0x2a1810, 0, -H * 0.012, H * 0.008);   // the nose
@@ -513,7 +518,8 @@
     }
     act.Idle_Loop.setEffectiveWeight(1);
     const arm = s => ({ up: bones[bk(`DEF-upper_arm.${s}`)], fore: bones[bk(`DEF-forearm.${s}`)], hand: bones[bk(`DEF-hand.${s}`)] });
-    return { kind: 'skin', root, body, mixer, act, bones, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
+    const headB = bones[bk('DEF-head')]; if (headB) headB.scale.setScalar(HEAD);
+    return { kind: 'skin', root, body, mixer, act, bones, head: headB, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
   }
 
   /* turn a bone so the segment from it to `tip` points along `dir` (world), by `w` of the way */
@@ -596,6 +602,7 @@
     m.act.Sprint_Loop.timeScale = Math.min(1.3, Math.max(0.8, sp / (18 * scl)));
     if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
     m.mixer.update(dt);
+    if (m.head) m.head.scale.setScalar(HEAD);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
     /* the arms */
     const has = G.ball.holder === p;
@@ -650,7 +657,7 @@
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
       if (o.body) { const z = o.back ? -1 : 1; c.position.set(0.6 * z, H * 0.55, 14.5 * z); c.lookAt(0, H * 0.5, 0); }
-      else { c.position.set(0.35, H * 0.9, 3.1); c.lookAt(0, H * 0.86, 0); }
+      else { c.position.set(0.35, H * 0.92, 3.6); c.lookAt(0, H * 0.875, 0); }
       rr.render(sc, c);
       const url = cv.toDataURL('image/png');
       rr.dispose(); rr.forceContextLoss && rr.forceContextLoss();
