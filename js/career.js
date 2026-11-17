@@ -1809,12 +1809,14 @@
       store('pbb.hall', hall.slice(0, 40));
     }
     C.phase = 'retired'; save();
-    show(`<div class="page post"><p class="kick">Retirement</p><h2>${esc(PB.full(C.me))} hangs them up</h2>
+    const in3d = !PB.noGL && PB.R.modelReady && PB.R.modelReady();
+    show(`<div class="page post ${in3d ? 'awards draft over3d' : ''}"><p class="kick">Retirement</p><h2>${esc(PB.full(C.me))} hangs them up</h2>${in3d ? '<div class="spacer"></div>' : ''}
       <div class="tiles"><div><b>${C.seasons.length}</b><span>SEASONS</span></div><div><b>${(T.pts / gp).toFixed(1)}</b><span>PPG</span></div><div><b>${T.pts}</b><span>POINTS</span></div></div>
       <div class="card"><h3>${inHall ? 'Hall of Fame: inducted' : 'Hall of Fame: not this time'}</h3><p>${inHall ? 'First ballot.' : 'A fine career. The voters wanted more hardware.'}${jersey ? ` The ${esc(PB.team(C.team).name)} retire your #${C.me.num}: it hangs in their rafters from tonight.` : ''}</p>
       <p class="fine">Hall score ${score.toFixed(1)} (22 gets you in): points, boards and assists, MVPs, titles, All-Star and All-League nods, seasons played.</p></div>
       <div class="card"><h3>Trophy case</h3>${C.trophies.map(x => `<p class="news">🏆 ${esc(x)}</p>`).join('') || '<p class="mute">Empty.</p>'}</div>
       <button class="big" id="go">Main menu</button></div>`);
+    if (in3d) { scr().classList.add('over3d'); PB.R.showcase(C.me, PB.team(C.team)); }   // one last time at center court; your banner overhead
     $('#go').onclick = title;
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
