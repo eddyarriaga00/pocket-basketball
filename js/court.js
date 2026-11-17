@@ -566,7 +566,7 @@
     m.customProgramCacheKey = () => 'pb-outline'; m.userData.shared = true; return m; })();
   const MOUTH_MAT = Object.assign(new T.MeshBasicMaterial({ color: 0x2a0d0a }), { userData: { shared: true } });
   const HEAD = 1.22, ABD = 0.16;
-  const _ax = V3();
+  const _ax = V3(), _up = V3(0, 1, 0);
   const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
   /* the face as one geometry with vertex colors: two eyes, two pupils, two brows */
   const FACE_MAT = new T.MeshBasicMaterial({ vertexColors: true });
@@ -973,8 +973,17 @@
     m.act.Jog_Fwd_Loop.timeScale = Math.min(1.5, Math.max(0.7, sp / (11 * scl)));
     m.act.Sprint_Loop.timeScale = Math.min(1.3, Math.max(0.8, sp / (18 * scl)));
     if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
+    if (m.head) { if (!m.headRest) m.headRest = m.head.quaternion.clone(); else m.head.quaternion.copy(m.headRest); }   // the turn below is fresh each frame
     m.mixer.update(dt);
     if (m.head) m.head.scale.setScalar(HEAD);
+    /* eyes on the ball: the head turns toward it (within a comfortable range), smoothly */
+    if (m.head && G.ball && G.ball.holder !== p && !p.shoot && !G.show) {
+      const bx = G.ball.x - p.x, bz = G.ball.z - p.z;
+      let d = Math.atan2(bx, bz) - (p.face + (p.spinA || 0)); while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+      const want = Math.abs(d) < 2.2 ? Math.max(-0.75, Math.min(0.75, d)) : 0;
+      m.lookY = (m.lookY || 0) + (want - (m.lookY || 0)) * Math.min(1, dt * 6);
+    } else m.lookY = (m.lookY || 0) * Math.max(0, 1 - dt * 6);
+    if (m.head && Math.abs(m.lookY || 0) > 0.01) { m.body.updateMatrixWorld(true); m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_up, m.lookY).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); }
     if (m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = (G.t + m.hg.userData.bph) % 3.8 < 0.13;
     if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
