@@ -347,6 +347,7 @@
       if (p.team === 0) toast(call + (s.foul ? ' · AND ONE' : ''), 'make'); else toast(`${p.name} scores`, 'opp');
       feed(`${p.name} ${s.oop ? 'alley-oop' : s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : s.kind === 'hook' ? 'hook shot' : s.kind === 'floater' ? 'floater' : 'jumper'}${ast ? ` (${ast.name} ast)` : ''}`);
       if (p.isUser) { grade(s.pts === 3 ? 4 : 3, s.pts === 3 ? 'Made three' : 'Scored'); buzz([20, 30, 30]); }
+      if (p.isUser && (s.pts === 3 || s.kind === 'dunk')) p.celebT = 0.9;
       if (ast && ast.isUser) grade(3, 'Assist');
       /* the man you guard scored */
       if (G.user && p.team === 1 && G.user.slot === p.slot && hyp(G.user.x - p.x, G.user.z - p.z) < 9) grade(-2, 'Your man scored');
@@ -881,6 +882,9 @@
     if (relT > 0) { relT -= dt; if (relT <= 0) $('#rel').className = ''; }
     if (G.phase === 'tip') {
       G.tipT -= dt;
+      /* the two centers go up for it */
+      if (G.tipT < 0.5 && !G.tipJump) { G.tipJump = true; for (const p of G.pl) if (p.slot === 4) { p.jg = GRAV * 1.4; p.vy = Math.sqrt(2 * p.jg * (2.4 + p.r.vert * 0.02)); p.pose = 'contest'; } }
+      for (const p of G.pl) if (p.y > 0 || p.vy) { p.y += p.vy * dt; p.vy -= p.jg * dt; if (p.y <= 0) { p.y = 0; p.vy = 0; p.pose = ''; } }
       if (G.tipT <= 0) {
         const t = rand() < 0.5 ? 0 : 1;
         G.tipWinner = t; G.phase = 'live';
@@ -911,6 +915,7 @@
       AU().crowd.level(0.3 + 0.15 * (G.q - 1) / 3 + 0.5 * late * close);
       if (G.q >= 4 && G.clock < 60 && Math.abs(G.score[0] - G.score[1]) <= 5 && !G.clutchSaid) { G.clutchSaid = true; B('clutch', { prio: 2, follow: 0.5 }); }
       if (G.poss === 1 - G.home && G.q >= 2 && close > 0.5 && G.t > (G.chantT || 25) && G.ball.state === 'held') { G.chantT = G.t + rr(35, 60); AU().crowd.react('chant', 0.8); }
+      if (G.poss === 1 - G.home && G.t > G.organT && G.ball.state === 'held' && along(G.ball.z, 1 - G.home) > 40) { G.organT = G.t + rr(45, 80); if (AU().organ) AU().organ(rand() < 0.5 ? 'charge' : 'letsgo'); }
       if (G.shotClock <= 0 && (b.state === 'held' || b.state === 'pass')) {
         const t = G.poss; toast('SHOT CLOCK', 'opp'); AU().play('buzzer'); AU().play('whistle', { delay: 0.5 }); B('shotclock', { prio: 3 });
         turnover(b.holder || b.from, 'Shot clock violation', 1 - t);
@@ -933,6 +938,7 @@
       if (p.moveCd > 0) p.moveCd -= dt;
       if (p.reachCd > 0) p.reachCd -= dt;
       if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && p.pose === 'reach') p.pose = ''; }
+      if (p.celebT > 0) { p.celebT -= dt; if (!p.shoot && G.ball.holder !== p && p.y === 0) p.pose = p.celebT > 0 ? 'celebrate' : ''; }
       if (p.wantBall > 0) p.wantBall -= dt;
       if (p.shoot) {
         p.shoot.t += dt;
@@ -1100,6 +1106,7 @@
     g.clock = g.q > 4 ? Math.max(60, g.qlen * 60 * 5 / 12) : g.qlen * 60;
     toast(g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, '');
     AU().play('horn'); AU().crowd.react('applause', 0.7);
+    setTimeout(() => AU().organ && AU().organ(g.q === 3 ? 'walk' : 'letsgo'), 2200);
     setTimeout(() => B(g.q === 3 ? 'half' : g.q > 4 ? 'ot' : 'end_q', { prio: 3, follow: g.q === 3 ? 0.6 : 0 }), 900);
     if (g.q === 3 && !g.drill) halftime();
     g.poss = null;
@@ -1388,7 +1395,7 @@
         ball: { state: 'held', holder: null, x: 0, y: 7, z: 0, vx: 0, vy: 0, vz: 0, lastTouch: 0 } };
       tape = []; replayCd = 0;
       G.user = pl.find(p => p.isUser) || null;
-      G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0;
+      G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
       if (PB.booth && !o.drill) { const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B('intro', { prio: 2, follow: 0.6 }); }); else B('intro', { prio: 2, follow: 0.6 }); }

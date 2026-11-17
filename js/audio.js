@@ -216,6 +216,28 @@
     g.setTargetAtTime(Math.max(0, crowdLevel - 0.55) * 1.4, t + hold, 0.7);
   }
 
+  /* ---------- the arena organ ----------
+     A drawbar organ: a stack of sine partials (the 16', 8', 4' and 2 2/3' drawbars) through a little rotary wobble,
+     playing the riffs every arena plays: the charge, and the "da-da, da-da-da" the crowd claps along to. */
+  function organNote(c, out, t, midi, dur, v) {
+    const f = 440 * Math.pow(2, (midi - 69) / 12), g = gain(c, 0.0001);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.034 * v, t + 0.012); g.gain.setValueAtTime(0.034 * v, t + dur * 0.85); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const trem = c.createOscillator(); trem.frequency.value = 6.5; const td = gain(c, 0.25); trem.connect(td); td.connect(g.gain); trem.start(t); trem.stop(t + dur + 0.05);
+    for (const [m, a] of [[0.5, 0.7], [1, 1], [2, 0.6], [3, 0.35], [4, 0.2]]) chain(osc(c, 'sine', f * m, t, dur), gain(c, a), g);
+    chain(g, filt(c, 'lowpass', 3800, 0.6), out);
+  }
+  const RIFFS = {
+    charge: [[67, 0, 0.16], [72, 0.18, 0.16], [76, 0.36, 0.16], [79, 0.54, 0.34], [76, 0.92, 0.16], [79, 1.1, 0.7]],
+    letsgo: [[72, 0, 0.18], [72, 0.24, 0.18], [72, 0.6, 0.14], [72, 0.78, 0.14], [74, 0.96, 0.3], [72, 1.6, 0.18], [72, 1.84, 0.18], [72, 2.2, 0.14], [72, 2.38, 0.14], [74, 2.56, 0.3]],
+    walk: [[60, 0, 0.2], [64, 0.25, 0.2], [67, 0.5, 0.2], [69, 0.75, 0.2], [70, 1.0, 0.2], [69, 1.25, 0.2], [67, 1.5, 0.2], [64, 1.75, 0.3]],
+  };
+  function organ(kind) {
+    const r = RIFFS[kind]; if (!r || !ctx || S().sound === false) return;
+    const t0 = ctx.currentTime + 0.05;
+    for (const [m, at, d] of r) { organNote(ctx, bus.pa, t0 + at, m, d, 1); organNote(ctx, bus.pa, t0 + at, m - 12, d, 0.5); }
+    if (kind === 'letsgo') for (const at of [1.25, 2.85]) for (const k of [0, 0.25]) setTimeout(() => A.crowd.react('applause', 0.5), (at + k) * 1000);
+  }
+
   /* ---------- music: a short loop for the menus ---------- */
   /* Kick, snare, hats, a bass line and chord stabs in A minor, 92 bpm, scheduled a little ahead. */
   const BAR = [
@@ -285,6 +307,7 @@
         chain(s, gain(ctx, (kind === 'applause' ? 1.2 : kind === 'chant' ? 1.4 : 1.3) * k), bus.crowd); s.start();
       },
     },
+    organ,
     music(on) {
       musicOn = on && S().music !== false;
       if (!ctx) return;
