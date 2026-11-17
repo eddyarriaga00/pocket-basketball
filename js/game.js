@@ -317,6 +317,12 @@
       /* AI: when it lets go (near the top, a little early or late) */
       aiRel: clamp(0.82 + PB.gauss() * (0.09 - p.r.mid * 0.0006), 0.55, 1.1) };
     p.pose = kind === 'dunk' ? (rand() < 0.55 ? 'dunk1' : 'celebrate') : 'shoot';
+    /* a breakaway with nobody near: a flier shows off (a windmill, a reverse, a 360) */
+    p.showoff = null;
+    if (kind === 'dunk' && nearestDef(p).d > 12 && (p.r.dunk || 0) + (p.r.vert || 0) >= 150 && rand() < 0.55) {
+      const st = STYLES[1 + Math.floor(rand() * 4)];
+      p.pose = st[1]; p.spin = { total: st[4], t: 0, T: 2 * T * 0.82 }; p.spinA = 0; p.showoff = st[0];
+    }
     if (kind === 'jumper') { p.vx *= 0.2; p.vz *= 0.2; }
     /* a defender close by goes up with him */
     for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25);
@@ -594,6 +600,8 @@
       if (p.isUser) G.streak = (G.streak || 0) + 1;
       const run = G.run && G.run.team === p.team ? G.run : (G.run = { team: p.team, pts: 0, said: false });
       run.pts += s.pts;
+      if (s.kind === 'dunk' && p.showoff) { toast(p.showoff.toUpperCase() + '!', p.team === 0 ? 'make' : 'opp'); AU().crowd.react('roar', 1.3); if (p.isUser) reelMark('dunk', 5, p.showoff + ' dunk'); }
+      p.showoff = null;
       if (s.kind === 'dunk' || G.clock <= 0.05 || (p.isUser && s.foul)) wantReplay(s.kind);
       if (s.oop && p.isUser) grade(1, 'Alley-oop');
       if (p.isUser && G.q >= 4 && G.clock < 5 && G.score[p.team] > G.score[1 - p.team] && G.score[p.team] - s.pts <= G.score[1 - p.team]) G.userWinner = true;
