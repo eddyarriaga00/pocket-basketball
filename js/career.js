@@ -503,6 +503,8 @@
           <p class="fine">Last five games: average grade ${gradeAvg(avgG)} · trust ${Math.round(tr)}</p>
           <button class="ghost" id="coachok">Got it, coach</button><button class="ghost" id="coachmore">“I want more minutes”</button></div>` + card;
       }
+      if (C.season.allstar && !C.asg) card = `<div class="next"><p class="kick">All-Star weekend</p><h3>The All-Star Game</h3><p>East against West, the best player at every position, and you in the ${esc(PB.team(C.team).conf)} lineup.</p>
+        <button class="big" id="asg">Play the All-Star Game</button><button class="ghost" id="asgsim">Sim it</button></div>` + card;
       if (C.contest === 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>3-Point Contest</h3><p>Five racks, five balls each, 60 seconds; the last ball of every rack is the money ball, worth two. Seven of the league's best shooters are waiting.</p>
         <button class="big" id="contest">Take the floor</button><button class="ghost" id="nocontest">Pass this year</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
@@ -561,6 +563,8 @@
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
+    if ($('#asg')) $('#asg').onclick = () => allStarGame(true);
+    if ($('#asgsim')) $('#asgsim').onclick = () => allStarGame(false);
     scr().querySelectorAll('[data-ev]').forEach(b => b.onclick = () => eventPick(+b.dataset.ev));
     scr().querySelectorAll('[data-brand]').forEach(b => b.onclick = () => {
       const br = C.endorse.brands[+b.dataset.brand], i = C.endorse.offer, amt = [0.4, 1.2, 4, 10][i];
@@ -969,6 +973,29 @@
     if (C.season.allstar || C.me.r.three >= 72 || (C.season.tpm / Math.max(1, C.season.gp)) >= 2) {
       C.contest = 'invited'; C.news.unshift(`${C.me.last} is in the 3-Point Contest at All-Star weekend`);
     }
+  }
+  /* the All-Star Game: each conference's best at every position; you in yours */
+  function allStarGame(play) {
+    const mine = PB.team(C.team).conf, other = mine === 'East' ? 'West' : 'East';
+    const best = conf => PB.POS.map(pos => { let b = null; for (const t of PB.TEAMS) if (t.conf === conf) for (const p of C.rosters[t.id]) if (p.pos === pos && (!b || p.ovr > b.ovr)) b = p; return b; });
+    const us = best(mine); us[PB.POS.indexOf(C.me.pos)] = C.me;
+    const them = best(other);
+    const T = conf => ({ id: conf === 'East' ? 'EAS' : 'WES', ab: conf.toUpperCase(), city: conf, name: 'All-Stars', c1: conf === 'East' ? '#1d4e9e' : '#c8102e', c2: '#ffffff', conf });
+    const done = (us_, them_, line, sim) => {
+      C.asg = true;
+      const win = us_ > them_, mvp = line && line.pts * (sim ? 1 : 12 / S.qlen) >= 18 && win;
+      if (mvp) { C.trophies.push(`All-Star Game MVP, season ${C.year}`); C.fans = Math.round(C.fans * 1.12); }
+      C.news.unshift(`All-Star Game: ${win ? mine : other} ${Math.max(us_, them_)}-${Math.min(us_, them_)}${mvp ? `; ${C.me.last} is the MVP` : ''}`);
+      save();
+      show(`<div class="page post"><p class="kick">All-Star Game</p><div class="final"><div><b>${us_}</b></div><em>${win ? 'WIN' : 'LOSS'}</em><div><b>${them_}</b></div></div>
+        <p class="mute">${mine} vs ${other}</p>${line ? `<div class="tiles"><div><b>${line.pts}</b><span>PTS</span></div><div><b>${line.reb}</b><span>REB</span></div><div><b>${line.ast}</b><span>AST</span></div></div>` : ''}
+        ${mvp ? '<div class="card earn"><b>All-Star Game MVP</b><span>The trophy and the spotlight are yours.</span></div>' : ''}<button class="big" id="go">Back to the season</button></div>`);
+      $('#go').onclick = hub;
+    };
+    if (!play) { const ln = simLine(C.me, 'Starter', PB.rand() < 0.5); const a = 140 + Math.round(PB.gauss() * 10), b = 140 + Math.round(PB.gauss() * 10) + (a === 140 ? 1 : 0); done(a, b, ln, true); return; }
+    scr().hidden = true;
+    PB.Game.start({ teams: [T(mine), T(other)], rosters: [us, them], userId: 'me', qlen: S.qlen, level: 'All-Star', floor: PB.team(C.team), strength: [90, 90],
+      onEnd: r => done(r.score[0], r.score[1], r.user, false) });
   }
   /* the 3-Point Contest: you and seven of the league's shooters, five racks, a money ball at the end of each */
   function contestField() {

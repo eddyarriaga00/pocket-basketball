@@ -102,7 +102,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [ ] Real schedule (division, conference, other conference weights), back-to-backs
 - [ ] League leaders from simmed box scores
 - [x] All-Star weekend 3-Point Contest: five racks, money balls, against seven of the league's shooters (2026-11-17)
-- [ ] Dunk contest; the All-Star game itself
+- [x] The All-Star Game: East against West, the best at every position, an All-Star MVP (2026-11-17)
+- [ ] Dunk contest
 - [ ] Injuries (day-to-day, out for weeks)
 
 ## M4 · Contracts and legacy
