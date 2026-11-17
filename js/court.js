@@ -1220,8 +1220,10 @@
         const z = side * (15 + i * 2.1), x = 28.4, skin = PB.SKIN[(i * 3 + t * 2) % 6];
         add(new T.BoxGeometry(1.6, 1.5, 1.7), x + 0.5, 0.75, z, '#202530');                      // the chair
         add(new T.BoxGeometry(1.5, 0.5, 1.8), x + 0.6, 2.2, z, '#202530');
-        add(new T.CylinderGeometry(0.5, 0.58, 2.3, 8), x + 0.45, 2.7, z, warm);                // in warmups
-        add(new T.SphereGeometry(0.4, 8, 6), x + 0.4, 4.25, z, skin);
+        add(new T.CylinderGeometry(0.55, 0.62, 2.2, 10), x + 0.45, 2.75, z, warm);              // in warmups
+        add(new T.SphereGeometry(0.58, 12, 9), x + 0.35, 4.5, z, skin);                          // a pocket-size head
+        if (i % 4 !== 2) { const hc = new T.SphereGeometry(0.62, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.42); hc.rotateZ(0.35); add(hc, x + 0.4, 4.55, z, i % 3 ? '#17110d' : '#2b1d12'); }   // hair
+        for (const sz of [-0.62, 0.62]) { const a = new T.CylinderGeometry(0.19, 0.17, 1.5, 6); a.rotateZ(0.75); add(a, x - 0.05, 2.75, z + sz, warm); }   // arms on the knees
         add(new T.BoxGeometry(1.8, 0.55, 1.05), x - 0.35, 1.75, z, warm);                    // thighs toward the floor
         add(new T.BoxGeometry(0.45, 1.6, 0.9), x - 1.15, 0.85, z, '#f2f2f2');                 // shins
         add(new T.BoxGeometry(0.9, 0.3, 0.9), x - 1.3, 0.15, z, '#e9e9e9');                   // shoes
