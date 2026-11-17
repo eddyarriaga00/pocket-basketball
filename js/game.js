@@ -1586,7 +1586,7 @@
   function frame(now) {
     pollPad();
     raf = requestAnimationFrame(frame);
-    let dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now;
+    let dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now;   // a frame's timestamp can come before the clock we read
     if (G.replay) {
       if (!G.paused) replayFrame(dt);
       R.update(G, G.paused || !G.replay ? 0 : dt * 0.5);
@@ -1876,9 +1876,17 @@
       raf = requestAnimationFrame(frame);
     },
     /* after the game: your highlights, one after another at half speed from the replay camera; a tap skips one */
-    reel(list, done) {
+    reel(list, done, o) {
       if (!G || !list || !list.length) { if (done) done(); return; }
       const el = $('#game'), rp = $('#rp');
+      /* o.record: film the canvas while it plays and hand back a video file */
+      let rec = null, chunks = [];
+      if (o && o.record && window.MediaRecorder && $('#gl').captureStream) {
+        const types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+        const type = types.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
+        try { rec = new MediaRecorder($('#gl').captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 5e6 } : undefined); rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(250); } catch (e) { rec = null; }
+      }
+      const finishRec = () => new Promise(res => { if (!rec) { res(null); return; } rec.onstop = () => res(new Blob(chunks, { type: rec.mimeType || 'video/webm' })); rec.stop(); });
       $('#screen').hidden = true; $('#pause').hidden = true; $('#intro').hidden = true; $('#tipcard').hidden = true; G.paused = false;
       el.hidden = false; el.classList.add('replaying', 'show');
       const ordered = list.slice().sort((a, b) => a.q - b.q || b.clock - a.clock);
@@ -1886,7 +1894,8 @@
       const next = () => {
         if (i >= ordered.length) {
           cancelAnimationFrame(raf); G.replay = null; R.setReplay(false); el.classList.remove('replaying', 'show'); el.hidden = true; rp.hidden = true;
-          rp.innerHTML = '<i></i>REPLAY<small>tap to skip</small>'; if (done) done(); return;
+          rp.innerHTML = '<i></i>REPLAY<small>tap to skip</small>';
+          if (rec) finishRec().then(blob => { if (done) done(blob); }); else if (done) done(); return;
         }
         const r = ordered[i++];
         G.replay = { frames: r.frames, i: 0, kind: r.kind, onEnd: next };
@@ -1895,7 +1904,7 @@
       };
       next();
       cancelAnimationFrame(raf); last = performance.now();
-      const loop = now => { raf = requestAnimationFrame(loop); const dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now; if (!G.replay) return; replayFrame(dt); R.update(G, dt * 0.5); R.render(); };
+      const loop = now => { raf = requestAnimationFrame(loop); const dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now; if (!G.replay) return; replayFrame(dt); R.update(G, dt * 0.5); R.render(); };
       raf = requestAnimationFrame(loop);
     },
     /* test hooks */

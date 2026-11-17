@@ -1188,8 +1188,25 @@
 
   /* a played game comes back here */
   let lastReels = [];   // the tape of your best plays in the game just played (not saved)
-  const reelBtn = () => lastReels.length ? `<button class="ghost" id="reel">▶ Your highlights <small>${lastReels.length} play${lastReels.length > 1 ? 's' : ''} from tonight</small></button>` : '';
-  const reelWire = () => { if ($('#reel')) $('#reel').onclick = () => PB.Game.reel(lastReels, () => { $('#screen').hidden = false; }); };
+  const reelBtn = () => lastReels.length ? `<div class="row2"><button class="ghost" id="reel">▶ Your highlights <small>${lastReels.length} play${lastReels.length > 1 ? 's' : ''} from tonight</small></button>${window.MediaRecorder ? '<button class="ghost" id="reelsave">Save as video<small>to share</small></button>' : ''}</div>` : '';
+  /* the highlights as a video file: the phone's share sheet when it has one, else a download */
+  function shareVideo(blob) {
+    if (!blob || !blob.size) { alert('This browser could not record the video.'); return; }
+    const ext = /mp4/.test(blob.type) ? 'mp4' : 'webm', name = `pocketbasketball-highlights.${ext}`;
+    const file = window.File ? new File([blob], name, { type: blob.type }) : null;
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'My highlights' }).catch(() => {}); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  }
+  const reelWire = () => {
+    if ($('#reel')) $('#reel').onclick = () => PB.Game.reel(lastReels, () => { $('#screen').hidden = false; });
+    if ($('#reelsave')) $('#reelsave').onclick = () => PB.Game.reel(lastReels, blob => {
+      $('#screen').hidden = false;
+      const b = $('#reelsave'); if (!b) return;
+      if (!blob || !blob.size) { b.innerHTML = 'Could not record<small>this browser</small>'; b.disabled = true; return; }
+      window.__lastVideo = blob;   // (tests read it)
+      b.innerHTML = 'Share the video<small>ready</small>'; b.classList.add('lit'); b.onclick = () => shareVideo(blob);   // a tap of your own: share sheets need one
+    }, { record: true });
+  };
   function result(res, g) {
     lastReels = res.reels || [];
     if (!g) {   // quick game
