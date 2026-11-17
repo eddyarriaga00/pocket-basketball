@@ -504,7 +504,11 @@
     m.customProgramCacheKey = () => 'pb-kit6';
     return m;
   }
-  const HEAD = 1.22;
+  const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
+    m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = vec3( position ) + normal * 0.011;'); };
+    m.customProgramCacheKey = () => 'pb-outline'; m.userData.shared = true; return m; })();
+  const HEAD = 1.22, ABD = 0.16;
+  const _ax = V3();
   const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
   /* the face as one geometry with vertex colors: two eyes, two pupils, two brows */
   const FACE_MAT = new T.MeshBasicMaterial({ vertexColors: true });
@@ -649,6 +653,9 @@
         const sb = new T.SkinnedMesh(TPL.simpleGeo, mat); sb.frustumCulled = false; bodyMesh.parent.add(sb);
         sb.position.copy(bodyMesh.position); sb.quaternion.copy(bodyMesh.quaternion); sb.scale.copy(bodyMesh.scale); sb.bind(bodyMesh.skeleton, bodyMesh.bindMatrix);
         bodyMesh.visible = false;
+        /* a thin dark outline (the inside of a slightly fatter copy): players read clearly against the floor */
+        if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; bodyMesh.parent.add(ol);
+          ol.position.copy(bodyMesh.position); ol.quaternion.copy(bodyMesh.quaternion); ol.scale.copy(bodyMesh.scale); ol.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
       }
       if (bodyMesh) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
     }
@@ -858,6 +865,9 @@
     m.mixer.update(dt);
     if (m.head) m.head.scale.setScalar(HEAD);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
+    /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
+    if (TPL.simpleGeo && !PB.mannequin) { const fx = Math.sin(p.face + (p.spinA || 0)), fz = Math.cos(p.face + (p.spinA || 0)); _ax.set(fx, 0, fz);
+      for (const [arm, sd] of [[m.R, 1], [m.L, -1]]) { const b = arm.up; b.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, ABD * sd * (TPL.sideR < 0 ? 1 : -1)).multiply(_qw); b.parent.getWorldQuaternion(_qp).invert().multiply(_q); b.quaternion.copy(_qp); b.updateMatrixWorld(true); } }
     /* the arms */
     const has = G.ball.holder === p;
     let pose = p.pose;
