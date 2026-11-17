@@ -25,6 +25,8 @@
     if (old && !slots().length) { store('pbb.career.c1', old); store(IDX, [{ id: 'c1' }]); setCur('c1'); try { localStorage.removeItem(KEY); } catch (e) { /* fine */ } }
   })();
   const loadCur = () => { const id = curId(); return id ? load('pbb.career.' + id) : null; };
+  /* your name outside a career: your career player's, or one of your own kept on the device */
+  const youName = () => { const c = loadCur(); if (c && c.me) return [c.me.first, c.me.last]; let n = load('pbb.you'); if (!n) { n = PB.randName().split(' '); store('pbb.you', n); } return n; };
   /* achievements: across every career on this device, kept even when a career is deleted */
   const ACH = [
     ['drafted', 'Welcome to the league', 'Get drafted', C => !!C.team],
@@ -214,7 +216,7 @@
     $('#bk').onclick = title;
     $('#go').onclick = () => {
       const fa = PB.makeRoster(80), fb = PB.makeRoster(80), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
-      const me = ra[PB.POS.indexOf(sp.pos)]; me.r = PB.makeRatings(sp.pos, 85); me.ovr = PB.ovr(me.r, sp.pos); me.first = 'You'; me.last = 'You';
+      const me = ra[PB.POS.indexOf(sp.pos)]; me.r = PB.makeRatings(sp.pos, 85); me.ovr = PB.ovr(me.r, sp.pos); { const n = youName(); me.first = n[0]; me.last = n[1]; }
       const score = [sp.base + Math.max(0, sp.diff), sp.base + Math.max(0, -sp.diff)];
       scr().hidden = true;
       PB.Game.start({ teams: [A, B], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: me.id, qlen: S.qlen, level: 'All-Star', floor: A,
@@ -289,6 +291,7 @@
       ${opt('gfx', ['High', 'Low'], 'Graphics (Low for older phones: fewer details, lower resolution)')}
       ${opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock camera distance')}
       ${opt('btnSize', ['Normal', 'Large'], 'Button size')}
+      ${opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players')}
       ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
       ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
       ${opt('season', [10, 20, 41, 82], 'Games in a career season (next season on)')}
@@ -350,7 +353,7 @@
       const a = PB.team($('#qa').value), b = PB.team($('#qb').value);
       if (a === b) { alert('Pick two different teams.'); return; }
       const fa = PB.makeRoster(78), fb = PB.makeRoster(78), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
-      const team = slot === 'team'; if (!team) { ra[slot].first = 'You'; ra[slot].last = 'You'; }
+      const team = slot === 'team'; if (!team) { const n = youName(); ra[slot].first = n[0]; ra[slot].last = n[1]; }
       scr().hidden = true;
       PB.Game.start({ teams: [a, b], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: ra[team ? 0 : slot].id, switching: team, qlen: S.qlen, level: S.level,
         strength: [PB.teamOvr(fa), PB.teamOvr(fb)], onEnd: r => result(r, null) });

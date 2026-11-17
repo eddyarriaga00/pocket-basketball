@@ -24,6 +24,33 @@
     const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace;
     tag = new T.Sprite(new T.SpriteMaterial({ map: t, depthTest: false, transparent: true })); tag.scale.set(5.6, 1.4, 1); tag.renderOrder = 6; scene.add(tag);
   };
+  /* name tags: over you, and over whoever has the ball. Black and white, small, the name and the number */
+  const tags = { me: null, ball: null };
+  function nameSprite(text, num, mine) {
+    const cv = document.createElement('canvas'); cv.width = 320; cv.height = 72; const g = cv.getContext('2d');
+    g.font = '900 30px Archivo, Arial'; const w = Math.min(300, g.measureText(text).width + 70);
+    g.fillStyle = mine ? '#ffffff' : 'rgba(10,10,12,.82)'; g.beginPath(); g.roundRect ? g.roundRect(160 - w / 2, 10, w, 50, 25) : g.rect(160 - w / 2, 10, w, 50); g.fill();
+    g.fillStyle = mine ? '#000' : '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '800 22px Archivo, Arial'; g.globalAlpha = 0.55; g.fillText(String(num), 160 - w / 2 + 26, 36); g.globalAlpha = 1;
+    g.font = '900 28px Archivo, Arial'; g.fillText(text, 160 + 12, 36);
+    const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace;
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: t, depthTest: false, transparent: true })); sp.scale.set(5.4, 1.21, 1); sp.renderOrder = 6; return sp;
+  }
+  function placeTag(k, p, mine) {
+    const want = p ? `${p.name}|${p.num}` : '';
+    if (tags[k] && tags[k].key !== want) { scene.remove(tags[k].sp); tags[k].sp.material.map.dispose(); tags[k].sp.material.dispose(); tags[k] = null; }
+    if (!p) return;
+    if (!tags[k]) { tags[k] = { key: want, sp: nameSprite(String(p.name).toUpperCase(), p.num, mine) }; scene.add(tags[k].sp); }
+    /* under his feet, a step toward the camera: it reads below the ring and never sits on the man behind him */
+    const dx = cam.position.x - p.x, dz = cam.position.z - p.z, L = Math.hypot(dx, dz) || 1;
+    tags[k].sp.position.set(p.x + dx / L * 2.6, 0.2, p.z + dz / L * 2.6);
+  }
+  R.nameTags = G => {
+    const mode = (PB.settings && PB.settings.tags) || 'You and the ball';
+    const u = G && !G.drill && !G.replay && mode !== 'Off' ? G.user : null, h = G && G.ball && G.ball.holder;
+    placeTag('me', u, true);
+    placeTag('ball', mode === 'You and the ball' && h && h !== u && !G.replay ? h : null, false);
+  };
   R._marks = () => ({ pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
   R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
   let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
@@ -660,7 +687,7 @@
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
   R.build = (home) => {
     for (const m of meshes.values()) scene.remove(m.root);
-    meshes.clear(); refs = []; benchMesh = [];
+    meshes.clear(); refs = []; benchMesh = []; tags.me = tags.ball = null;
     while (scene.children.length > 2) scene.remove(scene.children[2]);
     /* every player's shadow, one instanced mesh */
     const sg = new T.CircleGeometry(1.1, 16); sg.rotateX(-Math.PI / 2);
@@ -991,7 +1018,8 @@
       }
     }
     for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
-    if (tag && tagP) tag.position.set(tagP.x, (tagP.ht || 78) / 12 + 2.6 + tagP.y, tagP.z);
+    if (tag && tagP) tag.position.set(tagP.x, (tagP.ht || 78) / 12 + 3.9 + tagP.y, tagP.z);
+    if (G.pl && !G.show) R.nameTags(G);
     if (passArrow) {
       passArrow.visible = !!passTarget;
       if (passTarget) { passArrow.position.set(passTarget.x, (passTarget.ht || 78) / 12 + 2.4 + Math.sin(G.t * 6) * 0.25 + passTarget.y, passTarget.z); passArrow.rotation.y += dt * 2; }
