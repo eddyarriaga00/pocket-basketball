@@ -1625,6 +1625,7 @@
     R5.push({ kind: P.kind, val: P.val, label: P.label, q: P.q, clock: P.clock, frames: tape.slice(-95) });
     if (R5.length > 5) R5.splice(R5.indexOf(R5.reduce((a, b) => (b.val < a.val ? b : a))), 1);
   }
+  const reelSnd = {};
   function wantReplay(kind) {
     if (PB.settings && PB.settings.replays === false) return;
     if (G.t < replayCd || G.replay || tape.length < 40) return;
@@ -2000,7 +2001,9 @@
         /* each frame goes onto a 2D canvas with a caption (the page's own overlays are not in the picture) */
         /* 1080 by 1920, vertical: ready for a phone feed */
         comp = document.createElement('canvas'); comp.width = 1080; comp.height = 1920; cg = comp.getContext('2d');
-        try { rec = new MediaRecorder(comp.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 8e6 } : undefined); rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(250); } catch (e) { rec = null; }
+        const vs = comp.captureStream(30), as = AU().stream && AU().stream();
+        const ms = as && as.getAudioTracks().length ? new MediaStream([...vs.getVideoTracks(), ...as.getAudioTracks()]) : vs;
+        try { rec = new MediaRecorder(ms, type ? { mimeType: type, videoBitsPerSecond: 8e6 } : undefined); rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(250); } catch (e) { rec = null; }
       }
       const caption = () => {
         if (!cg) return;
@@ -2028,14 +2031,20 @@
       const next = () => {
         if (i >= ordered.length) {
           cancelAnimationFrame(raf); G.replay = null; R.setReplay(false); el.classList.remove('replaying', 'show'); el.hidden = true; rp.hidden = true;
+          clearTimeout(reelSnd.a); clearTimeout(reelSnd.b); AU().crowd.on(false); if (PB.booth) PB.booth.stop();
           rp.innerHTML = '<i></i>REPLAY<small>tap to skip</small>';
           if (rec) finishRec().then(blob => { if (done) done(blob); }); else if (done) done(); return;
         }
         const r = ordered[i++];
+        /* the sound of it: the building back up, the roar on the make, the booth's call */
+        const call = r.kind === 'block' ? 'block' : r.kind === 'dunk' ? 'dunk' : /Three/.test(r.label) ? 'three' : r.kind === 'layup' ? 'layup' : 'jumper';
+        clearTimeout(reelSnd.a); clearTimeout(reelSnd.b);
+        reelSnd.a = setTimeout(() => B(call, { prio: 6 }), 3600); reelSnd.b = setTimeout(() => { AU().crowd.react('roar', 1.2); AU().play(r.kind === 'dunk' ? 'dunk' : r.kind === 'block' ? 'block' : 'swish'); }, 4300);
         G.replay = { frames: r.frames, i: 0, kind: r.kind, onEnd: next, label: r.label, sub: `${['', '1st quarter', '2nd quarter', '3rd quarter', '4th quarter'][r.q] || 'Overtime'} · ${G.user ? G.user.d.first + ' ' + G.user.d.last : ''}` };
         rp.innerHTML = `<i></i>${r.label.toUpperCase()}<small>${['', '1st', '2nd', '3rd', '4th'][r.q] || 'OT'} · highlight ${i} of ${ordered.length} · tap to skip</small>`;
         rp.hidden = false; R.setReplay(true);
       };
+      AU().crowd.on(true); AU().crowd.level(0.45); AU().muffle(false);
       next();
       cancelAnimationFrame(raf); last = performance.now();
       const loop = now => { raf = requestAnimationFrame(loop); const dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now; if (!G.replay) return; replayFrame(dt); R.update(G, dt * 0.5); R.render(); if (G.replay) caption(); };

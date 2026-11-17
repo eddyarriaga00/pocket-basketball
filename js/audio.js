@@ -351,6 +351,8 @@
     /* test hooks: the output level now (dB, RMS and peak over the last 46 ms), and whether the pack and crowd loaded */
     meter() { if (!bus) return null; const d = new Float32Array(bus.meter.fftSize); bus.meter.getFloatTimeDomainData(d); let s = 0, pk = 0; for (const v of d) { s += v * v; pk = Math.max(pk, Math.abs(v)); } return { rms: 10 * Math.log10(s / d.length + 1e-12), peak: 20 * Math.log10(pk + 1e-12) }; },
     out: () => bus && bus.out,
+    /* everything you hear, as a stream a recorder can take (the highlight videos) */
+    stream() { if (!ctx || !bus || !ctx.createMediaStreamDestination) return null; if (!bus.rec) { bus.rec = ctx.createMediaStreamDestination(); bus.out.connect(bus.rec); } return bus.rec.stream; },
     status: () => ({ pack: !!pack, shift: pack && pack.shift, stems: Object.keys(stems).filter(k => stems[k]), crowd: !!crowdNodes }),
   };
 
