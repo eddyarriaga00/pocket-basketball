@@ -245,7 +245,7 @@
   R.loadModel = () => {
     const A = window.THREE_ADDONS;
     if (TPL || !A) return Promise.resolve(TPL);
-    if (!tplLoading) tplLoading = new A.GLTFLoader().loadAsync('models/player.glb').then(g => (TPL = template(g))).catch(e => { console.warn('player model', e); return null; });
+    if (!tplLoading) tplLoading = new A.GLTFLoader().loadAsync('models/player.glb').then(g => (TPL = R._tpl = template(g))).catch(e => { console.warn('player model', e); return null; });
     return tplLoading;
   };
   R.modelReady = () => !!TPL;
@@ -288,19 +288,12 @@
         else if (/foot|toe/.test(name)) r = 3;
         reg[i] = r;
       }
-      /* trim: jersey or shorts vertices that share a triangle with skin get the team's second color (5) */
-      const idx = gm.index ? gm.index.array : null;
-      if (idx) {
-        const trim = new Uint8Array(n);
-        for (let t = 0; t < idx.length; t += 3) {
-          const a = idx[t], b = idx[t + 1], c = idx[t + 2], ra = reg[a], rb = reg[b], rc = reg[c];
-          const hasSkin = ra === 0 || rb === 0 || rc === 0;
-          if (!hasSkin) continue;
-          for (const v of [a, b, c]) if (reg[v] === 1) trim[v] = 1;   // the jersey's collar and armholes (the drawn shorts have their own hem)
-        }
-        for (let i = 0; i < n; i++) if (trim[i]) reg[i] = 5;
-      }
+      /* the region one-hot (0-3, 4-7), so a triangle between two regions splits cleanly at its middle instead of
+         passing through the colors of the regions numbered in between */
+      const ra = new Float32Array(n * 4), rb = new Float32Array(n * 4);
+      for (let i = 0; i < n; i++) { const r = reg[i]; if (r < 4) ra[i * 4 + r] = 1; else rb[i * 4 + r - 4] = 1; }
       gm.setAttribute('region', new T.BufferAttribute(reg, 1));
+      gm.setAttribute('rA', new T.BufferAttribute(ra, 4)); gm.setAttribute('rB', new T.BufferAttribute(rb, 4));
       gm.setAttribute('kpos', new T.BufferAttribute(kp, 3));
     }
     /* where the number, the small chest number and the hair sit, relative to their bones */
@@ -371,8 +364,96 @@
     sg.setAttribute('skinIndex', new T.Uint16BufferAttribute(sI, 4)); sg.setAttribute('skinWeight', new T.BufferAttribute(sW, 4));
     sg.computeVertexNormals();
     const shortsGeo = sg;
+    let simpleGeo = null;
+    try { simpleGeo = simpleBody(); } catch (e) { console.warn('simple body', e); }
+    if (simpleGeo) {
+      /* the lettering sits on the simple torso's surface */
+      const zAt = (y, front) => { const R = simpleBody.ring; for (let i = 1; i < R.length; i++) if (y <= R[i][0]) { const f = (y - R[i - 1][0]) / (R[i][0] - R[i - 1][0]), k = front ? 2 : 3; return -0.012 + (front ? 1 : -1) * (R[i - 1][k] + (R[i][k] - R[i - 1][k]) * f); } return 0; };
+      const put2 = (y, front, q) => local(spine, new T.Vector3(0, y, zAt(y, front) + (front ? 0.022 : -0.012)), q);
+      decals.back = put2(chestY - H * 0.02, false, backQ); decals.nameBack = put2(chestY + H * 0.052, false, backQ);
+      decals.front = put2(chestY - H * 0.035, true, new T.Quaternion()); decals.chest = put2(chestY + H * 0.02, true, new T.Quaternion());
+    }
+    /* A simple body, pocket style (smooth and rounded, no muscles or wooden joints), on the mannequin's own skeleton
+       so every animation still drives it. Built in the rest pose (a T-pose, feet at y = 0) from a lofted torso, tapered
+       capsules for the limbs, mitten hands and chunky shoes; each vertex rides one bone (the torso blends along the
+       spine). Carries the same attributes as the mannequin (rA/rB regions, kpos) so the kit shader paints it. */
+    function simpleBody() {
+      const P = [], N = [], SI = [], SW = [], RA = [], RB = [], KP = [], IX = [];
+      const bi = n => idxOf(n), Am = {};
+      const Aof = b => Am[b] || (Am[b] = m0.matrixWorld.clone().multiply(m0.bindMatrixInverse).multiply(sk.bones[b].matrixWorld).multiply(sk.boneInverses[b]).multiply(m0.bindMatrix).invert());
+      const nm = new T.Matrix3(), vv = V3(), nn = V3();
+      /* add a geometry already in the rest pose; reg(x, y, z) gives each vertex its region, bw(y) its bones */
+      const add = (g, reg, bw) => {
+        if (!g.index) { const U = window.THREE_ADDONS && window.THREE_ADDONS.BufferGeometryUtils; if (U) g = U.mergeVertices(g); }
+        g.computeVertexNormals();
+        const p = g.attributes.position, nr = g.attributes.normal, o = P.length / 3;
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = reg(x, y, z), w = bw(x, y, z);
+          const Ai = Aof(w[0][0]); vv.set(x, y, z).applyMatrix4(Ai); nm.getNormalMatrix(Ai); nn.fromBufferAttribute(nr, i).applyMatrix3(nm).normalize();
+          P.push(vv.x, vv.y, vv.z); N.push(nn.x, nn.y, nn.z);
+          SI.push(w[0][0], w[1] ? w[1][0] : 0, 0, 0); SW.push(w[0][1], w[1] ? w[1][1] : 0, 0, 0);
+          for (let k = 0; k < 4; k++) RA.push(r === k ? 1 : 0); for (let k = 4; k < 8; k++) RB.push(r === k ? 1 : 0);
+          KP.push(x / H, (y - box.min.y) / H, z / H);
+        }
+        const ix = g.index.array; for (let i = 0; i < ix.length; i++) IX.push(ix[i] + o);
+      };
+      const one = n => () => [[bi(n), 1]];
+      const V = (x, y, z) => new T.Vector3(x, y, z);
+      /* a tapered capsule from a to b, radius r0 at a and r1 at b */
+      const capsule = (a, b, r0, r1, seg) => {
+        const pts = [], L = a.distanceTo(b);
+        for (let i = 0; i <= 6; i++) { const t = -Math.PI / 2 + i / 6 * Math.PI / 2; pts.push(new T.Vector2(Math.max(1e-4, r0 * Math.cos(t)), r0 * Math.sin(t))); }
+        for (let i = 1; i <= 6; i++) { const t = i / 6 * Math.PI / 2; pts.push(new T.Vector2(Math.max(1e-4, r1 * Math.cos(t)), L + r1 * Math.sin(t))); }
+        const g = new T.LatheGeometry(pts, seg || 14);
+        g.applyQuaternion(new T.Quaternion().setFromUnitVectors(V(0, 1, 0), b.clone().sub(a).normalize())); g.translate(a.x, a.y, a.z);
+        return g;
+      };
+      const ellip = (c, rx, ry, rz, seg) => { const g = new T.SphereGeometry(1, seg || 14, 10); g.scale(rx, ry, rz); g.translate(c.x, c.y, c.z); return g; };
+      /* the torso: elliptical rings up the body (a touch boxy), wider at the chest and shoulders than the waist */
+      const ring = [[0.86, 0.150, 0.095, 0.150], [0.98, 0.142, 0.100, 0.135], [1.10, 0.132, 0.108, 0.125], [1.22, 0.150, 0.128, 0.118],
+        [1.33, 0.168, 0.138, 0.122], [1.42, 0.176, 0.118, 0.12], [1.475, 0.155, 0.075, 0.100], [1.505, 0.10, 0.035, 0.06], [1.515, 0.02, 0.01, 0.02]];
+      simpleBody.ring = ring;
+      { const NA = 32, pos = [], idx = [], cz = -0.012, ex = 2 / 2.6;
+        ring.forEach(([y, hw, zf, zb]) => { for (let i = 0; i < NA; i++) { const t = i / NA * Math.PI * 2, c = Math.cos(t), s = Math.sin(t);
+          pos.push(hw * Math.sign(c) * Math.abs(c) ** ex, y, cz + (s > 0 ? zf : zb) * Math.sign(s) * Math.abs(s) ** ex); } });
+        for (let r = 0; r < ring.length - 1; r++) for (let i = 0; i < NA; i++) { const a = r * NA + i, b = r * NA + (i + 1) % NA, c = a + NA, d = b + NA; idx.push(a, c, b, b, c, d); }
+        const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+        const sp = [['DEF-hips', 0.917], ['DEF-spine.001', 1.051], ['DEF-spine.002', 1.174], ['DEF-spine.003', 1.315]].map(([n, y]) => [bi(n), at(n).y]);
+        add(g, (x, y) => y < 0.97 ? 2 : 1, (x, y) => {
+          if (y <= sp[0][1]) return [[sp[0][0], 1]]; if (y >= sp[3][1]) return [[sp[3][0], 1]];
+          for (let k = 0; k < 3; k++) if (y <= sp[k + 1][1]) { const f = (y - sp[k][1]) / (sp[k + 1][1] - sp[k][1]); return [[sp[k][0], 1 - f], [sp[k + 1][0], f]]; }
+        });
+      }
+      const nk = at('DEF-neck'), hd = at('DEF-head');
+      add(capsule(V(0, nk.y - 0.06, nk.z), V(0, hd.y + 0.02, hd.z), 0.058, 0.055), () => 0, one('DEF-neck'));
+      for (const sd of ['L', 'R']) {
+        const sh = at(`DEF-upper_arm.${sd}`), el = at(`DEF-forearm.${sd}`), wr = at(`DEF-hand.${sd}`), o = Math.sign(sh.x);
+        add(capsule(V(sh.x - o * 0.035, sh.y, sh.z), el, 0.066, 0.054), () => 0, one(`DEF-upper_arm.${sd}`));
+        add(capsule(el, wr, 0.053, 0.043), () => 0, one(`DEF-forearm.${sd}`));
+        /* a mitten hand with a thumb */
+        add(ellip(V(wr.x + o * 0.07, wr.y, wr.z + 0.005), 0.072, 0.034, 0.05), () => 0, one(`DEF-hand.${sd}`));
+        add(ellip(V(wr.x + o * 0.035, wr.y + 0.004, wr.z + 0.055), 0.04, 0.024, 0.022, 10), () => 0, one(`DEF-hand.${sd}`));
+        const hp = at(`DEF-thigh.${sd}`), kn = at(`DEF-shin.${sd}`), an = at(`DEF-foot.${sd}`), to = at(`DEF-toe.${sd}`);
+        add(capsule(V(hp.x, hp.y + 0.03, hp.z), kn, 0.088, 0.066, 16), () => 0, one(`DEF-thigh.${sd}`));
+        add(capsule(kn, V(an.x, an.y + 0.02, an.z), 0.07, 0.052, 16), (x, y) => y < sockTo ? 4 : 0, one(`DEF-shin.${sd}`));
+        /* a chunky shoe: heel and body on the foot, the front on the toe */
+        const sw = 0.072, sb = new T.BoxGeometry(1, 1, 1, 6, 4, 8);
+        { const p = sb.attributes.position, q = V();
+          for (let i = 0; i < p.count; i++) { q.fromBufferAttribute(p, i);   // round the box: push corners in, a superellipsoid look
+            const ux = q.x * 2, uy = q.y * 2, uz = q.z * 2, k = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1, f = 0.35 + 0.65 / k * Math.max(Math.abs(ux), Math.abs(uy), Math.abs(uz));
+            p.setXYZ(i, q.x * f, q.y * f, q.z * f * (q.y > 0 && q.z > 0 ? 1 - 0.25 * q.y : 1)); } }
+        sb.scale(sw * 2, 0.13, 0.3); sb.translate(an.x, 0.062, (an.z + to.z) / 2 - 0.015);
+        add(sb, () => 3, (x, y, z) => z > to.z - 0.03 ? [[bi(`DEF-toe.${sd}`), 1]] : [[bi(`DEF-foot.${sd}`), 1]]);
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
+      g.setAttribute('skinIndex', new T.Uint16BufferAttribute(SI, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(SW, 4));
+      g.setAttribute('rA', new T.Float32BufferAttribute(RA, 4)); g.setAttribute('rB', new T.Float32BufferAttribute(RB, 4)); g.setAttribute('kpos', new T.Float32BufferAttribute(KP, 3));
+      g.setIndex(IX); g.userData.shared = true;
+      return g;
+    }
     const clips = {}; for (const c of g.animations) clips[c.name] = c;
-    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR };
+    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR, simpleGeo };
   }
   /* the kit: colors by body region, and a design on the jersey and shorts. Designs (cols.pat):
      0 plain, 1 side panels (down the jersey and the shorts), 2 pinstripes, 3 a chest band, 4 a fade to dark,
@@ -383,12 +464,26 @@
       cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
-      sh.vertexShader = 'attribute float region;\nattribute vec3 kpos;\nvarying float vRegion;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRegion = region; vK = kpos;');
+      sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;');
       /* a rim light: the edge of the body catches light, so players pop off the floor */
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
-      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nvarying float vRegion;\nvarying vec3 vK;\n' +
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
+  /* the strongest region here wins */
+  float vRegion = 0.0, rbest = vRA.x;
+  if (vRA.y > rbest) { rbest = vRA.y; vRegion = 1.0; } if (vRA.z > rbest) { rbest = vRA.z; vRegion = 2.0; } if (vRA.w > rbest) { rbest = vRA.w; vRegion = 3.0; }
+  if (vRB.x > rbest) { rbest = vRB.x; vRegion = 4.0; } if (vRB.z > rbest) { rbest = vRB.z; vRegion = 6.0; }
   if (vRegion > 5.5) discard;   // the mannequin's head: a drawn one sits on the bone
+  /* a tank top cut by formula, not by the mesh: armholes (ellipses at each shoulder) and a neckline (deeper in front),
+     each with a band of the trim color, so the edges are smooth curves at any distance */
+  if (vRegion < 0.5 && abs(vK.x) < 0.05 && vK.y > 1.365) discard;   // the top of the neck: inside the drawn head
+  bool neckSkin = false;   // the mannequin's neck reaches down into the jersey
+  if ((vRegion > 0.5 && vRegion < 1.5) || neckSkin) {
+    float ax0 = abs(vK.x), arm = length(vec2((ax0 - 0.108) / 0.04, (vK.y - 1.30) / 0.09));
+    float nk = length(vec2(vK.x / 0.04, (vK.y - 1.335) / (vK.z > 0.0 ? 0.05 : 0.03)));
+    float cut = min(arm - 1.0, nk - 1.0);
+    if (cut < 0.0) vRegion = 0.0; else if (cut < 0.2) vRegion = 5.0; else if (neckSkin) vRegion = 1.0;
+  }
   vec3 rc = vRegion < 0.5 ? cSkin : vRegion < 1.5 ? cJersey : vRegion < 2.5 ? cShorts : vRegion < 3.5 ? cShoe : vRegion < 4.5 ? cSock : cTrim;
   bool top = vRegion > 0.5 && vRegion < 1.5, bot = vRegion > 1.5 && vRegion < 2.5;
   float ax = abs(vK.x);
@@ -406,10 +501,10 @@
   if (vRegion > 3.5 && vRegion < 4.5 && vK.y > 0.596 && vK.y < 0.607) rc = cAlt;           // a stripe at the top of the sock
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit5';
+    m.customProgramCacheKey = () => 'pb-kit6';
     return m;
   }
-  const HEAD = 1.13;
+  const HEAD = 1.22;
   const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
   /* the face as one geometry with vertex colors: two eyes, two pupils, two brows */
   const FACE_MAT = new T.MeshBasicMaterial({ vertexColors: true });
@@ -451,6 +546,29 @@
     g.computeVertexNormals(); g.userData.shared = true;
     return (CAPS[key] = g);
   }
+  /* hair with a real hairline: a shell over the head whose edge follows the line a barber cuts (straight across the
+     forehead, square at the temples, up and over the ears, down to the nape). th0 is how far down from the crown the
+     front edge sits, in radians; deeper cuts come lower. Shared per style. */
+  function hairGeo(k, th0, R) {
+    const key = 'h' + [k, th0].join();
+    if (CAPS[key]) return CAPS[key];
+    const NU = 64, NV = 14, pos = [], idx = [];
+    const L = [[0, th0], [0.5, th0 + 0.04], [0.72, th0 + 0.3], [0.95, 1.3], [1.25, 1.34], [1.6, 1.55], [2.2, 1.95], [Math.PI, 2.05]];
+    const tmax = a => { a = Math.abs(a); for (let i = 1; i < L.length; i++) if (a <= L[i][0]) { const [a0, t0] = L[i - 1], [a1, t1] = L[i], f = (a - a0) / (a1 - a0), e = f * f * (3 - 2 * f); return t0 + (t1 - t0) * e; } return L[L.length - 1][1]; };
+    for (let i = 0; i <= NU; i++) {
+      const ph = i / NU * Math.PI * 2 - Math.PI, tm = tmax(ph);
+      for (let j = 0; j <= NV; j++) {
+        const th = j / NV * tm, x = Math.sin(th) * Math.sin(ph), y = Math.cos(th), z = Math.sin(th) * Math.cos(ph);
+        const f = 1 / Math.sqrt((x / HS.x) ** 2 + (y / HS.y) ** 2 + (z / HS.z) ** 2) * k * R;
+        pos.push(x * f, y * f, z * f);
+      }
+    }
+    for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) { const a = i * (NV + 1) + j, b = a + NV + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+    g.computeVertexNormals(); g.userData.shared = true;
+    return (CAPS[key] = g);
+  }
+  const jawLo = yn => Math.max(0, -yn) * Math.max(0, 1 + yn * 0.3);   // how much fuller the jaw is at this height (y over the head's half height)
   function headGeometries(R) {
     const merge = (parts, colored) => {
       let n = 0; for (const g of parts) n += g.attributes.position.count;
@@ -466,22 +584,30 @@
       return g;
     };
     const skin = [
-      prep(new T.SphereGeometry(R, 28, 20), HS.x, HS.y, HS.z, 0, 0, 0),
-      /* a jaw: a little fuller at the cheeks and chin than an egg */
-      prep(new T.SphereGeometry(R * 0.78, 20, 14), 1.05, 0.9, 1.0, 0, -R * 0.42, R * 0.12),
+      /* one smooth head, a little fuller at the cheeks and jaw than an egg (no second sphere, so no seam) */
+      (() => { const g = new T.SphereGeometry(R, 32, 24); g.scale(HS.x, HS.y, HS.z); const p = g.attributes.position;
+        for (let i = 0; i < p.count; i++) { const y = p.getY(i) / (HS.y * R), z = p.getZ(i), lo = jawLo(y);
+          p.setX(i, p.getX(i) * (1 + 0.1 * lo)); p.setZ(i, z * (1 + (z > 0 ? 0.1 : 0) * lo)); }
+        g.computeVertexNormals(); return prep(g, 1, 1, 1, 0, 0, 0); })(),
       prep(new T.SphereGeometry(R * 0.13, 10, 8), 0.85, 0.95, 0.9, 0, -R * 0.2, surfZ(R, 0, -R * 0.2) + R * 0.03),   // the nose
     ];
     for (const sx of [-1, 1]) skin.push(prep(new T.SphereGeometry(R * 0.24, 10, 8), 0.42, 1, 0.75, sx * HS.x * R * 0.98, -R * 0.08, -R * 0.04));   // ears
+    /* upper lids over the top of each eye: a calmer, cooler look than a full round eye */
+    for (const sx of [-1, 1]) { const ex = sx * R * 0.37, ey = R * 0.02, ez = surfZ(R, ex, ey);
+      const lid = new T.SphereGeometry(R * 0.215, 14, 8, 0, Math.PI * 2, 0, 0.8); lid.rotateX(0.2); lid.rotateZ(-sx * 0.12);
+      skin.push(prep(lid, 1, 1.08, 0.62, ex, ey + R * 0.005, ez - R * 0.02)); }
     const face = [];
     for (const sx of [-1, 1]) {
       const ex = sx * R * 0.37, ey = R * 0.02, ez = surfZ(R, ex, ey);
       face.push(prep(new T.SphereGeometry(R * 0.2, 12, 10), 1, 1.08, 0.55, ex, ey, ez - R * 0.02, 0, 0xf4f1ea));
       face.push(prep(new T.SphereGeometry(R * 0.115, 10, 8), 1, 1.1, 0.5, ex + sx * -R * 0.01, ey - R * 0.015, ez + R * 0.075, 0, 0x120c08));
       face.push(prep(new T.SphereGeometry(R * 0.035, 6, 5), 1, 1, 0.5, ex + sx * -R * 0.045, ey + R * 0.03, ez + R * 0.115, 0, 0xffffff));   // a glint
-      const by = R * 0.3; face.push(prep(new T.BoxGeometry(R * 0.38, R * 0.085, R * 0.08), 1, 1, 1, sx * R * 0.37, by, surfZ(R, sx * R * 0.37, by) + R * 0.0, -sx * 0.14, 0x120c08));
+      const by = R * 0.3; face.push(prep(new T.BoxGeometry(R * 0.38, R * 0.085, R * 0.08), 1, 1, 1, sx * R * 0.37, by, surfZ(R, sx * R * 0.37, by) + R * 0.0, sx * 0.05, 0x120c08));
     }
     const my = -R * 0.5;
-    face.push(prep(new T.BoxGeometry(R * 0.34, R * 0.06, R * 0.06), 1, 1, 1, 0, my, Math.max(surfZ(R, 0, my), 0.9 * R * 0.78 * 1.0 + R * 0.12 - R * 0.06) + R * 0.0, 0, 0x4a2219));
+    /* a slight smile: a short arc, lower in the middle */
+    const sm = new T.TorusGeometry(R * 0.32, R * 0.045, 5, 12, 0.95); sm.rotateZ(-Math.PI / 2 - 0.475);
+    { const yy = my + R * 0.16; face.push(prep(sm, 1, 0.55, 1, 0, yy, surfZ(R, 0, yy) * (1 + 0.1 * jawLo(yy / (HS.y * R))) - R * 0.005, 0, 0x4a2219)); }
     return { skin: merge(skin, false), face: merge(face, true) };
   }
     const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short', 'twists', 'short'];
@@ -517,6 +643,13 @@
       const sm = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide });
       const paint = g => { g = g.clone(); const kc = g.attributes.kc, col = new Float32Array(kc.count * 3); for (let i = 0; i < kc.count; i++) { const c = cs[kc.getX(i)]; col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; } g.setAttribute('color', new T.BufferAttribute(col, 3)); return g; };
       let bodyMesh = null; body.traverse(o => { if (o.isSkinnedMesh && !bodyMesh) bodyMesh = o; });
+      /* the simple body in place of the mannequin's */
+      if (bodyMesh && TPL.simpleGeo && !PB.mannequin) {
+        body.traverse(o => { if (o.isSkinnedMesh && o !== bodyMesh) o.visible = false; });
+        const sb = new T.SkinnedMesh(TPL.simpleGeo, mat); sb.frustumCulled = false; bodyMesh.parent.add(sb);
+        sb.position.copy(bodyMesh.position); sb.quaternion.copy(bodyMesh.quaternion); sb.scale.copy(bodyMesh.scale); sb.bind(bodyMesh.skeleton, bodyMesh.bindMatrix);
+        bodyMesh.visible = false;
+      }
       if (bodyMesh) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
     }
     /* the number on the back and front, and hair */
@@ -547,15 +680,16 @@
     hg.add(new T.Mesh(TPL.headGeo.skin, skinMat(d.skin || 0)));
     hg.add(new T.Mesh(TPL.headGeo.face, FACE_MAT));
     const cap = (r, theta, tilt, y) => { const m = new T.Mesh(capGeo(r / R, theta, tilt, R), hairMat); m.position.y = y || 0; return m; };
-    if (look.hair === 'short') hg.add(cap(R * 1.06, Math.PI * 0.5, -0.32, R * 0.03));
-    else if (look.hair === 'buzz') hg.add(cap(R * 1.025, Math.PI * 0.52, -0.36, 0));
+    const hair = (k, th0, y) => { const m = new T.Mesh(hairGeo(k, th0, R), hairMat); m.position.y = y || 0; return m; };
+    if (look.hair === 'short') hg.add(hair(1.07, 0.95, R * 0.02));
+    else if (look.hair === 'buzz') hg.add(hair(1.03, 1.0, 0));
     else if (look.hair === 'high') {
-      hg.add(cap(R * 1.05, Math.PI * 0.5, -0.3, R * 0.02));
-      const top = new T.Mesh(new T.CylinderGeometry(R * 0.9, R * 0.96, R * 0.62, 18), hairMat); top.position.set(0, R * 1.0, -R * 0.08); top.rotation.x = -0.12; hg.add(top);
+      hg.add(hair(1.05, 0.95, R * 0.02));
+      const top = new T.Mesh(new T.LatheGeometry([[0, R * 0.32], [R * 0.72, R * 0.32], [R * 0.86, R * 0.26], [R * 0.93, R * 0.12], [R * 0.95, -R * 0.31]].map(([x, y]) => new T.Vector2(x, y)), 24), hairMat); top.position.set(0, R * 1.0, -R * 0.08); top.rotation.x = -0.12; hg.add(top);
     } else if (look.hair === 'afro') {
       const af = new T.Mesh(new T.SphereGeometry(R * 1.36, 20, 14), hairMat); af.scale.set(1.06, 0.95, 1); af.position.set(0, R * 0.42, -R * 0.32); hg.add(af);
     } else if (look.hair === 'twists') {
-      hg.add(cap(R * 1.04, Math.PI * 0.5, -0.3, R * 0.02));
+      hg.add(hair(1.04, 0.95, R * 0.02));
       for (let i = 0; i < 26; i++) { const a = i * 2.39996, rr = Math.sqrt((i + 0.5) / 26), th = rr * 1.25, x = Math.sin(th) * Math.cos(a), z = Math.sin(th) * Math.sin(a), y = Math.cos(th);
         if (z > 0.55 && y < 0.6) continue;   // not over the face
         const t = new T.Mesh(new T.CylinderGeometry(R * 0.085, R * 0.11, R * 0.42, 6), hairMat); t.position.set(x * R * 1.04 * HS.x, y * R * 1.06 * HS.y + R * 0.06, z * R * 1.0 * HS.z - R * 0.12); t.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(x, y, z).normalize()); hg.add(t); }
@@ -567,18 +701,31 @@
     /* facial hair: a full beard along the jaw with a mustache, stubble is the same but faint, a goatee on the chin */
     if (look.beard) {
       const bm = new T.MeshLambertMaterial({ color: new T.Color(look.hairColor || '#17110d'), transparent: look.beard === 'stubble', opacity: look.beard === 'stubble' ? 0.5 : 1 });
-      if (look.beard === 'goatee') { const gt = new T.Mesh(new T.SphereGeometry(R * 0.17, 10, 8), bm); gt.scale.set(1, 1.25, 0.6); gt.position.set(0, -R * 0.74, R * 0.78); hg.add(gt);
-        const mu = new T.Mesh(new T.BoxGeometry(R * 0.36, R * 0.07, R * 0.08), bm); mu.position.set(0, -R * 0.39, surfZ(R, 0, -R * 0.39)); hg.add(mu); }
+      /* a shell on the face itself (the same jaw as the head), k a little out from the skin: from angle -W to W round
+         the face (0 the front), between top(a) and the bottom of the chin, in the head's own height units */
+      const shell = (k, W, top, bot) => {
+        const NU = 30, NV = 10, pos = [], idx = [];
+        for (let i = 0; i <= NU; i++) { const a = -W + 2 * W * i / NU, t = top(a);
+          for (let j = 0; j <= NV; j++) { const yn = t + (bot - t) * j / NV, r = Math.sqrt(Math.max(0, 1 - yn * yn)), lo = jawLo(yn);
+            const z = Math.cos(a) * r * HS.z * R;
+            pos.push(Math.sin(a) * r * HS.x * R * (1 + 0.1 * lo) * k, yn * HS.y * R * k, z * (1 + (z > 0 ? 0.1 : 0) * lo) * k); } }
+        for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) { const a = i * (NV + 1) + j, b = a + NV + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+        const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+        return new T.Mesh(g, bm);
+      };
+      const muY = -R * 0.36, mu = new T.Mesh(new T.CapsuleGeometry(R * 0.045, R * 0.3, 3, 8), bm); mu.rotation.z = Math.PI / 2;
+      mu.position.set(0, muY, surfZ(R, 0, muY) * (1 + 0.1 * jawLo(muY / (HS.y * R))) + R * 0.01);
+      if (look.beard === 'goatee') { hg.add(shell(1.03, 0.42, () => -0.66, -0.97)); hg.add(mu); }
       else {
-        const bd = new T.Mesh(new T.SphereGeometry(R * 0.78 * 1.08, 22, 10, Math.PI / 2 - 1.55, 3.1, 1.72, Math.PI * 0.62 - 1.72 + 1.0), bm); bd.scale.set(1.05, 0.9, 1.0); bd.position.set(0, -R * 0.42, R * 0.12); hg.add(bd);
-        for (const sx of [-1, 1]) { const sb = new T.Mesh(new T.BoxGeometry(R * 0.1, R * 0.42, R * 0.22), bm); sb.position.set(sx * R * 0.93, -R * 0.2, R * 0.12); sb.rotation.z = sx * 0.12; hg.add(sb); }   // sideburns into the beard
-        const mu = new T.Mesh(new T.BoxGeometry(R * 0.4, R * 0.08, R * 0.08), bm); mu.position.set(0, -R * 0.39, surfZ(R, 0, -R * 0.39)); hg.add(mu);
+        /* the full beard: up the jaw to the sideburns, under the mouth in front */
+        hg.add(shell(1.035, 1.62, a => { const f = Math.min(1, Math.abs(a) / 1.25); return -0.62 + (0.12 + 0.62) * f * f; }, -0.99));
+        hg.add(mu);
       }
     }
     if (look.sleeve) {
       const fore = bones[bk('DEF-forearm.R')], hand = bones[bk('DEF-hand.R')];
       const len = hand.position.length();
-      const sl = new T.Mesh(new T.CylinderGeometry(H * 0.03, H * 0.027, len * 0.8, 10), new T.MeshLambertMaterial({ color: new T.Color(look.sleeve) }));
+      const sl = new T.Mesh(new T.CylinderGeometry(H * 0.033, H * 0.027, len * 0.8, 10), new T.MeshLambertMaterial({ color: new T.Color(look.sleeve) }));
       const g3 = new T.Group(); g3.add(sl); sl.position.y = len * 0.42;
       g3.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), hand.position.clone().normalize());
       fore.add(g3);
@@ -592,8 +739,8 @@
       g.quaternion.setFromUnitVectors(V3(0, 1, 0), e.position.clone().normalize()); a.add(g);
     };
     if (look.wrist) for (const sd of ['L', 'R']) limb(`DEF-forearm.${sd}`, `DEF-hand.${sd}`, H * 0.032, H * 0.031, 0.8, 0.97, look.wrist);
-    if (look.legs === 'one' || look.legs === 'both') for (const sd of look.legs === 'one' ? ['L'] : ['L', 'R']) limb(`DEF-shin.${sd}`, `DEF-foot.${sd}`, H * 0.036, H * 0.028, 0.02, 0.72, '#111111');
-    if (look.legs === 'pads') for (const sd of ['L', 'R']) limb(`DEF-shin.${sd}`, `DEF-foot.${sd}`, H * 0.04, H * 0.037, -0.04, 0.16, '#111111');
+    if (look.legs === 'one' || look.legs === 'both') for (const sd of look.legs === 'one' ? ['L'] : ['L', 'R']) limb(`DEF-shin.${sd}`, `DEF-foot.${sd}`, H * 0.0405, H * 0.031, 0.02, 0.72, '#111111');
+    if (look.legs === 'pads') for (const sd of ['L', 'R']) limb(`DEF-shin.${sd}`, `DEF-foot.${sd}`, H * 0.044, H * 0.042, -0.04, 0.16, '#111111');
     const shadow = new T.Mesh(new T.CircleGeometry(1.1, 16), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; root.add(shadow);
     const mixer = new T.AnimationMixer(body), act = {};

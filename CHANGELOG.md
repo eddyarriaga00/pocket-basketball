@@ -4,6 +4,13 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- A simpler body, pocket style: smooth rounded shapes instead of the muscled mannequin (a rounded torso, tapered
+  arms and legs, mitten hands, chunky rounded shoes), on the same skeleton so every animation still plays. Heads a
+  little bigger.
+- Jerseys cut like real tank tops: smooth armholes and a neckline with a trim band in the second color, no more
+  zigzag edges or stray colors where the jersey met skin.
+- Faces: hair with a real hairline (straight across, square at the temples, over the ears, down to the nape), a
+  rounded high-top, upper lids, a slight smile, one smooth head (no seam at the jaw), beards that follow the jaw.
 - Dribble moves you can see: the crossover goes across in front, going fast it is behind the back, from a standstill
   (or as the second move of a combo) between the legs, and back to the same hand a hesitation; the spin turns the
   player all the way round with the ball palmed. The computer's ball handlers use them too.
