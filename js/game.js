@@ -1998,13 +1998,16 @@
         const types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
         const type = types.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
         /* each frame goes onto a 2D canvas with a caption (the page's own overlays are not in the picture) */
-        const gl = $('#gl'); comp = document.createElement('canvas'); comp.width = gl.width; comp.height = gl.height; cg = comp.getContext('2d');
-        try { rec = new MediaRecorder(comp.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 5e6 } : undefined); rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(250); } catch (e) { rec = null; }
+        /* 1080 by 1920, vertical: ready for a phone feed */
+        comp = document.createElement('canvas'); comp.width = 1080; comp.height = 1920; cg = comp.getContext('2d');
+        try { rec = new MediaRecorder(comp.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 8e6 } : undefined); rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(250); } catch (e) { rec = null; }
       }
       const caption = () => {
         if (!cg) return;
         const gl = $('#gl'), W = comp.width, H = comp.height, sc = W / 390, r = G.replay;
-        cg.drawImage(gl, 0, 0, W, H);
+        /* cover: fill the frame, crop what spills over */
+        const k = Math.max(W / gl.width, H / gl.height), dw = gl.width * k, dh = gl.height * k;
+        cg.fillStyle = '#05070b'; cg.fillRect(0, 0, W, H); cg.drawImage(gl, (W - dw) / 2, (H - dh) / 2, dw, dh);
         const t0 = G.teams[0], t1 = G.teams[1], lab = r ? r.label : '', sub = r ? r.sub : '';
         cg.fillStyle = 'rgba(8,10,16,.72)'; cg.fillRect(0, H - 92 * sc, W, 92 * sc);
         cg.fillStyle = t0.c1; cg.fillRect(0, H - 92 * sc, 6 * sc, 92 * sc);

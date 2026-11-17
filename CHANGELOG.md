@@ -42,7 +42,7 @@ What changed, newest first. The full list is the git log; the order of work is [
   its way up and you can block it in the air.
 - Markers: the arrow over your pass target, the ring under your man, a release flash; the coverage on every shot.
 - Your highlights after the game: your best plays of the night (dunks, threes, and-ones, blocks, assists, shots
-  at the buzzer) replayed in 3D, and saved as a video to share.
+  at the buzzer) replayed in 3D, and saved as a vertical 1080x1920 video to share.
 - Replays of dunks and buzzer-beaters, an opening flyover with the starting lineups, halftime stats, a shot chart and box score.
 - Settings › Graphics: Low for older phones (no refs, benches or banners, lower resolution).
 - Controllers, a left-handed layout, shot timing (easy, normal, hard), vibration on Android.
