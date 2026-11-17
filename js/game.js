@@ -154,6 +154,7 @@
   function hud() {
     highCheck(); radar();
     $('#game').classList.toggle('drill', !!(G && G.drill));
+    $('#game').classList.toggle('dunk', !!(G && G.drill && G.drill.kind === 'dunk'));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
     const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;
     const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : s.toFixed(1);
@@ -178,6 +179,16 @@
     $('#bB').classList.toggle('lit', !has && off && G.callT > 0);
     $('#bC').textContent = has ? 'Move' : off ? 'Cut' : G.switching ? 'Switch' : 'Help';
     if (G.drill && G.drill.kind === 'dunk') { $('#bA').textContent = 'Dunk'; $('#bC').textContent = 'Style'; }
+    $('#bD').classList.toggle('on', has && !u.inb && !G.drill && G.phase === 'live' && along(u.z, u.team) < RIM);
+  }
+  /* call for a pick: the nearest big comes to set a screen on your man, then rolls to the rim */
+  function pressD() {
+    const u = G.user; if (!u || G.phase !== 'live' || G.ball.holder !== u || u.inb || G.drill) return;
+    if (G.t < (G.pickCd || 0)) return;
+    const bigs = teamOf(u.team).filter(o => o !== u && o.slot >= 3).sort((a, b) => hyp(a.x - u.x, a.z - u.z) - hyp(b.x - u.x, b.z - u.z));
+    const s = bigs[0] || teamOf(u.team).filter(o => o !== u)[0]; if (!s) return;
+    s.screen = 3.2; G.pickCd = G.t + 4;
+    toast('Pick called', 'call'); buzz(8);
   }
 
   /* ---------- ball helpers ---------- */
@@ -1501,7 +1512,7 @@
     const edge = (i, f, up) => { const now = bt(i); if (now && !padPrev[i]) f(); else if (!now && padPrev[i] && up) up(); padPrev[i] = now; };
     if (G.paused) { edge(9, () => pause(false)); return; }
     edge(0, () => pressA(true), () => pressA(false));
-    edge(1, () => pressB()); edge(2, () => pressC()); edge(3, () => pressC('step')); edge(5, () => pressC('spin'));
+    edge(1, () => pressB()); edge(2, () => pressC()); edge(3, () => pressC('step')); edge(5, () => pressC('spin')); edge(4, () => pressD());
     edge(9, () => pause(!G.paused));
   }
 
@@ -1582,6 +1593,7 @@
     };
     btn('#bA', () => pressA(true), () => pressA(false));
     btn('#bB', pressB);
+    btn('#bD', pressD);
     /* the Move button reads a swipe: left or right is a crossover that way, down a step-back, up a spin; a tap is a
        crossover */
     { const el = $('#bC'); let sx = 0, sy = 0, id = null;
@@ -1607,6 +1619,7 @@
       if (e.repeat) return;
       if (e.key === ' ' || e.key === 'j' || e.key === 'J') { pressA(true); e.preventDefault(); }
       else if (e.key === 'k' || e.key === 'K') pressB();
+      else if (e.key === 'o' || e.key === 'O') pressD();
       else if (e.key === 'l' || e.key === 'L') pressC();
       else if (e.key === 'u' || e.key === 'U') pressC('step');
       else if (e.key === 'i' || e.key === 'I') pressC('spin');

@@ -61,6 +61,7 @@ whole team), Practice (the 3-point and dunk contests, the drill), Edit teams.
 | Pass / Call / Steal | Middle button | K | B |
 | Crossover / Cut | Small button: tap, or swipe left or right | L | X |
 | Step-back / Spin | Small button: swipe down / up | U / I | Y / right bumper |
+| Call a pick | Pick (with the ball, over half court) | O | Left bumper |
 | Pause | ⏸ | P or Esc | Start |
 
 On defense, lift your thumb and your player stays in front of the man you guard on their own.
