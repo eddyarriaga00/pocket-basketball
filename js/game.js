@@ -398,6 +398,7 @@
     toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
     AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
     b.state = 'loose'; b.holder = null; b.lastTouch = o.team; b.shot = null;
+    G.reb = { team: p.team, t: G.t };   // a blocked shot is a missed shot: whoever comes up with it gets the rebound
     b.x = at.x; b.y = at.y; b.z = at.z;
     const ang = rand() * 6.28;
     b.vx = Math.sin(ang) * 10; b.vz = -dirOf(p.team) * rr(6, 14); b.vy = rr(2, 7);
@@ -1375,7 +1376,7 @@
         }
       }
       if (got && rand() < dt * 9) {
-        const fromShot = G.reb && G.t - G.reb.t < 6;
+        const fromShot = G.reb && G.t - G.reb.t < 9;
         if (fromShot) {
           got.st.reb++;
           const off = got.team === G.reb.team;
