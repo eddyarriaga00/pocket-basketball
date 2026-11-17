@@ -801,9 +801,12 @@
     b.passer = p; b.passT = G.t + b.dur;
     /* the alley-oop: a cutter heading for the rim who can finish above it gets the ball thrown up there */
     b.lob = false;
+    /* a short pass past a defender's hands: bounced off the floor about two thirds of the way */
+    b.bounce = b.dur < 0.5 && rand() < 0.4;
+    if (b.bounce) { p.pose = 'bpass'; b.bn = false; }
     const toRim = (0 - r.x) * r.vx + (hoopZ(r.team) - r.z) * r.vz;
     if ((r.cutT > 0 || r.cutUser > 0) && distHoop(lx, lz, r.team) < 13 && toRim > 0 && hyp(r.vx, r.vz) > 7 && r.r.dunk + r.r.vert > 125 && nearestDef(r).d > 3.5 && rand() < (r.isUser ? 0.8 : 0.3) * (0.5 + p.r.pass / 200)) {
-      b.lob = true;
+      b.lob = true; b.bounce = false; p.pose = 'chest';
       b.ex = clamp(lx * 0.5, -6, 6); b.ez = hoopZ(r.team) - dirOf(r.team) * 3; b.ey = 11.2;
       b.dur = hyp(b.ex - p.x, b.ez - p.z) / 34 + 0.35; b.apex = 4.5; b.passT = G.t + b.dur;
       r.oopT = b.dur + 0.4;
@@ -1423,7 +1426,7 @@
       if (p.move > 0) p.move -= dt;
       if (p.moveCd > 0) p.moveCd -= dt;
       if (p.reachCd > 0) p.reachCd -= dt;
-      if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && (p.pose === 'reach' || p.pose === 'chest')) p.pose = ''; }
+      if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && (p.pose === 'reach' || p.pose === 'chest' || p.pose === 'bpass')) p.pose = ''; }
       if (p.holdPoseT > 0) { p.holdPoseT -= dt; if (p.holdPoseT <= 0 && p.pose === 'hold') p.pose = ''; }
       /* going up for a rebound: the ball coming down near you, above your reach */
       if (b.state === 'loose' && !p.isUser && p.y === 0 && b.vy < 0 && b.y > 8 && b.y < 13 && hyp(b.x - p.x, b.z - p.z) < 3.2 && rand() < dt * 6) {
@@ -1541,6 +1544,8 @@
       b.t += dt;
       const u = Math.min(1, b.t / b.dur);
       b.x = b.sx + (b.ex - b.sx) * u; b.z = b.sz + (b.ez - b.sz) * u; b.y = b.sy + (b.ey - b.sy) * u + 4 * b.apex * u * (1 - u);
+      if (b.bounce) { const f = 0.62; b.y = u < f ? b.sy + (0.4 - b.sy) * (u / f) : 0.4 + (b.ey - 0.4) * ((u - f) / (1 - f)) + 2.2 * ((u - f) / (1 - f)) * (1 - (u - f) / (1 - f));
+        if (u >= f && !b.bn) { b.bn = true; AU().play('bounce', { x: b.x, vol: 0.6 }); } }
       if (b.pick && u >= b.pick.f) {
         const o = b.pick.who, p = b.from;
         o.st.stl++; p.st.tov++; G.picks = (G.picks || 0) + 1;
@@ -1566,6 +1571,8 @@
       b.t += dt;
       const u = Math.min(1, b.t / b.dur);
       b.x = b.sx + (b.ex - b.sx) * u; b.z = b.sz + (b.ez - b.sz) * u; b.y = b.sy + (b.ey - b.sy) * u + 4 * b.apex * u * (1 - u);
+      if (b.bounce) { const f = 0.62; b.y = u < f ? b.sy + (0.4 - b.sy) * (u / f) : 0.4 + (b.ey - 0.4) * ((u - f) / (1 - f)) + 2.2 * ((u - f) / (1 - f)) * (1 - (u - f) / (1 - f));
+        if (u >= f && !b.bn) { b.bn = true; AU().play('bounce', { x: b.x, vol: 0.6 }); } }
       if (G.phase === 'live' && !G.drill && u < 1) { inFlight(u); if (b.state !== 'shot') return; }
       if (u >= 1) { if (b.shot.ft) ftLands(); else shotLands(); }
       return;
