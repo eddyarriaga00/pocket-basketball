@@ -151,5 +151,5 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Edit teams on your device: city, nickname, short name, colors (2026-11-17)
 - [x] Commentary recorded on a local speech model: 240 clips, three voices (play-by-play, analyst, arena announcer) (2026-11-17)
 - [x] Game controllers (2026-11-17)
-- [ ] Landscape and desktop layouts
+- [x] A phone turned sideways gets a turn-upright screen and the game pauses; desktops keep the centered column (2026-11-17)
 - [ ] Online head to head by code

@@ -1635,6 +1635,8 @@
     $('#zi').onclick = () => R.setZoom(R.getZoom() - 0.12);
     $('#zo').onclick = () => R.setZoom(R.getZoom() + 0.12);
     const map = { ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right', ArrowUp: 'up', w: 'up', ArrowDown: 'down', s: 'down' };
+    /* a phone turned on its side gets the rotate screen (css); the game waits under it */
+    if (window.matchMedia) { const mq = matchMedia('(orientation: landscape) and (max-height: 500px) and (pointer: coarse)'); const f = () => { if (mq.matches && PB.Game.active && G && !G.paused && !G.replay && G.phase !== 'end') pause(true); }; if (mq.addEventListener) mq.addEventListener('change', f); }
     window.addEventListener('keydown', e => {
       if (!PB.Game.active) return;
       const k = map[e.key] || map[e.key.toLowerCase && e.key.toLowerCase()];

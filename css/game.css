@@ -313,3 +313,11 @@ input[type=color]{height:44px;padding:4px}
 #intro li small{font-size:10px;color:var(--mute);letter-spacing:.06em}
 #intro li.me{color:var(--green)}
 .leaders p i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.leaders p i small{color:var(--mute);margin-left:4px}
+/* a phone on its side: ask for portrait (desktops and tablets keep the column) */
+#rotate{display:none}
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse){
+  #rotate{display:flex;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;text-align:center;background:var(--bg,#0a0d14);color:var(--ink,#fff)}
+  #rotate b{display:block;font-size:44px;transform:rotate(90deg);margin-bottom:8px}
+  #rotate p{margin:0;font-family:var(--display);font-weight:900;font-size:20px;text-transform:uppercase}
+  #rotate small{color:var(--mute)}
+}
