@@ -161,6 +161,7 @@
     $('#game').classList.toggle('drill', !!(G && G.drill));
     $('#game').classList.toggle('dunk', !!(G && G.drill && (G.drill.kind === 'dunk' || G.drill.kind === 'free')));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
+    $('#game').classList.toggle('bigbtn', !!(PB.settings && PB.settings.btnSize === 'Large'));
     const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;
     const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : s.toFixed(1);
     $('#s0').textContent = G.score[0]; $('#s1').textContent = G.score[1];
@@ -1886,6 +1887,8 @@
       $('#game').hidden = false;
       if (!bound) { bindControls(); bound = true; }
       R.setCam(Object.keys(R.CAMS).find(k => R.CAMS[k] === (PB.settings && PB.settings.cam)) || 'lock');
+      /* Player lock's distance, from Settings */
+      { const L = { Closer: [34, 25, 6], Default: [42, 32, 8], Farther: [50, 39, 10] }[(PB.settings && PB.settings.camDist) || 'Default'] || [42, 32, 8]; R.lock.back = L[0]; R.lock.up = L[1]; R.lock.ahead = L[2]; R.lock.fov = 52; }
       R.resize();
       R.build(o.floor || o.teams[0]);
       const pl = [];

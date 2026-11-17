@@ -339,3 +339,6 @@ input[type=color]{height:44px;padding:4px}
 /* what's new, over the title */
 .card.whatsnew{margin:0 0 14px;background:rgba(14,18,28,.92);border-color:rgba(255,176,46,.45)}
 .card.whatsnew ul{margin:6px 0 12px;padding-left:18px;font-size:13px;line-height:1.45;color:var(--ink)}.card.whatsnew li{margin:3px 0}
+/* Settings › Button size: Large */
+#game.bigbtn .btn.a{width:112px;height:112px;font-size:18px}#game.bigbtn .btn.b{width:80px;height:80px;right:136px}
+#game.bigbtn .btn.c{width:70px;height:70px;bottom:calc(150px + var(--sb))}#game.bigbtn .btn.d{width:58px;height:58px;right:158px;bottom:calc(126px + var(--sb))}
