@@ -551,7 +551,7 @@
     }
     if (G.shotClock < 6 && rand() < 0.3) startShot(p);
     /* the computer has moves too: a crossover at a defender in his face, which can leave him (or you) stumbling */
-    if (p.moveCd <= 0 && p.hold > 0.6 && nd < 4 && rand() < 0.1 + p.r.handle / 1000) {
+    if (p.moveCd <= 0 && p.hold > 0.6 && nd < 4 && rand() < 0.04 + p.r.handle / 2500) {
       const def = nearestDef(p).who, Bs = R.basis(), side = rand() < 0.5 ? 1 : -1;
       p.move = 0.35; p.moveCd = 1.6;
       const sp = maxSpeed(p) * 1.3; p.vx = (Bs.rx * side) * sp; p.vz = (Bs.rz * side) * sp;
@@ -649,7 +649,7 @@
       const gap = clamp(3.2 + (L > 28 ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400);
       p.tx = man.x + dx / L * gap; p.tz = man.z + dz / L * gap;
       p.pose = 'guard';
-      if (!p.isUser && man.drive > 0 && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * 1.6 * (1.3 - p.r.perD / 140)) { contactFoul(p, man); return; }
+      if (!p.isUser && man.drive > 0 && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * 1.05 * (1.3 - p.r.perD / 140)) { contactFoul(p, man); return; }
       /* a driver who runs into a defender set in his path: the charge */
       if (!p.isUser && man.drive > 0 && p.stun <= 0 && hyp(p.vx, p.vz) < 3 && hyp(man.x - p.x, man.z - p.z) < 2.4 && G.phase === 'live' && rand() < dt * 0.35) {
         man.st.tov++; man.st.pf++; if (man.isUser) grade(-2, 'Charge');
