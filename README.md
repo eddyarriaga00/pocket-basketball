@@ -59,5 +59,5 @@ Then open http://localhost:8000. Tests: `node tools/smoke.js` and `node tools/ba
 
 ## Built with
 
-Plain JavaScript and three.js (r159, from cdnjs), no build step. Every model and texture is made in code; a few
-sound effects are public-domain recordings.
+Plain JavaScript and three.js (r159), no build step. The player body and its animations are Quaternius's public-domain
+mannequin; the arena, kits and basketball poses are made in code, and a few sound effects are public-domain recordings.

@@ -55,7 +55,10 @@ The two node tools need Playwright (`npm i -g playwright`).
       12.7 steals (targets 114 / 89 at 47.5% / 35 at 36% / 22 / 8). Raise two-point finishing, fewer contested
       threes from the computer, non-shooting fouls and the bonus, fewer reach-in steals.
 - [ ] On-ball screens: the big comes up and sets one; the handler uses it; the defense goes over or switches
-- [ ] Better player figures: rounded torso and limbs, hands, hair styles, jersey trim, shorts that sway
+- [x] Real player bodies (2026-11-17): Quaternius's CC0 mannequin with idle, walk, jog, sprint, jump and stance
+      clips blended by speed; jersey, shorts, socks and shoes painted on by body region in team colors; numbers and
+      hair; dribble, jumper, follow-through, contest, reach and defensive arms set in code; the ball in the real hand
+- [ ] Faces and hair styles (Quaternius Universal Base Characters, CC0), jersey trim, shorts that sway
 - [ ] Dribble moves on swipes of the right thumb (crossover, behind the back, step-back, spin)
 - [ ] Euro step and floater on drives; dunk variety
 - [ ] Haptics on release and makes

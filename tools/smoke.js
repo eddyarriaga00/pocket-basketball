@@ -10,6 +10,7 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   pg.on('dialog', d => d.accept());
   const srv = await require('./serve-test').serve();
   await pg.goto(srv.url);
+  await pg.waitForFunction(() => window.PB && PB.R && PB.R.modelReady && PB.R.modelReady(), { timeout: 30000 }).catch(() => errs.push('player model did not load'));
   await pg.evaluate(() => localStorage.clear()); await pg.reload(); await pg.waitForTimeout(500);
   await pg.click('#newc'); await pg.waitForTimeout(200);
   await pg.fill('#fn', 'Eddy'); await pg.fill('#ln', 'Arriaga');
@@ -21,7 +22,7 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   await pg.click('#go'); await pg.waitForTimeout(300);
   await pg.screenshot({ path: OUT + '/c3-hub.png' });
   // play a game: test the user's own shot with the stick and the A button
-  await pg.click('#play'); await pg.waitForTimeout(2600);
+  await pg.click('#play'); await pg.waitForFunction(() => PB.Game.dbg.state().phase === 'live', { timeout: 30000 });
   const st = await pg.evaluate(() => { const G = PB.Game.dbg.state(); return { user: G.user && G.user.d.last, holder: G.ball.holder && G.ball.holder.d.last, phase: G.phase }; });
   console.log('in game', JSON.stringify(st));
   // give the user the ball and shoot with real input

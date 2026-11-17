@@ -171,6 +171,207 @@
     return { root, body, legs, arms, head, shadow, phase: PB.rand() * 6 };
   }
 
+
+  /* ---------- skinned players: models/player.glb (Quaternius's CC0 mannequin and animations, tools/model.mjs) ----------
+     One body for everyone, scaled to each player's height. The kit is painted on by region (which bone moves each
+     part of the body: the spine wears the jersey, the hips and upper thighs the shorts, the feet the shoes), so one
+     shared mesh can wear any team's colors. Running, jumping and the stance come from the animation clips, blended by
+     speed; the basketball arms (the dribble, the jumper, the contest, the reach) are set in code on top, each arm bone
+     turned to point where the pose wants it. */
+  let TPL = null, tplLoading = null;
+  R.loadModel = () => {
+    const A = window.THREE_ADDONS;
+    if (TPL || !A) return Promise.resolve(TPL);
+    if (!tplLoading) tplLoading = new A.GLTFLoader().loadAsync('models/player.glb').then(g => (TPL = template(g))).catch(e => { console.warn('player model', e); return null; });
+    return tplLoading;
+  };
+  R.modelReady = () => !!TPL;
+  const V3 = () => new T.Vector3(), Q4 = () => new T.Quaternion();
+  const bk = n => n.replace(/[.\[\]:/]/g, '');
+  function template(g) {
+    const scene = g.scene;
+    scene.updateMatrixWorld(true);
+    const meshes = []; scene.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
+    /* three.js drops the dots from node names as it loads them (DEF-shin.L becomes DEF-shinL): look bones up that way */
+    const bones = {}; meshes[0].skeleton.bones.forEach(b => { bones[bk(b.name)] = b; });
+    const at = n => bones[bk(n)].getWorldPosition(V3());
+    const box = new T.Box3();
+    for (const m of meshes) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); }
+    const H = box.max.y - box.min.y, knee = at('DEF-shin.L').y, ankle = at('DEF-foot.L').y, hip = at('DEF-thigh.L').y;
+    const shortsTo = knee + (hip - knee) * 0.22, sockTo = ankle + (knee - ankle) * 0.28;
+    /* region of every vertex, from its heaviest bone: 0 skin, 1 jersey, 2 shorts, 3 shoe, 4 sock */
+    for (const m of meshes) {
+      const gm = m.geometry, si = gm.attributes.skinIndex, sw = gm.attributes.skinWeight, pos = gm.attributes.position, n = pos.count;
+      const reg = new Float32Array(n), v = V3();
+      for (let i = 0; i < n; i++) {
+        let best = 0, bw = -1;
+        const ws = [sw.getX(i), sw.getY(i), sw.getZ(i), sw.getW(i)], is = [si.getX(i), si.getY(i), si.getZ(i), si.getW(i)];
+        for (let k = 0; k < 4; k++) if (ws[k] > bw) { bw = ws[k]; best = is[k]; }
+        const name = m.skeleton.bones[best].name;
+        const y = v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld).y;
+        let r = 0;
+        if (/spine|shoulder/.test(name)) r = 1;
+        else if (/hips/.test(name)) r = 2;
+        else if (/thigh/.test(name)) r = y > shortsTo ? 2 : 0;
+        else if (/shin/.test(name)) r = y < sockTo ? 4 : 0;
+        else if (/foot|toe/.test(name)) r = 3;
+        reg[i] = r;
+      }
+      gm.setAttribute('region', new T.BufferAttribute(reg, 1));
+    }
+    /* where the number, the small chest number and the hair sit, relative to their bones */
+    const fwd = new T.Vector3(0, 0, 1);
+    const spine = bones[bk('DEF-spine.003')], head = bones[bk('DEF-head')];
+    const chestY = at('DEF-spine.003').y, headP = at('DEF-head');
+    const local = (bone, worldPos, worldQuat) => ({ pos: bone.worldToLocal(worldPos.clone()), quat: bone.getWorldQuaternion(Q4()).invert().multiply(worldQuat) });
+    const torsoZ = box.max.z * 0.6;
+    const backQ = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), Math.PI);
+    const decals = {
+      back: local(spine, new T.Vector3(0, chestY - H * 0.02, -torsoZ - H * 0.012), backQ),
+      front: local(spine, new T.Vector3(0, chestY - H * 0.035, torsoZ + H * 0.022), new T.Quaternion()),
+      hair: local(head, new T.Vector3(headP.x, box.max.y - H * 0.045, headP.z - H * 0.008), new T.Quaternion()),
+    };
+    const sideR = Math.sign(at('DEF-hand.R').x - at('DEF-hips').x) || -1;
+    const clips = {}; for (const c of g.animations) clips[c.name] = c;
+    return { scene, clips, H, decals, sideR, torsoZ };
+  }
+  function kitMaterial(cols) {
+    const m = new T.MeshLambertMaterial({ color: 0xffffff });
+    const u = { cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
+      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) } };
+    m.onBeforeCompile = sh => {
+      Object.assign(sh.uniforms, u);
+      sh.vertexShader = 'attribute float region;\nvarying float vRegion;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRegion = region;');
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nvarying float vRegion;\n' +
+        sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );',
+          'vec3 rc = vRegion < 0.5 ? cSkin : vRegion < 1.5 ? cJersey : vRegion < 2.5 ? cShorts : vRegion < 3.5 ? cShoe : cSock;\n  vec4 diffuseColor = vec4( rc, opacity );');
+    };
+    m.customProgramCacheKey = () => 'pb-kit';
+    return m;
+  }
+  const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
+  function skinnedPlayer(p, kit) {
+    const A = window.THREE_ADDONS;
+    const root = new T.Group(), body = A.SkeletonUtils.clone(TPL.scene);
+    const sc = (p.ht || 78) / 12 / TPL.H;
+    body.scale.setScalar(sc);
+    root.add(body);
+    const d = p.d || p;
+    const shorts = new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: kit.shoe || '#f2f2f2', sock: '#f7f7f7' });
+    const bones = {};
+    body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
+    /* the number on the back and front, and hair */
+    const tex = numberTex(p.num, kit.c1, kit.c2);
+    const numMat = new T.MeshBasicMaterial({ map: tex });
+    const H = TPL.H;
+    const put = (bone, dcl, obj) => { obj.position.copy(dcl.pos); obj.quaternion.copy(dcl.quat); bone.add(obj); };
+    put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
+    put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
+    const hair = new T.Mesh(new T.SphereGeometry(H * 0.07, 14, 9, 0, Math.PI * 2, 0, Math.PI / 1.9), new T.MeshLambertMaterial({ color: 0x17110d }));
+    hair.scale.set(1.02, 0.8, 1.1);
+    put(bones[bk('DEF-head')], TPL.decals.hair, hair);
+    const shadow = new T.Mesh(new T.CircleGeometry(1.1, 16), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }));
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; root.add(shadow);
+    const mixer = new T.AnimationMixer(body), act = {};
+    for (const name of ['Idle_Loop', 'Walk_Loop', 'Jog_Fwd_Loop', 'Sprint_Loop', 'Crouch_Idle_Loop', 'Crouch_Fwd_Loop', 'Jump_Loop', 'Dance_Loop']) {
+      const c = TPL.clips[name]; if (!c) continue;
+      const a = mixer.clipAction(c); a.play(); a.setEffectiveWeight(0); a.time = PB.rand() * c.duration; act[name] = a;
+    }
+    act.Idle_Loop.setEffectiveWeight(1);
+    const arm = s => ({ up: bones[bk(`DEF-upper_arm.${s}`)], fore: bones[bk(`DEF-forearm.${s}`)], hand: bones[bk(`DEF-hand.${s}`)] });
+    return { kind: 'skin', root, body, mixer, act, bones, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
+  }
+
+  /* turn a bone so the segment from it to `tip` points along `dir` (world), by `w` of the way */
+  const _a = V3(), _b = V3(), _q = Q4(), _qw = Q4(), _qp = Q4();
+  function aim(bone, tip, dir, w) {
+    bone.getWorldPosition(_a); tip.getWorldPosition(_b);
+    _b.sub(_a).normalize();
+    _q.setFromUnitVectors(_b, dir);
+    bone.getWorldQuaternion(_qw);
+    _q.multiply(_qw);                                  // the world rotation it should have
+    bone.parent.getWorldQuaternion(_qp).invert().multiply(_q);
+    bone.quaternion.slerp(_qp, w);
+    bone.updateMatrixWorld(true);
+  }
+  const _d = V3();
+  /* a direction given in the player's own frame (x to his right, y up, z ahead) into the world */
+  function dirOf(face, x, y, z, side) {
+    const fx = Math.sin(face), fz = Math.cos(face), rx = -fz, rz = fx;
+    return _d.set(rx * x * side + fx * z, y, rz * x * side + fz * z).normalize();
+  }
+  /* each pose: right arm [upper, forearm] and left arm, in the player's frame; x is outward for each arm */
+  const POSES = {
+    dribble: (k) => [[0.18, -0.82, 0.45], [0.06, -0.9 + 0.3 * k, 0.5], [0.35, -0.6, 0.55], [0.05, -0.15, 1]],
+    shoot: (k) => [[0.12, 0.62 + 0.3 * k, 0.7 - 0.4 * k], [0.02, 0.75 + 0.2 * k, 0.55 - 0.3 * k], [0.32, 0.6 + 0.25 * k, 0.6], [-0.35, 0.85, 0.35]],
+    follow: () => [[0.08, 0.9, 0.42], [0.02, 0.35, 0.95], [0.32, 0.8, 0.4], [-0.2, 0.7, 0.6]],
+    contest: () => [[0.25, 0.96, 0.15], [0.12, 0.99, 0.05], [0.25, 0.96, 0.15], [0.12, 0.99, 0.05]],
+    celebrate: () => [[0.5, 0.86, 0.1], [0.3, 0.95, 0.05], [0.5, 0.86, 0.1], [0.3, 0.95, 0.05]],
+    reach: () => [[0.1, -0.15, 0.98], [0.05, -0.2, 0.98], [0.6, -0.6, 0.4], [0.3, -0.5, 0.8]],
+    guard: () => [[0.85, -0.3, 0.42], [0.65, 0.15, 0.7], [0.85, -0.3, 0.42], [0.65, 0.15, 0.7]],
+    hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
+  };
+  const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  function updateSkinned(p, m, G, dt) {
+    m.root.position.set(p.x, 0, p.z);
+    m.root.rotation.y = p.face;
+    m.body.position.y = p.y;
+    const sp = Math.hypot(p.vx, p.vz), air = p.y > 0.3;
+    /* legs: idle, walk, jog and sprint blended by speed; the stance on defense; the jump in the air */
+    const ws = {};
+    for (let i = 0; i < LOCO.length; i++) {
+      const [n, v] = LOCO[i], lo = i ? LOCO[i - 1][1] : -1, hi = i < LOCO.length - 1 ? LOCO[i + 1][1] : 1e9;
+      ws[n] = sp <= v ? (i ? smooth(lo, v, sp) : 1 - smooth(v, hi, sp)) : (i < LOCO.length - 1 ? 1 - smooth(v, hi, sp) : 1);
+    }
+    let crouch = p.pose === 'guard' ? 0.5 : 0;
+    const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;
+    const jump = air ? 1 : 0;
+    const rest = Math.max(0, 1 - jump - dance);
+    m.crouch = (m.crouch || 0) + (crouch - (m.crouch || 0)) * Math.min(1, dt * 8);
+    const k = dt ? Math.min(1, dt * 10) : 1;
+    const set = (n, w) => { const a = m.act[n]; if (!a) return; a.weight = a.weight + (w - a.weight) * k; a.setEffectiveWeight(a.weight); };
+    for (const [n] of LOCO) set(n, ws[n] * rest * (1 - m.crouch));
+    set('Crouch_Idle_Loop', rest * m.crouch * (1 - smooth(2, 6, sp)));
+    set('Crouch_Fwd_Loop', rest * m.crouch * smooth(2, 6, sp));
+    set('Jump_Loop', jump); set('Dance_Loop', dance);
+    /* the clips' feet match the ground at about these speeds (feet a second, at this player's size) */
+    const scl = (p.ht || 78) / 12 / 6.1;
+    m.act.Walk_Loop.timeScale = Math.min(1.6, Math.max(0.6, sp / (4.5 * scl)));
+    m.act.Jog_Fwd_Loop.timeScale = Math.min(1.5, Math.max(0.7, sp / (11 * scl)));
+    m.act.Sprint_Loop.timeScale = Math.min(1.3, Math.max(0.8, sp / (18 * scl)));
+    if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
+    m.mixer.update(dt);
+    m.body.updateMatrixWorld(true);
+    /* the arms */
+    const has = G.ball.holder === p;
+    let pose = p.pose;
+    if (pose === 'shoot' && !p.shoot) pose = 'follow';
+    if (has && !p.shoot && pose !== 'dribble') pose = G.phase === 'ft' ? 'hold' : 'dribble';
+    if (pose !== m.pose) { m.pose = pose; }
+    m.poseW = Math.min(1, (m.poseW || 0) + dt * (POSES[pose] ? 9 : -6));
+    if (!POSES[pose]) { m.poseW = Math.max(0, m.poseW - dt * 6); return; }
+    let kk = 0;
+    if (pose === 'dribble') kk = Math.abs(Math.sin(G.t * 8.5));
+    else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
+    /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
+       gives x as outward for that arm, so the left arm mirrors it */
+    const P = POSES[pose](kk), w = m.poseW, s = TPL.sideR < 0 ? 1 : -1;
+    aim(m.R.up, m.R.fore, dirOf(p.face, P[0][0], P[0][1], P[0][2], s), w);
+    aim(m.R.fore, m.R.hand, dirOf(p.face, P[1][0], P[1][1], P[1][2], s), w);
+    aim(m.L.up, m.L.fore, dirOf(p.face, P[2][0], P[2][1], P[2][2], -s), w);
+    aim(m.L.fore, m.L.hand, dirOf(p.face, P[3][0], P[3][1], P[3][2], -s), w);
+  }
+  /* where a player's hands are, in feet, for the ball (null for the simple figures) */
+  const _h = V3();
+  R.hands = p => {
+    const m = meshes.get(p);
+    if (!m || m.kind !== 'skin') return null;
+    m.R.hand.getWorldPosition(_h); const r = { x: _h.x, y: _h.y, z: _h.z };
+    m.L.hand.getWorldPosition(_h); const l = { x: _h.x, y: _h.y, z: _h.z };
+    return { r, l };
+  };
+
   R.init = (canvas) => {
     renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     renderer.setClearColor(0x0b0f17);
@@ -180,6 +381,7 @@
     scene.add(new T.HemisphereLight(0xfff6e8, 0x40342a, 0.95));
     const sun = new T.DirectionalLight(0xffffff, 0.75); sun.position.set(20, 80, -30); scene.add(sun);
     R.resize();
+    R.loadModel();
   };
 
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
@@ -227,7 +429,7 @@
   };
 
   R.addPlayer = (p, kit) => {
-    const m = playerMesh(p, kit);
+    const m = TPL ? skinnedPlayer(p, kit) : playerMesh(p, kit);
     scene.add(m.root);
     meshes.set(p, m);
   };
@@ -245,6 +447,7 @@
   /* Pose every player from the game state. */
   R.update = (G, dt) => {
     for (const [p, m] of meshes) {
+      if (m.kind === 'skin') { updateSkinned(p, m, G, dt); m.shadow.position.set(0, 0.02, 0); m.shadow.scale.setScalar(1 - Math.min(p.y / 8, 0.5)); continue; }
       m.root.position.set(p.x, 0, p.z);
       const sp = Math.hypot(p.vx, p.vz);
       m.body.position.y = p.y;

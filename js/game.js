@@ -144,6 +144,9 @@
   function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; }
 
   function handPos(p) {
+    /* the model's real hand when there is one: the ball leaves from where it is */
+    const H = R.hands && R.hands(p);
+    if (H) return p.shoot || p.pose === 'shoot' ? { x: (H.r.x + H.l.x) / 2, y: Math.max(H.r.y, H.l.y) + 0.35, z: (H.r.z + H.l.z) / 2 } : { x: H.r.x, y: H.r.y, z: H.r.z };
     const fx = Math.sin(p.face), fz = Math.cos(p.face);
     return { x: p.x + fx * 0.6 + fz * 0.5, y: p.ht / 12 * 0.95 + p.y + 1.5, z: p.z + fz * 0.6 - fx * 0.5 };
   }
@@ -750,9 +753,14 @@
     const b = G.ball;
     if (b.state === 'held') {
       const p = b.holder, hp = handPos(p);
-      if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : 0.2); }
+      const H = R.hands && R.hands(p);
+      if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : H ? 0 : 0.2); }
+      else if (H && G.phase === 'ft') { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
-        b.x = hp.x; b.z = hp.z; b.y = 0.4 + Math.abs(Math.sin(G.t * 8.5)) * 2.6;
+        /* the dribble: from the hand to the floor and back, under the hand */
+        b.x = hp.x; b.z = hp.z;
+        const top = H ? Math.max(1.2, H.r.y - 0.35) : 3.0;
+        b.y = 0.4 + Math.abs(Math.sin(G.t * 8.5)) * (top - 0.4);
         /* the bounce: one each time the ball meets the floor, quieter the farther it is from you */
         const k = Math.floor(G.t * 8.5 / Math.PI);
         if (k !== b.bk) { b.bk = k; if (G.phase === 'live') { const d = G.user ? hyp(b.x - G.user.x, b.z - G.user.z) : 20; AU().play('bounce', { x: b.x, vol: clamp(1.1 - d / 45, 0.25, 1) }); } }
