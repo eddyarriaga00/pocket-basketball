@@ -99,7 +99,7 @@
   const LETTERS = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeLetter = s => LETTERS[clamp(Math.round(6 + s / 4), 0, 12)];
   function grade(delta, why) {
-    if (!G.user) return;
+    if (!G.user || G.switching) return;
     const before = gradeLetter(G.grade);
     G.grade = clamp(G.grade + delta, -26, 26);
     G.gradeLog.push([delta, why]);
@@ -142,7 +142,7 @@
     $('#bA').className = 'btn a ' + (has || ft || G.drill ? 'shoot' : 'jump');
     $('#bB').textContent = has ? 'Pass' : off ? 'Call' : 'Steal';
     $('#bB').classList.toggle('lit', !has && off && G.callT > 0);
-    $('#bC').textContent = has ? 'Move' : off ? 'Cut' : 'Help';
+    $('#bC').textContent = has ? 'Move' : off ? 'Cut' : G.switching ? 'Switch' : 'Help';
   }
 
   /* ---------- ball helpers ---------- */
@@ -813,13 +813,36 @@
       return;
     }
     const off = b.holder ? b.holder.team === 0 : G.poss === 0;
+    if (!off && G.switching) { switchNearest(); return; }
     if (off) { u.cutUser = 1.6; toast('Cutting', 'call'); G.callT = 2; }
   }
   function feedMove(lbl) { const r = $('#rel'); r.textContent = lbl; r.className = 'on y'; relT = 0.6; }
 
+  /* ---------- whole-team control: you are whoever has the ball, or the man guarding it ---------- */
+  function setUser(p) {
+    if (!p || p === G.user) return;
+    if (G.user) { G.user.isUser = false; G.user.cutUser = 0; }
+    p.isUser = true; G.user = p; G.idle = 9;
+  }
+  function autoSwitch() {
+    const b = G.ball, mine = G.pl.filter(o => o.team === 0);
+    if (b.holder && b.holder.team === 0) { setUser(b.holder); return; }
+    if (b.state === 'pass' && b.to && b.to.team === 0) return;     // the switch comes on the catch
+    if (b.holder && b.holder.team === 1 && (!G.user || G.user.team !== 0 || G.swPoss !== G.poss)) {
+      G.swPoss = G.poss;
+      setUser(mine.find(o => o.slot === b.holder.slot) || mine[0]);
+    }
+  }
+  function switchNearest() {
+    const b = G.ball; let best = null, bd = 1e9;
+    for (const o of G.pl) if (o.team === 0 && o !== G.user) { const d = hyp(o.x - b.x, o.z - b.z); if (d < bd) { bd = d; best = o; } }
+    setUser(best); toast('Switched', 'call');
+  }
+
   /* ---------- main step ---------- */
   function step(dt) {
     G.t += dt;
+    if (G.switching && G.phase === 'live') autoSwitch();
     const b = G.ball;
     if (relT > 0) { relT -= dt; if (relT <= 0) $('#rel').className = ''; }
     if (G.phase === 'tip') {
@@ -1298,6 +1321,7 @@
       tape = []; replayCd = 0;
       G.user = pl.find(p => p.isUser) || null;
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0;
+      G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
       if (PB.booth && !o.drill) { const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B('intro', { prio: 2, follow: 0.6 }); }); else B('intro', { prio: 2, follow: 0.6 }); }
       /* jump ball setup: everyone around the center circle */
@@ -1327,7 +1351,7 @@
       $('#a0').textContent = o.teams[0].id; $('#a1').textContent = o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
       $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Teammate grade</span>' : '';
-      $('#grade').hidden = !G.user; $('#ftmsg').hidden = true; $('#pause').hidden = true;
+      $('#grade').hidden = !G.user || !!o.switching; $('#ftmsg').hidden = true; $('#pause').hidden = true;
       if (o.drill) {
         const def = DRILLS[o.drill];
         G.drill = { kind: o.drill, def, rack: 0, ball: 0, score: 0, made: 0, att: 0, t: def.secs, next: 0, over: false };

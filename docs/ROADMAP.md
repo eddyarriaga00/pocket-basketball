@@ -107,7 +107,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 ## M5 · More modes and polish
 
-- [ ] Season mode (one team, switching), training camp, standalone contests
+- [x] Whole-team control in quick games: you are the ball handler, or the man guarding it; Switch on defense (2026-11-17)
+- [ ] A season mode for a whole team; training camp; the contests from the menu
 - [ ] Edit teams on your device; several careers; save export and import
 - [ ] Commentary recorded on a local speech model
 - [x] Game controllers (2026-11-17)

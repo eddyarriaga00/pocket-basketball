@@ -79,20 +79,20 @@
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Quick game</h2>
       <div class="field"><label>Your team</label><select id="qa">${opts}</select></div>
       <div class="field"><label>Opponent</label><select id="qb">${opts}</select></div>
-      <div class="field"><label>You play</label><div class="seg" id="qp">${PB.POS.map((p, i) => `<button data-v="${i}" class="${i === 0 ? 'on' : ''}">${p}</button>`).join('')}</div></div>
-      <p class="fine">You control one player, your teammates play around you. ${S.qlen}-minute quarters, ${S.level}.</p>
+      <div class="field"><label>You play</label><div class="seg" id="qp">${PB.POS.map((p, i) => `<button data-v="${i}" class="${i === 0 ? 'on' : ''}">${p}</button>`).join('')}<button data-v="team">Whole team</button></div></div>
+      <p class="fine">Pick a position to play one player while your teammates play around you, or Whole team to control whoever has the ball (and, on defense, the man guarding it; Switch moves you to the defender nearest the ball). ${S.qlen}-minute quarters, ${S.level}.</p>
       <button class="big" id="go">Tip off</button></div>`);
     $('#qb').value = 'BOS'; $('#qa').value = 'LAK';
     let slot = 0;
-    scr().querySelectorAll('#qp button').forEach(b => b.onclick = () => { slot = +b.dataset.v; scr().querySelectorAll('#qp button').forEach(x => x.classList.toggle('on', x === b)); });
+    scr().querySelectorAll('#qp button').forEach(b => b.onclick = () => { slot = b.dataset.v === 'team' ? 'team' : +b.dataset.v; scr().querySelectorAll('#qp button').forEach(x => x.classList.toggle('on', x === b)); });
     $('#bk').onclick = title;
     $('#go').onclick = () => {
       const a = PB.team($('#qa').value), b = PB.team($('#qb').value);
       if (a === b) { alert('Pick two different teams.'); return; }
       const ra = PB.makeRoster(78).slice(0, 5), rb = PB.makeRoster(78).slice(0, 5);
-      ra[slot].first = 'You'; ra[slot].last = 'You';
+      const team = slot === 'team'; if (!team) { ra[slot].first = 'You'; ra[slot].last = 'You'; }
       scr().hidden = true;
-      PB.Game.start({ teams: [a, b], rosters: [ra, rb], userId: ra[slot].id, qlen: S.qlen, level: S.level,
+      PB.Game.start({ teams: [a, b], rosters: [ra, rb], userId: ra[team ? 0 : slot].id, switching: team, qlen: S.qlen, level: S.level,
         strength: [PB.teamOvr(ra), PB.teamOvr(rb)], onEnd: r => result(r, null) });
     };
   }
