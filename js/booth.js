@@ -82,6 +82,18 @@
       PB.booth._paUntil = performance.now() + buf.duration * 1000 + 300;
       PB.audio.voice(buf, { pa: true, vol: 0.85 });
     },
+    /* players talking on the floor: their own channel, quieter, never over each other, never over the booth's big calls */
+    async chat(key, x, who) {
+      if (!pack || !(PB.settings && PB.settings.sound !== false) || !PB.audio || !PB.audio.ready()) return;
+      const now = performance.now();
+      if (now < (PB.booth._chatUntil || 0)) return;
+      const c = pick(key); if (!c) return;
+      PB.booth._chatUntil = now + 900;
+      const buf = await decode(c); if (!buf) return;
+      PB.booth._chatUntil = performance.now() + buf.duration * 1000 + 600;
+      const id = who ? String(who.id || who.name || '') : '', h = [...id].reduce((a, ch) => a + ch.charCodeAt(0), 0);
+      PB.audio.voice(buf, { court: true, x, vol: 0.42, rate: 0.9 + (h % 7) * 0.035 });
+    },
     stop() { followT++; if (cur) { try { cur.stop(); } catch (e) { /* done */ } } busyUntil = 0; },
   };
 })();

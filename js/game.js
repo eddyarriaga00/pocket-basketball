@@ -14,6 +14,7 @@
   const AU = () => PB.audio || { play() {}, crowd: { react() {}, level() {}, on() {} }, muffle() {}, music() {} };
   const home = t => G && t === G.home;   // the crowd is the home team's
   const B = (k, o) => { if (PB.booth) PB.booth.say(k, o); };   // the booth
+  const CH = (k, p) => { if (PB.booth && PB.booth.chat && p && !G.drill) PB.booth.chat(k, p.x, p); };   // a player talking on the floor
   const bt = (p, k) => (p && p.d && p.d.badges && p.d.badges[k]) || 0;   // a badge's tier, 0 to 3
   /* a short buzz in the hand, where the phone allows it (Android; iPhones do not let web pages vibrate) */
   const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
@@ -240,6 +241,7 @@
   }
   function turnover(p, why, giveTo, at) {
     for (const o of G.pl) { o.shoot = null; o.drive = 0; }
+    if (p && rand() < 0.4) { const m = G.pl.find(o => o.team === p.team && o !== p && !o.isUser); if (m) setTimeout(() => CH('ch_back', m), 500); }
     if (p) { p.st.tov++; if (p === G.user) grade(-3, why); }
     feed(`${why}${p ? ' · ' + p.name : ''}`);
     G.poss = null;
@@ -279,6 +281,7 @@
     if (kind === 'jumper') { p.vx *= 0.2; p.vz *= 0.2; }
     /* a defender close by goes up with him */
     for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25);
+    if (kind === 'jumper' && rand() < 0.3) { const o = nearestDef(p).who; if (o && !o.isUser) CH('ch_shot', o); }
   }
 
   /* the contest dunk: up from wherever you are inside the free-throw line, carried to the rim, the dunk you picked */
@@ -554,7 +557,7 @@
       if (p.team === 0) toast(call + (s.foul ? ' · AND ONE' : ''), 'make'); else toast(`${p.name} scores`, 'opp');
       feed(`${p.name} ${s.oop ? 'alley-oop' : s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : s.kind === 'hook' ? 'hook shot' : s.kind === 'floater' ? 'floater' : 'jumper'}${ast ? ` (${ast.name} ast)` : ''}`);
       if (p.isUser) { grade(s.pts === 3 ? 4 : 3, s.pts === 3 ? 'Made three' : 'Scored'); buzz([20, 30, 30]); }
-      if (p.isUser && (s.pts === 3 || s.kind === 'dunk')) p.celebT = 0.9;
+      if (p.isUser && (s.pts === 3 || s.kind === 'dunk')) { p.celebT = 0.9; if (rand() < 0.5) { const m = G.pl.find(o => o.team === p.team && !o.isUser); if (m) setTimeout(() => CH('ch_nice', m), 900); } }
       if ((s.pts === 3 || s.kind === 'dunk' || s.foul || G.clock <= 0.05) && R.benchJump) R.benchJump(p.team);
       if (p.isUser || (ast && ast.isUser)) {
         const v = (s.kind === 'dunk' ? 3 : s.pts === 3 ? 2.5 : 1) + (s.foul ? 1 : 0) + (s.oop ? 1 : 0) + (G.clock <= 0.05 ? 4 : clutchTime() ? 1 : 0) + (p.isUser ? 0 : -0.8);
@@ -569,6 +572,7 @@
       else { G.poss = null; dead(1.1, () => inboundOut(1 - p.team, { x: 0, z: hoopZ(p.team) }, true)); }
     } else {
       /* off the rim */
+      if (rand() < 0.3) { const o = G.pl.filter(q => q.team !== p.team && !q.isUser).sort((a, c) => distHoop(a.x, a.z, p.team) - distHoop(c.x, c.z, p.team))[0]; if (o) CH('ch_box', o); }
       if (p.isUser) {
         if (G.lastShot.prob < 0.22) grade(-2, 'Forced a bad shot');
         else if (G.lastShot.prob < 0.32 && G.shotClock > 10) grade(-1, 'Tough shot early');
@@ -826,6 +830,7 @@
         const sw = G.pl.find(o => o.team !== p.team && o.slot === p.slot); if (sw && !sw.isUser) { sw.switchOn = h; sw.switchT = 1.8; }
         if (!h.isUser && lane(h) > 2.5) h.drive = 1.4;
         if (h.isUser || rand() < 0.15) B('pick_ana', { prio: 1 });
+        if (rand() < 0.6) { if (sw && !sw.isUser && rand() < 0.5) CH('ch_switch', sw); else CH('ch_screen', d); }
       }
     } else { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 5; }   // the roll
     return true;
@@ -878,6 +883,7 @@
   function defAI(p, dt) {
     const offT = 1 - p.team;
     if (p.switchT > 0) p.switchT -= dt;
+    if (p.helping > 0) p.helping -= dt * 0.1;   // slow on purpose: one "help!" from a man every several seconds
     const man = p.switchT > 0 && p.switchOn && G.ball.holder === p.switchOn ? p.switchOn : G.pl.find(o => o.team === offT && o.slot === p.slot);
     /* help: a driver who has beaten his man into the paint draws the nearest defender, who steps in front of him */
     const drv = G.ball.holder;
@@ -889,6 +895,7 @@
         for (const o of G.pl) if (o.team === p.team && o !== own && !o.isUser) { const d = hyp(o.x - drv.x, o.z - drv.z); if (d < nd) { nd = d; near = o; } }
         if (near === p && nd < 16) {
           const hz = hoopZ(offT);
+          if (!(p.helping > 0) && rand() < 0.35) CH('ch_help', p);
           p.tx = drv.x * 0.6; p.tz = drv.z + (hz - drv.z) * 0.45; p.pose = 'guard'; p.helping = 0.4;
           return;
         }
@@ -936,7 +943,7 @@
       /* tight on the ball, a poor handle loses it */
       if (!p.isUser && !man.shoot && hyp(man.x - p.x, man.z - p.z) < 3.2 && G.phase === 'live' && rand() < dt * clamp(0.006 + (p.r.perD - man.r.handle) * 0.0002, 0.002, 0.015) * G.diff.oppSteal) {
         p.st.stl++; man.st.tov++; if (man.isUser) grade(-3, 'Lost the ball');
-        AU().play('steal', { x: p.x }); AU().crowd.react(home(p.team) ? 'roar' : 'groan', 0.7); B('steal', { prio: 3, follow: 0.3 });
+        AU().play('steal', { x: p.x }); AU().crowd.react(home(p.team) ? 'roar' : 'groan', 0.7); B('steal', { prio: 3, follow: 0.3 }); if (rand() < 0.5) CH('ch_run', p);
         toast(p.team === 0 ? 'STRIPPED' : 'Stripped', p.team === 0 ? 'make' : 'opp'); feed(`Steal · ${p.name}`);
         give(p); return;
       }
@@ -948,7 +955,7 @@
         const ch = clamp(0.02 + (p.r.steal - man.r.handle) * 0.0012, 0.005, 0.06) * G.diff.oppSteal * (man.move > 0 ? 1.6 : 1);
         if (rand() < ch) {
           p.st.stl++; feed(`Steal · ${p.name}`); toast(p.team === 0 ? 'STOLEN' : 'Picked off', p.team === 0 ? 'make' : 'opp');
-          AU().play('steal', { x: p.x }); AU().crowd.react(home(p.team) ? 'roar' : 'groan', 0.8); B('steal', { prio: 3, follow: 0.35 });
+          AU().play('steal', { x: p.x }); AU().crowd.react(home(p.team) ? 'roar' : 'groan', 0.8); B('steal', { prio: 3, follow: 0.35 }); if (rand() < 0.5) CH('ch_run', p);
           man.st.tov++; if (man.isUser) grade(-3, 'Lost the ball'); if (p.isUser) grade(3, 'Steal');
           give(p);
         }
@@ -1064,7 +1071,7 @@
       return;
     }
     const off = b.holder ? b.holder.team === 0 : G.poss === 0;
-    if (off) { G.callT = 2.5; toast('Calling for it', 'call'); return; }
+    if (off) { G.callT = 2.5; toast('Calling for it', 'call'); CH('ch_ball', u); return; }
     /* steal */
     if (u.reachCd > 0) return;
     u.reachCd = 0.7; u.pose = 'reach'; u.reachT = 0.3;

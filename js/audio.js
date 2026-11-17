@@ -340,6 +340,8 @@
     /* a decoded line through the booth (commentary), the crowd ducked a little under it */
     voice(buf, o) {
       if (!ctx || !buf) return null;
+      /* a voice on the floor: into the arena with the other sounds, panned to where he is, a little pitch for who */
+      if (o && o.court) { const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = o.rate || 1; chain(s, gain(ctx, o.vol || 0.5), pan(ctx, o.x !== undefined ? Math.max(-0.8, Math.min(0.8, -o.x / 28)) : 0), bus.sfx); s.start(); return s; }
       const s = ctx.createBufferSource(); s.buffer = buf; chain(s, gain(ctx, (o && o.vol) || 1), o && o.pa ? bus.pa : bus.booth); s.start();
       if (o && o.pa) return s;   // the arena speakers: no ducking, the crowd is part of it
       if (crowdNodes) { const g = bus.crowd.gain, t = ctx.currentTime; g.setTargetAtTime(0.65, t, 0.08); g.setTargetAtTime(1, t + buf.duration, 0.4); }

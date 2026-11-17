@@ -11,6 +11,10 @@
   "pa": {
    "ref": "am_fenrir",
    "role": "arena announcer"
+  },
+  "mate": {
+   "ref": "am_eric",
+   "role": "players on the floor"
   }
  },
  "note": "Lines are short on purpose: a call has to land before the next play. ex = Chatterbox exaggeration (0.35 calm .. 0.95 a huge call).",
@@ -1467,6 +1471,124 @@
     "who": "ana",
     "text": "Good time for a breather. Regroup and go.",
     "ex": 0.45
+   }
+  ],
+  "ch_screen": [
+   {
+    "who": "mate",
+    "text": "Screen! Screen!",
+    "ex": 0.7
+   },
+   {
+    "who": "mate",
+    "text": "Pick coming!",
+    "ex": 0.7
+   }
+  ],
+  "ch_switch": [
+   {
+    "who": "mate",
+    "text": "Switch!",
+    "ex": 0.7
+   },
+   {
+    "who": "mate",
+    "text": "Switch it!",
+    "ex": 0.7
+   }
+  ],
+  "ch_shot": [
+   {
+    "who": "mate",
+    "text": "Shot!",
+    "ex": 0.75
+   },
+   {
+    "who": "mate",
+    "text": "Shot, shot!",
+    "ex": 0.75
+   }
+  ],
+  "ch_box": [
+   {
+    "who": "mate",
+    "text": "Box out!",
+    "ex": 0.7
+   },
+   {
+    "who": "mate",
+    "text": "Find a body!",
+    "ex": 0.65
+   }
+  ],
+  "ch_ball": [
+   {
+    "who": "mate",
+    "text": "Ball! Ball!",
+    "ex": 0.75
+   },
+   {
+    "who": "mate",
+    "text": "I'm open!",
+    "ex": 0.7
+   },
+   {
+    "who": "mate",
+    "text": "Here!",
+    "ex": 0.7
+   }
+  ],
+  "ch_help": [
+   {
+    "who": "mate",
+    "text": "Help! Help!",
+    "ex": 0.7
+   },
+   {
+    "who": "mate",
+    "text": "I got help!",
+    "ex": 0.65
+   }
+  ],
+  "ch_run": [
+   {
+    "who": "mate",
+    "text": "Run! Run!",
+    "ex": 0.75
+   },
+   {
+    "who": "mate",
+    "text": "Go, go!",
+    "ex": 0.75
+   }
+  ],
+  "ch_back": [
+   {
+    "who": "mate",
+    "text": "Get back!",
+    "ex": 0.75
+   },
+   {
+    "who": "mate",
+    "text": "Back on D!",
+    "ex": 0.7
+   }
+  ],
+  "ch_nice": [
+   {
+    "who": "mate",
+    "text": "Let's go!",
+    "ex": 0.8
+   },
+   {
+    "who": "mate",
+    "text": "Big shot!",
+    "ex": 0.75
+   },
+   {
+    "who": "mate",
+    "text": "That's what I'm talking about!",
+    "ex": 0.8
    }
   ]
  }
