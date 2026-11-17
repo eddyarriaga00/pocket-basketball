@@ -1944,7 +1944,7 @@
       raf = requestAnimationFrame(loop);
     },
     /* test hooks */
-    dbg: { state: () => G, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
+    dbg: { state: () => G, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
       auto: on => { G.auto = on; },
       replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },
       /* run the simulation ahead without drawing: sec seconds of game time */
