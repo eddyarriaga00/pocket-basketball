@@ -370,12 +370,16 @@
       const A = PB.ARCH[st.arch];
       const r = startRatings(st);
       const bars = PB.ATTRS.map(([k, n]) => `<div class="bar"><span>${n}</span><i><u style="width:${r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${r[k]}</b></div>`).join('');
+      /* you, as you build him: in a plain practice jersey */
+      const pv = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait({ id: 'me', first: st.first || 'You', last: st.last || '', pos: st.pos, ht: st.ht, skin: st.skin, num: st.num ?? 1, r: {}, look: { hair: 'short', hairColor: '#17110d' } },
+        { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' }, 220, { body: true }) : null;
       show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Create your player</h2>
+        ${pv ? `<div class="createpv"><img alt="" src="${pv}"><p>${PB.fmtH(st.ht)} · ${st.pos} · ${esc(st.arch)}</p></div>` : ''}
         <div class="field"><label>Name</label><div class="row2"><input id="fn" maxlength="14" placeholder="First" value="${esc(st.first || '')}"><input id="ln" maxlength="16" placeholder="Last" value="${esc(st.last || '')}"></div></div>
         <div class="field"><label>Hometown <small>optional</small></label><input id="ht" maxlength="26" placeholder="Houston, TX" value="${esc(st.from || '')}"></div>
         <div class="field"><label>Position</label><div class="seg" id="pos">${PB.POS.map(p => `<button class="${p === st.pos ? 'on' : ''}" data-v="${p}">${p}</button>`).join('')}</div></div>
         <div class="field"><label>Build</label><div class="arch">${archs.map(a => `<button class="${a === st.arch ? 'on' : ''}" data-v="${a}"><b>${a}</b><span>${PB.ARCH[a].tag}</span></button>`).join('')}</div></div>
-        <div class="field"><label>Height · ${PB.fmtH(st.ht)}</label><input type="range" id="ht" min="${hr[0]}" max="${hr[1]}" value="${st.ht}"></div>
+        <div class="field"><label>Height · ${PB.fmtH(st.ht)}</label><input type="range" id="hgt" min="${hr[0]}" max="${hr[1]}" value="${st.ht}"></div>
         <div class="field"><label>Skin tone</label><div class="skins">${PB.SKIN.map((c, i) => `<button class="${i === st.skin ? 'on' : ''}" data-v="${i}" style="background:${c}"></button>`).join('')}</div></div>
         <div class="field"><label>Jersey number</label><input id="num" type="number" min="0" max="99" value="${st.num ?? 1}"></div>
         <div class="card"><h3>Starting ratings <small>overall ${PB.ovr(r, st.pos)} · the tick is how far each can grow</small></h3>${bars}</div>
@@ -385,7 +389,9 @@
       scr().querySelectorAll('#pos button').forEach(b => b.onclick = () => { keep(); st.pos = b.dataset.v; st.ht = Math.round((PB.HEIGHT[st.pos][0] + PB.HEIGHT[st.pos][1]) / 2); draw(); });
       scr().querySelectorAll('.arch button').forEach(b => b.onclick = () => { keep(); st.arch = b.dataset.v; draw(); });
       scr().querySelectorAll('.skins button').forEach(b => b.onclick = () => { keep(); st.skin = +b.dataset.v; draw(); });
-      $('#ht').oninput = e => { keep(); st.ht = +e.target.value; draw(); };
+      /* the slider redraws the preview when you let go (dragging only moves the label) */
+      $('#hgt').oninput = e => { st.ht = +e.target.value; const l = $('#hgt').previousElementSibling; if (l) l.textContent = `Height · ${PB.fmtH(st.ht)}`; };
+      $('#hgt').onchange = () => { keep(); draw(); };
       $('#go').onclick = () => { keep(); if (!st.first || !st.last) { alert('Give your player a first and last name.'); return; } begin(st); };
     };
     draw();

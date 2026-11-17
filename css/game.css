@@ -395,3 +395,5 @@ input[type=color]{height:44px;padding:4px}
 .lookpv{display:flex;gap:10px;margin:4px 0 12px}
 .lookpv img{flex:1;min-width:0;height:210px;object-fit:contain;border-radius:12px;background:linear-gradient(160deg,var(--tc) 0%,rgba(255,255,255,.04) 75%)}
 .lookpv img.hd{object-fit:cover}
+.createpv{display:flex;flex-direction:column;align-items:center;margin:4px 0 10px;border-radius:16px;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.12),rgba(255,255,255,0) 70%)}
+.createpv img{height:240px;width:auto}.createpv p{margin:0 0 8px;font-size:12px;letter-spacing:.08em;color:rgba(255,255,255,.6);text-transform:uppercase}
