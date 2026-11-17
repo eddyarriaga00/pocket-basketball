@@ -32,6 +32,26 @@
     $('#bk').onclick = () => PB.Career.title();
     document.querySelectorAll('.trow').forEach(b => b.onclick = () => begin(b.dataset.id));
   }
+  /* the next season: everyone a year older (the young grow, the old slow), the oldest retire for rookies, a fresh
+     schedule; your titles stay */
+  function nextSeason() {
+    if (Z.champ === Z.team) (Z.titles = Z.titles || []).push(Z.year || 1);
+    Z.year = (Z.year || 1) + 1;
+    for (const id in Z.rosters) {
+      const ro = Z.rosters[id];
+      for (let i = 0; i < ro.length; i++) {
+        const p = ro[i];
+        const d = p.age < 24 ? 2 : p.age < 29 ? 0.5 : p.age < 32 ? -1 : -3;
+        p.age++; for (const k in p.r) p.r[k] = PB.clamp(Math.round(p.r[k] + d + PB.gauss()), 25, 99); p.ovr = PB.ovr(p.r, p.pos);
+        if (p.age >= 36 || (p.age >= 33 && PB.rand() < 0.35)) { const r = PB.makePlayer(p.pos, Math.round(PB.rr(62, 75)), PB.ri(19, 22)); r.num = p.num; ro[i] = r; }
+      }
+    }
+    const n = Z.games.length, others = PB.TEAMS.map(t => t.id).filter(id => id !== Z.team), sched = [];
+    while (sched.length < n) for (const o of others.slice().sort(() => PB.rand() - 0.5)) if (sched.length < n) sched.push(o);
+    for (const t of PB.TEAMS) Z.st[t.id] = { w: 0, l: 0 };
+    Z.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false })); Z.gi = 0; Z.lead = {}; Z.po = null; Z.champ = null; Z.mvp = null;
+    save(); hub();
+  }
   function begin(team) {
     const rosters = {}, st = {};
     for (const t of PB.TEAMS) { rosters[t.id] = PB.makeRoster(Math.round(PB.rr(70, 82))); st[t.id] = { w: 0, l: 0 }; }
@@ -59,11 +79,11 @@
     const conf = c => rank(c).map((id, i) => `<tr class="${id === Z.team ? 'me' : ''} ${i === 4 ? 'cut' : ''}"><td>${i + 1}</td><td>${badge(PB.team(id))} ${esc(PB.team(id).name)}</td><td>${Z.st[id].w}</td><td>${Z.st[id].l}</td></tr>`).join('');
     const L = Object.values(Z.lead).filter(x => x.gp).map(x => ({ ...x, ppg: x.pts / x.gp, rpg: (x.reb || 0) / x.gp, apg: (x.ast || 0) / x.gp })).sort((a, b) => b.ppg - a.ppg).slice(0, 5);
     let card;
-    if (Z.champ) card = `<div class="next"><p class="kick">Champions</p><h3>The ${esc(PB.team(Z.champ).city)} ${esc(PB.team(Z.champ).name)}</h3><p>${Z.champ === Z.team ? 'You did it. A title.' : 'Not this year.'}</p><button class="big" id="again">New season</button></div>`;
+    if (Z.champ) card = `<div class="next"><p class="kick">Champions</p><h3>The ${esc(PB.team(Z.champ).city)} ${esc(PB.team(Z.champ).name)}</h3><p>${Z.champ === Z.team ? 'You did it. A title.' : 'Not this year.'}</p><button class="big" id="next">Next season<small>same team, a year older, a new rookie class</small></button><button class="ghost" id="again">Start over with a new team</button></div>`;
     else if (nx) { const o = PB.team(nx.opp); card = `<div class="next"><p class="kick">${nx.label}</p><div class="vs"><div>${badge(t)}<b>${esc(t.name)}</b><span>${st.w}-${st.l} · ${strength(Z.team)}</span></div><em>vs</em><div>${badge(o)}<b>${esc(o.name)}</b><span>${Z.st[o.id].w}-${Z.st[o.id].l} · ${strength(o.id)}</span></div></div>
       <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button></div>`; }
     else card = `<div class="next"><p class="kick">Playoffs</p><p>${Z.po ? 'You are out. The playoffs go on.' : 'The regular season is over.'}</p><button class="big" id="po">${Z.po ? 'Sim the rest' : 'To the playoffs'}</button></div>`;
-    show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}"><div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(t.city)} ${esc(t.name)}</b><span>Season mode · ${st.w}-${st.l}</span></div></div><button class="ic" id="menu" aria-label="Menu">⌂</button></div>
+    show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}"><div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(t.city)} ${esc(t.name)}</b><span>Season ${Z.year || 1} · ${st.w}-${st.l}${(Z.titles || []).length ? ` · ${Z.titles.length} title${Z.titles.length > 1 ? 's' : ''}` : ''}</span></div></div><button class="ic" id="menu" aria-label="Menu">⌂</button></div>
       ${card}
       ${Z.po ? `<div class="card bracket"><h3>Playoffs</h3>${Z.po.round.map(m => `<div class="sr ${m.a === Z.team || m.b === Z.team ? 'me' : ''}">${badge(PB.team(m.a))}<b>${m.bo > 1 ? m.wa || 0 : m.w ? (m.w === m.a ? 'W' : 'L') : ''}</b><em>–</em><b>${m.bo > 1 ? m.wb || 0 : m.w ? (m.w === m.b ? 'W' : 'L') : ''}</b>${badge(PB.team(m.b))}<span>${m.w ? esc(PB.team(m.w).name) : ''}</span></div>`).join('')}</div>` : ''}
       ${L.length ? `<div class="card"><h3>Your leaders <small>a game</small></h3><table class="std"><tr><th></th><th>PTS</th><th>REB</th><th>AST</th></tr>${L.map(x => `<tr><td>${esc(x.name)}</td><td>${x.ppg.toFixed(1)}</td><td>${x.rpg.toFixed(1)}</td><td>${x.apg.toFixed(1)}</td></tr>`).join('')}</table></div>` : ''}
@@ -74,7 +94,8 @@
     if ($('#play')) $('#play').onclick = () => play(nx);
     if ($('#sim')) $('#sim').onclick = () => { const w = PB.rand() < winP(Z.team, nx.opp, nx.home); result(nx, w, null); };
     if ($('#po')) $('#po').onclick = () => { if (!Z.po) startPO(); else { while (!Z.champ) simRound(); } save(); hub(); };
-    if ($('#again')) $('#again').onclick = () => { localStorage.removeItem(KEY); pick(); };
+    if ($('#again')) $('#again').onclick = () => { if (confirm('Leave this team and start over?')) { localStorage.removeItem(KEY); pick(); } };
+    if ($('#next')) $('#next').onclick = nextSeason;
     $('#quit').onclick = () => { if (confirm('Leave this season and pick another team?')) { localStorage.removeItem(KEY); pick(); } };
   }
   function play(nx) {
