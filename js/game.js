@@ -1910,7 +1910,7 @@
         <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
         <div class="help"><b>Controls</b><br>Left thumb: move (push to the edge to sprint).<br>
         Shoot: hold, let go at the top of the jump (the green band). Pass: to the open man, or the one your stick points at.
-        Move: tap for a crossover, or swipe it: left or right to cross that way, down for a step-back (room for the jumper), up to spin to the rim. Pick (with the ball) calls your big for a screen. Off the ball: Call asks for it, Cut runs to the rim.<br>
+        Move: tap for a crossover, or swipe it: left or right to cross that way (behind the back at full speed, between the legs from a standstill or as a combo, a hesitation back to the same hand), down for a step-back (room for the jumper), up to spin to the rim. Pick (with the ball) calls your big for a screen. Off the ball: Call asks for it, Cut runs to the rim.<br>
         Defense: Jump to contest and block, Steal to reach. Lift your thumb and you stay in front of your man.<br>
         Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</div></div>`;
       $('#pr').onclick = () => pause(false);
