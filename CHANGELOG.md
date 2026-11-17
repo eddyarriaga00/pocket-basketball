@@ -4,6 +4,11 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Dribble moves you can see: the crossover goes across in front, going fast it is behind the back, from a standstill
+  (or as the second move of a combo) between the legs, and back to the same hand a hesitation; the spin turns the
+  player all the way round with the ball palmed. The computer's ball handlers use them too.
+- Celebrations after your big plays: a flex or a roar after a dunk, the three goggles or a finger up after a three, a
+  chest thump on an and-one, a flex when you start a Takeover. The other team's stars celebrate now and then.
 - A black-and-white look for every screen: white primary buttons, neutral dark panels, no yellow.
 - Drawn heads, pocket style: round heads with big eyes, ears, a nose and a mouth, and hair made to fit (short, buzz,
   high-top, afro, and new twists), headbands that sit on the forehead, full beards with sideburns, goatees.

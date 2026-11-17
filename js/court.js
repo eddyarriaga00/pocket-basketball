@@ -644,6 +644,13 @@
     follow: () => [[0.08, 0.9, 0.42], [0.02, 0.35, 0.95], [0.32, 0.8, 0.4], [-0.2, 0.7, 0.6]],
     contest: () => [[0.25, 0.96, 0.15], [0.12, 0.99, 0.05], [0.25, 0.96, 0.15], [0.12, 0.99, 0.05]],
     celebrate: () => [[0.5, 0.86, 0.1], [0.3, 0.95, 0.05], [0.5, 0.86, 0.1], [0.3, 0.95, 0.05]],
+    /* celebrations; k is the clock, for the beat of a chest thump or a pump of the fist */
+    flex: (k) => { const b = 0.08 * Math.sin(k * 9); return [[0.97, 0.05 + b, 0.15], [0.15, 0.97, 0.2], [0.97, 0.05 + b, 0.15], [0.15, 0.97, 0.2]]; },
+    roar: (k) => { const b = 0.1 * Math.sin(k * 7); return [[0.75, -0.55 + b, 0.35], [0.35, 0.3 + b, 0.9], [0.75, -0.55 + b, 0.35], [0.35, 0.3 + b, 0.9]]; },
+    chest: (k) => { const b = Math.max(0, Math.sin(k * 10)) * 0.35; return [[0.45, -0.35, 0.82], [-0.85, 0.2, 0.45 + b], [0.75, -0.6, 0.25], [0.3, -0.6, 0.75]]; },
+    goggles: () => [[0.75, 0.35, 0.55], [-0.5, 0.82, 0.25], [0.75, 0.35, 0.55], [-0.5, 0.82, 0.25]],
+    three: (k) => { const b = 0.05 * Math.sin(k * 8); return [[0.3, 0.94 + b, 0.15], [0.12, 0.99, 0.05], [0.2, -0.97, 0.1], [0.15, -0.95, 0.25]]; },
+    point: () => [[0.35, 0.75, 0.55], [0.25, 0.8, 0.55], [0.25, -0.9, 0.3], [0.2, -0.6, 0.75]],
     dunk1: () => [[0.15, 0.97, 0.2], [0.05, 0.99, 0.1], [0.55, -0.55, 0.35], [0.3, -0.6, 0.6]],
     reach: () => [[0.1, -0.15, 0.98], [0.05, -0.2, 0.98], [0.6, -0.6, 0.4], [0.3, -0.5, 0.8]],
     guard: () => [[0.85, -0.3, 0.42], [0.65, 0.15, 0.7], [0.85, -0.3, 0.42], [0.65, 0.15, 0.7]],
@@ -652,13 +659,23 @@
     windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
       return [d, d, [0.45, 0.5, 0.6], [0.3, 0.7, 0.6]]; },
   };
+  /* dribble moves: [upper, forearm] of the hand the ball leaves (F) and the other arm (O), at the start, middle and end */
+  const GD = [[0.35, -0.6, 0.55], [0.05, -0.15, 1]], DR = [[0.36, -0.9, 0.23], [0.4, -0.85, 0.2]];
+  const MOVES = {
+    cross: { F: [DR, [[0.02, -0.92, 0.4], [-0.7, -0.6, 0.4]], GD], O: [GD, [[0.12, -0.9, 0.4], [-0.45, -0.8, 0.4]], DR] },
+    btb: { F: [DR, [[0.15, -0.82, -0.55], [-0.65, -0.45, -0.6]], GD], O: [GD, [[0.2, -0.85, -0.45], [-0.35, -0.75, -0.55]], DR] },
+    legs: { F: [DR, [[0.05, -0.95, 0.28], [-0.5, -0.82, 0.25]], GD], O: [GD, [[0.08, -0.95, 0.25], [-0.4, -0.9, 0.15]], DR] },
+    hesi: { F: [DR, [[0.35, -0.7, 0.6], [0.2, -0.25, 0.95]], DR], O: [GD, [[0.55, -0.4, 0.72], [0.35, 0.05, 0.94]], GD] },
+    spin: { F: [DR, [[0.3, -0.75, 0.55], [-0.15, -0.4, 0.9]], DR], O: [GD, [[0.9, -0.15, 0.2], [0.85, 0.05, 0.3]], GD] },
+  };
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   function updateSkinned(p, m, G, dt) {
     m.root.position.set(p.x, 0, p.z);
-    m.root.rotation.y = p.face + (p.spinA || 0);   // the turn of a reverse or a 360 in the air
+    const mv = p.mv && G.ball.holder === p && !p.shoot ? p.mv : null, ms = mv ? (G.t - mv.t0) / mv.T : 2;
+    m.root.rotation.y = p.face + (p.spinA || 0) + (ms < 1 && mv.k === 'spin' ? mv.side * Math.PI * 2 * smooth(0, 1, ms) : 0);   // the turn of a reverse or a 360 in the air, or a spin move
     m.body.position.y = p.y;
     /* a fadeaway leans back in the air */
-    const lean = p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : 0;
+    const lean = p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     m.lean = (m.lean || 0) + (lean - (m.lean || 0)) * Math.min(1, dt * 10); m.body.rotation.x = m.lean;
     const sp = Math.hypot(p.vx, p.vz), air = p.y > 0.3;
     /* legs: idle, walk, jog and sprint blended by speed; the stance on defense; the jump in the air */
@@ -668,7 +685,8 @@
       ws[n] = sp <= v ? (i ? smooth(lo, v, sp) : 1 - smooth(v, hi, sp)) : (i < LOCO.length - 1 ? 1 - smooth(v, hi, sp) : 1);
     }
     let crouch = p.pose === 'guard' ? 0.5 : 0;
-    if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;   // the gather: down into the legs before the jump
+    if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
+    if (ms < 1 && (mv.k === 'legs' || mv.k === 'cross' || mv.k === 'btb')) crouch = Math.max(crouch, mv.k === 'legs' ? 0.55 : 0.35);   // low on a move   // the gather: down into the legs before the jump
     const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;
     const shooting = p.shoot || p.pose === 'shoot';
     const jump = air ? (shooting ? 0.3 : 1) : 0;   // a jumper goes up with straight legs, not the tuck of a leap
@@ -701,10 +719,21 @@
     if (pose === 'dribble') kk = (G.t * 8.5 / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
+    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three') kk = G.t;
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
-    const P = POSES[pose](kk), w = m.poseW, s = TPL.sideR < 0 ? 1 : -1;
+    let P = POSES[pose](kk);
+    const w = m.poseW, s = TPL.sideR < 0 ? 1 : -1;
+    if (pose === 'dribble' && ms < 1 && MOVES[mv.k]) {
+      /* a dribble move: the ball arm (F) and the other arm (O) from three keyframes; F is the hand it leaves */
+      const K = MOVES[mv.k], u = ms < 0.5 ? ms / 0.5 : (ms - 0.5) / 0.5, i = ms < 0.5 ? 0 : 1, e = u * u * (3 - 2 * u);
+      const L = (a, b) => a.map((v, j) => v + (b[j] - v) * e);
+      const F = [L(K.F[i][0], K.F[i + 1][0]), L(K.F[i][1], K.F[i + 1][1])], O = [L(K.O[i][0], K.O[i + 1][0]), L(K.O[i][1], K.O[i + 1][1])];
+      /* POSES are written right-hand first and swapped below for a left-hand dribbler (dribHand < 0, now the new hand) */
+      const fromR = mv.a > 0;
+      P = (p.dribHand < 0) === fromR ? [O[0], O[1], F[0], F[1]] : [F[0], F[1], O[0], O[1]];
+    }
     /* dribbling with the left hand: the arms trade jobs */
     const sw = pose === 'dribble' && p.dribHand < 0, A = sw ? P[2] : P[0], Af = sw ? P[3] : P[1], Bu = sw ? P[0] : P[2], Bf = sw ? P[1] : P[3];
     aim(m.R.up, m.R.fore, dirOf(p.face, A[0], A[1] + hi, A[2] - hi, s), w);

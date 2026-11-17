@@ -135,10 +135,12 @@
   }
   function tkoGo() {
     const k = G.tko; if (!k || k.on || k.m < 1 || !G.user || G.paused) return;
-    k.on = true; k.until = G.t + TKO_LEN; k.miss = 0; k.n = (k.n || 0) + 1;
+    k.on = true; k.until = G.t + TKO_LEN; k.miss = 0; k.n = (k.n || 0) + 1; if (G.ball.holder !== G.user && !G.user.shoot) celebrate(G.user, ['flex', 'roar']);
     toast('Takeover', 'make'); B('hot', { prio: 6 }); AU().crowd.react('roar', 1); R.flash(0xffffff); buzz([30, 50, 30]);
     tkoHud();
   }
+  /* a celebration after a big play: a flex, a roar, the three goggles, a chest thump, a point to the crowd */
+  function celebrate(p, kinds) { p.celebK = kinds[Math.floor(rand() * kinds.length)]; p.celebT = p.celebK === 'chest' || p.celebK === 'roar' ? 1.4 : 1.2; }
   function tkoEnd(why) { const k = G.tko; if (!k) return; k.on = false; k.m = 0; if (why) toast(why); tkoHud(); }
   function tkoTick() { const k = G.tko; if (k && k.on) { if (G.t > k.until) tkoEnd(); else tkoHud(); } }
   /* ---------- first-game tips: shown once each, the first time the moment comes up ---------- */
@@ -672,7 +674,8 @@
       if (p.team === 0) toast(call + (s.foul ? ' · AND ONE' : ''), 'make'); else toast(`${p.name} scores`, 'opp');
       feed(`${p.name} ${s.oop ? 'alley-oop' : s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : s.kind === 'hook' ? 'hook shot' : s.kind === 'floater' ? 'floater' : 'jumper'}${ast ? ` (${ast.name} ast)` : ''}`);
       if (p.isUser) { grade(s.pts === 3 ? 4 : 3, s.pts === 3 ? 'Made three' : 'Scored'); buzz([20, 30, 30]); }
-      if (p.isUser && (s.pts === 3 || s.kind === 'dunk')) { p.celebT = 0.9; for (const m of G.pl) if (m.team === p.team && m !== p && hyp(m.x - p.x, m.z - p.z) < 20 && rand() < 0.6) { m.pose = 'celebrate'; setTimeout(() => { if (m.pose === 'celebrate') m.pose = ''; }, 1100); } if (rand() < 0.5) { const m = G.pl.find(o => o.team === p.team && !o.isUser); if (m) setTimeout(() => CH('ch_nice', m), 900); } }
+      if (p.isUser && (s.pts === 3 || s.kind === 'dunk' || s.foul)) { celebrate(p, s.foul ? ['chest', 'flex'] : s.kind === 'dunk' ? ['roar', 'flex', 'chest'] : ['goggles', 'three', 'point']); for (const m of G.pl) if (m.team === p.team && m !== p && hyp(m.x - p.x, m.z - p.z) < 20 && rand() < 0.6) { m.pose = 'celebrate'; setTimeout(() => { if (m.pose === 'celebrate') m.pose = ''; }, 1100); } if (rand() < 0.5) { const m = G.pl.find(o => o.team === p.team && !o.isUser); if (m) setTimeout(() => CH('ch_nice', m), 900); } }
+      else if (!p.isUser && (s.kind === 'dunk' || s.foul || (s.pts === 3 && p.r.three > 80)) && rand() < 0.35) celebrate(p, s.kind === 'dunk' ? ['roar', 'flex'] : s.foul ? ['chest'] : ['three', 'goggles']);
       if ((s.pts === 3 || s.kind === 'dunk' || s.foul || G.clock <= 0.05) && R.benchJump) R.benchJump(p.team);
       if (p.isUser || (ast && ast.isUser)) {
         const v = (s.kind === 'dunk' ? 3 : s.pts === 3 ? 2.5 : 1) + (s.foul ? 1 : 0) + (s.oop ? 1 : 0) + (G.clock <= 0.05 ? 4 : clutchTime() ? 1 : 0) + (p.isUser ? 0 : -0.8);
@@ -925,7 +928,8 @@
       const def = nearestDef(p).who, Bs = R.basis(), side = rand() < 0.5 ? 1 : -1;
       p.move = 0.35; p.moveCd = 1.6;
       const sp = maxSpeed(p) * 1.3; p.vx = (Bs.rx * side) * sp; p.vz = (Bs.rz * side) * sp;
-      { const fx = Math.sin(p.face), fz = Math.cos(p.face); p.dribHand = (p.vx * -fz + p.vz * fx) >= 0 ? 1 : -1; }
+      { const from = p.dribHand || 1, fx = Math.sin(p.face), fz = Math.cos(p.face); p.dribHand = (p.vx * -fz + p.vz * fx) >= 0 ? 1 : -1;
+        startMv(p, p.dribHand === from ? 'hesi' : ['cross', 'btb', 'legs'][Math.floor(rand() * 3)], from, p.dribHand); }
       if (def && rand() < clamp(0.12 + (p.r.handle - def.r.perD) * 0.006, 0.03, 0.4)) {
         def.stun = 0.6; p.drive = 1.2;
         if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); AU().crowd.react('ooh', 0.8); }
@@ -1264,11 +1268,11 @@
       let dx, dz, sp = maxSpeed(u) * 1.4, shake = 0.18, lbl = '';
       if (kind === 'step') {
         /* back, away from the man in front of you; the next jumper gets the room */
-        dx = -hx / hl; dz = -hz / hl; sp = maxSpeed(u) * 1.25; u.move = 0.3; u.moveCd = 1.2; u.stepT = G.t; shake = 0.12; lbl = 'Step-back';
+        dx = -hx / hl; dz = -hz / hl; sp = maxSpeed(u) * 1.25; u.move = 0.3; u.moveCd = 1.2; u.stepT = G.t; shake = 0.12; lbl = 'Step-back'; startMv(u, 'hesi', u.dribHand || 1, u.dribHand || 1);
       } else if (kind === 'spin') {
         /* a spin: around the defender and on toward the rim */
         const side = rand() < 0.5 ? 1 : -1;
-        dx = hx / hl * 0.8 + Bs.rx * side * 0.6; dz = hz / hl * 0.8 + Bs.rz * side * 0.6; u.move = 0.45; u.moveCd = 1.3; u.spinT = G.t; shake = 0.24; lbl = 'Spin';
+        dx = hx / hl * 0.8 + Bs.rx * side * 0.6; dz = hz / hl * 0.8 + Bs.rz * side * 0.6; u.move = 0.45; u.moveCd = 1.3; u.spinT = G.t; shake = 0.24; lbl = 'Spin'; startMv(u, 'spin', u.dribHand || 1, u.dribHand || 1, side);
         u.drive = 1.0;
       } else {
         const w = stickWorld();
@@ -1276,7 +1280,17 @@
         else if (w) { dx = w.x; dz = w.z; }
         else { const side = rand() < 0.5 ? 1 : -1; dx = Bs.rx * side + Bs.fx * 0.4; dz = Bs.rz * side + Bs.fz * 0.4; }
         u.move = 0.38; u.moveCd = 1.1; lbl = 'Crossover';
-        { const fx = Math.sin(u.face), fz = Math.cos(u.face); u.dribHand = (dx * -fz + dz * fx) >= 0 ? 1 : -1; }   // the ball goes to the hand on the side you cross to
+        /* which hand it goes to (the side you cross to), and the flavour: going fast it goes behind the back, from a
+           standstill (or the second move of a combo) through the legs, and toward the hand it is already in it is a
+           hesitation, an in-and-out */
+        const from = u.dribHand || 1, sp0 = hyp(u.vx, u.vz);
+        { const fx = Math.sin(u.face), fz = Math.cos(u.face); u.dribHand = (dx * -fz + dz * fx) >= 0 ? 1 : -1; }
+        let mk = 'cross';
+        if (u.dribHand === from) { mk = 'hesi'; lbl = rand() < 0.5 ? 'Hesitation' : 'In-and-out'; shake = 0.2; }
+        else if (u.mv && G.t - u.mv.t0 < 2.2 && u.mv.k !== 'legs') { mk = 'legs'; lbl = 'Between the legs'; shake = 0.22; }
+        else if (sp0 > maxSpeed(u) * 0.7) { mk = 'btb'; lbl = 'Behind the back'; shake = 0.2; }
+        else if (sp0 < 4) { mk = 'legs'; lbl = 'Between the legs'; shake = 0.2; }
+        startMv(u, mk, from, u.dribHand);
         /* on a drive near the rim a sideways swipe is a euro step: one step across, one toward the rim */
         const toRim = (hx * u.vx + hz * u.vz) / hl;
         if (hl < 15 && toRim > 6) { dx = dx * 0.7 + hx / hl * 0.7; dz = dz * 0.7 + hz / hl * 0.7; u.euroT = G.t; lbl = 'Euro step'; shake = 0.3; }
@@ -1298,6 +1312,9 @@
     if (!off && G.switching) { switchNearest(); return; }
     if (off) { u.cutUser = 1.6; toast('Cutting', 'call'); G.callT = 2; }
   }
+  /* a dribble move the body and ball act out: the ball's path from hand to hand (court.js poses the arms from p.mv) */
+  const MV_T = { cross: 0.32, btb: 0.4, legs: 0.38, hesi: 0.5, spin: 0.5 };
+  function startMv(p, k, a, b, side) { p.mv = { k, t0: G.t, T: MV_T[k], a, b, side: side || 1, bn: false }; }
   function feedMove(lbl) { const r = $('#rel'); r.textContent = lbl; r.className = 'on y'; relT = 0.6; }
 
   /* ---------- whole-team control: you are whoever has the ball, or the man guarding it ---------- */
@@ -1404,7 +1421,7 @@
       if (b.state === 'loose' && !p.isUser && p.y === 0 && b.vy < 0 && b.y > 8 && b.y < 13 && hyp(b.x - p.x, b.z - p.z) < 3.2 && rand() < dt * 6) {
         p.jg = GRAV * 1.5; p.vy = Math.sqrt(2 * p.jg * (1.6 + p.r.vert * 0.022)); p.pose = 'contest';
       }
-      if (p.celebT > 0) { p.celebT -= dt; if (!p.shoot && G.ball.holder !== p && p.y === 0) p.pose = p.celebT > 0 ? 'celebrate' : ''; }
+      if (p.celebT > 0) { p.celebT -= dt; if (!p.shoot && G.ball.holder !== p && p.y === 0) p.pose = p.celebT > 0 ? p.celebK || 'celebrate' : ''; }
       if (p.wantBall > 0) p.wantBall -= dt;
       if (p.shoot) {
         p.shoot.t += dt;
@@ -1481,6 +1498,21 @@
       if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : H ? 0 : 0.2); }
       else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb)) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
+        const mv = p.mv, ms = mv && H ? (G.t - mv.t0) / mv.T : 2;
+        if (ms < 1) {
+          const A = mv.a < 0 ? H.l : H.r;
+          if (mv.k === 'spin' || mv.k === 'hesi') {   // palmed through the spin; held at the hip on the hesitation
+            b.x = A.x; b.z = A.z; b.y = Math.max(1.2, A.y - (mv.k === 'hesi' ? 0.15 : 0.3)); return;
+          }
+          /* hand, floor, other hand: in front for a crossover, under you through the legs, behind the back */
+          const Bh = mv.b < 0 ? H.l : H.r, fx = Math.sin(p.face), fz = Math.cos(p.face);
+          const off = mv.k === 'btb' ? -1.0 : mv.k === 'legs' ? 0.15 : 1.2, M = { x: p.x + fx * off, y: 0.35, z: p.z + fz * off };
+          let P0, P1, t;
+          if (ms < 0.5) { P0 = A; P1 = M; t = (ms / 0.5) ** 2; } else { P0 = M; P1 = Bh; t = 1 - (1 - (ms - 0.5) / 0.5) ** 2; }
+          b.x = P0.x + (P1.x - P0.x) * t; b.y = P0.y + (P1.y - P0.y) * t - (ms < 0.5 ? 0.35 : 0); b.z = P0.z + (P1.z - P0.z) * t;
+          if (ms >= 0.5 && !mv.bn) { mv.bn = true; if (G.phase === 'live') AU().play('bounce', { x: b.x, vol: p.isUser ? 1 : 0.5 }); }
+          return;
+        }
         /* the dribble: from the hand to the floor and back, under the hand */
         b.x = hp.x; b.z = hp.z;
         const top = H ? Math.max(1.2, (p.dribHand < 0 ? H.l.y : H.r.y) - 0.35) : 3.0;
