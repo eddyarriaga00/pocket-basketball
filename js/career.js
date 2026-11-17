@@ -301,9 +301,38 @@
       scr().hidden = true;
       const t = PB.team(C.order[projected() - 1]);
       PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: 'me', drill: 'combine', qlen: 1, level: S.level, floor: t,
-        onEnd: r => finishDraft(r.drill ? r.drill.score : 6) });
+        onEnd: r => interviews(() => finishDraft(r.drill ? r.drill.score : 6)) });
     };
-    $('#skip').onclick = () => finishDraft(null);
+    $('#skip').onclick = () => interviews(() => finishDraft(null));
+  }
+  /* team interviews: two teams picking near you sit you down for a question each. Win one over and, if your stock is
+     close to its pick, that team takes you there. */
+  const IQ = [
+    ['Why should we take you over the man we already have at your position?', [['I\'ll outwork him every single day.', 2], ['Because I\'m already better.', 1], ['I don\'t really compare myself to anyone.', -1]]],
+    ['What part of your game needs the most work?', [['My defense. I want to guard the other team\'s best player.', 2], ['My jumper off the dribble.', 1], ['Nothing, really. I just need minutes.', -1]]],
+    ['How do you handle a bad night?', [['Watch the film, then get back in the gym.', 2], ['Shake it off. Next game.', 1], ['Bad nights happen when the coach sits me.', -2]]],
+    ['Would you come off the bench for us?', [['Whatever helps us win.', 2], ['If that\'s the role, sure.', 1], ['I\'m a starter.', -1]]],
+    ['What do you do the night before a game?', [['Film, a good meal, sleep.', 2], ['Video games with my teammates.', 1], ['Whatever I feel like.', -1]]],
+  ];
+  function interviews(done) {
+    const pj = projected(), slots = [PB.clamp(pj - PB.ri(2, 3), 1, 30), PB.clamp(pj + PB.ri(1, 2), 1, 30)].filter((v, i, a) => a.indexOf(v) === i);
+    const qs = IQ.slice().sort(() => PB.rand() - 0.5);
+    C.liked = null;
+    const ask = i => {
+      if (i >= slots.length) { save(); done(); return; }
+      const t = PB.team(C.order[slots[i] - 1]), [q, ans] = qs[i], opts = ans.slice().sort(() => PB.rand() - 0.5);
+      show(`<div class="page post"><p class="kick">Team interviews · ${i + 1} of ${slots.length}</p>
+        <div class="card" style="border-top:4px solid ${t.c1}"><p class="mute">${badge(t)} The ${esc(tname(t))} front office · they pick ${ordinal(slots[i])}</p><h3>“${esc(q)}”</h3></div>
+        ${opts.map((a, k) => `<button class="ghost ans" data-k="${k}">${esc(a[0])}</button>`).join('')}</div>`);
+      scr().querySelectorAll('.ans').forEach(b => b.onclick = () => {
+        const v = opts[+b.dataset.k][1];
+        if (v >= 2 && (!C.liked || slots[i] < C.liked.slot)) C.liked = { slot: slots[i], team: t.id };
+        show(`<div class="page post"><p class="kick">Team interviews</p><div class="card"><p>${v >= 2 ? `The ${esc(t.name)} liked that. You can tell.` : v >= 1 ? 'Polite nods. Hard to read.' : 'A long pause. Somebody writes something down.'}</p></div>
+          <button class="big" id="go">${i + 1 < slots.length ? 'Next interview' : 'On to the results'}</button></div>`);
+        $('#go').onclick = () => ask(i + 1);
+      });
+    };
+    ask(0);
   }
   const projected = () => PB.clamp(Math.round(14 - (C.me.ovr - 62) * 1.6), 1, 30);
   function finishDraft(score) {
@@ -315,11 +344,15 @@
       lane: +(12.3 - me.r.speed * 0.016 + g() * 0.15).toFixed(2), sprint: +(3.6 - me.r.speed * 0.0045 + g() * 0.03).toFixed(2) };
     C.measure = M8;
     const moved = score === null ? 0 : Math.round((score - avg) * 1.6) + (ath >= 80 ? 1 : ath <= 55 ? -1 : 0);
-    const pick = PB.clamp(projected() - moved + Math.round(PB.gauss() * 2), 1, 30);
+    let pick = PB.clamp(projected() - moved + Math.round(PB.gauss() * 2), 1, 30);
+    /* a team that loved your interview takes you at its pick, if you are still close to it on the board */
+    let loved = false;
+    if (C.liked && Math.abs(C.liked.slot - pick) <= 3) { loved = C.liked.slot !== pick; pick = C.liked.slot; }
     C.pick = pick; C.team = C.order[pick - 1]; C.combine = score; C.phase = 'regular';
     C.contract = { years: 4, salary: rookieScale(pick), kind: 'Rookie deal' }; C.earnings = 0;
     C.fans = 1500 + (31 - pick) * 400;
     C.news.unshift(score === null ? `${me.last} skips the combine shooting drills` : `${me.last} makes ${score} of 15 at the combine${moved > 0 ? ', and climbs draft boards' : moved < 0 ? ', and slides on draft boards' : ''}`);
+    if (loved) C.news.unshift(`The ${PB.team(C.team).name} loved ${me.last} in his interview`);
     makeRival(null, pick);
     newSeason();
     save();

@@ -38,7 +38,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 **Career**
 - Fixed: a simulated stretch of a quick game (fouling out) could leave the score blank.
-- The pre-draft combine (it moves your pick), draft night in 3D, a rival from your draft class you guard in rival
+- The pre-draft combine (shooting and measurements; it moves your pick), team interviews, draft night in 3D, a rival from your draft class you guard in rival
   games, coach trust and your role (off the bench you check in later), a word from the coach, game goals, team
   practice, life between games, press conferences, a feed, followers and shoe endorsements.
 - Twelve badges, career highs and milestones, injuries now and then.

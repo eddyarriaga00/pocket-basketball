@@ -19,6 +19,7 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   await pg.screenshot({ path: OUT + '/c1-create.png', fullPage: false });
   await pg.click('#go'); await pg.waitForTimeout(300);
   await pg.click('#skip'); await pg.waitForTimeout(300);   // the combine: skipped here (tools/drill.js plays it)
+  for (let k = 0; k < 3 && await pg.$('.ans'); k++) { await pg.click('.ans'); await pg.click('#go'); }   // the team interviews
   await pg.screenshot({ path: OUT + '/c2-draft.png' });
   await pg.click('#go'); await pg.waitForTimeout(300);
   await pg.screenshot({ path: OUT + '/c3-hub.png' });

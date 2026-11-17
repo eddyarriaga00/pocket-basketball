@@ -99,7 +99,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] League leaders; your games count at full length for leaders, awards and value (2026-11-17)
 - [x] Pre-draft combine: fifteen spot-up shots in 45 seconds that move your draft stock (2026-11-17)
 - [x] Combine measurements: height in shoes, wingspan, vertical, lane agility, sprint; elite testing moves you up (2026-11-17)
-- [ ] Team interviews before the draft
+- [x] Team interviews before the draft: two teams near your pick ask a question; win one over and it may take you (2026-11-17)
 - [x] Career highs and twelve milestones (2026-11-17)
 - [x] The record book (best single games and seasons by any career on the device); career highs called by the booth (2026-11-17)
 

@@ -22,6 +22,7 @@ const { chromium } = require('playwright');
   };
   await pg.click('#go');
   console.log('combine shots', await shootLoop('d1'));
+  await pg.waitForSelector('.ans'); for (let k = 0; k < 3 && await pg.$('.ans'); k++) { await pg.click('.ans'); await pg.click('#go'); }   // the team interviews
   await pg.waitForSelector('#go'); console.log('combine result:', (await pg.textContent('#screen')).replace(/\s+/g, ' ').slice(0, 420));
   await pg.click('#go'); await pg.click('#go');   // draft night -> hub
   await pg.evaluate(() => { const C = PB.Career.get(); C.contest = 'invited'; PB.Career.hub(); });

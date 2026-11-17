@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   const errs = []; pg.on('pageerror', e => errs.push('PAGE ' + e.message)); pg.on('dialog', d => d.accept());
   await pg.goto(s.url); await pg.evaluate(() => { localStorage.clear(); localStorage.setItem('pbb.settings.v1', JSON.stringify({ season: 10 })); }); await pg.reload();
   await pg.waitForFunction(() => window.PB && PB.Career && document.querySelector('#newc'), { timeout: 120000 });
-  await pg.click('#newc'); await pg.fill('#fn', 'Long'); await pg.fill('#ln', 'Career'); await pg.click('#go'); await pg.click('#skip'); await pg.click('#go');
+  await pg.click('#newc'); await pg.fill('#fn', 'Long'); await pg.fill('#ln', 'Career'); await pg.click('#go'); await pg.click('#skip'); for (let k = 0; k < 3 && await pg.$('.ans'); k++) { await pg.click('.ans'); await pg.click('#go'); } await pg.click('#go');
   const log = [];
   for (let i = 0; i < 2000; i++) {
     const y = await pg.evaluate(() => PB.Career.get().year);
