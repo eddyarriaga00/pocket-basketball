@@ -223,6 +223,7 @@
       else if (ae <= w * 4) { timing = err < 0 ? 'Early' : 'Late'; prob *= 0.72; }
       else { timing = err < 0 ? 'Very early' : 'Very late'; prob *= 0.35; }
       showRelease(timing, meter, w); buzz(timing === 'Excellent' ? [12, 40, 12] : 10);
+      R.flash(timing === 'Excellent' ? 0x4cffb0 : /Slightly/.test(timing) ? 0xffe066 : 0xff5a6b);
     } else {
       const err = Math.abs(s.aiRel - 0.82);
       prob *= err < 0.05 ? 1.08 : err < 0.12 ? 1 : 0.8;
@@ -1273,6 +1274,13 @@
       record(dt);
       if (G.replayAt && G.t >= G.replayAt) { G.replayAt = 0; startReplay(); }
     }
+    /* what the screen marks for you: who your pass goes to, the man you guard */
+    const u = G.user;
+    if (u && !G.drill && G.phase === 'live') {
+      if (G.ball.holder === u && !u.shoot) { const w = stickWorld(); R.marks(bestPass(u, w ? w.x : undefined, w ? w.z : undefined), null); }
+      else if (G.ball.holder && G.ball.holder.team !== u.team) R.marks(null, G.pl.find(o => o.team !== u.team && o.slot === u.slot));
+      else R.marks(null, null);
+    } else R.marks(null, null);
     R.update(G, G.paused ? 0 : dt);
     R.render();
     hud();

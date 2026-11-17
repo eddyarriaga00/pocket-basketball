@@ -12,6 +12,10 @@
   const anchor = new T.Vector3();
   const meshes = new Map();
   let board = null, ribbons = [];
+  let passArrow = null, manRing = null, flash = null, flashT = 0, passTarget = null, manTarget = null;
+  R.marks = (pass, man) => { passTarget = pass; manTarget = man; };
+  R._marks = () => ({ pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
+  R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
   let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
   /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
   R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk) shake = Math.max(shake, shk); };
@@ -537,6 +541,13 @@
     userRing.rotation.x = -Math.PI / 2; userRing.position.y = 0.04; scene.add(userRing);
     handRing = new T.Mesh(new T.RingGeometry(1.15, 1.35, 24), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false }));
     handRing.rotation.x = -Math.PI / 2; handRing.position.y = 0.03; scene.add(handRing);
+    /* the pass preview (an arrow over the teammate your pass would go to), your man's ring on defense, a release flash */
+    passArrow = new T.Mesh(new T.ConeGeometry(0.55, 1.1, 4), new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0.9, depthTest: false }));
+    passArrow.rotation.x = Math.PI; passArrow.renderOrder = 5; scene.add(passArrow);
+    manRing = new T.Mesh(new T.RingGeometry(1.25, 1.5, 28), new T.MeshBasicMaterial({ color: 0xff4d5e, transparent: true, opacity: 0.75, depthWrite: false }));
+    manRing.rotation.x = -Math.PI / 2; manRing.position.y = 0.035; scene.add(manRing);
+    flash = new T.Mesh(new T.RingGeometry(1.6, 2.3, 32), new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0, depthWrite: false }));
+    flash.rotation.x = -Math.PI / 2; flash.position.y = 0.04; scene.add(flash);
   };
 
   R.addPlayer = (p, kit) => {
@@ -643,6 +654,13 @@
       }
     }
     for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
+    if (passArrow) {
+      passArrow.visible = !!passTarget;
+      if (passTarget) { passArrow.position.set(passTarget.x, (passTarget.ht || 78) / 12 + 2.4 + Math.sin(G.t * 6) * 0.25 + passTarget.y, passTarget.z); passArrow.rotation.y += dt * 2; }
+      manRing.visible = !!manTarget;
+      if (manTarget) { manRing.position.x = manTarget.x; manRing.position.z = manTarget.z; }
+      if (flashT > 0 && G.user) { flashT -= dt; const k = 1 - flashT / 0.6; flash.position.x = G.user.x; flash.position.z = G.user.z; flash.scale.setScalar(1 + k * 1.2); flash.material.opacity = 0.85 * (1 - k); } else flash.material.opacity = 0;
+    }
     if (hype > 0) { hype = Math.max(0, hype - dt); const j = Math.abs(Math.sin(G.t * 14)) * 0.035 * Math.min(1, hype); for (const m of crowdMaps) m.offset.y = j; }
     /* a glowing trail behind the ball on your shots */
     if (!trail) {
