@@ -235,6 +235,8 @@
     else if (s.kind === 'hook') cf = 1 - (1 - cf) * 0.6;   // the hook goes up over the defender
     prob = clamp(prob * cf, 0.01, 0.985);
     const nd = nearestDef(p);
+    /* how covered you were, next to the timing: a miss explains itself */
+    if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing} · ${cov}`; }
     p.st.fga++; if (s.three) p.st.tpa++;
     G.lastShot = { shooter: p, three: s.three, open: nd.d, prob, guard: nd.who };
     (G.shotLog = G.shotLog || []).push({ kind: s.three ? 'three' : s.oop ? 'oop' : s.kind, prob, d: s.d, x: p.x, a: along(p.z, p.team), user: p.isUser, team: p.team });
