@@ -1,0 +1,695 @@
+{
+ "voices": {
+  "pbp": {
+   "ref": "am_michael",
+   "role": "play-by-play"
+  },
+  "ana": {
+   "ref": "am_onyx",
+   "role": "analyst"
+  }
+ },
+ "note": "Lines are short on purpose: a call has to land before the next play. ex = Chatterbox exaggeration (0.35 calm .. 0.95 a huge call).",
+ "calls": {
+  "intro": [
+   {
+    "who": "pbp",
+    "text": "Good evening, and welcome in. It is game night.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Welcome to the arena. The building is packed tonight.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Lights are down, the crowd is up. Let's play some basketball.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Good evening, everybody. We've got a good one for you tonight.",
+    "ex": 0.45
+   }
+  ],
+  "intro_ana": [
+   {
+    "who": "ana",
+    "text": "Two teams that like to get out and run. Should be fun.",
+    "ex": 0.4
+   },
+   {
+    "who": "ana",
+    "text": "Ball movement is going to decide this one.",
+    "ex": 0.4
+   },
+   {
+    "who": "ana",
+    "text": "I want to see who controls the glass tonight.",
+    "ex": 0.4
+   }
+  ],
+  "tip": [
+   {
+    "who": "pbp",
+    "text": "And we're underway.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "Here's the tip.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "We have a ball game.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "Tip-off, and here we go.",
+    "ex": 0.5
+   }
+  ],
+  "three": [
+   {
+    "who": "pbp",
+    "text": "BANG!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "From downtown... got it!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Splash!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Three ball... good!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Lets it fly... yes!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Cash from deep!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Count it, from three!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Wet!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "From way downtown!",
+    "ex": 0.85
+   }
+  ],
+  "three_ana": [
+   {
+    "who": "ana",
+    "text": "That's what spacing does for you.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "You leave a shooter open, you pay for it.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Didn't even draw iron.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Perfect rotation of the ball, and the right man got it.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Feet set, shoulders square. Textbook.",
+    "ex": 0.5
+   }
+  ],
+  "dunk": [
+   {
+    "who": "pbp",
+    "text": "Slam!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Throws it down!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "With authority!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Hammer dunk!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Oh, what a finish at the rim!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Rocks the rim!",
+    "ex": 0.9
+   }
+  ],
+  "dunk_ana": [
+   {
+    "who": "ana",
+    "text": "Nobody wanted any part of that.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "Attack the basket like that, good things happen.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "That's how you take it to the rim.",
+    "ex": 0.55
+   }
+  ],
+  "layup": [
+   {
+    "who": "pbp",
+    "text": "Lays it in.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Up and under, good.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Finishes at the rim.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Off the glass, in.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Easy two.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Gets to the cup.",
+    "ex": 0.55
+   }
+  ],
+  "jumper": [
+   {
+    "who": "pbp",
+    "text": "Pull-up jumper... good.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Knocks down the mid-range.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Elbow jumper. Money.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Fadeaway... got it.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Smooth from fifteen.",
+    "ex": 0.55
+   }
+  ],
+  "jumper_ana": [
+   {
+    "who": "ana",
+    "text": "That's a tough shot, and he makes it look easy.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "The mid-range game is still alive.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "Created his own space there.",
+    "ex": 0.45
+   }
+  ],
+  "and1": [
+   {
+    "who": "pbp",
+    "text": "And one!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Gets the bucket, and the foul!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Count it, and the foul!",
+    "ex": 0.85
+   }
+  ],
+  "miss": [
+   {
+    "who": "pbp",
+    "text": "Off the mark.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "No good.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "In and out!",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Off the rim.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Rattles out.",
+    "ex": 0.45
+   }
+  ],
+  "miss_ana": [
+   {
+    "who": "ana",
+    "text": "Good look. Just didn't fall.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "That one was forced.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "Rushed it a little there.",
+    "ex": 0.45
+   }
+  ],
+  "block": [
+   {
+    "who": "pbp",
+    "text": "Rejected!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Get that out of here!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Swatted!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Blocked at the rim!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Not in this house!",
+    "ex": 0.9
+   }
+  ],
+  "block_ana": [
+   {
+    "who": "ana",
+    "text": "Timing on that block was perfect.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "Great weak-side help.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "Went straight up. Clean.",
+    "ex": 0.55
+   }
+  ],
+  "steal": [
+   {
+    "who": "pbp",
+    "text": "Picked off!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Stolen!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Takes it away!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Pickpocket!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Jumps the passing lane!",
+    "ex": 0.75
+   }
+  ],
+  "steal_ana": [
+   {
+    "who": "ana",
+    "text": "Active hands. That's what you want.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Read that pass all the way.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Lazy pass, and they made them pay.",
+    "ex": 0.5
+   }
+  ],
+  "turnover": [
+   {
+    "who": "pbp",
+    "text": "Turned it over.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "Gives it right back.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "Loses the handle.",
+    "ex": 0.5
+   }
+  ],
+  "turnover_ana": [
+   {
+    "who": "ana",
+    "text": "Got to take better care of the ball there.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "Too much dribbling on that possession.",
+    "ex": 0.45
+   }
+  ],
+  "shotclock": [
+   {
+    "who": "pbp",
+    "text": "Shot clock violation.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "They couldn't get a shot off in time.",
+    "ex": 0.55
+   }
+  ],
+  "oreb": [
+   {
+    "who": "pbp",
+    "text": "Offensive rebound!",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Second chance!",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Kept alive on the glass!",
+    "ex": 0.65
+   }
+  ],
+  "foul": [
+   {
+    "who": "pbp",
+    "text": "Whistle. Foul on the play.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "Called for the foul.",
+    "ex": 0.5
+   }
+  ],
+  "shake": [
+   {
+    "who": "pbp",
+    "text": "Oh, he shook him!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Crossover... gone!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Broke his ankles!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Left him in the dust!",
+    "ex": 0.9
+   }
+  ],
+  "hot": [
+   {
+    "who": "pbp",
+    "text": "The rookie is heating up!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Somebody stop the rookie!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "He's on fire!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Can't miss right now!",
+    "ex": 0.9
+   }
+  ],
+  "hot_ana": [
+   {
+    "who": "ana",
+    "text": "When you see a couple go in, the rim starts looking like an ocean.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "That's confidence. You can see it.",
+    "ex": 0.55
+   }
+  ],
+  "run": [
+   {
+    "who": "pbp",
+    "text": "That's a big run.",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "They are rolling now.",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Timeout might be coming. This is a run.",
+    "ex": 0.7
+   }
+  ],
+  "end_q": [
+   {
+    "who": "pbp",
+    "text": "That'll do it for the quarter.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "End of the quarter here at the arena.",
+    "ex": 0.5
+   }
+  ],
+  "half": [
+   {
+    "who": "pbp",
+    "text": "That's the half.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "We'll take a break with this one going to the half.",
+    "ex": 0.5
+   }
+  ],
+  "half_ana": [
+   {
+    "who": "ana",
+    "text": "Second half adjustments are going to decide this.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "Got to clean up the turnovers coming out of the break.",
+    "ex": 0.45
+   }
+  ],
+  "clutch": [
+   {
+    "who": "pbp",
+    "text": "Crunch time.",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Tight one down the stretch.",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Here we go. Every possession matters now.",
+    "ex": 0.7
+   }
+  ],
+  "clutch_ana": [
+   {
+    "who": "ana",
+    "text": "This is where your best players have to step up.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Execution wins this. Get a good look.",
+    "ex": 0.5
+   }
+  ],
+  "buzzer": [
+   {
+    "who": "pbp",
+    "text": "At the buzzer... GOOD! Unbelievable!",
+    "ex": 0.95
+   },
+   {
+    "who": "pbp",
+    "text": "Beat the buzzer! Are you kidding me?!",
+    "ex": 0.95
+   }
+  ],
+  "final": [
+   {
+    "who": "pbp",
+    "text": "That's the ball game!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "And that'll do it!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Ball game! What a finish!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Final horn sounds. That's it!",
+    "ex": 0.7
+   }
+  ],
+  "final_ana": [
+   {
+    "who": "ana",
+    "text": "They earned that one.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "Great effort on both ends tonight.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "That's a statement win.",
+    "ex": 0.45
+   }
+  ],
+  "ot": [
+   {
+    "who": "pbp",
+    "text": "We're going to overtime!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Free basketball, folks! Overtime!",
+    "ex": 0.7
+   }
+  ]
+ }
+}

@@ -13,7 +13,7 @@ The order of work. [PLAN.md](PLAN.md) is the design. Update this file after ever
 
 (newest first)
 
-- *(none yet: `main` starts at the prototype)*
+- `c70b508`, before career depth (trust, rival, feed, press, badges), the playoffs and awards night, the booth, team fouls and the pick-and-roll (2026-11-17).
 
 ## How to test
 
@@ -54,7 +54,9 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [ ] **Scoring is ~20% low.** Last balance run (3 games): 89 pts, 82 FGA at 40.7%, 43 3PA at 31.1%, 11.5 FTA,
       12.7 steals (targets 114 / 89 at 47.5% / 35 at 36% / 22 / 8). Raise two-point finishing, fewer contested
       threes from the computer, non-shooting fouls and the bonus, fewer reach-in steals.
-- [ ] On-ball screens: the big comes up and sets one; the handler uses it; the defense goes over or switches
+- [x] The pick-and-roll: the big screens the handler's man, who gets caught; the big rolls (2026-11-17)
+- [x] Team fouls and the bonus; contact fouls on drives; floaters (2026-11-17)
+- [x] The booth: two original voices recorded with Chatterbox, 122 lines in 35 calls, wired to the game (2026-11-17)
 - [x] Real player bodies (2026-11-17): Quaternius's CC0 mannequin with idle, walk, jog, sprint, jump and stance
       clips blended by speed; jersey, shorts, socks and shoes painted on by body region in team colors; numbers and
       hair; dribble, jumper, follow-through, contest, reach and defensive arms set in code; the ball in the real hand
@@ -68,20 +70,23 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 ## M2 · Career depth
 
+- [x] Coach trust from grades sets your role; followers; a social feed; press conferences with three answers (2026-11-17)
+- [x] A draft-class rival in your division, with head-to-head stats and rival games (2026-11-17)
+- [x] Twelve badges, bronze to gold, earned by doing the thing in games, each with a small effect (2026-11-17)
+
 - [ ] Minutes and role: starters and bench, substitutions, fatigue, foul trouble; you check in off the bench
-- [ ] Coach trust from grades; a talk with the coach every few games
+- [ ] A talk with the coach every few games
 - [ ] Pre-draft combine (shooting, agility, vertical) and two team interviews
-- [ ] Rival at your position from your draft class
-- [ ] Press conferences and a social feed
-- [ ] Badges (twelve, three tiers each), earned by doing
 - [ ] Career highs on the broadcast; the record book
 
 ## M3 · The season around you
 
+- [x] Play-in (7-10) and playoff series (best of 1/3/5/7 by season length), a bracket, the Finals (2026-11-17)
+- [x] Awards night: MVP, Rookie of the Year, DPOY, Sixth Man, Most Improved, All-League teams, Finals MVP; All-Star picks at midseason (2026-11-17)
+
 - [ ] Real schedule (division, conference, other conference weights), back-to-backs
-- [ ] League leaders from simmed box scores; awards night (MVP, ROY, 6MOY, DPOY, MIP, All-League)
+- [ ] League leaders from simmed box scores
 - [ ] All-Star weekend: three-point contest and dunk contest mini-games, the game
-- [ ] Play-in and best-of-seven playoffs, Finals MVP
 - [ ] Injuries (day-to-day, out for weeks)
 
 ## M4 · Contracts and legacy

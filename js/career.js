@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On' }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   const save = () => { if (C) store(KEY, C); };
@@ -55,6 +55,7 @@
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Settings</h2>
       ${opt('soundOn', ['On', 'Off'], 'Sound')}
       ${opt('musicOn', ['On', 'Off'], 'Menu music')}
+      ${opt('commentaryOn', ['On', 'Off'], 'Commentary')}
       ${opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera')}
       ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
       ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
@@ -64,7 +65,7 @@
     scr().querySelectorAll('.seg button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.k, v = b.dataset.v;
       S[k] = isNaN(+v) ? v : +v;
-      S.sound = S.soundOn !== 'Off'; S.music = S.musicOn !== 'Off';
+      S.sound = S.soundOn !== 'Off'; S.music = S.musicOn !== 'Off'; S.commentary = S.commentaryOn !== 'Off';
       saveSettings(); if (PB.audio) PB.audio.music(true); settings();
     });
   }
@@ -141,32 +142,62 @@
     const rosters = {};
     for (const t of PB.TEAMS) { strengths[t.id] = Math.round(PB.rr(70, 82)); rosters[t.id] = PB.makeRoster(strengths[t.id]); }
     const r = startRatings(st);
-    const me = { id: 'me', first: st.first, last: st.last, pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true };
+    const me = { id: 'me', first: st.first, last: st.last, pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {} };
     me.ovr = PB.ovr(r, st.pos);
     /* draft position: lottery teams (the weakest) pick first; your stock sets the pick */
     const order = PB.TEAMS.slice().sort((a, b) => strengths[a.id] - strengths[b.id] + PB.gauss() * 3);
     const pick = PB.clamp(Math.round(14 - (me.ovr - 62) * 1.6 + PB.gauss() * 3), 1, 30);
     const team = order[pick - 1].id;
-    C = { v: 1, me, team, pick, year: 1, rosters, standings: {}, games: [], gi: 0, news: [], seasons: [], totals: zero(), awards: [], trophies: [] };
+    C = { v: 2, me, team, pick, year: 1, rosters, standings: {}, games: [], gi: 0, news: [], seasons: [], totals: zero(), awards: [], trophies: [],
+      trust: 42, fans: 1500 + (31 - pick) * 400, ct: {}, feed: [], phase: 'regular', streak: 0 };
+    makeRival(order, pick);
     newSeason();
     save();
     draft();
   }
   const zero = () => ({ gp: 0, min: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, w: 0, l: 0, grades: 0 });
 
+  /* Your rival: same position, same draft class, picked a few spots from you by a team in your division. You see
+     each other twice or more a season, and the league keeps score. */
+  function makeRival(order, pick) {
+    const div = PB.team(C.team).div;
+    const opts = PB.TEAMS.filter(t => t.div === div && t.id !== C.team);
+    const rt = opts[Math.floor(PB.rand() * opts.length)].id;
+    const p = PB.makePlayer(C.me.pos, C.me.ovr + PB.ri(0, 3), 19);
+    p.rookie = true;
+    C.rosters[rt].push(p);
+    C.rival = { id: p.id, team: rt, pick: PB.clamp(pick + PB.ri(-4, 4), 1, 30), season: zero(), totals: zero(), h2h: [0, 0] };
+  }
+  const rivalP = () => C.rival && C.rosters[C.rival.team].find(p => p.id === C.rival.id);
+
+  /* older saves get the new parts of a career */
+  function upgrade() {
+    if (!C) return;
+    C.trust = C.trust ?? 45; C.fans = C.fans ?? 2000; C.ct = C.ct || {}; C.feed = C.feed || []; C.phase = C.phase || 'regular';
+    C.me.badges = C.me.badges || {}; C.streak = C.streak || 0;
+    if (!C.rival) makeRival(PB.TEAMS, C.pick || 15);
+    C.v = 2;
+  }
+
   function newSeason() {
     C.standings = {}; for (const t of PB.TEAMS) C.standings[t.id] = { w: 0, l: 0 };
     const n = S.season;
     const others = PB.TEAMS.filter(t => t.id !== C.team).map(t => t.id);
     const sched = [];
+    /* the rival's team twice, then everyone else */
+    if (C.rival) sched.push(C.rival.team);
     while (sched.length < n) { const sh = others.slice().sort(() => PB.rand() - 0.5); for (const o of sh) if (sched.length < n) sched.push(o); }
+    if (C.rival && n >= 10) { const k = Math.floor(n * 0.6); sched.splice(k, 0, C.rival.team); sched.length = n; }
+    sched.sort(() => PB.rand() - 0.5);
     C.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false }));
-    C.gi = 0; C.season = zero(); C.len = n;
+    C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
+    C.startOvr = C.me.ovr;
+    if (C.rival) C.rival.season = zero();
     C.news.unshift(`Season ${C.year} begins: ${n} games, ${PB.TEAMS.length} teams.`);
   }
 
   function draft() {
-    const t = PB.team(C.team), me = C.me;
+    const t = PB.team(C.team), me = C.me, rv = rivalP(), rt = PB.team(C.rival.team);
     const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
     show(`<div class="draft" style="--c1:${t.c1};--c2:${t.c2}">
       <p class="kick">Draft night</p>
@@ -174,6 +205,7 @@
       <h1>${esc(PB.full(me))}</h1><p class="mute">${PB.POS_NAME[me.pos]} · ${me.arch} · ${PB.fmtH(me.ht)} · overall ${me.ovr}</p></div>
       <div class="cap" style="background:${t.c1};color:${t.c2}">${t.id}<b>#${me.num}</b></div>
       <p class="fine">A four-year rookie deal. ${roleLine()}</p>
+      <div class="card rival"><h3>Your rival</h3><p>${badge(rt)} <b>${esc(PB.full(rv))}</b>, ${PB.POS_NAME[rv.pos].toLowerCase()}, went ${ord(C.rival.pick)} to the ${esc(rt.name)}, in your division. Overall ${rv.ovr}. The league will compare you all career.</p></div>
       <button class="big" id="go">Go to the team</button></div>`);
     $('#go').onclick = hub;
   }
@@ -185,18 +217,36 @@
     const five = PB.POS.map(pos => ro.filter(p => p.pos === pos).sort((a, b) => b.ovr - a.ovr)[0]);
     return five;
   }
+  /* your role: your overall against the best at your position, moved by how much the coach trusts you */
   function role() {
     const same = myRoster().filter(p => p.pos === C.me.pos).sort((a, b) => b.ovr - a.ovr)[0];
-    const d = C.me.ovr - same.ovr;
+    const d = C.me.ovr - same.ovr + ((C.trust ?? 50) - 50) / 8;
     return d >= -1 ? 'Starter' : d >= -6 ? 'Sixth man' : 'Bench';
   }
   const roleLine = () => { const r = role(); return r === 'Starter' ? 'The coach has you in the starting five.' : r === 'Sixth man' ? 'You come off the bench as the first man in, and you start when the starter rests.' : 'You start on the bench: play well and the minutes come.'; };
   const strength = id => PB.teamOvr(C.rosters[id].concat(id === C.team ? [C.me] : []));
   function liveFive() {
-    /* you take your position's spot in the five */
     const five = starters(C.team).map(p => p);
     five[PB.POS.indexOf(C.me.pos)] = C.me;
     return five;
+  }
+  const winP = (a, b, homeA) => 1 / (1 + Math.exp(-(strength(a) - strength(b) + (homeA ? 2 : -2)) / 4));
+  const binom = (n, p) => { let k = 0; for (let i = 0; i < n; i++) if (PB.rand() < p) k++; return k; };
+  /* a stat line from ratings, a role and a result: used for your simmed games, your rival's, the league's stars */
+  function simLine(pl, rl, win) {
+    const r = pl.r;
+    const mins = rl === 'Starter' ? 32 : rl === 'Sixth man' ? 24 : 14;
+    const usage = Math.max(0.15, (pl.ovr - 40) / 50) * mins / 32;
+    const tpa = Math.round(Math.max(0, (r.three - 40) / 10 * usage + PB.gauss())), fga2 = Math.round(Math.max(1, 9 * usage + (r.close + r.mid - 100) / 20 + PB.gauss() * 2));
+    const tpm = binom(tpa, 0.2 + r.three / 99 * 0.2), fgm2 = binom(fga2, 0.38 + (r.close + r.mid) / 198 * 0.2);
+    const fta = Math.round(Math.max(0, (r.close + r.dunk) / 40 * usage + PB.gauss())), ftm = binom(fta, 0.45 + r.ft / 99 * 0.45);
+    const line = { pts: fgm2 * 2 + tpm * 3 + ftm, reb: Math.max(0, Math.round((r.reb - 30) / 10 * usage + PB.gauss() * 1.5)), ast: Math.max(0, Math.round((r.pass - 35) / 9 * usage + PB.gauss() * 1.5)),
+      stl: binom(3, r.steal / 250), blk: binom(3, r.block / 250), tov: binom(4, 0.25), fga: tpa + fga2, fgm: tpm + fgm2, tpa, tpm, fta, ftm };
+    /* the badge counters a simmed game earns, roughly */
+    line.ct = { tpm, cs3: Math.round(tpm * 0.6), mid: Math.round(fgm2 * (r.mid / (r.mid + r.close))), lay: Math.round(fgm2 * 0.5), dunk: binom(fgm2, Math.max(0, r.dunk - 50) / 120),
+      shake: binom(2, Math.max(0, r.handle - 55) / 200), ast: line.ast, reb: line.reb, stl: line.stl, blk: line.blk, cmiss: binom(4, r.perD / 250), clutch: PB.rand() < 0.15 ? binom(3, 0.5) * 2 : 0 };
+    line.gs = PB.clamp(Math.round(6 + (line.pts - 10) / 6 + (line.ast + line.reb) / 8 + (win ? 0.5 : -0.5) + PB.gauss() * 0.8), 0, 12);
+    return line;
   }
 
   /* ---------- the league around you ---------- */
@@ -204,33 +254,69 @@
     const ids = PB.TEAMS.map(t => t.id).filter(id => id !== C.team && id !== myOpp).sort(() => PB.rand() - 0.5);
     for (let i = 0; i + 1 < ids.length; i += 2) {
       const a = ids[i], b = ids[i + 1];
-      const pa = 1 / (1 + Math.exp(-(strength(a) - strength(b)) / 4));
-      const w = PB.rand() < pa ? a : b, l = w === a ? b : a;
+      const w = PB.rand() < winP(a, b, true) ? a : b, l = w === a ? b : a;
       C.standings[w].w++; C.standings[l].l++;
+      if (C.rival && (a === C.rival.team || b === C.rival.team)) rivalGame(w === C.rival.team);
     }
   }
+  function rivalGame(win, vsMe) {
+    const rv = rivalP(); if (!rv) return null;
+    const rl = rv.ovr >= starters(C.rival.team)[PB.POS.indexOf(rv.pos)].ovr ? 'Starter' : 'Sixth man';
+    const ln = simLine(rv, rl, win);
+    for (const k of ['pts', 'reb', 'ast', 'stl', 'blk', 'fga', 'fgm', 'tpa', 'tpm']) { C.rival.season[k] += ln[k]; C.rival.totals[k] += ln[k]; }
+    C.rival.season.gp++; C.rival.totals.gp++;
+    return ln;
+  }
+  const confRank = conf => PB.TEAMS.filter(x => x.conf === conf).map(x => x.id)
+    .sort((a, b) => (C.standings[b].w - C.standings[b].l) - (C.standings[a].w - C.standings[a].l) || strength(b) - strength(a));
 
   /* ---------- the hub ---------- */
   let tab = 'home';
   function hub() {
     if (PB.audio) PB.audio.music(true);
-    if (C.gi >= C.games.length) { seasonEnd(); return; }
-    const t = PB.team(C.team), me = C.me, g = C.games[C.gi], o = PB.team(g.opp);
-    const st = C.standings[C.team], os = C.standings[g.opp];
+    upgrade();
+    if (C.phase === 'regular' && C.gi >= C.games.length) { startPlayoffs(); }
+    if (C.phase === 'awards') { awardsNight(); return; }
+    if (C.phase === 'offseason') { seasonEnd(C.lastGot); return; }
+    const t = PB.team(C.team), me = C.me;
     const s = C.season, gp = s.gp || 1;
     const avg = k => (s[k] / gp).toFixed(1);
     const tabs = ['home', 'player', 'league', 'log'];
     let body = '';
     if (tab === 'home') {
-      body = `<div class="next">
-        <p class="kick">Game ${C.gi + 1} of ${C.games.length} · ${g.home ? 'Home' : 'Away'}</p>
+      const nx = nextGame();
+      let card;
+      if (nx) {
+        const o = PB.team(nx.opp), st = C.standings[C.team], os = C.standings[nx.opp];
+        const them = starters(o.id)[PB.POS.indexOf(me.pos)];
+        const rivalGame = C.rival && nx.opp === C.rival.team;
+        card = `<div class="next">
+        <p class="kick">${nx.label}</p>
         <div class="vs"><div>${badge(t)}<b>${t.name}</b><span>${st.w}-${st.l} · ${strength(C.team)}</span></div><em>vs</em>
         <div>${badge(o)}<b>${o.name}</b><span>${os.w}-${os.l} · ${strength(o.id)}</span></div></div>
-        <p class="fine">Their ${me.pos}: ${esc(PB.full(starters(o.id)[PB.POS.indexOf(me.pos)]))} (${starters(o.id)[PB.POS.indexOf(me.pos)].ovr}). You guard him.</p>
-        <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button></div>
+        ${rivalGame ? `<p class="rivaltag">Rival game: ${esc(PB.full(rivalP()))} is on the other side</p>` : `<p class="fine">Their ${me.pos}: ${esc(PB.full(them))} (${them.ovr}). You guard him.</p>`}
+        <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button></div>`;
+      } else if (C.phase === 'playoffs' && !C.po.champ && alive()) {
+        card = C.po.round < 2 ? `<div class="next"><p class="kick">Playoffs</p><p>You're the ${ordinal(C.po.seeds[PB.team(C.team).conf].indexOf(C.team) + 1)} seed, waiting on the play-in.</p>
+        <button class="big" id="simpi">Sim the play-in</button></div>` : `<div class="next"><p class="kick">Playoffs</p><p>You're through. The rest of the round is still being played.</p>
+        <button class="big" id="simrd">Finish the round</button></div>`;
+      } else {
+        card = `<div class="next"><p class="kick">${C.po && C.po.champ ? 'The playoffs are over' : 'Playoffs'}</p>
+        <p>${C.po && C.po.champ ? `The ${esc(tname(PB.team(C.po.champ)))} are champions.` : `Your season is over. The playoffs go on without you.`}</p>
+        <button class="big" id="simpo">${C.po && C.po.champ ? 'Go to awards night' : 'Sim the rest of the playoffs'}</button></div>`;
+      }
+      const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
+      body = card + (C.phase === 'playoffs' ? bracketCard() : '') + `
         <div class="tiles">
           <div><b>${avg('pts')}</b><span>PTS</span></div><div><b>${avg('reb')}</b><span>REB</span></div><div><b>${avg('ast')}</b><span>AST</span></div>
           <div><b>${s.fga ? Math.round(s.fgm / s.fga * 100) : 0}%</b><span>FG</span></div><div><b>${s.tpa ? Math.round(s.tpm / s.tpa * 100) : 0}%</b><span>3PT</span></div><div><b>${s.gp ? gradeAvg(s.grades / s.gp) : '–'}</b><span>GRADE</span></div></div>
+        <div class="card meters"><div><span>Coach trust</span><i><u style="width:${C.trust}%"></u></i><b>${Math.round(C.trust)}</b></div>
+          <div><span>Role</span><b class="tag">${role()}</b></div><div><span>Followers</span><b>${fmtFans(C.fans)}</b></div></div>
+        <div class="card rival"><h3>Rival <small>${esc(PB.team(C.rival.team).name)}</small></h3>
+          <div class="rv"><div><b>${esc(PB.full(me))}</b><span>${avg('pts')} / ${avg('reb')} / ${avg('ast')}</span></div><em>${C.rival.h2h[0]}–${C.rival.h2h[1]}</em>
+          <div><b>${esc(PB.full(rv))}</b><span>${(rs.pts / rg).toFixed(1)} / ${(rs.reb / rg).toFixed(1)} / ${(rs.ast / rg).toFixed(1)}</span></div></div>
+          <p class="fine">Points, rebounds, assists a game this season; the middle is your record head to head.</p></div>
+        <div class="card"><h3>Feed</h3>${C.feed.slice(0, 4).map(f => `<div class="fpost"><b>${esc(f.who)}</b><span>${esc(f.text)}</span></div>`).join('') || '<p class="mute">Nothing yet. Play a game.</p>'}</div>
         <div class="card"><h3>News</h3>${C.news.slice(0, 5).map(n => `<p class="news">${esc(n)}</p>`).join('')}</div>`;
     } else if (tab === 'player') {
       const A = PB.ARCH[me.arch];
@@ -239,20 +325,21 @@
         ${PB.ATTRS.map(([k, n, d]) => { const c = cost(me.r[k]); const can = me.r[k] < A.cap[k] && me.sp >= c;
           return `<div class="bar up"><span>${n}<small>${d}</small></span><i><u style="width:${me.r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${me.r[k]}</b>
           <button data-k="${k}" ${can ? '' : 'disabled'}>+1<small>${me.r[k] >= A.cap[k] ? 'max' : c + ' SP'}</small></button></div>`; }).join('')}
-        <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p></div>`;
+        <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p></div>
+        <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>`;
     } else if (tab === 'league') {
-      const conf = c => PB.TEAMS.filter(x => x.conf === c).map(x => ({ x, s: C.standings[x.id] }))
-        .sort((a, b) => (b.s.w - b.s.l) - (a.s.w - a.s.l) || b.s.w - a.s.w)
-        .map((e, i) => `<tr class="${e.x.id === C.team ? 'me' : ''} ${i === 5 ? 'cut' : i === 9 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(e.x)} ${e.x.name}</td><td>${e.s.w}</td><td>${e.s.l}</td><td>${strength(e.x.id)}</td></tr>`).join('');
-      body = ['East', 'West'].map(c => `<div class="card"><h3>${c}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
-        + `<p class="fine">Top six make the playoffs; seven to ten go to the play-in (coming in a later build).</p>`;
+      const conf = c => confRank(c).map((id, i) => { const x = PB.team(id), st = C.standings[id];
+        return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${strength(id)}</td></tr>`; }).join('');
+      body = (C.phase === 'playoffs' ? bracketCard() : '') + ['East', 'West'].map(c => `<div class="card"><h3>${c}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
+        + `<p class="fine">The top six in each conference make the playoffs; seven to ten play in for the last two places.</p>`;
     } else {
-      body = `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => `<div class="glog"><span>${i + 1}</span>${badge(PB.team(x.opp))}
-        <b class="${x.res.win ? 'w' : 'l'}">${x.res.win ? 'W' : 'L'} ${x.res.us}-${x.res.them}</b><em>${x.res.line.pts} pts · ${x.res.line.reb} reb · ${x.res.line.ast} ast</em><i>${x.res.grade}${x.res.sim ? ' · sim' : ''}</i></div>`).join('') || '<p class="mute">No games yet.</p>'}</div>
-        ${C.seasons.length ? `<div class="card"><h3>Career</h3>${C.seasons.map(z => `<div class="glog"><span>Y${z.year}</span>${badge(PB.team(z.team))}<b>${z.w}-${z.l}</b><em>${z.ppg} / ${z.rpg} / ${z.apg}</em><i>${z.awards.join(', ') || '–'}</i></div>`).join('')}</div>` : ''}`;
+      body = `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => glog(x, i + 1)).join('') || '<p class="mute">No games yet.</p>'}</div>
+        ${C.po && C.po.games.length ? `<div class="card"><h3>Playoffs</h3>${C.po.games.map((x, i) => glog(x, 'P' + (i + 1))).join('')}</div>` : ''}
+        ${C.seasons.length ? `<div class="card"><h3>Career</h3>${C.seasons.map(z => `<div class="glog"><span>Y${z.year}</span>${badge(PB.team(z.team))}<b>${z.w}-${z.l}</b><em>${z.ppg} / ${z.rpg} / ${z.apg}</em><i>${z.awards.join(', ') || '–'}</i></div>`).join('')}</div>` : ''}
+        ${C.trophies.length ? `<div class="card"><h3>Trophy case</h3>${C.trophies.map(x => `<p class="news">🏆 ${esc(x)}</p>`).join('')}</div>` : ''}`;
     }
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}">
-      <div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}</span></div></div>
+      <div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}${C.phase === 'playoffs' ? ' · Playoffs' : ''}</span></div></div>
       <button class="ic" id="menu" aria-label="Menu">⌂</button></div>
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}">${{ home: 'Home', player: 'Player', league: 'League', log: 'Log' }[x]}</button>`).join('')}</nav>
       <div class="hubbody">${body}</div></div>`);
@@ -260,74 +347,185 @@
     $('#menu').onclick = title;
     if ($('#play')) $('#play').onclick = playGame;
     if ($('#sim')) $('#sim').onclick = simGame;
+    if ($('#simpi')) $('#simpi').onclick = () => { while (C.po.round < 2) simPlayoffRound(); hub(); };
+    if ($('#simrd')) $('#simrd').onclick = () => { simPlayoffRound(); hub(); };
+    if ($('#simpo')) $('#simpo').onclick = () => { while (!C.po.champ) simPlayoffRound(true); C.phase = 'awards'; save(); hub(); };
     scr().querySelectorAll('.bar.up button').forEach(b => b.onclick = () => {
       const k = b.dataset.k, c = cost(me.r[k]);
       if (me.sp < c) return;
       me.sp -= c; me.r[k]++; me.ovr = PB.ovr(me.r, me.pos); save(); hub();
     });
   }
+  const glog = (x, n) => `<div class="glog"><span>${n}</span>${badge(PB.team(x.opp))}
+        <b class="${x.res.win ? 'w' : 'l'}">${x.res.win ? 'W' : 'L'} ${x.res.us}-${x.res.them}</b><em>${x.res.line.pts} pts · ${x.res.line.reb} reb · ${x.res.line.ast} ast</em><i>${x.res.grade}${x.res.sim ? ' · sim' : ''}</i></div>`;
+  const fmtFans = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n));
   const cost = v => v < 60 ? 1 : v < 70 ? 2 : v < 80 ? 3 : v < 90 ? 4 : 6;
   const LET = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];
+  function badgeList() {
+    return PB.BADGES.map(b => {
+      const n = C.ct[b.stat] || 0, t = C.me.badges[b.k] || 0, nextAt = b.tiers[t];
+      const pct = t >= 3 ? 100 : Math.min(100, Math.round(n / nextAt * 100));
+      return `<div class="badge t${t}"><i>${t ? PB.TIER[t][0] : '·'}</i><div><b>${b.name}${t ? ` <small>${PB.TIER[t]}</small>` : ''}</b><span>${b.eff}</span>
+        <u><s style="width:${pct}%"></s></u><em>${b.desc}: ${n}${t < 3 ? ` / ${nextAt}` : ' · maxed'}</em></div></div>`;
+    }).join('');
+  }
+
+  /* ---------- the next game: the schedule, or a playoff series ---------- */
+  function nextGame() {
+    if (C.phase === 'regular') {
+      const g = C.games[C.gi];
+      return g && { opp: g.opp, home: g.home, label: `Game ${C.gi + 1} of ${C.games.length} · ${g.home ? 'Home' : 'Away'}`, g };
+    }
+    if (C.phase === 'playoffs') {
+      const sr = mySeries();
+      if (!sr) return null;
+      const opp = sr.a === C.team ? sr.b : sr.a, n = sr.wa + sr.wb + 1;
+      const homeHigh = [1, 2, 5, 7].includes(n) || sr.bo === 1;
+      const home = (sr.a === C.team) === homeHigh;
+      const mine = sr.a === C.team ? sr.wa : sr.wb, theirs = sr.a === C.team ? sr.wb : sr.wa;
+      const lbl = sr.bo === 1 ? `${sr.tag} · one game` : `${sr.tag} · Game ${n} · series ${mine}-${theirs}`;
+      return { opp, home, label: `${lbl} · ${home ? 'Home' : 'Away'}`, g: { opp, home, done: false, po: true } };
+    }
+    return null;
+  }
 
   function playGame() {
-    const g = C.games[C.gi];
-    const t = PB.team(C.team), o = PB.team(g.opp);
+    const nx = nextGame(); if (!nx) return;
+    const g = nx.g, t = PB.team(C.team), o = PB.team(g.opp);
     scr().hidden = true;
+    C.me.badges = C.me.badges || {};
     PB.Game.start({ teams: [t, o], rosters: [liveFive(), starters(o.id)], userId: 'me', qlen: S.qlen, level: S.level,
-      floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], onEnd: r => result(r, g) });
+      floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g) });
   }
-
-  /* a simmed game: your line comes from your ratings and role */
   function simGame() {
-    const g = C.games[C.gi], me = C.me, r = me.r;
-    const pa = 1 / (1 + Math.exp(-(strength(C.team) - strength(g.opp) + (g.home ? 2 : -2)) / 4));
-    const win = PB.rand() < pa;
+    const nx = nextGame(); if (!nx) return;
+    const g = nx.g;
+    const win = PB.rand() < winP(C.team, g.opp, g.home);
     const base = 104 + PB.gauss() * 9, margin = Math.abs(PB.gauss() * 9) + 1;
     const us = Math.round(win ? base + margin / 2 : base - margin / 2), them = Math.round(win ? base - margin / 2 : base + margin / 2);
-    const mins = role() === 'Starter' ? 32 : role() === 'Sixth man' ? 24 : 14;
-    const usage = (me.ovr - 40) / 50 * mins / 32;
-    const tpa = Math.round(Math.max(0, (r.three - 40) / 10 * usage + PB.gauss())), fga2 = Math.round(Math.max(1, 9 * usage + (r.close + r.mid - 100) / 20 + PB.gauss() * 2));
-    const tpm = binom(tpa, 0.2 + r.three / 99 * 0.2), fgm2 = binom(fga2, 0.38 + (r.close + r.mid) / 198 * 0.2);
-    const fta = Math.round(Math.max(0, (r.close + r.dunk) / 40 * usage + PB.gauss())), ftm = binom(fta, 0.45 + r.ft / 99 * 0.45);
-    const line = { pts: fgm2 * 2 + tpm * 3 + ftm, reb: Math.max(0, Math.round((r.reb - 30) / 10 * usage + PB.gauss() * 1.5)), ast: Math.max(0, Math.round((r.pass - 35) / 9 * usage + PB.gauss() * 1.5)),
-      stl: binom(3, r.steal / 250), blk: binom(3, r.block / 250), tov: binom(4, 0.25), fga: tpa + fga2, fgm: tpm + fgm2, tpa, tpm, fta, ftm };
-    const gs = PB.clamp(Math.round(6 + (line.pts - 10) / 6 + (line.ast + line.reb) / 8 + (win ? 0.5 : -0.5) + PB.gauss() * 0.8) , 0, 12);
-    record(g, { us, them, win, line, grade: LET[gs], gscore: gs, sim: true, mins });
+    const line = simLine(C.me, role(), win);
+    record(g, { us, them, win, line, grade: LET[line.gs], gscore: line.gs, sim: true, ct: line.ct });
     after(g, true);
   }
-  const binom = (n, p) => { let k = 0; for (let i = 0; i < n; i++) if (PB.rand() < p) k++; return k; };
 
   function record(g, res) {
     g.done = true; g.res = res;
-    const s = C.season, T = C.totals;
+    const s = g.po ? (C.poStats = C.poStats || zero()) : C.season, T = C.totals;
     for (const k of ['pts', 'reb', 'ast', 'stl', 'blk', 'tov', 'fga', 'fgm', 'tpa', 'tpm', 'fta', 'ftm']) { s[k] += res.line[k]; T[k] += res.line[k]; }
     s.gp++; T.gp++; s.grades += res.gscore; T.grades += res.gscore;
-    if (res.win) { s.w++; T.w++; C.standings[C.team].w++; C.standings[g.opp].l++; } else { s.l++; T.l++; C.standings[C.team].l++; C.standings[g.opp].w++; }
-    simLeagueDay(g.opp);
-    /* skill points from the grade */
-    const sp = Math.max(1, Math.round(res.gscore * 0.9 + (res.win ? 2 : 0)));
-    res.sp = sp; C.me.sp += sp;
-    const o = PB.team(g.opp);
-    const hl = res.line.pts >= 30 ? `${C.me.last} drops ${res.line.pts} on the ${o.name}` :
-      res.line.pts >= 20 ? `${C.me.last} scores ${res.line.pts} as the ${PB.team(C.team).name} ${res.win ? 'beat' : 'fall to'} ${o.city}` :
+    const o = PB.team(g.opp), me = C.me;
+    if (g.po) {
+      if (res.win) s.w++; else s.l++;
+      C.po.games.push(g);
+      playoffResult(res.win);
+    } else {
+      if (res.win) { s.w++; T.w++; C.standings[C.team].w++; C.standings[g.opp].l++; } else { s.l++; T.l++; C.standings[C.team].l++; C.standings[g.opp].w++; }
+      simLeagueDay(g.opp);
+    }
+    /* your rival, when it is his team */
+    if (C.rival && g.opp === C.rival.team) {
+      const rl = rivalGame(!res.win);
+      if (rl) { const meWon = res.line.pts + res.line.reb + res.line.ast >= rl.pts + rl.reb + rl.ast; C.rival.h2h[meWon ? 0 : 1]++; res.rival = rl; }
+    }
+    /* trust, skill points, followers */
+    C.trust = PB.clamp((C.trust ?? 45) + (res.gscore - 6) * 1.3 + (res.win ? 1 : -0.5), 0, 100);
+    const sp = Math.max(1, Math.round(res.gscore * 0.9 + (res.win ? 2 : 0) + (g.po ? 2 : 0)));
+    res.sp = sp; me.sp += sp;
+    C.fans = Math.round(C.fans * (1 + Math.max(-0.01, (res.line.pts - 8) * 0.002 + (res.win ? 0.004 : 0) + (res.gscore - 6) * 0.002)) + res.line.pts * 15);
+    /* badge counters, and any new tier */
+    const ct = res.ct || {};
+    for (const k of ['tpm', 'ast', 'reb', 'stl', 'blk']) ct[k] = ct[k] ?? res.line[k];
+    for (const k in ct) C.ct[k] = (C.ct[k] || 0) + (ct[k] || 0);
+    res.newBadges = [];
+    for (const b of PB.BADGES) {
+      const have = me.badges[b.k] || 0; let t = have;
+      while (t < 3 && (C.ct[b.stat] || 0) >= b.tiers[t]) t++;
+      if (t > have) { me.badges[b.k] = t; res.newBadges.push(`${b.name} (${PB.TIER[t]})`); C.news.unshift(`${me.last} earns the ${b.name} badge, ${PB.TIER[t].toLowerCase()}`); }
+    }
+    /* headlines and the feed */
+    const hl = res.line.pts >= 30 ? `${me.last} drops ${res.line.pts} on the ${o.name}` :
+      res.line.pts >= 20 ? `${me.last} scores ${res.line.pts} as the ${PB.team(C.team).name} ${res.win ? 'beat' : 'fall to'} ${o.city}` :
       `${PB.team(C.team).name} ${res.win ? 'win' : 'lose'} ${res.us}-${res.them} against ${o.city}`;
     C.news.unshift(hl);
     C.news = C.news.slice(0, 30);
-    C.gi++;
+    feedAfter(g, res);
+    if (!g.po) {
+      C.gi++;
+      /* the All-Star picks come out at the halfway mark */
+      if (!C.allstar && C.gi === Math.floor(C.games.length / 2)) allStarPick();
+    }
     save();
   }
 
+  /* ---------- the social feed ---------- */
+  const FANS = ['hoopsdad_22', 'courtside_kay', 'bucketsonly', 'the_real_ref', 'nightcapnation', 'bench_mob', 'stat_nerd', 'local_scribe'];
+  function feedAfter(g, res) {
+    const l = res.line, me = C.me, o = PB.team(g.opp), t = PB.team(C.team);
+    const posts = [];
+    const who = () => '@' + FANS[Math.floor(PB.rand() * FANS.length)];
+    if (l.pts >= 30) posts.push([who(), `${me.last} just put ${l.pts} on ${o.city}. Somebody check on their defense.`]);
+    else if (l.pts >= 20) posts.push([who(), `${l.pts} for ${me.last} tonight. This kid is for real.`]);
+    else if (res.gscore <= 3) posts.push([who(), `Rough one for #${me.num}. Shake it off.`]);
+    if (l.ast >= 8) posts.push([who(), `${l.ast} dimes. ${me.last} sees the whole floor.`]);
+    if (l.blk >= 3) posts.push([who(), `${l.blk} blocks?! Stay out of the paint when ${me.last} is home.`]);
+    if (res.rival) posts.push([`@${o.name.toLowerCase()}_insider`, `${me.last} vs ${rivalP().last}: ${l.pts} to ${res.rival.pts}. ${l.pts >= res.rival.pts ? 'Round to the rookie from ' + t.city + '.' : 'This one goes to ' + rivalP().last + '.'}`]);
+    if (res.win) posts.push([`@${t.name.toLowerCase()}`, `FINAL: ${t.name} ${res.us}, ${o.name} ${res.them}. ${g.po ? 'Playoff basketball!' : 'Big win.'}`]);
+    else posts.push([`@${t.name.toLowerCase()}`, `FINAL: ${o.name} ${res.them}, ${t.name} ${res.us}. On to the next one.`]);
+    for (const [w, x] of posts.slice(0, 3)) C.feed.unshift({ who: w, text: x });
+    C.feed = C.feed.slice(0, 20);
+  }
+
+  /* ---------- after a game: the result, a press question now and then ---------- */
+  const PRESS = {
+    big: { q: n => `${n} points tonight. Was that the best you've felt out there?`, a: [
+      ['Just took what the defense gave me. The guys found me.', 3, 2, 'humble'],
+      ["I've been putting the work in. That's what I do.", -1, 6, 'confident'],
+      ['Honestly? I could have had 40.', -4, 10, 'brash']] },
+    bad: { q: () => 'Tough night shooting. What happened?', a: [
+      ['That one is on me. I will be better on Thursday.', 4, 1, 'accountable'],
+      ['Shots will fall. I am not worried.', 0, 2, 'calm'],
+      ['The refs were not giving us anything.', -5, 4, 'blame']] },
+    rival: { q: n => `How does it feel going up against ${n} again?`, a: [
+      ['Great player. We push each other.', 2, 2, 'respect'],
+      ['I do not think about him. I think about winning.', 1, 3, 'focused'],
+      ['Ask him how it felt.', -2, 9, 'trash talk']] },
+    playoff: { q: () => 'First taste of playoff basketball. Is it different?', a: [
+      ['Every possession matters. You feel it.', 2, 2, 'measured'],
+      ['This is what I came here for.', 1, 5, 'fired up'],
+      ['Same game. Same me.', 0, 3, 'cool']] },
+  };
+  function pressFor(g, r) {
+    if (r.sim) return null;
+    if (C.rival && g.opp === C.rival.team && PB.rand() < 0.8) return ['rival', PB.full(rivalP())];
+    if (g.po && C.po.games.length === 1) return ['playoff', ''];
+    if (r.line.pts >= 22 || r.gscore >= 10) return ['big', r.line.pts];
+    if (r.gscore <= 3) return ['bad', ''];
+    return null;
+  }
   function after(g, sim) {
     const r = g.res, o = PB.team(g.opp), t = PB.team(C.team), l = r.line;
-    show(`<div class="page post"><p class="kick">${sim ? 'Simulated' : 'Final'}</p>
+    const pr = pressFor(g, r);
+    const P = pr && PRESS[pr[0]];
+    show(`<div class="page post"><p class="kick">${sim ? 'Simulated' : 'Final'}${g.po ? ' · Playoffs' : ''}</p>
       <div class="final"><div>${badge(t)}<b>${r.us}</b></div><em>${r.win ? 'WIN' : 'LOSS'}</em><div><b>${r.them}</b>${badge(o)}</div></div>
       <div class="gradebig"><b>${r.grade}</b><span>Teammate grade</span></div>
       <div class="tiles"><div><b>${l.pts}</b><span>PTS</span></div><div><b>${l.reb}</b><span>REB</span></div><div><b>${l.ast}</b><span>AST</span></div>
       <div><b>${l.fgm}/${l.fga}</b><span>FG</span></div><div><b>${l.tpm}/${l.tpa}</b><span>3PT</span></div><div><b>${l.stl}/${l.blk}</b><span>STL/BLK</span></div></div>
+      ${r.rival ? `<div class="card rival"><h3>Rival</h3><p>${esc(rivalP().last)}: ${r.rival.pts} pts, ${r.rival.reb} reb, ${r.rival.ast} ast. Head to head, you're ${C.rival.h2h[0]}-${C.rival.h2h[1]}.</p></div>` : ''}
+      ${r.newBadges && r.newBadges.length ? `<div class="card earn"><b>Badge earned</b><span>${r.newBadges.map(esc).join(' · ')}</span></div>` : ''}
+      ${P ? `<div class="card press" id="press"><h3>Press conference</h3><p class="q">“${esc(P.q(pr[1]))}”</p>${P.a.map((a, i) => `<button class="ans" data-i="${i}">${esc(a[0])}</button>`).join('')}</div>` : ''}
       ${r.log && r.log.length ? `<div class="card"><h3>What moved your grade</h3>${summarize(r.log)}</div>` : ''}
-      <div class="card earn"><b>+${r.sp} skill points</b><span>${C.me.sp} to spend on the Player tab</span></div>
+      <div class="card earn"><b>+${r.sp} skill points</b><span>${C.me.sp} to spend on the Player tab · coach trust ${Math.round(C.trust)}</span></div>
       <button class="big" id="go">Continue</button></div>`);
+    if (P) scr().querySelectorAll('#press .ans').forEach(b => b.onclick = () => {
+      const a = P.a[+b.dataset.i];
+      C.trust = PB.clamp(C.trust + a[1], 0, 100); C.fans = Math.round(C.fans * (1 + a[2] / 100));
+      C.news.unshift(`${C.me.last} at the podium: "${a[0]}"`);
+      C.feed.unshift({ who: '@local_scribe', text: `${C.me.last}, after the game: "${a[0]}"` });
+      $('#press').innerHTML = `<h3>Press conference</h3><p class="q">“${esc(a[0])}”</p><p class="fine">Coach trust ${a[1] >= 0 ? '+' : ''}${a[1]} · followers ${a[2] >= 0 ? '+' : ''}${a[2]}% · the ${a[3]} answer</p>`;
+      save();
+    });
     $('#go').onclick = () => { tab = 'home'; hub(); };
   }
   function summarize(log) {
@@ -352,8 +550,10 @@
       return;
     }
     const gi = LET.indexOf(res.grade);
-    const line = Object.assign({ pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0 }, res.user || {});
-    record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog });
+    const u = res.user || {};
+    const line = Object.assign({ pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0 }, u);
+    const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0 };
+    record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct });
     after(g, false);
   }
   function boxScore(res) {
@@ -361,31 +561,173 @@
     return [0, 1].map(t => `<div class="card"><h3>${res.teams[t].name}</h3><table class="std"><tr><th></th><th>PTS</th><th>REB</th><th>AST</th><th>FG</th><th>3P</th></tr>${rows(t)}</table></div>`).join('');
   }
 
-  /* ---------- end of a season ---------- */
-  function seasonEnd() {
+  /* ---------- All-Star ---------- */
+  function allStarPick() {
+    C.allstar = true;
+    const s = C.season, gp = s.gp || 1, ppg = s.pts / gp, score = ppg + (s.reb + s.ast) / gp * 0.5 + (s.grades / gp - 6);
+    if (score >= 21 || (ppg >= 17 && C.trust > 70)) {
+      C.trophies.push(`All-Star, season ${C.year}`); C.me.sp += 5; C.fans = Math.round(C.fans * 1.15);
+      C.news.unshift(`${C.me.last} is an All-Star! First-time selection for the ${PB.team(C.team).name}`);
+      C.feed.unshift({ who: '@league', text: `Your All-Stars are here. Congrats to ${PB.full(C.me)} of the ${PB.team(C.team).name}!` });
+      C.season.allstar = true;
+    } else C.news.unshift('All-Star rosters are out. Not this year for the rookie. Keep stacking games.');
+  }
+
+  /* ---------- the playoffs ---------- */
+  const ROUNDS = ['Play-In', 'Play-In', 'First round', 'Conference semifinals', 'Conference finals', 'Finals'];
+  function startPlayoffs() {
+    const bo = { 10: 1, 20: 3, 41: 5, 82: 7 }[C.len] || 3;
+    const seeds = { East: confRank('East'), West: confRank('West') };
+    C.phase = 'playoffs';
+    C.poStats = zero();
+    C.po = { round: 0, bo, seeds, series: [], games: [], champ: null, seed8: {}, seed7: {} };
+    for (const c of ['East', 'West']) {
+      const s = seeds[c];
+      C.po.series.push(mkSeries(s[6], s[7], 1, c, 'Play-In · 7 vs 8'), mkSeries(s[8], s[9], 1, c, 'Play-In · 9 vs 10'));
+    }
+    const mine = seeds[PB.team(C.team).conf].indexOf(C.team) + 1;
+    C.news.unshift(mine <= 6 ? `Playoffs! The ${PB.team(C.team).name} are the ${ordinal(mine)} seed.` : mine <= 10 ? `The ${PB.team(C.team).name} are in the play-in as the ${ordinal(mine)} seed.` : `The season is over for the ${PB.team(C.team).name}: ${ordinal(mine)} in the ${PB.team(C.team).conf}.`);
+    save();
+  }
+  const mkSeries = (a, b, bo, conf, tag) => ({ a, b, wa: 0, wb: 0, bo, conf, tag });
+  const done = sr => sr.wa > sr.bo / 2 || sr.wb > sr.bo / 2;
+  const winner = sr => sr.wa > sr.wb ? sr.a : sr.b, loser = sr => sr.wa > sr.wb ? sr.b : sr.a;
+  /* still in it: a top-six seed during the play-in, or in a series this round that is not lost */
+  function alive() {
+    const P = C.po; if (!P) return false;
+    if (P.round < 2 && P.seeds[PB.team(C.team).conf].indexOf(C.team) < 6) return true;
+    return P.series.some(sr => (sr.a === C.team || sr.b === C.team) && (!done(sr) || winner(sr) === C.team));
+  }
+  function mySeries() { return C.po && C.po.series.find(sr => !done(sr) && (sr.a === C.team || sr.b === C.team)); }
+  function simSeriesGame(sr) {
+    const n = sr.wa + sr.wb + 1, homeHigh = [1, 2, 5, 7].includes(n);
+    if (PB.rand() < winP(sr.a, sr.b, homeHigh)) sr.wa++; else sr.wb++;
+  }
+  /* your game counts in your series; every other series in the round plays one game; the round ends when all are done */
+  function playoffResult(win) {
+    const sr = mySeries();
+    if (sr) { if ((sr.a === C.team) === win) sr.wa++; else sr.wb++; }
+    for (const o of C.po.series) if (o !== sr && !done(o) && o.a !== C.team && o.b !== C.team) simSeriesGame(o);
+    if (sr && done(sr)) C.news.unshift(winner(sr) === C.team ? `${PB.team(C.team).name} win the ${sr.tag.toLowerCase()} ${sr.bo > 1 ? Math.max(sr.wa, sr.wb) + '-' + Math.min(sr.wa, sr.wb) : ''}` : `Eliminated: the ${PB.team(winner(sr)).name} end the ${PB.team(C.team).name}' run`);
+    if (C.po.series.every(done)) nextRound();
+  }
+  function simPlayoffRound() {
+    for (const sr of C.po.series) while (!done(sr)) simSeriesGame(sr);
+    nextRound();
+  }
+  function nextRound() {
+    const P = C.po, S2 = P.series;
+    const r = P.round;
+    if (r === 0) {
+      P.series = [];
+      for (const c of ['East', 'West']) {
+        const s78 = S2.find(x => x.conf === c && /7 vs 8/.test(x.tag)), s910 = S2.find(x => x.conf === c && /9 vs 10/.test(x.tag));
+        P.seed7[c] = winner(s78);
+        P.series.push(mkSeries(loser(s78), winner(s910), 1, c, 'Play-In · for the 8th seed'));
+      }
+    } else if (r === 1) {
+      P.series = [];
+      for (const c of ['East', 'West']) {
+        P.seed8[c] = winner(S2.find(x => x.conf === c));
+        const s = P.seeds[c], seed = [s[0], s[1], s[2], s[3], s[4], s[5], P.seed7[c], P.seed8[c]];
+        for (const [i, j] of [[0, 7], [3, 4], [2, 5], [1, 6]]) P.series.push(mkSeries(seed[i], seed[j], P.bo, c, ROUNDS[2]));
+      }
+    } else if (r === 2 || r === 3) {
+      P.series = [];
+      for (const c of ['East', 'West']) {
+        const w = S2.filter(x => x.conf === c).map(winner);
+        for (let i = 0; i + 1 < w.length; i += 2) P.series.push(mkSeries(w[i], w[i + 1], P.bo, c, ROUNDS[r + 1]));
+      }
+    } else if (r === 4) {
+      const e = winner(S2.find(x => x.conf === 'East')), w = winner(S2.find(x => x.conf === 'West'));
+      const better = (C.standings[e].w - C.standings[e].l) >= (C.standings[w].w - C.standings[w].l);
+      P.series = [mkSeries(better ? e : w, better ? w : e, P.bo, 'Finals', ROUNDS[5])];
+      C.news.unshift(`The Finals: ${PB.team(e).name} vs ${PB.team(w).name}`);
+    } else {
+      P.champ = winner(S2[0]);
+      C.news.unshift(`The ${tname(PB.team(P.champ))} are champions!`);
+      if (P.champ === C.team) { C.trophies.push(`Champion, season ${C.year}`); C.fans = Math.round(C.fans * 1.4); C.me.sp += 10; }
+    }
+    P.round++;
+    save();
+  }
+  function bracketCard() {
+    const P = C.po; if (!P) return '';
+    const row = sr => `<div class="sr ${sr.a === C.team || sr.b === C.team ? 'me' : ''}">${badge(PB.team(sr.a))}<b>${sr.wa}</b><em>–</em><b>${sr.wb}</b>${badge(PB.team(sr.b))}<span>${done(sr) ? PB.team(winner(sr)).name + (sr.bo > 1 ? ' win' : ' advance') : sr.bo > 1 ? 'best of ' + sr.bo : 'one game'}</span></div>`;
+    return `<div class="card bracket"><h3>${P.champ ? 'Champions: ' + esc(tname(PB.team(P.champ))) : esc(P.series[0] ? P.series[0].tag : 'Playoffs')}</h3>${P.series.map(row).join('')}</div>`;
+  }
+
+  /* ---------- awards night and the end of a season ---------- */
+  /* the league's best: two from every team, with a season line from their ratings */
+  function leagueStars() {
+    const out = [];
+    for (const t of PB.TEAMS) {
+      const ro = C.rosters[t.id].slice().sort((a, b) => b.ovr - a.ovr).slice(0, 2);
+      const wp = C.standings[t.id].w / Math.max(1, C.standings[t.id].w + C.standings[t.id].l);
+      for (const p of ro) {
+        const ppg = Math.max(4, 6 + (p.ovr - 62) * 0.85 + PB.gauss() * 2.5);
+        const rpg = Math.max(1, (p.r.reb - 35) / 7 + PB.gauss()), apg = Math.max(0.5, (p.r.pass - 35) / 8 + PB.gauss());
+        out.push({ name: PB.full(p), team: t.id, ppg, rpg, apg, dpg: (p.r.perD + p.r.block + p.r.steal + p.r.inD) / 160 + PB.gauss() * 0.3, score: ppg + (rpg + apg) * 0.5 + wp * 12, rookie: !!p.rookie, wp });
+      }
+    }
+    return out;
+  }
+  function awardsNight() {
+    const s = C.season, gp = s.gp || 1, me = C.me;
+    const mine = { name: PB.full(me), team: C.team, ppg: s.pts / gp, rpg: s.reb / gp, apg: s.ast / gp, dpg: (s.stl + s.blk) / gp, me: true };
+    const wp = C.standings[C.team].w / Math.max(1, C.standings[C.team].w + C.standings[C.team].l);
+    mine.score = mine.ppg + (mine.rpg + mine.apg) * 0.5 + wp * 12 + (s.grades / gp - 6) * 0.6;
+    const stars = leagueStars().concat([mine]).sort((a, b) => b.score - a.score);
+    const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
+    const rook = [mine, { name: PB.full(rv), team: C.rival.team, ppg: rs.pts / rg, rpg: rs.reb / rg, apg: rs.ast / rg }]
+      .concat([0, 1].map(() => ({ name: PB.pick(PB.FIRST) + ' ' + PB.pick(PB.LAST), team: PB.pick(PB.TEAMS).id, ppg: 9 + PB.rand() * 8, rpg: 2 + PB.rand() * 5, apg: 1 + PB.rand() * 4 })));
+    rook.forEach(x => { x.score = x.ppg + (x.rpg + x.apg) * 0.5; });
+    const aw = [];
+    const win = (title, list, key) => { const w = list.slice().sort((a, b) => b[key || 'score'] - a[key || 'score'])[0]; aw.push([title, w]); return w.me; };
+    const got = [];
+    if (win('Most Valuable Player', stars)) got.push('MVP');
+    if (C.year === 1 && win('Rookie of the Year', rook)) got.push('Rookie of the Year');
+    const def = stars.map(x => Object.assign({}, x, { score: x.dpg }));
+    if (win('Defensive Player of the Year', def)) got.push('Defensive Player of the Year');
+    if (role() === 'Sixth man' && mine.ppg >= 12) { aw.push(['Sixth Man of the Year', mine]); got.push('Sixth Man of the Year'); }
+    if (C.year > 1 && me.ovr - (C.startOvr || me.ovr) >= 6) { aw.push(['Most Improved Player', mine]); got.push('Most Improved Player'); }
+    const rank = stars.indexOf(mine);
+    const team = rank < 5 ? 'First' : rank < 10 ? 'Second' : rank < 15 ? 'Third' : null;
+    if (team) got.push(`All-League ${team} Team`);
+    if (C.po && C.po.champ === C.team && C.poStats && C.poStats.gp && C.poStats.pts / C.poStats.gp >= 14) got.push('Finals MVP');
+    if (s.allstar) got.unshift('All-Star');
+    if (C.po && C.po.champ === C.team) got.unshift('Champion');
+    for (const g of got) if (!/Champion|All-Star/.test(g)) C.trophies.push(`${g}, season ${C.year}`);
+    C.me.sp += got.length * 3;
+    C.lastGot = got; C.phase = 'offseason'; save();   // awards are handed out once, even if the page is reloaded
+    const line = x => `${esc(x.name)} <small>${PB.team(x.team).id} · ${x.ppg.toFixed(1)} / ${x.rpg.toFixed(1)} / ${x.apg.toFixed(1)}</small>`;
+    show(`<div class="page post awards"><p class="kick">Awards night · Season ${C.year}</p>
+      ${aw.map(([t, w]) => `<div class="card aw ${w.me ? 'mine' : ''}"><span>${t}</span><b>${line(w)}</b></div>`).join('')}
+      <div class="card"><h3>Your honors</h3>${got.length ? got.map(a => `<p class="news">🏆 ${esc(a)}</p>`).join('') : '<p class="mute">None this year. Next year.</p>'}
+      ${team ? '' : `<p class="fine">You ranked ${ordinal(rank + 1)} in the league by the voters' formula; the top fifteen make an All-League team.</p>`}</div>
+      <button class="big" id="go">Season review</button></div>`);
+    $('#go').onclick = () => seasonEnd(got);
+  }
+  function seasonEnd(got) {
     const s = C.season, gp = s.gp || 1, me = C.me;
     const ppg = s.pts / gp, rpg = s.reb / gp, apg = s.ast / gp;
     const st = C.standings[C.team];
-    const rank = PB.TEAMS.filter(x => x.conf === PB.team(C.team).conf).map(x => x.id)
-      .sort((a, b) => (C.standings[b].w - C.standings[b].l) - (C.standings[a].w - C.standings[a].l)).indexOf(C.team) + 1;
-    const aw = [];
-    if (C.year === 1 && ppg >= 13) aw.push('Rookie of the Year');
-    if (ppg >= 20 || (ppg >= 15 && (rpg >= 9 || apg >= 7))) aw.push('All-Star');
-    if (ppg >= 26 && st.w / Math.max(1, st.w + st.l) > 0.6) aw.push('MVP');
-    if (rank <= 6) aw.push('Playoffs');
-    C.seasons.push({ year: C.year, team: C.team, w: st.w, l: st.l, ppg: ppg.toFixed(1), rpg: rpg.toFixed(1), apg: apg.toFixed(1), awards: aw });
+    const rank = confRank(PB.team(C.team).conf).indexOf(C.team) + 1;
+    const aw = (got || []).slice();
+    const how = C.po && C.po.champ === C.team ? 'Champions' : C.po && C.po.games.length ? `Playoffs: ${C.poStats.w}-${C.poStats.l}` : 'No playoffs';
+    if (!C.seasons.find(z => z.year === C.year)) C.seasons.push({ year: C.year, team: C.team, w: st.w, l: st.l, ppg: ppg.toFixed(1), rpg: rpg.toFixed(1), apg: apg.toFixed(1), awards: aw });
+    C.phase = 'offseason'; save();
     show(`<div class="page post"><p class="kick">Season ${C.year} is over</p>
-      <h2>${st.w}-${st.l} · ${ordinal(rank)} in the ${PB.team(C.team).conf}</h2>
+      <h2>${st.w}-${st.l} · ${ordinal(rank)} in the ${PB.team(C.team).conf}</h2><p class="mute">${how}</p>
       <div class="tiles"><div><b>${ppg.toFixed(1)}</b><span>PPG</span></div><div><b>${rpg.toFixed(1)}</b><span>RPG</span></div><div><b>${apg.toFixed(1)}</b><span>APG</span></div></div>
-      <div class="card"><h3>Honors</h3>${aw.length ? aw.map(a => `<p class="news">🏆 ${a}</p>`).join('') : '<p class="mute">None this year. Next year.</p>'}</div>
-      <p class="fine">The playoffs, the play-in, free agency and contracts come in later builds (see the plan).</p>
+      <div class="card"><h3>Honors</h3>${aw.length ? aw.map(a => `<p class="news">🏆 ${esc(a)}</p>`).join('') : '<p class="mute">None this year. Next year.</p>'}</div>
+      <p class="fine">Free agency, contracts and trades come in a later build (see the plan). Young players grow over the summer; you get 6 skill points.</p>
       <button class="big" id="go">Start season ${C.year + 1}</button></div>`);
     $('#go').onclick = () => {
       C.year++; me.age++;
-      /* the offseason: young players grow, everyone drifts a little */
       for (const id in C.rosters) for (const p of C.rosters[id]) {
         const d = p.age < 24 ? 2 : p.age < 29 ? 0.5 : p.age < 32 ? -1 : -3;
-        p.age++; for (const k in p.r) p.r[k] = PB.clamp(Math.round(p.r[k] + d + PB.gauss()), 25, 99); p.ovr = PB.ovr(p.r, p.pos);
+        p.age++; p.rookie = false; for (const k in p.r) p.r[k] = PB.clamp(Math.round(p.r[k] + d + PB.gauss()), 25, 99); p.ovr = PB.ovr(p.r, p.pos);
       }
       me.sp += 6;
       newSeason(); save(); tab = 'home'; hub();

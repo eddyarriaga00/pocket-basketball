@@ -175,6 +175,22 @@
     return Math.round((s[0] * 1.3 + s[1] * 1.2 + s[2] * 1.1 + s[3] + s[4] + (s[5] + s[6] + s[7]) * 0.6) / 7.0);
   };
 
+  /* Badges: earned by doing the thing in games (career totals), never lost. Three tiers. `stat` is the counter. */
+  PB.BADGES = [
+    { k: 'deep', name: 'Deep Range', stat: 'tpm', desc: 'Threes made', tiers: [25, 100, 250], eff: 'Better from three, and from way out' },
+    { k: 'catch', name: 'Catch & Shoot', stat: 'cs3', desc: 'Threes off a pass', tiers: [15, 60, 150], eff: 'Better shooting right off the catch' },
+    { k: 'mid', name: 'Mid-Range Maestro', stat: 'mid', desc: 'Mid-range makes', tiers: [20, 80, 200], eff: 'Better pull-ups and elbow jumpers' },
+    { k: 'acro', name: 'Acrobat', stat: 'lay', desc: 'Layups and floaters made', tiers: [30, 120, 300], eff: 'Finishes better through traffic' },
+    { k: 'poster', name: 'Posterizer', stat: 'dunk', desc: 'Dunks', tiers: [10, 40, 100], eff: 'Goes up for the dunk more often' },
+    { k: 'handles', name: 'Handles', stat: 'shake', desc: 'Defenders shaken', tiers: [5, 20, 50], eff: 'Crossovers leave defenders stumbling more' },
+    { k: 'general', name: 'Floor General', stat: 'ast', desc: 'Assists', tiers: [60, 250, 600], eff: 'Passes are picked off less' },
+    { k: 'glass', name: 'Glass Cleaner', stat: 'reb', desc: 'Rebounds', tiers: [100, 400, 1000], eff: 'Wins more boards' },
+    { k: 'pick', name: 'Pickpocket', stat: 'stl', desc: 'Steals', tiers: [20, 80, 200], eff: 'Reaches come away with it more' },
+    { k: 'rim', name: 'Rim Protector', stat: 'blk', desc: 'Blocks', tiers: [15, 60, 150], eff: 'Blocks more shots' },
+    { k: 'lock', name: 'Lockdown', stat: 'cmiss', desc: 'Contested misses forced', tiers: [20, 80, 200], eff: 'Your contests take more off a shot' },
+    { k: 'clutch', name: 'Clutch', stat: 'clutch', desc: 'Points in the last two minutes of a 4th', tiers: [15, 60, 150], eff: 'Better shooting late in close games' },
+  ];
+  PB.TIER = ['', 'Bronze', 'Silver', 'Gold'];
   PB.SKIN = ['#f1d1b5', '#e0b48f', '#c68e63', '#a26a42', '#7a4a2a', '#4f2f1c'];
   PB.ini = p => `${p.first[0]}. ${p.last}`;
   PB.full = p => `${p.first} ${p.last}`;

@@ -52,9 +52,19 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   await pg.screenshot({ path: OUT + '/c8-player.png' });
   const up = await pg.$('.bar.up button:not([disabled])'); if (up) await up.click();
   await pg.click('.tabs button[data-t="home"]');
-  for (let i = 0; i < 25; i++) { const s = await pg.$('#sim'); if (!s) break; await s.click(); await pg.waitForTimeout(60); await pg.click('#go'); await pg.waitForTimeout(60); }
-  await pg.screenshot({ path: OUT + '/c9-season.png' });
-  await pg.click('#go'); await pg.waitForTimeout(200);
+  /* the rest of the season, the play-in and the playoffs, awards night, the season review */
+  for (let i = 0; i < 300; i++) {
+    if (await pg.$('#sim')) { await pg.click('#sim'); const p = await pg.$('#press .ans'); if (p) await p.click(); await pg.click('#go'); continue; }
+    if (await pg.$('#simpi')) { await pg.click('#simpi'); continue; }
+    if (await pg.$('#simrd')) { await pg.click('#simrd'); continue; }
+    if (await pg.$('#simpo')) { await pg.click('#simpo'); continue; }
+    break;
+  }
+  await pg.screenshot({ path: OUT + '/c9-awards.png' });
+  await pg.click('#go'); await pg.waitForTimeout(200);       // awards night -> season review
+  await pg.click('#go'); await pg.waitForTimeout(200);       // season review -> next season
+  const yr = await pg.evaluate(() => PB.Career.get().year);
+  if (yr !== 2) errs.push('did not reach season 2 (year ' + yr + ')');
   await pg.click('.tabs button[data-t="league"]'); await pg.waitForTimeout(200);
   await pg.screenshot({ path: OUT + '/c10-league.png' });
   await pg.click('.tabs button[data-t="log"]'); await pg.waitForTimeout(200);
