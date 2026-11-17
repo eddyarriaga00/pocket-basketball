@@ -53,6 +53,7 @@
       <div class="row2"><button class="ghost" id="qg">Quick game</button><button class="ghost" id="seas">Season</button></div>
       <button class="ghost sm" id="prac">Practice: 3-point contest, spot-up drill</button>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
+      ${(load('pbb.hall') || []).length ? '<button class="ghost sm" id="hall">Retired careers and the Hall of Fame</button>' : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
     if (live) $('#cont').onclick = hub;
     $('#newc').onclick = () => { if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one under Careers first.'); return; } setCur(''); C = null; create(); };
@@ -61,6 +62,13 @@
     $('#prac').onclick = practice;
     $('#seas').onclick = () => PB.Season.start();
     $('#how').onclick = how;
+    if ($('#hall')) $('#hall').onclick = () => {
+      const hall = load('pbb.hall') || [];
+      show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Retired careers</h2>
+        ${hall.map(h => `<div class="card slot"><div><b>${h.hof ? '🏛 ' : ''}${esc(h.name)}</b><span>${h.pos} · ${h.seasons} seasons · ${h.pts} points (${h.ppg} a game) · ${h.trophies} trophies · last with the ${esc(PB.team(h.team).name)}</span>
+          <span>${h.hof ? 'Hall of Fame' : 'Hall score ' + h.score + ' of 22'}</span></div></div>`).join('')}</div>`);
+      $('#bk').onclick = title;
+    };
     $('#set').onclick = settings;
   }
   /* the careers on this device: play one, back it up to a file, bring one in from a file, delete one */
@@ -1391,6 +1399,12 @@
       + C.trophies.filter(t => /All-Star/.test(t)).length * 1.2 + C.trophies.filter(t => /All-League/.test(t)).length * 1.5 + C.seasons.length * 0.3;
     const inHall = score >= 22;
     C.retired = { year: C.year, hof: inHall, score: +score.toFixed(1) };
+    /* the device's hall: every career that ends is kept here */
+    const hall = load('pbb.hall') || [];
+    if (!hall.find(h => h.id === C.me.id + C.year + C.me.last)) {
+      hall.unshift({ id: C.me.id + C.year + C.me.last, name: PB.full(C.me), pos: C.me.pos, team: C.team, seasons: C.seasons.length, pts: T.pts, ppg: +(T.pts / gp).toFixed(1), trophies: C.trophies.length, hof: inHall, score: +score.toFixed(1) });
+      store('pbb.hall', hall.slice(0, 40));
+    }
     C.phase = 'retired'; save();
     show(`<div class="page post"><p class="kick">Retirement</p><h2>${esc(PB.full(C.me))} hangs them up</h2>
       <div class="tiles"><div><b>${C.seasons.length}</b><span>SEASONS</span></div><div><b>${(T.pts / gp).toFixed(1)}</b><span>PPG</span></div><div><b>${T.pts}</b><span>POINTS</span></div></div>
