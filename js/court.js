@@ -69,7 +69,7 @@
   let boardMsg = null;
   R.board = (text, secs) => { boardMsg = { text, t: secs || 3 }; };   // the scoreboard shows a message for a few seconds
   R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk) shake = Math.max(shake, shk); };
-  let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [], tkoBeam = null;
+  let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [], tkoBeam = null, tkoSparks = null;
 
   const PX = 20;  // court texture pixels per foot
 
@@ -1165,7 +1165,12 @@
     { const cv = document.createElement('canvas'); cv.width = 4; cv.height = 64; const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 64, 0, 0);
       gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.18)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 4, 64);
       tkoBeam = new T.Mesh(new T.CylinderGeometry(1.5, 1.7, 7, 24, 1, true), new T.MeshBasicMaterial({ map: new T.CanvasTexture(cv), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
-      tkoBeam.position.y = 3.5; tkoBeam.visible = false; scene.add(tkoBeam); }
+      tkoBeam.position.y = 3.5; tkoBeam.visible = false; scene.add(tkoBeam);
+      /* and an aura: white sparks rising round you */
+      const N = 36, pa = new Float32Array(N * 3), sc2 = document.createElement('canvas'); sc2.width = sc2.height = 32;
+      { const g = sc2.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); }
+      tkoSparks = new T.Points(new T.BufferGeometry().setAttribute('position', new T.BufferAttribute(pa, 3)), new T.PointsMaterial({ size: 0.7, map: new T.CanvasTexture(sc2), transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: 0xffffff }));
+      tkoSparks.frustumCulled = false; tkoSparks.visible = false; tkoSparks.userData.seed = Array.from({ length: N }, () => [Math.random() * 6.283, Math.random(), 1.1 + Math.random() * 0.9]); scene.add(tkoSparks); }
     handRing = new T.Mesh(new T.RingGeometry(1.15, 1.35, 24), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false }));
     handRing.rotation.x = -Math.PI / 2; handRing.position.y = 0.03; scene.add(handRing);
     /* the pass preview (an arrow over the teammate your pass would go to), your man's ring on defense, a release flash */
@@ -1366,6 +1371,9 @@
     userRing.visible = !!u;
     if (u) { userRing.position.x = u.x; userRing.position.z = u.z; userRing.material.opacity = 0.65 + 0.3 * Math.sin(G.t * 5); }
     const tk = !!(u && G.tko && G.tko.on);
+    if (tkoSparks) { tkoSparks.visible = tk; if (tk) { const P = tkoSparks.geometry.attributes.position, S = tkoSparks.userData.seed;
+      for (let i = 0; i < S.length; i++) { const [a, ph, r] = S[i], f = (G.t * 0.7 + ph) % 1, aa = a + G.t * 1.2; P.setXYZ(i, u.x + Math.cos(aa) * r * (1 - f * 0.4), u.y + f * 7.5, u.z + Math.sin(aa) * r * (1 - f * 0.4)); }
+      P.needsUpdate = true; tkoSparks.material.opacity = 0.75 + 0.25 * Math.sin(G.t * 7); } }
     if (tkoBeam) { tkoBeam.visible = tk; if (tk) { tkoBeam.position.set(u.x, 3.5 + u.y, u.z); const k = 1 + 0.06 * Math.sin(G.t * 9); tkoBeam.scale.set(k, 1, k); tkoBeam.rotation.y += dt * 1.5; } }
     if (u) { userRing.material.color.set(tk ? 0xffffff : 0x4cffb0); userRing.scale.setScalar(tk ? 1.12 + 0.08 * Math.sin(G.t * 9) : 1); }
     const h = b.state === 'held' && b.holder !== u ? b.holder : null;
