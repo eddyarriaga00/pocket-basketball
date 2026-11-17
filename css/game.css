@@ -324,3 +324,4 @@ input[type=color]{height:44px;padding:4px}
 /* play calls in the pause menu */
 .plays{margin:4px 0 8px;text-align:left}.plays b{display:block;font-size:12px;margin-bottom:6px}.plays b small{color:var(--mute);font-weight:500;margin-left:6px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.row3 button{margin:0;padding:10px 4px;font-size:12px}
+.pline{margin:0 0 10px;font-size:13px;color:var(--mute)}.pline b{color:var(--ink);font-family:var(--display);font-size:16px}

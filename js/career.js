@@ -1250,7 +1250,7 @@
         <div class="gradebig"><b>${res.grade || '–'}</b><span>Teammate grade</span></div>
         <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div>
         <div><b>${u.fgm || 0}/${u.fga || 0}</b><span>FG</span></div><div><b>${u.tpm || 0}/${u.tpa || 0}</b><span>3PT</span></div><div><b>${u.stl || 0}/${u.blk || 0}</b><span>STL/BLK</span></div></div>
-        ${reelBtn()}
+        ${potg(res)}${reelBtn()}
         ${boxScore(res)}
         <button class="big" id="go">Main menu</button></div>`);
       $('#go').onclick = title; reelWire();
@@ -1262,8 +1262,15 @@
     if (res.winner) (C.flags = C.flags || {}).winner = true;
     const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0 };
     record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots });
-    g.res.boxHtml = boxScore(res);
+    g.res.boxHtml = potg(res) + boxScore(res);
     after(g, false);
+  }
+  /* the player of the game: the best line on the winning side (points, boards and assists, efficiency) */
+  function potg(res) {
+    if (!res.box || !res.box.length) return '';
+    const w = res.score[0] >= res.score[1] ? 0 : 1, v = b => b.st.pts + b.st.reb * 0.8 + b.st.ast + (b.st.stl + b.st.blk) * 1.5 - (b.st.fga - b.st.fgm) * 0.4;
+    const b = res.box.filter(x => x.team === w).sort((a, c) => v(c) - v(a))[0]; if (!b) return '';
+    return `<div class="card earn"><b>Player of the game${b.user ? ': you' : ''}</b><span>${esc(PB.full(b.d))} · ${b.st.pts} pts, ${b.st.reb} reb, ${b.st.ast} ast · ${b.st.fgm}-${b.st.fga} FG</span></div>`;
   }
   function boxScore(res) {
     const rows = t => res.box.filter(b => b.team === t).map(b => `<tr class="${b.user ? 'me' : ''}"><td>${esc(b.d.last)}</td><td>${b.st.pts}</td><td>${b.st.reb}</td><td>${b.st.ast}</td><td>${b.st.fgm}-${b.st.fga}</td><td>${b.st.tpm}-${b.st.tpa}</td></tr>`).join('');
