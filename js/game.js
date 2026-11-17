@@ -600,6 +600,7 @@
       if (p.isUser) G.streak = (G.streak || 0) + 1;
       const run = G.run && G.run.team === p.team ? G.run : (G.run = { team: p.team, pts: 0, said: false });
       run.pts += s.pts;
+      if ((s.kind === 'dunk' || s.pts === 3) && home(p.team) && R.board) R.board(s.kind === 'dunk' ? 'SLAM!' : 'SPLASH!', 2.2);
       if (s.kind === 'dunk' && p.showoff) { toast(p.showoff.toUpperCase() + '!', p.team === 0 ? 'make' : 'opp'); AU().crowd.react('roar', 1.3); if (p.isUser) reelMark('dunk', 5, p.showoff + ' dunk'); }
       p.showoff = null;
       if (s.kind === 'dunk' || G.clock <= 0.05 || (p.isUser && s.foul)) wantReplay(s.kind);
@@ -1291,8 +1292,8 @@
         if (G.clock < 120 && G.clock > 110 && G.paTwo !== qk) { G.paTwo = qk; PB.booth.pa('pa_two'); }
         if (G.clock < 60 && G.clock > 50 && G.paLast !== qk && G.q >= 4) { G.paLast = qk; PB.booth.pa('pa_last'); }
       }
-      if (G.poss === 1 - G.home && G.q >= 2 && close > 0.5 && G.t > (G.chantT || 25) && G.ball.state === 'held') { G.chantT = G.t + rr(35, 60); AU().crowd.react('chant', 0.8); if (PB.booth) PB.booth.pa(rand() < 0.5 ? 'pa_defense' : 'pa_noise'); }
-      if (G.poss === 1 - G.home && G.t > G.organT && G.ball.state === 'held' && along(G.ball.z, 1 - G.home) > 40) { G.organT = G.t + rr(45, 80); if (AU().organ) AU().organ(rand() < 0.5 ? 'charge' : 'letsgo'); }
+      if (G.poss === 1 - G.home && G.q >= 2 && close > 0.5 && G.t > (G.chantT || 25) && G.ball.state === 'held') { G.chantT = G.t + rr(35, 60); AU().crowd.react('chant', 0.8); if (R.board) R.board('DE-FENSE!', 4); if (PB.booth) PB.booth.pa(rand() < 0.5 ? 'pa_defense' : 'pa_noise'); }
+      if (G.poss === 1 - G.home && G.t > G.organT && G.ball.state === 'held' && along(G.ball.z, 1 - G.home) > 40) { G.organT = G.t + rr(45, 80); if (R.board) R.board(rand() < 0.5 ? 'MAKE SOME\nNOISE!' : 'GET LOUD!', 3.5); if (AU().organ) AU().organ(rand() < 0.5 ? 'charge' : 'letsgo'); }
       if (G.shotClock <= 0 && (b.state === 'held' || b.state === 'pass')) {
         const t = G.poss; toast('SHOT CLOCK', 'opp'); AU().play('buzzer'); AU().play('whistle', { delay: 0.5 }); B('shotclock', { prio: 3 });
         turnover(b.holder || b.from, 'Shot clock violation', 1 - t);

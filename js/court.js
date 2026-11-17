@@ -28,6 +28,8 @@
   R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
   let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
   /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
+  let boardMsg = null;
+  R.board = (text, secs) => { boardMsg = { text, t: secs || 3 }; };   // the scoreboard shows a message for a few seconds
   R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk) shake = Math.max(shake, shk); };
   let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [];
 
@@ -832,11 +834,21 @@
     if (board && G.teams) {
       const fmt = c => c >= 60 ? `${Math.floor(c / 60)}:${String(Math.floor(c % 60)).padStart(2, '0')}` : Math.max(0, c).toFixed(1);
       const q = G.q <= 4 ? ['1ST', '2ND', '3RD', '4TH'][G.q - 1] : 'OT';
-      const key = `${G.score[0]}|${G.score[1]}|${q}|${fmt(G.clock)}|${Math.ceil(G.shotClock)}`;
+      if (boardMsg && boardMsg.t > 0) boardMsg.t -= dt;
+      const msg = boardMsg && boardMsg.t > 0 ? boardMsg : null, blink = msg ? Math.floor(boardMsg.t * 3) % 2 : 0;
+      const key = msg ? `m|${msg.text}|${blink}` : `${G.score[0]}|${G.score[1]}|${q}|${fmt(G.clock)}|${Math.ceil(G.shotClock)}`;
       if (key !== board.key) {
         board.key = key;
         const g = board.g, W2 = 512;
         g.fillStyle = '#05070b'; g.fillRect(0, 0, W2, 256);
+        if (msg) {   // a message for the building, in the home colors
+          const h = G.teams[G.home === 1 ? 1 : 0];
+          g.fillStyle = blink ? h.c1 : '#05070b'; g.fillRect(0, 0, W2, 256);
+          g.fillStyle = blink ? (PB.ink ? PB.ink(h.c1, h.c2) : '#fff') : h.c1 === '#000000' ? '#fff' : h.c1;
+          g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `900 ${msg.text.length > 12 ? 52 : 72}px Archivo, Arial`;
+          const lines = msg.text.split('\n'); lines.forEach((ln, i) => g.fillText(ln, 256, 128 + (i - (lines.length - 1) / 2) * 70));
+          board.tex.needsUpdate = true;
+        } else {
         for (const [i, t] of [[0, G.teams[0]], [1, G.teams[1]]]) {
           const x = i ? 384 : 128;
           g.fillStyle = t.c1; g.fillRect(x - 118, 18, 236, 44);
@@ -847,6 +859,7 @@
         g.fillStyle = '#8d99b0'; g.font = '800 26px Archivo, Arial'; g.fillText(q, 256, 176);
         g.fillStyle = '#ff5a6b'; g.font = '900 30px Archivo, Arial'; g.fillText(String(Math.max(0, Math.ceil(G.shotClock))), 460, 212);
         board.tex.needsUpdate = true;
+        }
       }
     }
     for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
