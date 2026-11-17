@@ -938,11 +938,16 @@
   function updateSkinned(p, m, G, dt) {
     m.root.position.set(p.x, 0, p.z);
     const mv = p.mv && G.ball.holder === p && !p.shoot ? p.mv : null, ms = mv ? (G.t - mv.t0) / mv.T : 2;
-    m.root.rotation.y = p.face + (p.spinA || 0) + (ms < 1 && mv.k === 'spin' ? mv.side * Math.PI * 2 * smooth(0, 1, ms) : 0);   // the turn of a reverse or a 360 in the air, or a spin move
+    const drib = G.ball.holder === p && !p.shoot && !p.inb && G.phase !== 'ft', prot = drib ? p.prot || 0 : 0;
+    /* shielding the ball: the shoulder turns toward the man, the ball hand away from him */
+    m.shield = (m.shield || 0) + ((drib ? -(p.dribHand || 1) * 0.42 * prot : 0) - (m.shield || 0)) * Math.min(1, dt * 7);
+    m.root.rotation.y = p.face + m.shield + (p.spinA || 0) + (ms < 1 && mv.k === 'spin' ? mv.side * Math.PI * 2 * smooth(0, 1, ms) : 0);   // the turn of a reverse or a 360 in the air, or a spin move
     m.body.position.y = p.y;
     /* a fadeaway leans back in the air */
     const lean = p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
-    m.lean = (m.lean || 0) + (lean - (m.lean || 0)) * Math.min(1, dt * 10); m.body.rotation.x = m.lean;
+    const dlean = drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0;   // over the ball; more at a run
+    m.lean = (m.lean || 0) + (lean + dlean - (m.lean || 0)) * Math.min(1, dt * 10); m.body.rotation.x = m.lean;
+    if (drib && p.y <= 0 && p.dph !== undefined) m.body.position.y = p.y - 0.11 * (1 - Math.abs(Math.sin(p.dph))) * (0.6 + 0.4 * prot);   // the body rides the bounce
     /* ankles broken: down on the seat of his shorts, then back up */
     const ft = p.fallT !== undefined ? G.t - p.fallT : 9, fall = ft < 1.5 ? smooth(0, 0.22, ft) * (1 - smooth(1.05, 1.5, ft)) : 0;
     if (fall > 0) { m.body.rotation.x = m.lean - 1.25 * fall; m.body.position.y = p.y - 0.25 * fall; }
@@ -957,6 +962,7 @@
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
     if (fall > 0) crouch = 1;
     if (p.pose === 'sad') crouch = 0.55;
+    if (drib) crouch = Math.max(crouch, 0.12 + 0.3 * prot);   // an athletic base with the ball, lower with a man on you
     if (G.ball.holder === p && !p.shoot && p.d && p.d.look && p.d.look.drib === 'low') crouch = Math.max(crouch, 0.3);   // a low dribbler gets down
     if (ms < 1 && (mv.k === 'legs' || mv.k === 'cross' || mv.k === 'btb')) crouch = Math.max(crouch, mv.k === 'legs' ? 0.55 : 0.35);   // low on a move   // the gather: down into the legs before the jump
     const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;   // (and the losers at the horn bend over: 'sad')
@@ -1015,7 +1021,7 @@
     if (!POSES[pose]) { m.poseW = Math.max(0, m.poseW - dt * 6); return; }
     let kk = 0;
     const dsf = (ds => ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1)(p.d && p.d.look && p.d.look.drib);
-    if (pose === 'dribble') kk = (G.t * 8.5 * dsf / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
+    if (pose === 'dribble') kk = ((p.dph !== undefined ? p.dph : G.t * 8.5 * dsf) / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));

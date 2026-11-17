@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Dribbling with a rhythm: quick, low pounds with a man on you and long, high pushes at a run (the ball out ahead of
+  you); the ball stays on the side away from the defender, changing hands with a crossover (or through the legs when he
+  is right there); the shoulder turns to shield it; the body leans over the ball and rides the bounce.
 - Defense you can play: in a stance you face your man and slide (feet wide, sitting low, a shuffle that never crosses
   the feet), one hand up on the ball and one in the passing lane. Get set in front of a driver and you cut him off
   ("Cut off"): he loses his speed toward the rim. Your hands go up by themselves when your man rises to shoot.
