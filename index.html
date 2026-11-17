@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>PocketBasketball</title>
+<meta name="description" content="5-on-5 basketball for your phone, played in portrait. Your career from draft night on.">
+<meta name="theme-color" content="#0a0d14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PocketBB">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<div id="app">
+  <div id="game" hidden>
+    <canvas id="gl"></canvas>
+    <div id="hud">
+      <div class="bug">
+        <div class="side" id="sd0"><i></i><b id="a0"></b><u id="s0">0</u></div>
+        <div class="mid"><span id="qt">1st</span><b id="clk">3:00</b></div>
+        <div class="side r" id="sd1"><u id="s1">0</u><b id="a1"></b><i></i></div>
+        <div id="sc">24</div>
+      </div>
+      <div class="sub"><button id="pz" aria-label="Pause"><span></span><span></span></button><div id="grade"></div>
+        <div id="zm"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">−</button></div></div>
+      <div id="feed"></div>
+    </div>
+    <div id="toast"></div><div id="rel"></div><div id="ftmsg" hidden></div>
+    <div id="meter" hidden><div class="tube"><i id="mzone"></i><u id="mfill"></u></div></div>
+    <div id="stickzone"><div id="stickbase"><div id="knob"></div></div><p class="hint">Drag to move</p></div>
+    <div id="btns"><button class="btn a shoot" id="bA">Shoot</button><button class="btn b" id="bB">Pass</button><button class="btn c" id="bC">Move</button></div>
+    <div id="pause" hidden></div>
+  </div>
+  <div id="screen"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.159.0/three.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/court.js"></script>
+<script src="js/game.js"></script>
+<script src="js/career.js"></script>
+<script>
+PB.boot();
+/* offline play: only on the real site, never on a local test server */
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
