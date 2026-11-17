@@ -93,6 +93,7 @@
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
+    whatsNew();
     if (live) $('#cont').onclick = hub;
     title3d(live ? C.me : null, live && C.team ? PB.team(C.team) : null);
     $('#newc').onclick = () => { if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one under Careers first.'); return; } setCur(''); C = null; create(); };
@@ -120,6 +121,23 @@
         ${ACH.map(([k, n, d]) => `<div class="card ach ${got[k] ? 'got' : ''}"><i>${got[k] ? '★' : '☆'}</i><div><b>${n}</b><span>${d}${got[k] ? ` · ${esc(got[k].who)}` : ''}</span></div></div>`).join('')}</div>`);
       $('#bk').onclick = title;
     };
+  }
+  /* what changed since you last played: once per update, over the title */
+  const NEW_V = '2026-11-17';
+  function whatsNew() {
+    if (load('pbb.seen') === NEW_V) return;
+    if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
+    const el = document.createElement('div'); el.className = 'card whatsnew';
+    el.innerHTML = `<h3>New in PocketBasketball</h3><ul>
+      <li>The Dunk Contest, a Daily challenge, a shoot-around in Practice</li>
+      <li>Call a pick or a play; post up as a big; hooks and fadeaways; pick your jump shot</li>
+      <li>The rules: eight seconds, backcourt, three seconds, goaltending, inbounds, foul trouble</li>
+      <li>The bench plays; referees, coaches, fans in the home colors; a booth of 260 calls and players talking</li>
+      <li>Training camp, team interviews, Player of the Week, the fan vote, injuries, trades, rookies</li>
+      <li>Your highlights after every game, saved as a vertical video; a player card to share; achievements</li></ul>
+      <button class="big" id="newok">Let's go</button>`;
+    const t = scr().querySelector('.title'); if (!t) return; t.insertBefore(el, t.querySelector('.logo').nextSibling);
+    $('#newok').onclick = () => { store('pbb.seen', NEW_V); el.remove(); };
   }
   /* the title over the arena: your player at center court (or tonight's featured player), the camera circling */
   let featured = null;

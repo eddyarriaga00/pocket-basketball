@@ -336,3 +336,6 @@ input[type=color]{height:44px;padding:4px}
   padding:10px 16px;border-radius:14px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4);transition:transform .35s;max-width:calc(100% - 32px);text-align:center}
 #achtoast.on{transform:translate(-50%,0)}#achtoast b{display:block;color:var(--acc);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
 .next.talk .q{font-size:15px;line-height:1.4;margin:6px 0 10px}
+/* what's new, over the title */
+.card.whatsnew{margin:0 0 14px;background:rgba(14,18,28,.92);border-color:rgba(255,176,46,.45)}
+.card.whatsnew ul{margin:6px 0 12px;padding-left:18px;font-size:13px;line-height:1.45;color:var(--ink)}.card.whatsnew li{margin:3px 0}
