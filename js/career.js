@@ -837,7 +837,12 @@
         <button class="big" id="rise">Play the Rising Stars game</button><button class="ghost" id="risesim">Sim it</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
       const voteCard = C.vote && C.vote.year === C.year && C.phase === 'regular' && C.gi < Math.round(C.len * 0.5) ? `<div class="card"><h3>All-Star voting</h3><p>${ordinal(C.vote.rank)} among ${esc(C.vote.conf)} ${C.vote.grp} in the first returns. ${C.vote.rank <= 2 ? 'Right now you would start.' : C.vote.rank <= 6 ? 'In the mix: the coaches pick the reserves.' : 'A long way back: big games move the vote.'}</p></div>` : '';
-      body = card + voteCard + (C.phase === 'playoffs' ? bracketCard() : '') + `
+      /* you, the way MyCareer opens: in your uniform on your team's color, your rating big */
+      const fb = bodyShot();
+      const hero = fb ? `<div class="card potg hero" style="--tc:${t.c1}"><img alt="" src="${fb}"><div class="pi"><p class="kick">${esc(t.name)} · ${me.pos} · ${esc(me.arch || '')}</p>
+        <b class="nm">${esc(me.first || '')}<br>${esc(me.last || '')}</b><div class="ovr"><b>${me.ovr}</b><span>OVR</span></div>
+        <span class="fg">${role()} · ${s.gp ? `${avg('pts')} pts · ${avg('reb')} reb · ${avg('ast')} ast` : 'no games yet'}</span></div></div>` : '';
+      body = hero + card + voteCard + (C.phase === 'playoffs' ? bracketCard() : '') + `
         <div class="tiles">
           <div><b>${avg('pts')}</b><span>PTS</span></div><div><b>${avg('reb')}</b><span>REB</span></div><div><b>${avg('ast')}</b><span>AST</span></div>
           <div><b>${s.fga ? Math.round(s.fgm / s.fga * 100) : 0}%</b><span>FG</span></div><div><b>${s.tpa ? Math.round(s.tpm / s.tpa * 100) : 0}%</b><span>3PT</span></div><div><b>${s.gp ? gradeAvg(s.grades / s.gp) : '–'}</b><span>GRADE</span></div></div>
@@ -1005,6 +1010,13 @@
     const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num;
     if (portraitCache.key !== key) portraitCache = { key, url: PB.R.portrait(C.me, PB.team(C.team)) };
     return portraitCache.url;
+  }
+  let bodyCache = { key: '', url: null };
+  function bodyShot() {
+    if (PB.noGL || !PB.R.modelReady || !PB.R.modelReady()) return null;
+    const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num + (C.homeKit || '');
+    if (bodyCache.key !== key) bodyCache = { key, url: PB.R.portrait(C.me, PB.team(C.team), 170, { body: true, tight: true, kit: C.homeKit || 'icon' }) };
+    return bodyCache.url;
   }
   /* your player card: a 1080 by 1350 image for a feed, in your team's colors */
   function playerCard() {
@@ -1471,7 +1483,7 @@
     const w = res.score[0] >= res.score[1] ? 0 : 1, v = b => b.st.pts + b.st.reb * 0.8 + b.st.ast + (b.st.stl + b.st.blk) * 1.5 - (b.st.fga - b.st.fgm) * 0.4;
     const b = res.box.filter(x => x.team === w).sort((a, c) => v(c) - v(a))[0]; if (!b || v(b) < 6) return '';   // nobody had a game: no award
     /* a card the way the console games do it: the player in his uniform, his line in big numbers */
-    const tm = res.teams[w], img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(b.d, tm, 150, { body: true, kit: w === 0 ? 'icon' : 'assoc' }) : null;
+    const tm = res.teams[w], img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(b.d, tm, 150, { body: true, tight: true, kit: w === 0 ? 'icon' : 'assoc' }) : null;
     return `<div class="card potg" style="--tc:${tm.c1}">${img ? `<img alt="" src="${img}">` : ''}<div class="pi"><p class="kick">Player of the game${b.user ? ' · you' : ''}</p>
       <b class="nm">${esc(b.d.first || '')}<br>${esc(b.d.last || '')}</b><span class="tm">${esc(tm.name)} · #${b.d.num ?? ''}</span>
       <div class="ln"><div><b>${b.st.pts}</b><span>PTS</span></div><div><b>${b.st.reb}</b><span>REB</span></div><div><b>${b.st.ast}</b><span>AST</span></div></div>

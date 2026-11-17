@@ -959,7 +959,7 @@
       m.mixer.update(0.3); m.body.updateMatrixWorld(true);
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
-      if (o.body) { const z = o.back ? -1 : 1; c.position.set(0.6 * z, H * 0.55, 14.5 * z); c.lookAt(0, H * 0.5, 0); }
+      if (o.body) { const z = o.back ? -1 : 1, d = o.tight ? 12 : 14.5; c.position.set(0.6 * z, H * 0.55, d * z); c.lookAt(0, H * 0.5, 0); }
       else { const hp = m.hg.getWorldPosition(V3()); hp.y -= 0.22; const dz = o.close ? 2.85 : 3.9; if (o.close) hp.y += 0.2; c.position.set(hp.x + dz * 0.1, hp.y + 0.12, hp.z + dz); c.lookAt(hp); }
       rr.render(sc, c);
       const url = cv.toDataURL('image/png');
