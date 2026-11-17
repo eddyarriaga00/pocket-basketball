@@ -547,7 +547,7 @@
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}">
       <div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}${C.phase === 'playoffs' ? ' · Playoffs' : ''}</span></div></div>
       <button class="ic" id="menu" aria-label="Menu">⌂</button></div>
-      <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}">${{ home: 'Home', player: 'Player', league: 'League', log: 'Log' }[x]}</button>`).join('')}</nav>
+      <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}">${{ home: 'Home', player: 'Player', league: 'League', log: 'Log' }[x]}${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav>
       <div class="hubbody">${body}</div></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
     $('#menu').onclick = title;
@@ -623,6 +623,7 @@
   const glog = (x, n) => `<div class="glog"><span>${n}</span>${badge(PB.team(x.opp))}
         <b class="${x.res.win ? 'w' : 'l'}">${x.res.win ? 'W' : 'L'} ${x.res.us}-${x.res.them}</b><em>${x.res.line.pts} pts · ${x.res.line.reb} reb · ${x.res.line.ast} ast</em><i>${x.res.grade}${x.res.sim ? ' · sim' : ''}</i></div>`;
   const fmtFans = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n));
+  const canUpgrade = () => { const A = PB.ARCH[C.me.arch]; return PB.ATTRS.some(([k]) => C.me.r[k] < A.cap[k] && cost(C.me.r[k]) <= C.me.sp); };
   const cost = v => v < 60 ? 1 : v < 70 ? 2 : v < 80 ? 3 : v < 90 ? 4 : 6;
   const LET = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];

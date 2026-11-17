@@ -291,3 +291,4 @@ input[type=color]{height:44px;padding:4px}
 #game.lefty #btns{right:auto;left:0}
 #game.lefty .btn.a{right:auto;left:18px}#game.lefty .btn.b{right:auto;left:118px}#game.lefty .btn.c{right:auto;left:40px}
 .inj{color:#ff8f9b;font-size:14px!important}
+.tabs button{position:relative}.tabs .dot{position:absolute;top:7px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--acc)}
