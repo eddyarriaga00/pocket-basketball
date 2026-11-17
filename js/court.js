@@ -463,13 +463,13 @@
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
     const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
-      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 } };
+      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;');
       /* a rim light: the edge of the body catches light, so players pop off the floor */
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
-      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
   /* the strongest region here wins */
   float vRegion = 0.0, rbest = vRA.x;
@@ -498,6 +498,16 @@
     else if (kPat > 5.5 && top && abs(vK.x + (vK.y - 1.18) * 0.85) < 0.016) rc = cAlt;
     if (bot && kPat > 2.5 && kPat < 3.5 && vK.y < 0.918) rc = cAlt;   // the chest band's partner: a hem band on the shorts
   }
+  /* tattoos (kTat: 1 a band on the right arm, 2 a sleeve on the left, 3 both, 4 a forearm piece): in the rest pose the
+     arms lie along x, the right one on -x */
+  if (vRegion < 0.5 && kTat > 0.5 && abs(vK.y - 1.266) < 0.045) {
+    float ax1 = abs(vK.x); bool rgt = vK.x < 0.0;
+    float ink = 0.0;
+    if ((kTat < 1.5 || kTat > 2.5 && kTat < 3.5) && rgt && ax1 > 0.13 && ax1 < 0.165) ink = step(0.5, fract(ax1 * 120.0 + vK.z * 40.0)) * 0.5 + (abs(ax1 - 0.147) < 0.012 ? 0.5 : 0.0);
+    if (kTat > 1.5 && kTat < 3.5 && !rgt && ax1 > 0.11 && ax1 < 0.36) ink = max(ink, step(0.55, fract(sin(floor(ax1 * 90.0) * 12.9 + floor((vK.y + vK.z) * 70.0) * 78.2) * 437.5)) * 0.9);
+    if (kTat > 3.5 && rgt && ax1 > 0.27 && ax1 < 0.34) ink = step(0.35, fract(ax1 * 60.0 + vK.y * 30.0)) * 0.8;
+    rc = mix(rc, vec3(0.06, 0.07, 0.1), clamp(ink, 0.0, 1.0) * 0.55);
+  }
   if (vRegion > 2.5 && vRegion < 3.5) {
     /* a sneaker: a swoop down each side in the team's second color, a dark heel tab, a toe cap line */
     float side = abs(abs(vK.x) - 0.0473), yy = vK.y - 0.5, zz = vK.z;
@@ -515,7 +525,7 @@
   if (bot) rc *= mix(0.84, 1.0, smoothstep(0.86, 0.98, vK.y));
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit8';
+    m.customProgramCacheKey = () => 'pb-kit9';
     return m;
   }
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
@@ -645,7 +655,7 @@
     if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
     return { hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
       beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7],
-      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10] };
+      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11] };
   }
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
@@ -658,7 +668,7 @@
     const d = p.d || p;
     const shorts = kit.shorts || new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0 });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0 });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
