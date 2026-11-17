@@ -126,7 +126,16 @@
     seenTips[k] = 1; try { localStorage.setItem('pbb.tips', JSON.stringify(seenTips)); } catch (e) { /* fine */ }
     const t = $('#tipcard'); t.textContent = TIPS[k]; t.hidden = false; clearTimeout(tip.h); tip.h = setTimeout(() => { t.hidden = true; }, 6500);
   }
+  /* passing your career high, live */
+  function highCheck() {
+    const u = G.user, h = opts.highs; if (!u || !h || G.switching) return;
+    G.highSaid = G.highSaid || {};
+    for (const [k, n] of [['pts', 'points'], ['reb', 'rebounds'], ['ast', 'assists']]) {
+      if (h[k] !== undefined && u.st[k] > h[k] && !G.highSaid[k]) { G.highSaid[k] = true; toast(`Career high: ${u.st[k]} ${n}`, 'make'); feed(`Career high · ${u.st[k]} ${n}`); AU().crowd.react('applause', 0.7); }
+    }
+  }
   function hud() {
+    highCheck();
     $('#game').classList.toggle('drill', !!(G && G.drill));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
     const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;

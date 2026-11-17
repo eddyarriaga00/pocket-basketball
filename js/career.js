@@ -687,7 +687,7 @@
     C.me.badges = C.me.badges || {};
     PB.Game.start({ teams: [t, o], rosters: [liveFive(), starters(o.id)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
-      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, goals: C.goals });
+      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, goals: C.goals, highs: C.highs });
   }
   function simGame() {
     const nx = nextGame(); if (!nx) return;
