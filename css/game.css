@@ -286,3 +286,7 @@ input[type=color]{height:44px;padding:4px}
 .draft.over3d .podium{margin:8px 0 0}.draft.over3d .spacer{height:40vh}
 .event .q{font-size:15px;font-weight:600;margin:6px 0 4px}.event .ghost{margin:8px 0 0;padding:11px;font-size:14px}
 .mile{margin:5px 0;font-size:13.5px;color:var(--mute)}.mile.got{color:var(--ink)}.mile.got::first-letter{color:var(--acc)}.mile small{color:var(--mute)}
+/* left-handed: buttons on the left, the stick on the right */
+#game.lefty #stickzone{left:auto;right:0}#game.lefty #stickzone .hint{left:auto;right:18px}
+#game.lefty #btns{right:auto;left:0}
+#game.lefty .btn.a{right:auto;left:18px}#game.lefty .btn.b{right:auto;left:118px}#game.lefty .btn.c{right:auto;left:40px}

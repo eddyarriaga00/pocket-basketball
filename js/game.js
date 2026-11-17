@@ -17,6 +17,8 @@
   const bt = (p, k) => (p && p.d && p.d.badges && p.d.badges[k]) || 0;   // a badge's tier, 0 to 3
   /* a short buzz in the hand, where the phone allows it (Android; iPhones do not let web pages vibrate) */
   const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
+  /* Settings › Shot timing: how wide the green band is */
+  const timingEase = () => ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1);
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
 
   let G = null, raf = 0, last = 0, opts = null;
@@ -126,6 +128,7 @@
   }
   function hud() {
     $('#game').classList.toggle('drill', !!(G && G.drill));
+    $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
     const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;
     const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : s.toFixed(1);
     $('#s0').textContent = G.score[0]; $('#s1').textContent = G.score[1];
@@ -215,7 +218,7 @@
     let prob = baseProb(p, p.x, p.z, s.kind);
     let timing = '';
     if (s.user) {
-      const w = 0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006;
+      const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase();
       const err = meter - 0.82;
       const ae = Math.abs(err);
       if (ae <= w) { timing = 'Excellent'; prob = prob + (1 - prob) * 0.62; }
@@ -415,7 +418,7 @@
     const q = G.ftq, p = q.shooter, b = G.ball;
     let prob = 0.5 + p.r.ft / 99 * 0.42;
     if (p.isUser && !G.auto) {
-      const w = 0.05 + p.r.ft * 0.0007, err = meter - 0.82, ae = Math.abs(err);
+      const w = (0.05 + p.r.ft * 0.0007) * timingEase(), err = meter - 0.82, ae = Math.abs(err);
       let txt;
       if (ae <= w) { txt = 'Excellent'; prob = prob + (1 - prob) * 0.75; }
       else if (ae <= w * 2.2) txt = err < 0 ? 'Slightly early' : 'Slightly late';
@@ -1296,7 +1299,7 @@
     const ftm = G.phase === 'ft' && G.ftq && G.ftq.shooter === u ? (G.ftMeter || 0.0001) : 0;
     if (!s && !ftm) { m.hidden = true; return; }
     const v = s ? s.t / s.T : ftm;
-    const w = s ? 0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006 : 0.05 + u.r.ft * 0.0007;
+    const w = (s ? 0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006 : 0.05 + u.r.ft * 0.0007) * timingEase();
     const p = R.toScreen(u.x, u.ht / 12 + u.y + 1.2, u.z);
     m.hidden = false;
     m.style.transform = `translate(${Math.round(p.x + 26)}px, ${Math.round(p.y - 70)}px)`;
