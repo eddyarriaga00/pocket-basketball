@@ -228,6 +228,7 @@
     C.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false }));
     C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
     if (C.contract) C.earnings = (C.earnings || 0) + C.contract.salary;
+    C.ls = {}; C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 };
     C.startOvr = C.me.ovr;
     if (C.rival) C.rival.season = zero();
     C.news.unshift(`Season ${C.year} begins: ${n} games, ${PB.TEAMS.length} teams.`);
@@ -277,7 +278,7 @@
     const tpa = Math.round(Math.max(0, (r.three - 40) / 10 * usage + PB.gauss())), fga2 = Math.round(Math.max(1, 9 * usage + (r.close + r.mid - 100) / 20 + PB.gauss() * 2));
     const tpm = binom(tpa, 0.2 + r.three / 99 * 0.2), fgm2 = binom(fga2, 0.38 + (r.close + r.mid) / 198 * 0.2);
     const fta = Math.round(Math.max(0, (r.close + r.dunk) / 40 * usage + PB.gauss())), ftm = binom(fta, 0.45 + r.ft / 99 * 0.45);
-    const line = { pts: fgm2 * 2 + tpm * 3 + ftm, reb: Math.max(0, Math.round((r.reb - 30) / 10 * usage + PB.gauss() * 1.5)), ast: Math.max(0, Math.round((r.pass - 35) / 9 * usage + PB.gauss() * 1.5)),
+    const line = { pts: fgm2 * 2 + tpm * 3 + ftm, reb: Math.max(0, Math.round(Math.max(0, r.reb - 35) / 4.2 * usage + PB.gauss() * 1.5)), ast: Math.max(0, Math.round(Math.max(0, r.pass - 35) / 5.5 * usage + PB.gauss() * 1.5)),
       stl: binom(3, r.steal / 250), blk: binom(3, r.block / 250), tov: binom(4, 0.25), fga: tpa + fga2, fgm: tpm + fgm2, tpa, tpm, fta, ftm };
     /* the badge counters a simmed game earns, roughly */
     line.ct = { tpm, cs3: Math.round(tpm * 0.6), mid: Math.round(fgm2 * (r.mid / (r.mid + r.close))), lay: Math.round(fgm2 * 0.5), dunk: binom(fgm2, Math.max(0, r.dunk - 50) / 120),
@@ -293,7 +294,18 @@
       const a = ids[i], b = ids[i + 1];
       const w = PB.rand() < winP(a, b, true) ? a : b, l = w === a ? b : a;
       C.standings[w].w++; C.standings[l].l++;
+      leagueLines(a, w === a); leagueLines(b, w === b);
       if (C.rival && (a === C.rival.team || b === C.rival.team)) rivalGame(w === C.rival.team);
+    }
+  }
+  /* every starter's line from a simmed game, for the league leaders and the awards */
+  const LS = ['gp', 'pts', 'reb', 'ast', 'stl', 'blk', 'tpm'];
+  function leagueLines(tid, win) {
+    C.ls = C.ls || {};
+    for (const p of starters(tid)) {
+      if (!p || (C.rival && p.id === C.rival.id)) continue;   // the rival keeps his own line
+      const ln = simLine(p, 'Starter', win), e = C.ls[p.id] || (C.ls[p.id] = { name: PB.full(p), team: tid, rookie: !!p.rookie, gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 });
+      e.gp++; for (const k of LS.slice(1)) e[k] += ln[k]; e.team = tid;
     }
   }
   function rivalGame(win, vsMe) {
@@ -376,7 +388,7 @@
     } else if (tab === 'league') {
       const conf = c => confRank(c).map((id, i) => { const x = PB.team(id), st = C.standings[id];
         return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${strength(id)}</td></tr>`; }).join('');
-      body = (C.phase === 'playoffs' ? bracketCard() : '') + ['East', 'West'].map(c => `<div class="card"><h3>${c}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
+      body = (C.phase === 'playoffs' ? bracketCard() : '') + leadersCard() + ['East', 'West'].map(c => `<div class="card"><h3>${c}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
         + `<p class="fine">The top six in each conference make the playoffs; seven to ten play in for the last two places.</p>`;
     } else {
       body = `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => glog(x, i + 1)).join('') || '<p class="mute">No games yet.</p>'}</div>
@@ -510,6 +522,11 @@
       if (res.win) { s.w++; T.w++; C.standings[C.team].w++; C.standings[g.opp].l++; } else { s.l++; T.l++; C.standings[C.team].l++; C.standings[g.opp].w++; }
       simLeagueDay(g.opp);
     }
+    /* the other starters in your game, and your own line at full length (a short-quarter game scaled up) for the
+       leaders, the awards and your market value */
+    if (!g.po) { leagueLines(g.opp, !res.win); }
+    const k = res.sim ? 1 : 12 / S.qlen, A = C.adj || (C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 });
+    if (!g.po) { A.gp++; for (const x of LS.slice(1)) A[x] += (res.line[x] || 0) * k; }
     /* your rival, when it is his team */
     if (C.rival && g.opp === C.rival.team) {
       const rl = rivalGame(!res.win);
@@ -659,7 +676,7 @@
   /* ---------- All-Star ---------- */
   function allStarPick() {
     C.allstar = true;
-    const s = C.season, gp = s.gp || 1, ppg = s.pts / gp, score = ppg + (s.reb + s.ast) / gp * 0.5 + (s.grades / gp - 6);
+    const s = C.season, gp = s.gp || 1, A = C.adj && C.adj.gp ? C.adj : null, ppg = A ? A.pts / A.gp : s.pts / gp, score = ppg + (A ? (A.reb + A.ast) / A.gp : (s.reb + s.ast) / gp) * 0.5 + (s.grades / gp - 6);
     if (score >= 21 || (ppg >= 17 && C.trust > 70)) {
       C.trophies.push(`All-Star, season ${C.year}`); C.me.sp += 5; C.fans = Math.round(C.fans * 1.15);
       C.news.unshift(`${C.me.last} is an All-Star! First-time selection for the ${PB.team(C.team).name}`);
@@ -795,12 +812,36 @@
     }
     return out;
   }
+  /* the season's leaders: everyone with enough games, you at full-length equivalents */
+  function leaders() {
+    const min = Math.max(1, Math.floor(C.gi * 0.4));
+    const rows = Object.values(C.ls || {}).filter(e => e.gp >= min);
+    const A = C.adj;
+    if (A && A.gp) rows.push({ name: PB.full(C.me), team: C.team, gp: A.gp, pts: A.pts, reb: A.reb, ast: A.ast, stl: A.stl, blk: A.blk, tpm: A.tpm, me: true, rookie: C.year === 1 });
+    const rv = rivalP(), rs = C.rival && C.rival.season;
+    if (rs && rs.gp >= min) rows.push({ name: PB.full(rv), team: C.rival.team, gp: rs.gp, pts: rs.pts, reb: rs.reb, ast: rs.ast, stl: rs.stl, blk: rs.blk, tpm: rs.tpm, rival: true, rookie: C.year === 1 });
+    for (const r of rows) for (const k of LS.slice(1)) r[k + 'pg'] = r[k] / r.gp;
+    return rows;
+  }
+  function leadersCard() {
+    const rows = leaders();
+    if (!rows.length) return '';
+    const cat = (k, lbl) => { const top = rows.slice().sort((a, b) => b[k] - a[k]).slice(0, 5);
+      const mine = rows.filter(r => r.me)[0], rank = mine ? rows.slice().sort((a, b) => b[k] - a[k]).indexOf(mine) + 1 : 0;
+      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}"><span>${i + 1}</span>${esc(r.name)} <small>${PB.team(r.team).id}</small><em>${r[k].toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span>You<em>${mine[k].toFixed(1)}</em></p>` : ''}</div>`; };
+    return `<div class="card leaders"><h3>League leaders <small>a game, full-length</small></h3>${cat('ptspg', 'Points')}${cat('rebpg', 'Rebounds')}${cat('astpg', 'Assists')}${cat('stlpg', 'Steals')}${cat('blkpg', 'Blocks')}</div>`;
+  }
   function awardsNight() {
     const s = C.season, gp = s.gp || 1, me = C.me;
     const mine = { name: PB.full(me), team: C.team, ppg: s.pts / gp, rpg: s.reb / gp, apg: s.ast / gp, dpg: (s.stl + s.blk) / gp, me: true };
     const wp = C.standings[C.team].w / Math.max(1, C.standings[C.team].w + C.standings[C.team].l);
     mine.score = mine.ppg + (mine.rpg + mine.apg) * 0.5 + wp * 12 + (s.grades / gp - 6) * 0.6;
-    const stars = leagueStars().concat([mine]).sort((a, b) => b.score - a.score);
+    const A = C.adj && C.adj.gp ? C.adj : null;
+    if (A) { mine.ppg = A.pts / A.gp; mine.rpg = A.reb / A.gp; mine.apg = A.ast / A.gp; mine.dpg = (A.stl + A.blk) / A.gp; mine.score = mine.ppg + (mine.rpg + mine.apg) * 0.5 + wp * 12 + (s.grades / gp - 6) * 0.6; }
+    const lr = leaders().filter(r => !r.me);
+    const pool = lr.length > 20 ? lr.map(r => { const tw = C.standings[r.team], twp = tw.w / Math.max(1, tw.w + tw.l);
+      return { name: r.name, team: r.team, ppg: r.ptspg, rpg: r.rebpg, apg: r.astpg, dpg: r.stlpg + r.blkpg, score: r.ptspg + (r.rebpg + r.astpg) * 0.5 + twp * 12, rookie: r.rookie }; }) : leagueStars();
+    const stars = pool.concat([mine]).sort((a, b) => b.score - a.score);
     const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
     const rook = [mine, { name: PB.full(rv), team: C.rival.team, ppg: rs.pts / rg, rpg: rs.reb / rg, apg: rs.ast / rg }]
       .concat([0, 1].map(() => ({ name: PB.pick(PB.FIRST) + ' ' + PB.pick(PB.LAST), team: PB.pick(PB.TEAMS).id, ppg: 9 + PB.rand() * 8, rpg: 2 + PB.rand() * 5, apg: 1 + PB.rand() * 4 })));
@@ -868,7 +909,8 @@
   /* what the league would pay you a year, in millions: your overall, last season, your honors, your age */
   function marketValue() {
     const me = C.me, s = C.season, gp = s.gp || 1;
-    const prod = s.pts / gp + (s.reb + s.ast) / gp * 0.6;
+    const A = C.adj && C.adj.gp ? C.adj : null;
+    const prod = A ? A.pts / A.gp + (A.reb + A.ast) / A.gp * 0.6 : s.pts / gp + (s.reb + s.ast) / gp * 0.6;
     let v = 1.2 + Math.max(0, me.ovr - 60) * 1.25 + Math.max(0, prod - 8) * 0.8 + C.trophies.length * 0.6;
     if (me.age >= 31) v *= 0.85;
     if (me.age >= 34) v *= 0.7;

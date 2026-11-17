@@ -256,3 +256,7 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 #intro em{font-style:normal;font-family:var(--display);font-weight:900;color:var(--acc);font-size:16px;letter-spacing:.2em}
 #intro p{margin:16px 0 0;font-size:12px;color:var(--mute);letter-spacing:.12em;text-transform:uppercase}
 @keyframes introIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
+.leaders .lcat{margin:8px 0 12px}.leaders .lcat>b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-bottom:4px}
+.leaders p{display:grid;grid-template-columns:18px 1fr auto;gap:6px;align-items:center;margin:0;padding:5px 0;border-top:1px solid var(--line);font-size:13px}
+.leaders p span{color:var(--mute)}.leaders p small{color:var(--mute);font-size:10.5px}.leaders p em{font-style:normal;font-family:var(--display);font-weight:800}
+.leaders p.me{color:var(--acc)}.leaders p.rv{color:#ff8f9b}
