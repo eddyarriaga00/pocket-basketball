@@ -411,3 +411,9 @@ input[type=color]{height:44px;padding:4px}
 .matchup img{width:64px;height:64px;border-radius:50%;object-fit:cover;background:linear-gradient(160deg,var(--tc),rgba(255,255,255,.05) 80%)}
 .matchup b{font-size:13px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.matchup span{font-size:11px;color:rgba(255,255,255,.55)}
 .matchup em{font-style:normal;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+/* the Team tab's banner: the team's colors, big */
+.teamban{display:flex;align-items:center;gap:14px;padding:18px 16px;margin-bottom:12px;border-radius:18px;background:linear-gradient(120deg,var(--c1) 0%,color-mix(in srgb,var(--c1) 55%,#000) 70%);position:relative;overflow:hidden}
+.teamban::after{content:'';position:absolute;right:-30px;top:-20px;width:150px;height:150px;border-radius:50%;border:18px solid color-mix(in srgb,var(--c2) 45%,transparent)}
+.teamban small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
+.teamban b{display:block;font-family:var(--display);font-weight:900;font-size:28px;text-transform:uppercase;line-height:1}
+.teamban span{font-size:12px;opacity:.75}

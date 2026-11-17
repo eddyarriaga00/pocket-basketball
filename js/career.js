@@ -872,7 +872,8 @@
       const row = (p, i) => `<div class="ros ${p.me ? 'me' : ''}"><img alt="" data-head="${esc(p.id)}"><b class="no">${p.num}</b>
         <div><b>${esc(PB.full(p))}${p.me ? ' <small>you</small>' : ''}${p.out > 0 ? ` <small class="out">out ${p.out}</small>` : ''}</b>
         <span>${i < 5 ? PB.POS[i] : p.pos} · ${PB.fmtH(p.ht)} · ${p.age}${p.from ? ' · ' + esc(p.from) : ''}</span></div><em>${p.ovr}</em></div>`;
-      body = `<div class="card roster"><h3>${esc(t.city)} ${esc(t.name)} <small>${st.w}-${st.l} · team overall ${strength(C.team)}</small></h3>
+      body = `<div class="teamban" style="--c1:${t.c1};--c2:${t.c2}">${badge(t)}<div><small>${esc(t.city)}</small><b>${esc(t.name)}</b><span>${st.w}-${st.l} · team overall ${strength(C.team)}</span></div></div>
+        <div class="card roster">
         <p class="kick">Starting five</p>${five.map(row).join('')}
         <p class="kick">Bench</p>${bench.map(p => row(p, 9)).join('')}</div>`;
     } else if (tab === 'player') {
