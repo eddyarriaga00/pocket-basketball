@@ -705,7 +705,8 @@
         <div class="card look"><h3>Look</h3>${lookEditor(me)}</div>
         <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
         <div class="card"><h3>Business</h3><p class="fine">${C.endorse && C.endorse.brand ? `Shoe deal: ${C.endorse.brand}, ${M(C.endorse.pay)} a year. ` : ''}${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
-        ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>`;
+        ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>
+        <button class="ghost" id="pcard">Share your player card<small>an image of you, your numbers and your trophies</small></button>`;
     } else if (tab === 'league') {
       const conf = c => confRank(c).map((id, i) => { const x = PB.team(id), st = C.standings[id];
         return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${strength(id)}</td></tr>`; }).join('');
@@ -736,6 +737,7 @@
     if ($('#dunk')) $('#dunk').onclick = () => dunkRound(1);
     if ($('#nodunk')) $('#nodunk').onclick = () => { C.dunk = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
+    if ($('#pcard')) $('#pcard').onclick = playerCard;
     if ($('#sim5')) $('#sim5').onclick = () => simMany(5);
     if ($('#simall')) $('#simall').onclick = () => simMany(999);
     if ($('#asg')) $('#asg').onclick = () => allStarGame(true);
@@ -808,6 +810,36 @@
     const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num;
     if (portraitCache.key !== key) portraitCache = { key, url: PB.R.portrait(C.me, PB.team(C.team)) };
     return portraitCache.url;
+  }
+  /* your player card: a 1080 by 1350 image for a feed, in your team's colors */
+  function playerCard() {
+    const me = C.me, t = PB.team(C.team), A = C.adj && C.adj.gp ? C.adj : null, T = C.totals || {}, gp = A ? A.gp : 0;
+    const cv = document.createElement('canvas'); cv.width = 1080; cv.height = 1350; const g = cv.getContext('2d');
+    const grd = g.createLinearGradient(0, 0, 0, 1350); grd.addColorStop(0, t.c1); grd.addColorStop(0.62, '#0b0e15'); grd.addColorStop(1, '#07090e');
+    g.fillStyle = grd; g.fillRect(0, 0, 1080, 1350);
+    g.fillStyle = 'rgba(255,255,255,.05)'; g.font = '900 420px Archivo, Arial'; g.textAlign = 'center'; g.fillText(String(me.num), 540, 560);
+    const draw = img => {
+      if (img) g.drawImage(img, 240, 90, 600, 600);
+      g.textAlign = 'left'; g.fillStyle = '#fff';
+      g.font = '900 92px Archivo, Arial'; g.fillText(me.first.toUpperCase(), 80, 800); g.fillText(me.last.toUpperCase(), 80, 892);
+      g.font = '600 38px Inter, Arial'; g.fillStyle = '#c9d0de'; g.fillText(`#${me.num} · ${PB.POS_NAME[me.pos]} · ${t.city} ${t.name}`, 80, 952);
+      g.textAlign = 'center'; g.fillStyle = '#ffb02e'; g.beginPath(); g.arc(920, 820, 92, 0, 7); g.fill();
+      g.fillStyle = '#1b0d03'; g.font = '900 90px Archivo, Arial'; g.fillText(String(me.ovr), 920, 850); g.font = '800 24px Archivo, Arial'; g.fillText('OVERALL', 920, 884);
+      const tile = (x, v, l) => { g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(x, 1010, 290, 150); g.fillStyle = '#fff'; g.font = '900 70px Archivo, Arial'; g.fillText(v, x + 145, 1092); g.fillStyle = '#c9d0de'; g.font = '700 26px Inter, Arial'; g.fillText(l, x + 145, 1136); };
+      tile(80, gp ? (A.pts / gp).toFixed(1) : '–', 'POINTS'); tile(395, gp ? (A.reb / gp).toFixed(1) : '–', 'REBOUNDS'); tile(710, gp ? (A.ast / gp).toFixed(1) : '–', 'ASSISTS');
+      g.fillStyle = '#c9d0de'; g.font = '600 30px Inter, Arial';
+      g.fillText(`Season ${C.year} · ${C.trophies.length} trophies · ${T.pts || 0} career points · ${(C.fans || 0).toLocaleString()} followers`, 540, 1225);
+      g.fillStyle = '#ffb02e'; g.font = '900 34px Archivo, Arial'; g.fillText('POCKETBASKETBALL', 540, 1300);
+      cv.toBlob(b => shareFile(b, 'my-player-card.png', 'My player'), 'image/png');
+    };
+    const url = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(me, t, 600) : null;
+    if (url) { const im = new Image(); im.onload = () => draw(im); im.onerror = () => draw(null); im.src = url; } else draw(null);
+  }
+  function shareFile(blob, name, title) {
+    if (!blob) return;
+    const file = window.File ? new File([blob], name, { type: blob.type }) : null;
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title }).catch(() => {}); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
   }
   const glog = (x, n) => `<div class="glog"><span>${n}</span>${badge(PB.team(x.opp))}
         <b class="${x.res.win ? 'w' : 'l'}">${x.res.win ? 'W' : 'L'} ${x.res.us}-${x.res.them}</b><em>${x.res.line.pts} pts · ${x.res.line.reb} reb · ${x.res.line.ast} ast</em><i>${x.res.grade}${x.res.sim ? ' · sim' : ''}</i></div>`;

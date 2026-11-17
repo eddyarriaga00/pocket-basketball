@@ -498,10 +498,10 @@
   };
 
   /* a portrait: head and shoulders in the team's jersey, rendered once off screen to an image for the hub */
-  R.portrait = (player, team) => {
+  R.portrait = (player, team, size) => {
     if (!TPL) return null;
     try {
-      const cv = document.createElement('canvas'); cv.width = cv.height = 192;
+      const cv = document.createElement('canvas'); cv.width = cv.height = size || 192;
       const rr = new T.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true, alpha: true });
       const sc = new T.Scene();
       sc.add(new T.HemisphereLight(0xfff6e8, 0x3a3028, 1.1)); const k = new T.DirectionalLight(0xffffff, 0.8); k.position.set(3, 6, 8); sc.add(k);
