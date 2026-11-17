@@ -1259,7 +1259,7 @@
     } else {
       P.champ = winner(S2[0]);
       C.news.unshift(`The ${tname(PB.team(P.champ))} are champions!`);
-      if (P.champ === C.team) { C.trophies.push(`Champion, season ${C.year}`); C.fans = Math.round(C.fans * 1.4); C.me.sp += 10; }
+      if (P.champ === C.team) { C.trophies.push(`Champion, season ${C.year}`); C.fans = Math.round(C.fans * 1.4); C.me.sp += 10; banner(C.team, { kind: 'title', text: `Season ${C.year}` }); }
     }
     P.round++;
     save();
@@ -1477,12 +1477,19 @@
   }
 
   /* ---------- retirement and the Hall of Fame ---------- */
+  /* a banner for a team's arena: kept on the device, hung in the rafters in every mode */
+  function banner(team, b) {
+    const all = load('pbb.banners') || {}; const list = all[team] || (all[team] = []);
+    if (!list.some(x => x.kind === b.kind && x.text === b.text && x.num === b.num && x.name === b.name)) list.push(b);
+    store('pbb.banners', all);
+  }
   function hallOfFame() {
     const T = C.totals, gp = T.gp || 1;
     const score = T.pts / 1000 * 2 + T.reb / 1000 + T.ast / 1000 * 1.3 + C.trophies.filter(t => /MVP/.test(t)).length * 4 + C.trophies.filter(t => /Champion,/.test(t)).length * 3
       + C.trophies.filter(t => /All-Star/.test(t)).length * 1.2 + C.trophies.filter(t => /All-League/.test(t)).length * 1.5 + C.seasons.length * 0.3;
-    const inHall = score >= 22;
+    const inHall = score >= 22, jersey = inHall || score >= 14;
     C.retired = { year: C.year, hof: inHall, score: +score.toFixed(1) };
+    if (jersey) banner(C.team, { kind: 'jersey', num: C.me.num, name: C.me.last });
     /* the device's hall: every career that ends is kept here */
     const hall = load('pbb.hall') || [];
     if (!hall.find(h => h.id === C.me.id + C.year + C.me.last)) {
@@ -1492,7 +1499,7 @@
     C.phase = 'retired'; save();
     show(`<div class="page post"><p class="kick">Retirement</p><h2>${esc(PB.full(C.me))} hangs them up</h2>
       <div class="tiles"><div><b>${C.seasons.length}</b><span>SEASONS</span></div><div><b>${(T.pts / gp).toFixed(1)}</b><span>PPG</span></div><div><b>${T.pts}</b><span>POINTS</span></div></div>
-      <div class="card"><h3>${inHall ? 'Hall of Fame: inducted' : 'Hall of Fame: not this time'}</h3><p>${inHall ? 'First ballot. Your jersey goes to the rafters.' : 'A fine career. The voters wanted more hardware.'}</p>
+      <div class="card"><h3>${inHall ? 'Hall of Fame: inducted' : 'Hall of Fame: not this time'}</h3><p>${inHall ? 'First ballot.' : 'A fine career. The voters wanted more hardware.'}${jersey ? ` The ${esc(PB.team(C.team).name)} retire your #${C.me.num}: it hangs in their rafters from tonight.` : ''}</p>
       <p class="fine">Hall score ${score.toFixed(1)} (22 gets you in): points, boards and assists, MVPs, titles, All-Star and All-League nods, seasons played.</p></div>
       <div class="card"><h3>Trophy case</h3>${C.trophies.map(x => `<p class="news">🏆 ${esc(x)}</p>`).join('') || '<p class="mute">Empty.</p>'}</div>
       <button class="big" id="go">Main menu</button></div>`);

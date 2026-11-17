@@ -580,6 +580,33 @@
     ringT.position.y = -6.3; jb.add(ringT);
     const cable = new T.Mesh(new T.CylinderGeometry(0.15, 0.15, 30, 4), frame); cable.position.y = 19; jb.add(cable);
     jb.position.set(0, 44, 0); scene.add(jb);
+    /* banners in the rafters over both ends: the titles won and the jerseys retired on this floor (kept on the device) */
+    let bn = []; try { bn = (JSON.parse(localStorage.getItem('pbb.banners') || '{}')[home.id] || []).slice(-8); } catch (e) { bn = []; }
+    bn.forEach((b, i) => {
+      const cv = document.createElement('canvas'); cv.width = 128; cv.height = 224;
+      const g = cv.getContext('2d');
+      g.fillStyle = home.c1; g.fillRect(0, 0, 128, 224);
+      g.fillStyle = home.c2; g.fillRect(6, 6, 116, 4); g.fillRect(6, 214, 116, 4);
+      g.beginPath(); g.moveTo(0, 224); g.lineTo(64, 200); g.lineTo(128, 224); g.fill();
+      g.textAlign = 'center'; g.fillStyle = home.c2;
+      if (b.kind === 'jersey') {
+        g.font = '900 72px Archivo, Arial'; g.fillText(String(b.num), 64, 110);
+        g.font = '800 17px Archivo, Arial'; g.fillText(String(b.name || '').toUpperCase().slice(0, 11), 64, 150);
+      } else {
+        g.font = '900 15px Archivo, Arial'; g.fillText('LEAGUE', 64, 52); g.fillText('CHAMPIONS', 64, 72);
+        g.font = '900 54px Archivo, Arial'; g.fillText('★', 64, 135);
+        g.font = '800 16px Archivo, Arial'; g.fillText(String(b.text || '').toUpperCase(), 64, 172);
+      }
+      const tx = new T.CanvasTexture(cv); tx.colorSpace = T.SRGBColorSpace;
+      const off = (i - (bn.length - 1) / 2) * 6.5, mat = new T.MeshBasicMaterial({ map: tx, side: T.DoubleSide });
+      for (const side of [-1, 1]) {
+        const m = new T.Mesh(new T.PlaneGeometry(5, 8.75), mat);
+        m.position.set(off, 33, side * 64); m.rotation.y = side > 0 ? Math.PI : 0; scene.add(m);
+      }
+      /* and over the far sideline, where the broadcast camera sees them */
+      const w = new T.Mesh(new T.PlaneGeometry(5, 8.75), mat);
+      w.position.set(44, 19, off); w.rotation.y = -Math.PI / 2; scene.add(w);
+    });
     /* LED ribbons along the front of the stands, in the home colors, scrolling */
     const rc = document.createElement('canvas'); rc.width = 512; rc.height = 32;
     const rg = rc.getContext('2d');

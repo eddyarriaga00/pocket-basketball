@@ -120,7 +120,7 @@ The two node tools need Playwright (`npm i -g playwright`).
       projected role, team strength), trade requests, career earnings (2026-11-17)
 - [ ] Ten-man rosters to fifteen; trades and signings across the league
 - [x] Retirement from 33 and the Hall of Fame vote; your athleticism slips after 30 (2026-11-17)
-- [ ] Jersey retirement ceremony
+- [x] Banners: your titles and your retired jersey hang in that team's arena from then on, in every mode (2026-11-17)
 
 ## Done overnight, not on the list above (2026-11-17)
 
