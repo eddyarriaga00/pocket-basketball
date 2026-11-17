@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Broadcast' }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock' }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   const save = () => { if (C) store(KEY, C); };
@@ -52,7 +52,7 @@
   function settings() {
     const opt = (k, vals, lab) => `<div class="field"><label>${lab}</label><div class="seg" data-k="${k}">${vals.map(v => `<button class="${S[k] == v ? 'on' : ''}" data-v="${v}">${typeof v === 'number' && k === 'qlen' ? v + ' min' : v}</button>`).join('')}</div></div>`;
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Settings</h2>
-      ${opt('cam', ['Broadcast', 'Overhead'], 'Camera')}
+      ${opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera')}
       ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
       ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
       ${opt('season', [10, 20, 41, 82], 'Games in a career season (next season on)')}

@@ -8,7 +8,8 @@
   const R = PB.R = {};
   let renderer, scene, cam, W = 1, H = 1, DPR = 1;
   const camPos = new T.Vector3(0, 60, -50), camLook = new T.Vector3(0, 0, 0);
-  let zoom = 1, camMode = 'broadcast';
+  let zoom = 1, camMode = 'lock', lockDir = 1, yaw = 0;
+  const anchor = new T.Vector3();
   const meshes = new Map();
   let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [];
 
@@ -232,7 +233,9 @@
   };
 
   R.setZoom = z => { zoom = PB.clamp(z, 0.7, 1.5); };
-  R.setCam = m => { camMode = m === 'overhead' ? 'overhead' : 'broadcast'; R.resize(); };
+  /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
+  R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
+  R.setCam = m => { camMode = R.CAMS[m] ? m : 'lock'; R.resize(); };
   R.getCam = () => camMode;
   R.getZoom = () => zoom;
 
@@ -278,6 +281,25 @@
       n.mesh.scale.set(1 - n.swish * 0.25, 1 + n.swish * 0.35, 1 - n.swish * 0.25);
       n.mesh.position.y = 9.25 - n.swish * 0.26;
     }
+    if (camMode === 'lock') {
+      /* player lock, the way career modes on consoles play it: low behind your own player, looking down the floor
+         at the rim being attacked. The view swings around (it doesn't cut) when the ball changes hands. */
+      if (G.poss === 0) lockDir = 1; else if (G.poss === 1) lockDir = -1;
+      const want = lockDir > 0 ? 0 : Math.PI;
+      let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+      if (Math.abs(Math.abs(dy) - Math.PI) < 0.01) dy = Math.PI * 0.999;   // a half turn always swings the same way
+      yaw += dy * Math.min(1, dt * 2.6);
+      const me = G.user || b.holder || b;
+      const ax = me.x + (b.x - me.x) * 0.25, az = me.z + (b.z - me.z) * 0.25;
+      anchor.lerp(new T.Vector3(ax, 0, az), Math.min(1, dt * 5));
+      if (!dt) anchor.set(ax, 0, az);
+      const fx = Math.sin(yaw), fz = Math.cos(yaw);
+      const back = 27 * zoom, up = 17.5 * zoom;
+      cam.position.set(PB.clamp(anchor.x - fx * back, -40, 40), up, PB.clamp(anchor.z - fz * back, -62, 62));
+      cam.lookAt(anchor.x + fx * 12, 3, anchor.z + fz * 12);
+      camPos.copy(cam.position); camLook.set(anchor.x + fx * 12, 3, anchor.z + fz * 12);
+      return;
+    }
     let tPos, tLook;
     if (camMode === 'overhead') {
       /* high behind the +z direction: the half court reads top to bottom on a tall screen */
@@ -309,7 +331,8 @@
     renderer.setPixelRatio(DPR); renderer.setSize(W, H, false);
     cam.aspect = W / H;
     /* a narrow portrait screen gets a wider lens so the court's width still fits */
-    cam.fov = camMode === 'overhead' ? (W / H < 0.6 ? 50 : 42) : (W / H < 0.6 ? 56 : 40);
+    const tall = W / H < 0.6;
+    cam.fov = camMode === 'overhead' ? (tall ? 50 : 42) : camMode === 'lock' ? (tall ? 62 : 46) : (tall ? 56 : 40);
     cam.updateProjectionMatrix();
   };
   const v = new T.Vector3();

@@ -41,7 +41,8 @@ The two node tools need Playwright (`npm i -g playwright`).
       standings, news, season awards, next season with aging
 - [x] Quick game; settings (quarter length, difficulty, season length); pause with sim-to-end
 - [x] Tests: `tools/smoke.js`, `tools/balance.js`
-- [x] Broadcast sideline camera as the default (2026-11-16), overhead as an option in Settings and on pause
+- [x] Cameras (2026-11-16): player lock (the default, behind your player toward the rim in play), broadcast
+      (the sideline) and overhead, in Settings and on the pause screen
 
 ## M1 · Feel (next)
 

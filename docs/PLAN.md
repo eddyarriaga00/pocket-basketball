@@ -78,7 +78,9 @@ cdnjs, a network-first service worker, GitHub Pages) is proven on phones. Pocket
 **Court.** Feet: x across (-25..25), z along (-47..47), rims at z = ±41.75, ten feet up. Real markings: the
 23.75-foot arc, 22 feet in the corners, the 16-foot lane, the restricted area.
 
-**Camera.** Broadcast by default: low on the scorer's-table sideline, the way the big console games show the game,
+**Camera.** Player lock by default, the way console career modes are played: low behind your own player, looking
+down the floor at the rim being attacked, swinging around (not cutting) when the ball changes hands; on a tall
+screen your player and the rim both stay in the picture. Broadcast is the second option: low on the scorer's-table sideline, the way the big console games show the game,
 panning along the court with the ball and leading toward the rim it is heading for, stopping short of the
 baselines so the rim stays in the picture. Your team attacks left to right in the first build. Overhead (high
 behind your direction of attack, the half court top to bottom) is the other option, in Settings and on the pause

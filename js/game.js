@@ -933,7 +933,7 @@
         <div class="pscore"><span>${G.teams[0].id}</span><b>${G.score[0]} – ${G.score[1]}</b><span>${G.teams[1].id}</span></div>
         <p class="mute">${$('#qt').textContent} · ${$('#clk').textContent} · your grade ${G.user ? gradeLetter(G.grade) : '–'}</p>
         <button class="big" id="pr">Resume</button>
-        <button class="ghost" id="pc">Camera: ${R.getCam() === 'overhead' ? 'Overhead' : 'Broadcast'}</button>
+        <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         <button class="ghost" id="ps">Sim to the end</button>
         <div class="help"><b>Controls</b><br>Left thumb: move (push to the edge to sprint).<br>
         Shoot: hold, let go at the top of the jump (the green band). Pass: to the open man, or the one your stick points at.
@@ -942,9 +942,9 @@
         Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L move.</div></div>`;
       $('#pr').onclick = () => pause(false);
       $('#pc').onclick = () => {
-        const m = R.getCam() === 'overhead' ? 'broadcast' : 'overhead';
+        const ks = Object.keys(R.CAMS), m = ks[(ks.indexOf(R.getCam()) + 1) % ks.length];
         R.setCam(m);
-        if (PB.settings) { PB.settings.cam = m === 'overhead' ? 'Overhead' : 'Broadcast'; PB.saveSettings(); }
+        if (PB.settings) { PB.settings.cam = R.CAMS[m]; PB.saveSettings(); }
         pause(true);
       };
       $('#ps').onclick = () => { ov.hidden = true; G.paused = false; simRest(); };
@@ -960,7 +960,7 @@
       opts = o;
       $('#game').hidden = false;
       if (!bound) { bindControls(); bound = true; }
-      R.setCam(PB.settings && PB.settings.cam === 'Overhead' ? 'overhead' : 'broadcast');
+      R.setCam(Object.keys(R.CAMS).find(k => R.CAMS[k] === (PB.settings && PB.settings.cam)) || 'lock');
       R.resize();
       R.build(o.floor || o.teams[0]);
       const pl = [];
