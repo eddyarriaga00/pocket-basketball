@@ -335,3 +335,4 @@ input[type=color]{height:44px;padding:4px}
 #achtoast{position:fixed;left:50%;top:14px;transform:translate(-50%,-140%);z-index:60;background:#141a26;border:1px solid rgba(255,176,46,.6);color:var(--ink,#fff);
   padding:10px 16px;border-radius:14px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4);transition:transform .35s;max-width:calc(100% - 32px);text-align:center}
 #achtoast.on{transform:translate(-50%,0)}#achtoast b{display:block;color:var(--acc);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.next.talk .q{font-size:15px;line-height:1.4;margin:6px 0 10px}

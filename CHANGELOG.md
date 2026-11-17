@@ -55,6 +55,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - League leaders, All-Star picks, the All-Star Game, the 3-Point Contest and the Dunk Contest (a 360, a windmill,
   a reverse, from as far as the free-throw line; five judges), a play-in, playoff series, awards night.
 - Banners in the rafters: win a title or have your jersey retired and it hangs in that arena for good.
+- Your rival posts about you before your games: clap back or let the game talk.
 - Player of the Week every seven games, and the All-Star fan vote's first returns on your hub.
 - Share your player card: an image of you in your team's colors with your numbers.
 - Twenty-two achievements across every career on your device, from your draft to the Hall of Fame.

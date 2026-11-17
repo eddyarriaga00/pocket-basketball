@@ -739,6 +739,14 @@
         <button class="big" id="contest">Take the floor</button><button class="ghost" id="nocontest">Pass this year</button></div>` + card;
       if (C.dunk === 'invited' && C.contest !== 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>Dunk Contest</h3><p>Two dunks in the first round, the top two go to the final for two more. Five judges, ten points each. Pick the dunk with the Style button; take off from as far out as you dare.</p>
         <button class="big" id="dunk">Take the floor</button><button class="ghost" id="nodunk">Pass this year</button></div>` + card;
+      /* the night before a rival game, he posts about you; answer him or let the game do it */
+      const rvx = rivalP();
+      if (nx && rvx && nx.opp === C.rival.team && C.talk !== `${C.year}-${C.gi}-${C.phase}`) {
+        const lines = [`Same draft class. Different levels. See you tomorrow, ${C.me.last}.`, `Heard ${C.me.last} has been talking. Bring it.`, `Tomorrow I'm going at ${C.me.last} every time down.`, `They keep comparing us. Tomorrow settles it.`];
+        const said = lines[(C.gi + C.year) % lines.length];
+        card = `<div class="next talk"><p class="kick">Rival on social</p><p class="q">@${esc(rvx.first.toLowerCase())}${esc(rvx.last.toLowerCase())}: “${esc(said)}”</p>
+          <button class="ghost" id="clap">Clap back<small>more followers; the coach would rather you didn't</small></button><button class="ghost" id="quiet">Let the game talk<small>the coach likes it</small></button></div>` + card;
+      }
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
       const voteCard = C.vote && C.vote.year === C.year && C.phase === 'regular' && C.gi < Math.round(C.len * 0.5) ? `<div class="card"><h3>All-Star voting</h3><p>${ordinal(C.vote.rank)} among ${esc(C.vote.conf)} ${C.vote.grp} in the first returns. ${C.vote.rank <= 2 ? 'Right now you would start.' : C.vote.rank <= 6 ? 'In the mix: the coaches pick the reserves.' : 'A long way back: big games move the vote.'}</p></div>` : '';
       body = card + voteCard + (C.phase === 'playoffs' ? bracketCard() : '') + `
@@ -798,6 +806,9 @@
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#dunk')) $('#dunk').onclick = () => dunkRound(1);
     if ($('#nodunk')) $('#nodunk').onclick = () => { C.dunk = 'done'; save(); hub(); };
+    const talked = () => { C.talk = `${C.year}-${C.gi}-${C.phase}`; };
+    if ($('#clap')) $('#clap').onclick = () => { talked(); C.fans = Math.round(C.fans * 1.04); C.trust = Math.max(0, C.trust - 1); C.clapped = true; C.feed.unshift({ who: '@' + (C.me.first + C.me.last).toLowerCase(), text: `See you tomorrow. Bring your best.` }); C.news.unshift(`${C.me.last} fires back at his rival`); save(); hub(); };
+    if ($('#quiet')) $('#quiet').onclick = () => { talked(); C.trust = Math.min(100, C.trust + 1); C.clapped = false; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
     if ($('#pcard')) $('#pcard').onclick = playerCard;
     if ($('#sim5')) $('#sim5').onclick = () => simMany(5);
@@ -1054,7 +1065,9 @@
     /* your rival, when it is his team */
     if (C.rival && g.opp === C.rival.team) {
       const rl = rivalGame(!res.win);
-      if (rl) { const meWon = res.line.pts + res.line.reb + res.line.ast >= rl.pts + rl.reb + rl.ast; C.rival.h2h[meWon ? 0 : 1]++; res.rival = rl; }
+      if (rl) { const meWon = res.line.pts + res.line.reb + res.line.ast >= rl.pts + rl.reb + rl.ast; C.rival.h2h[meWon ? 0 : 1]++; res.rival = rl;
+        /* you talked: now it counts double, one way or the other */
+        if (C.clapped) { C.fans = Math.round(C.fans * (meWon ? 1.06 : 0.97)); C.news.unshift(meWon ? `${C.me.last} backs up the talk against his rival` : `${C.me.last} talked, and his rival got the better of him`); C.clapped = false; } }
     }
     /* the game's goals */
     if (C.goals) {
