@@ -579,7 +579,7 @@
       scr().hidden = true;
       const tm = PB.team(C.team);
       PB.Game.start({ teams: [tm, tm], rosters: [[C.me], []], userId: 'me', drill: 'combine', qlen: 1, level: S.level, floor: tm, onEnd: r => {
-        const sc = r.drill ? r.drill.score : 0, sp = Math.min(5, Math.floor(sc / 3));
+        const sc = r.drill ? r.drill.score : 0, sp = Math.round(Math.min(5, Math.floor(sc / 3)) * PB.clamp(20 / (C.len || 20), 0.3, 1.5));
         C.practiced = C.gi + (C.phase === 'playoffs' ? 1000 : 0); C.me.sp += sp;
         if (sc >= 8) C.trust = Math.min(100, C.trust + 1);
         save();
@@ -738,7 +738,7 @@
     if (C.goals) {
       res.goals = C.goals.map(g => ({ text: g.text, met: goalMet(g, res.line, res.gscore) }));
       const met = res.goals.filter(g => g.met).length;
-      me.sp += met * 2; C.trust = PB.clamp((C.trust ?? 45) + met * 1.5, 0, 100);
+      me.sp += Math.round(met * 2 * PB.clamp(20 / (C.len || 20), 0.3, 1.5)); C.trust = PB.clamp((C.trust ?? 45) + met * 1.5, 0, 100);
       C.goals = null;
     }
     /* career highs (games you play) and milestones */
@@ -758,7 +758,9 @@
     for (const [k, name, ok] of MS) if (ok && !C.miles[k]) { C.miles[k] = C.year; res.miles.push(name); C.news.unshift(`Milestone: ${name}`); }
     /* trust, skill points, followers */
     C.trust = PB.clamp((C.trust ?? 45) + (res.gscore - 6) * 1.3 + (res.win ? 1 : -0.5), 0, 100);
-    const sp = Math.max(1, Math.round(res.gscore * 0.9 + (res.win ? 2 : 0) + (g.po ? 2 : 0)));
+    /* points scale with the season's length, so a long season grows you about as fast in seasons as a short one */
+    const spScale = PB.clamp(20 / (C.len || 20), 0.3, 1.5);
+    const sp = Math.max(1, Math.round((res.gscore * 0.9 + (res.win ? 2 : 0) + (g.po ? 2 : 0)) * spScale));
     res.sp = sp; me.sp += sp;
     C.fans = Math.round(C.fans * (1 + Math.max(-0.01, (res.line.pts - 8) * 0.002 + (res.win ? 0.004 : 0) + (res.gscore - 6) * 0.002)) + res.line.pts * 15);
     /* badge counters, and any new tier */
