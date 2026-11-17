@@ -296,6 +296,8 @@
       add(new T.SphereGeometry(H * 0.0048, 6, 4), 0x120c08, sx * H * 0.018, 0, H * 0.006);
       add(new T.BoxGeometry(H * 0.022, H * 0.004, H * 0.004), 0x120c08, sx * H * 0.019, H * 0.014, H * 0.002, -sx * 0.12);
     }
+    add(new T.BoxGeometry(H * 0.022, H * 0.0035, H * 0.004), 0x3a1d14, 0, -H * 0.03, H * 0.002);         // the mouth
+    const nose = new T.ConeGeometry(H * 0.006, H * 0.014, 5); nose.rotateX(Math.PI / 2); add(nose, 0x2a1810, 0, -H * 0.012, H * 0.008);   // the nose
     let n = 0; for (const g of parts) n += g.attributes.position.count;
     const pos = new Float32Array(n * 3), col = new Float32Array(n * 3); let o = 0;
     for (const g of parts) { pos.set(g.attributes.position.array, o * 3); col.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; }

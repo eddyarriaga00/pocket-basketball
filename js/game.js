@@ -945,6 +945,8 @@
       if (G.ftq.shooter.isUser && !G.auto) {
         if (G.ftMeter > 0) { G.ftMeter += dt / 0.9; if (G.ftMeter > 1.15) { const m = G.ftMeter; G.ftMeter = 0; shootFT(m); } }
       } else { G.ftWait -= dt; if (G.ftWait <= 0) shootFT(0); }
+      /* the routine: a couple of bounces before the shot */
+      const sh = G.ftq.shooter; if (!sh.isUser || G.auto) { if (G.ftWait > 0.35) { G.ball.state = 'held'; G.ball.holder = sh; sh.pose = 'dribble'; } else sh.pose = 'hold'; }
     }
     /* clocks */
     if (G.drill) drillStep(dt);
@@ -1061,7 +1063,7 @@
       const p = b.holder, hp = handPos(p);
       const H = R.hands && R.hands(p);
       if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : H ? 0 : 0.2); }
-      else if (H && G.phase === 'ft') { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
+      else if (H && G.phase === 'ft' && p.pose !== 'dribble') { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
         /* the dribble: from the hand to the floor and back, under the hand */
         b.x = hp.x; b.z = hp.z;
