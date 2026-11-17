@@ -119,17 +119,19 @@
       <p class="mute">${cur && cur.me ? `As ${esc(PB.full(me))}, with your ratings and badges.` : 'As a practice shooter (80 overall).'}</p>
       <button class="big" id="p3">3-Point Contest<small>five racks, money balls, 60 seconds</small></button>
       <button class="ghost" id="pc">Spot-up drill<small>the combine's fifteen shots in 45 seconds</small></button>
-      <button class="ghost" id="pd">Dunk Contest<small>three dunks, five judges; Style picks the dunk</small></button></div>`);
+      <button class="ghost" id="pd">Dunk Contest<small>three dunks, five judges; Style picks the dunk</small></button>
+      <button class="ghost" id="pf">Shoot-around<small>shoot from anywhere, no clock; pause to finish</small></button></div>`);
     $('#bk').onclick = title;
     const go = kind => { scr().hidden = true; PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: me.id, drill: kind, dunks: 3, qlen: 1, level: S.level, floor: t,
       onEnd: r => { const d = r.drill || { score: 0, made: 0, att: 0 };
         const best = load('pbb.best') || {}; const k = kind; const nb = !best[k] || d.score > best[k]; if (nb) { best[k] = d.score; store('pbb.best', best); }
-        show(`<div class="page post"><p class="kick">${kind === 'contest' ? '3-Point Contest' : kind === 'dunk' ? 'Dunk Contest' : 'Spot-up drill'}</p><div class="gradebig"><b>${d.score}</b><span>${kind === 'dunk' ? (d.scores || []).join(' · ') : `${d.made} of ${d.att} made`}</span></div>
+        show(`<div class="page post"><p class="kick">${kind === 'contest' ? '3-Point Contest' : kind === 'dunk' ? 'Dunk Contest' : kind === 'free' ? 'Shoot-around' : 'Spot-up drill'}</p><div class="gradebig"><b>${d.score}</b><span>${kind === 'dunk' ? (d.scores || []).join(' · ') : `${d.made} of ${d.att} made`}</span></div>
           <p class="mute">${nb ? 'A new best on this device.' : `Your best: ${best[k]}`}</p><button class="big" id="again">Again</button><button class="ghost" id="done">Done</button></div>`);
         $('#again').onclick = () => go(kind); $('#done').onclick = title; } }); };
     $('#p3').onclick = () => go('contest');
     $('#pc').onclick = () => go('combine');
     $('#pd').onclick = () => go('dunk');
+    $('#pf').onclick = () => go('free');
   }
   function how() {
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>How to play</h2>

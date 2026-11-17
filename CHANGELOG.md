@@ -63,7 +63,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 **Other modes**
 - Season: one team, the whole team under your thumbs, to a title; playoff series (best of 1 to 7 by the season's
   length), points, rebounds and assists leaders, a Finals MVP. Quick game with whole-team control.
-  Practice: the contest and the drill from the menu.
+  Practice: the 3-point and dunk contests, the drill, and a shoot-around with no clock.
 
 ## 2026-11-16 · the prototype
 

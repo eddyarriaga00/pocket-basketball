@@ -155,7 +155,7 @@
   function hud() {
     highCheck(); radar();
     $('#game').classList.toggle('drill', !!(G && G.drill));
-    $('#game').classList.toggle('dunk', !!(G && G.drill && G.drill.kind === 'dunk'));
+    $('#game').classList.toggle('dunk', !!(G && G.drill && (G.drill.kind === 'dunk' || G.drill.kind === 'free')));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
     const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;
     const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : s.toFixed(1);
@@ -449,6 +449,7 @@
     contest: { secs: 60, spots: [[-22, 3], [-15.5, 18], [0, 25], [15.5, 18], [22, 3]], balls: 5, money: true, title: '3-Point Contest' },
     combine: { secs: 45, spots: [[-22, 3], [-9, 14], [0, 25], [9, 14], [22, 3]], balls: 3, money: false, title: 'Combine · spot-up shooting' },
     dunk: { secs: 0, spots: [[17, 24], [0, 32], [-17, 24], [23, 5]], dunks: 2, title: 'Dunk Contest' },
+    free: { secs: 0, spots: [[0, 18]], title: 'Shoot-around' },
   };
   /* the dunk contest: [name, arms, how hard (the judges' bonus), how often it goes down, the turn in the air] */
   const STYLES = [['Two-hand', 'celebrate', 0, 1, 0], ['Tomahawk', 'dunk1', 0.45, 0.96, 0], ['Reverse', 'dunk1', 0.75, 0.92, Math.PI],
@@ -477,6 +478,20 @@
     $('#ftmsg').textContent = D.over ? `Total ${D.score}` : `Dunk ${D.n + 1} of ${D.def.dunks} · ${st[0]} · Style changes it`;
     if (D.over && G.ball.state !== 'shot') { D.endT = (D.endT || 0) + dt; if (D.endT > 2.6) finish(); }
   }
+  /* the shoot-around: shoot from anywhere, the ball comes back to you; no clock. Pause to finish. */
+  function freeLands(s) {
+    const D = G.drill, b = G.ball;
+    D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); }
+    else { D.streak = 0; AU().play('rim', { x: b.ex, power: 0.6 }); }
+    b.state = 'drop'; b.t = 0; D.next = 0.9;
+  }
+  function freeStep(dt) {
+    const D = G.drill, u = G.user;
+    G.clock = 0; G.shotClock = 24; G.score[0] = D.made; G.score[1] = D.att;
+    if (D.next > 0) { D.next -= dt; if (D.next <= 0) { D.next = 0; give(u); } }
+    $('#ftmsg').hidden = false;
+    $('#ftmsg').textContent = `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
+  }
   function dunkLands(s) {
     const D = G.drill, b = G.ball, p = s.shooter, st = STYLES[s.style || 0];
     const r = p.r, rate = ((r.dunk || 70) + (r.vert || 70)) / 2;
@@ -498,6 +513,7 @@
   function drillSpot() { const D = G.drill, sp = D.def.spots[D.rack]; return toCourt(0, sp[0], sp[1]); }
   function drillLands(s) {
     if (G.drill.kind === 'dunk') { dunkLands(s); return; }
+    if (G.drill.kind === 'free') { freeLands(s); return; }
     const D = G.drill, b = G.ball, money = D.def.money && D.ball === D.def.balls - 1;
     D.att++;
     if (s.made) { D.made++; D.score += money ? 2 : 1; R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); AU().crowd.react(money ? 'roar' : 'applause', money ? 0.9 : 0.5); if (money) { toast('MONEY BALL', 'make'); B('moneyball', { prio: 3 }); } buzz([15, 30, 15]); }
@@ -510,6 +526,7 @@
   }
   function drillStep(dt) {
     if (G.drill.kind === 'dunk') { dunkStep(dt); return; }
+    if (G.drill.kind === 'free') { freeStep(dt); return; }
     const D = G.drill, u = G.user;
     if (!D.over) { D.t -= dt; if (D.t <= 0) { D.t = 0; D.over = true; } }
     G.clock = D.t; G.shotClock = 24; G.score[0] = D.score; G.score[1] = D.att;
@@ -1268,7 +1285,7 @@
       }
       if (!live) { if (G.phase === 'dead' || G.phase === 'ftflight') { p.vx *= 0.9; p.vz *= 0.9; } }
       else if (p.inb) { /* out of bounds with the ball: inboundStep has him */ }
-      else if (p.isUser && G.drill) { if (G.drill.kind === 'dunk' && !p.shoot && p.y <= 0 && !G.auto) userStep(p, dt); /* else the drill moves you */ }
+      else if (p.isUser && G.drill) { if ((G.drill.kind === 'dunk' || G.drill.kind === 'free') && !p.shoot && p.y <= 0 && !G.auto) userStep(p, dt); /* else the drill moves you */ }
       else if (p.isUser && !G.auto) {
         userStep(p, dt);
         if (p.cutUser > 0) { p.cutUser -= dt; if (!stickWorld()) { p.tx = 0; p.tz = hoopZ(0) - 6; seek(p, dt, 1); } }
@@ -1719,7 +1736,7 @@
           <div class="row3"><button class="ghost sm" data-play="iso">Get me the ball</button><button class="ghost sm" data-play="pnr">Pick-and-roll</button><button class="ghost sm" data-play="post">Feed the post</button></div></div>` : ''}
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="row2"><button class="ghost sm" id="psnd">Sound: ${PB.settings.sound === false ? 'off' : 'on'}</button><button class="ghost sm" id="pcom">Commentary: ${PB.settings.commentary === false ? 'off' : 'on'}</button></div>` : ''}
-        <button class="ghost" id="ps">Sim to the end</button>
+        <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
         <div class="help"><b>Controls</b><br>Left thumb: move (push to the edge to sprint).<br>
         Shoot: hold, let go at the top of the jump (the green band). Pass: to the open man, or the one your stick points at.
         Move: tap for a crossover, or swipe it: left or right to cross that way, down for a step-back (room for the jumper), up to spin to the rim. Pick (with the ball) calls your big for a screen. Off the ball: Call asks for it, Cut runs to the rim.<br>
@@ -1758,7 +1775,7 @@
         if (PB.settings) { PB.settings.cam = R.CAMS[m]; PB.saveSettings(); }
         pause(true);
       };
-      $('#ps').onclick = () => { ov.hidden = true; G.paused = false; simRest(); };
+      $('#ps').onclick = () => { ov.hidden = true; G.paused = false; if (G.drill) finish(); else simRest(); };
     }
   }
 
@@ -1850,6 +1867,7 @@
         G.drill = { kind: o.drill, def: o.drill === 'dunk' ? { ...def, dunks: o.dunks || def.dunks } : def, rack: 0, ball: 0, score: 0, made: 0, att: 0, t: def.secs, next: 0, over: false, n: 0, scores: [], style: 0 };
         G.phase = 'live'; G.poss = 0; G.clock = def.secs;
         if (o.drill === 'dunk') { G.drill.next = 0.4; const sp = dunkSpot(); G.user.x = sp.x; G.user.z = sp.z; G.user.face = Math.atan2(-sp.x, hoopZ(0) - sp.z); }
+        else if (o.drill === 'free') { const sp = toCourt(0, 0, 18); G.user.x = sp.x; G.user.z = sp.z; G.user.face = 0; give(G.user); }
         else { const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0; give(G.user); }
         $('#a0').textContent = 'PTS'; $('#a1').textContent = o.drill === 'dunk' ? 'DUNK' : 'SHOTS';
         $('#grade').hidden = true;
