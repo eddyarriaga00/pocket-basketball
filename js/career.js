@@ -362,7 +362,7 @@
 
   /* ---------- new career ---------- */
   function create() {
-    const st = { pos: 'SG', arch: 'Sharpshooter', ht: 77, skin: 2 };
+    const st = { pos: 'SG', arch: 'Sharpshooter', ht: 77, skin: 2, look: { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null } };
     const draw = () => {
       const archs = Object.keys(PB.ARCH).filter(a => PB.ARCH[a].pos.includes(st.pos));
       if (!archs.includes(st.arch)) st.arch = archs[0];
@@ -371,7 +371,7 @@
       const r = startRatings(st);
       const bars = PB.ATTRS.map(([k, n]) => `<div class="bar"><span>${n}</span><i><u style="width:${r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${r[k]}</b></div>`).join('');
       /* you, as you build him: in a plain practice jersey */
-      const pv = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait({ id: 'me', first: st.first || 'You', last: st.last || '', pos: st.pos, ht: st.ht, skin: st.skin, num: st.num ?? 1, r: {}, look: { hair: 'short', hairColor: '#17110d' } },
+      const pv = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait({ id: 'me', first: st.first || 'You', last: st.last || '', pos: st.pos, ht: st.ht, skin: st.skin, num: st.num ?? 1, r: {}, look: st.look },
         { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' }, 220, { body: true }) : null;
       show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Create your player</h2>
         ${pv ? `<div class="createpv"><img alt="" src="${pv}"><p>${PB.fmtH(st.ht)} · ${st.pos} · ${esc(st.arch)}</p></div>` : ''}
@@ -381,6 +381,7 @@
         <div class="field"><label>Build</label><div class="arch">${archs.map(a => `<button class="${a === st.arch ? 'on' : ''}" data-v="${a}"><b>${a}</b><span>${PB.ARCH[a].tag}</span></button>`).join('')}</div></div>
         <div class="field"><label>Height · ${PB.fmtH(st.ht)}</label><input type="range" id="hgt" min="${hr[0]}" max="${hr[1]}" value="${st.ht}"></div>
         <div class="field"><label>Skin tone</label><div class="skins">${PB.SKIN.map((c, i) => `<button class="${i === st.skin ? 'on' : ''}" data-v="${i}" style="background:${c}"></button>`).join('')}</div></div>
+        ${['hair', 'hairColor', 'beard'].map(k => `<div class="field"><label>${{ hair: 'Hair', hairColor: 'Hair color', beard: 'Facial hair' }[k]}</label><div class="seg" data-cl="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(st.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`).join('')}
         <div class="field"><label>Jersey number</label><input id="num" type="number" min="0" max="99" value="${st.num ?? 1}"></div>
         <div class="card"><h3>Starting ratings <small>overall ${PB.ovr(r, st.pos)} · the tick is how far each can grow</small></h3>${bars}</div>
         <button class="big" id="go">Enter the draft</button></div>`);
@@ -389,6 +390,7 @@
       scr().querySelectorAll('#pos button').forEach(b => b.onclick = () => { keep(); st.pos = b.dataset.v; st.ht = Math.round((PB.HEIGHT[st.pos][0] + PB.HEIGHT[st.pos][1]) / 2); draw(); });
       scr().querySelectorAll('.arch button').forEach(b => b.onclick = () => { keep(); st.arch = b.dataset.v; draw(); });
       scr().querySelectorAll('.skins button').forEach(b => b.onclick = () => { keep(); st.skin = +b.dataset.v; draw(); });
+      scr().querySelectorAll('[data-cl] button').forEach(b => b.onclick = () => { keep(); const y = scr().scrollTop, wy = window.scrollY; st.look[b.parentElement.dataset.cl] = b.dataset.v || null; draw(); scr().scrollTop = y; window.scrollTo(0, wy); });
       /* the slider redraws the preview when you let go (dragging only moves the label) */
       $('#hgt').oninput = e => { st.ht = +e.target.value; const l = $('#hgt').previousElementSibling; if (l) l.textContent = `Height · ${PB.fmtH(st.ht)}`; };
       $('#hgt').onchange = () => { keep(); draw(); };
@@ -421,7 +423,7 @@
     const rosters = {};
     for (const t of PB.TEAMS) { strengths[t.id] = Math.round(PB.rr(70, 82)); rosters[t.id] = PB.makeRoster(strengths[t.id]); }
     const r = startRatings(st);
-    const me = { id: 'me', first: st.first, last: st.last, from: st.from || '', pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {} };
+    const me = { id: 'me', first: st.first, last: st.last, from: st.from || '', pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {}, look: Object.assign({}, st.look) };
     me.ovr = PB.ovr(r, st.pos);
     /* the draft order: lottery teams (the weakest) pick first */
     const order = PB.TEAMS.slice().sort((a, b) => strengths[a.id] - strengths[b.id] + PB.gauss() * 3).map(t => t.id);
