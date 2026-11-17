@@ -83,6 +83,7 @@
       g.translate(X(0), Z(z)); g.rotate(rot); g.fillText(txt.toUpperCase(), 0, 0); g.restore();
     }
     const tex = new T.CanvasTexture(cv);
+    tex.colorSpace = T.SRGBColorSpace;   // the canvas is drawn in sRGB: say so, or the floor comes out washed pale
     tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     return tex;
   }
@@ -100,7 +101,7 @@
       g.fillStyle = PB.SKIN[Math.floor(PB.rand() * 6)];
       g.beginPath(); g.arc(x + 2.5, y + 3, 2.4, 0, 7); g.fill();
     }
-    const t = new T.CanvasTexture(cv); t.wrapS = T.RepeatWrapping; return t;
+    const t = new T.CanvasTexture(cv); t.wrapS = T.RepeatWrapping; t.colorSpace = T.SRGBColorSpace; return t;
   }
 
   function hoop(s) {
@@ -137,7 +138,7 @@
     g.font = '900 44px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
     const w = g.measureText(word.toUpperCase()).width, sc = Math.min(1, 240 / Math.max(1, w));
     g.save(); g.translate(128, 34); g.scale(sc, 1); g.fillStyle = color; g.fillText(word.toUpperCase(), 0, 0); g.restore();
-    return new T.CanvasTexture(cv);
+    const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; return t;
   }
   function numberTex(num, c1, c2) {
     const cv = document.createElement('canvas'); cv.width = cv.height = 128;
@@ -146,7 +147,7 @@
     g.font = '900 78px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.lineWidth = 8; g.strokeStyle = 'rgba(0,0,0,.35)'; g.strokeText(String(num), 64, 70);
     g.fillStyle = c2; g.fillText(String(num), 64, 70);
-    return new T.CanvasTexture(cv);
+    const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; return t;
   }
   function playerMesh(p, kit) {
     const root = new T.Group(), body = new T.Group();
@@ -410,8 +411,10 @@
     scene = new T.Scene();
     scene.fog = new T.Fog(0x0b0f17, 120, 260);
     cam = new T.PerspectiveCamera(46, 1, 1, 500);
-    scene.add(new T.HemisphereLight(0xfff6e8, 0x40342a, 0.95));
-    const sun = new T.DirectionalLight(0xffffff, 0.75); sun.position.set(20, 80, -30); scene.add(sun);
+    /* an arena rig: a warm fill, and two key lights high over the floor that put a sheen on the hardwood */
+    scene.add(new T.HemisphereLight(0xfff6e8, 0x3a3028, 0.78));
+    const sun = new T.DirectionalLight(0xffffff, 0.7); sun.position.set(20, 80, -30); scene.add(sun);
+    const key2 = new T.DirectionalLight(0xfff2dd, 0.35); key2.position.set(-25, 70, 40); scene.add(key2);
     R.resize();
     R.loadModel();
   };
@@ -424,27 +427,34 @@
     nets = [];
     const apron = new T.Mesh(new T.PlaneGeometry(90, 140), new T.MeshLambertMaterial({ color: 0x1c2333 }));
     apron.rotation.x = -Math.PI / 2; apron.position.y = -0.02; scene.add(apron);
-    courtMat = new T.MeshLambertMaterial({ map: courtTexture(home) });
+    courtMat = new T.MeshPhongMaterial({ map: courtTexture(home), shininess: 38, specular: 0x2a2620 });   // a polished floor: the lights glint off it
     const court = new T.Mesh(new T.PlaneGeometry(50, 94), courtMat);
     court.rotation.x = -Math.PI / 2; scene.add(court);
     scene.add(hoop(1)); scene.add(hoop(-1));
+    /* a pool of light on the floor, brightest at center court, fading toward the stands */
+    const lc = document.createElement('canvas'); lc.width = lc.height = 256;
+    const lg = lc.getContext('2d'), grd = lg.createRadialGradient(128, 128, 10, 128, 128, 128);
+    grd.addColorStop(0, 'rgba(255,240,220,0.09)'); grd.addColorStop(0.6, 'rgba(255,240,220,0.03)'); grd.addColorStop(1, 'rgba(255,248,235,0)');
+    lg.fillStyle = grd; lg.fillRect(0, 0, 256, 256);
+    const pool = new T.Mesh(new T.PlaneGeometry(80, 130), new T.MeshBasicMaterial({ map: new T.CanvasTexture(lc), transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+    pool.rotation.x = -Math.PI / 2; pool.position.y = 0.015; scene.add(pool);
     /* stands: tiers on all four sides */
     const crowd = crowdTexture();
     crowdMaps = [];
     for (let i = 0; i < 11; i++) {
       const h = 3 + i * 3.2, d = 8 + i * 5;
       for (const side of [-1, 1]) {
-        const m = new T.Mesh(new T.BoxGeometry(5, 3.2, 150), new T.MeshLambertMaterial({ map: crowd.clone() }));
+        const m = new T.Mesh(new T.BoxGeometry(5, 3.2, 150), new T.MeshLambertMaterial({ map: crowd.clone(), color: 0x8a8890 }));
         m.material.map.needsUpdate = true; m.material.map.repeat.set(6, 1); crowdMaps.push(m.material.map);
         m.position.set(side * (25 + d), h - 1.6, 0); scene.add(m);
-        const e = new T.Mesh(new T.BoxGeometry(80 + d * 2, 3.2, 5), new T.MeshLambertMaterial({ map: crowd.clone() }));
+        const e = new T.Mesh(new T.BoxGeometry(80 + d * 2, 3.2, 5), new T.MeshLambertMaterial({ map: crowd.clone(), color: 0x8a8890 }));
         e.material.map.needsUpdate = true; e.material.map.repeat.set(3, 1); crowdMaps.push(e.material.map);
         e.position.set(0, h - 1.6, side * (47 + 10 + d)); scene.add(e);
       }
     }
     /* the center-hung scoreboard: four screens over center court showing the score and the clock, and a ring of light */
     const jc = document.createElement('canvas'); jc.width = 512; jc.height = 256;
-    board = { cv: jc, g: jc.getContext('2d'), tex: new T.CanvasTexture(jc), key: '' };
+    board = { cv: jc, g: jc.getContext('2d'), tex: new T.CanvasTexture(jc), key: '' }; board.tex.colorSpace = T.SRGBColorSpace;
     const jm = new T.MeshBasicMaterial({ map: board.tex });
     const frame = new T.MeshLambertMaterial({ color: 0x15181f });
     const jb = new T.Group();
@@ -465,7 +475,7 @@
     rg.fillStyle = home.c1; rg.fillRect(0, 0, 512, 32);
     rg.fillStyle = home.c2; rg.font = '900 22px Archivo, Arial'; rg.textBaseline = 'middle';
     for (let x = 0; x < 512; x += 256) { rg.fillText(home.name.toUpperCase(), x + 10, 17); rg.fillRect(x + 200, 12, 40, 8); }
-    const rt = new T.CanvasTexture(rc); rt.wrapS = T.RepeatWrapping;
+    const rt = new T.CanvasTexture(rc); rt.wrapS = T.RepeatWrapping; rt.colorSpace = T.SRGBColorSpace;
     ribbons = [];
     for (const side of [-1, 1]) {
       const t1 = rt.clone(); t1.needsUpdate = true; t1.repeat.set(10, 1);
@@ -484,7 +494,8 @@
     bg.strokeStyle = '#2a140a'; bg.lineWidth = 2.4;
     for (const x of [0, 32, 64, 96]) { bg.beginPath(); bg.moveTo(x, 0); bg.lineTo(x, 64); bg.stroke(); }
     bg.beginPath(); bg.moveTo(0, 32); bg.lineTo(128, 32); bg.stroke();
-    ballMesh = new T.Mesh(new T.SphereGeometry(0.39, 16, 12), new T.MeshLambertMaterial({ map: new T.CanvasTexture(bc) }));
+    const btx = new T.CanvasTexture(bc); btx.colorSpace = T.SRGBColorSpace;
+    ballMesh = new T.Mesh(new T.SphereGeometry(0.39, 16, 12), new T.MeshLambertMaterial({ map: btx }));
     scene.add(ballMesh);
     ballShadow = new T.Mesh(new T.CircleGeometry(0.4, 12), new T.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0.3, depthWrite: false }));
     ballShadow.rotation.x = -Math.PI / 2; scene.add(ballShadow);
