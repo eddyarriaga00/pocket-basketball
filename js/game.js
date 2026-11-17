@@ -2015,7 +2015,8 @@
         iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
         iv.className = ''; iv.hidden = false; clearTimeout(iv.h);
         /* then the starting lineups, the way the broadcast shows them */
-        const five = t => pl.filter(p => p.team === t).sort((a, b) => a.slot - b.slot).map(p => `<li class="${p.isUser ? 'me' : ''}"><u>${p.num}</u>${p.name}<small>${p.d.pos || ''}</small></li>`).join('');
+        const shot = (p, t) => { try { return R.modelReady && R.modelReady() && !PB.noGL ? R.portrait(p.d, o.teams[t], 64, { close: true, kit: t === 0 ? 'icon' : 'assoc' }) : null; } catch (e) { return null; } };
+        const five = t => pl.filter(p => p.team === t).sort((a, b) => a.slot - b.slot).map(p => { const im = shot(p, t); return `<li class="${p.isUser ? 'me' : ''}">${im ? `<img alt="" src="${im}">` : ''}<u>${p.num}</u>${p.name}<small>${p.d.pos || ''}</small></li>`; }).join('');
         iv.h = setTimeout(() => {
           iv.className = 'lineups';
           iv.innerHTML = `<p>Starting lineups</p><div class="lu"><ol style="--c:${o.teams[0].c1}"><h4>${o.teams[0].name}</h4>${five(0)}</ol><ol style="--c:${o.teams[1].c1}"><h4>${o.teams[1].name}</h4>${five(1)}</ol></div>`;
