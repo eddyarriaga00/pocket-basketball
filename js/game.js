@@ -465,6 +465,7 @@
     const lx = clamp(r.x + r.vx * T0 * 0.8, -24, 24), lz = clamp(r.z + r.vz * T0 * 0.8, -46, 46);
     const hp = handPos(p);
     b.state = 'pass'; b.holder = null; b.from = p; b.to = r; b.t = 0;
+    p.pose = 'reach'; p.reachT = 0.28;   // the arm goes out on the throw
     b.sx = hp.x; b.sy = hp.y - 1; b.sz = hp.z; b.ex = lx; b.ez = lz; b.ey = r.ht / 12 * 0.6 + 1.2;
     b.dur = hyp(lx - p.x, lz - p.z) / 46 + 0.12; b.apex = 0.6 + b.dur * 1.4;
     b.passer = p; b.passT = G.t + b.dur;
@@ -956,6 +957,11 @@
       if (p.moveCd > 0) p.moveCd -= dt;
       if (p.reachCd > 0) p.reachCd -= dt;
       if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && p.pose === 'reach') p.pose = ''; }
+      if (p.holdPoseT > 0) { p.holdPoseT -= dt; if (p.holdPoseT <= 0 && p.pose === 'hold') p.pose = ''; }
+      /* going up for a rebound: the ball coming down near you, above your reach */
+      if (b.state === 'loose' && !p.isUser && p.y === 0 && b.vy < 0 && b.y > 8 && b.y < 13 && hyp(b.x - p.x, b.z - p.z) < 3.2 && rand() < dt * 6) {
+        p.jg = GRAV * 1.5; p.vy = Math.sqrt(2 * p.jg * (1.6 + p.r.vert * 0.022)); p.pose = 'contest';
+      }
       if (p.celebT > 0) { p.celebT -= dt; if (!p.shoot && G.ball.holder !== p && p.y === 0) p.pose = p.celebT > 0 ? 'celebrate' : ''; }
       if (p.wantBall > 0) p.wantBall -= dt;
       if (p.shoot) {
@@ -1058,7 +1064,7 @@
           r.shoot = { t: 0, T: 0.14, kind: 'dunk', user: false, three: false, d: distHoop(r.x, r.z, r.team), aiRel: 0.82, oop: true };
           toast('ALLEY-OOP', r.team === 0 ? 'make' : 'opp'); AU().crowd.react('ooh', 1);
         }
-        else if (hyp(r.x - b.x, r.z - b.z) < 4) { give(r); r.caughtT = G.t; AU().play('catch', { x: r.x, vol: 0.7 }); }
+        else if (hyp(r.x - b.x, r.z - b.z) < 4) { give(r); r.caughtT = G.t; r.pose = 'hold'; r.holdPoseT = 0.3; AU().play('catch', { x: r.x, vol: 0.7 }); }
         else { b.state = 'loose'; b.vx = (b.ex - b.sx) / b.dur * 0.5; b.vz = (b.ez - b.sz) / b.dur * 0.5; b.vy = 0; b.lastTouch = b.from.team; G.reb = null; }
       }
       return;
