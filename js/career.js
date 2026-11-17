@@ -132,7 +132,7 @@
       <li>The Dunk Contest, a Daily challenge, a shoot-around in Practice</li>
       <li>Call a pick or a play; post up as a big; hooks and fadeaways; pick your jump shot</li>
       <li>The rules: eight seconds, backcourt, three seconds, goaltending, inbounds, foul trouble</li>
-      <li>The bench plays; referees, coaches, fans in the home colors; a booth of 260 calls and players talking</li>
+      <li>The bench plays; referees, coaches, fans in the home colors; a booth of 274 calls and players talking</li>
       <li>Training camp, team interviews, Player of the Week, the fan vote, injuries, trades, rookies</li>
       <li>Your highlights after every game, saved as a vertical video; a player card to share; achievements</li></ul>
       <button class="big" id="newok">Let's go</button>`;

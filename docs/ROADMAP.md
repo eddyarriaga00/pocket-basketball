@@ -151,7 +151,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Up to six careers on a device; back one up to a file and bring it in on another device (2026-11-17)
 - [x] Practice: the 3-point contest and the spot-up drill from the menu, with a best score (2026-11-17)
 - [x] Edit teams on your device: city, nickname, short name, colors (2026-11-17)
-- [x] Commentary recorded on a local speech model: 260 clips, four voices (play-by-play, analyst, arena announcer,
+- [x] Commentary recorded on a local speech model: 274 clips, four voices (play-by-play, analyst, arena announcer,
       players on the floor) (2026-11-17)
 - [x] Game controllers (2026-11-17)
 - [x] A phone turned sideways gets a turn-upright screen and the game pauses; desktops keep the centered column (2026-11-17)

@@ -53,7 +53,7 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
 - Three cameras: Player lock (the default: high behind your player, facing the rim in play), Broadcast (the
   sideline) and Overhead.
 - Sound: a crowd that reacts to the home team (roars, groans, oohs, "DE-FENSE"), the arena organ, squeaks, the
-  net, the rim, the whistle, the horn, a two-voice broadcast booth and an arena announcer (260 recorded lines), and
+  net, the rim, the whistle, the horn, a two-voice broadcast booth and an arena announcer (274 recorded lines), and
   players talking on the floor.
 - Referees, benches and coaches, fans in the home colors, starting lineups before the tip.
 
