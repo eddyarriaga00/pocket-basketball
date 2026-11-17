@@ -688,7 +688,7 @@
 
   R.setZoom = z => { zoom = PB.clamp(z, 0.7, 1.5); };
   let replay = false, replayA = 0;
-  let intro = 0;   // seconds left of the opening flyover
+  let intro = 0, introT = 3.2;   // seconds left of the opening flyover, and its length
   /* the showcase: you alone at center court in your team's uniform, the camera circling slowly; draft night and
      awards night draw it behind their cards */
   let show = null;
@@ -714,7 +714,7 @@
     };
     show.raf = requestAnimationFrame(loop);
   };
-  R.setIntro = sec => { intro = sec; };
+  R.setIntro = sec => { intro = sec; if (sec > 0) introT = sec; };
   R.setReplay = on => { replay = on; replayA = PB.rand() * Math.PI * 2; };
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
   R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
@@ -813,7 +813,7 @@
     if (intro > 0) {
       /* the opening: high over the arena, sweeping down toward center court */
       intro = Math.max(0, intro - dt);
-      const k = 1 - intro / 3.2, a = 2.4 - k * 2.4;
+      const k = 1 - intro / introT, a = 2.4 - k * 2.4;
       cam.position.set(Math.sin(a) * (70 - k * 30), 48 - k * 26, Math.cos(a) * (70 - k * 30) - 10 * k);
       cam.lookAt(0, 6 - k * 4, 0);
       camPos.copy(cam.position); camLook.set(0, 2, 0);

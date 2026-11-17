@@ -79,7 +79,15 @@
     'Whitfield', 'Barnes', 'Ellison', 'Ford', 'Gibson', 'Harmon', 'Ivey', 'Jefferson', 'Keller', 'Lowry', 'Maddox', 'Nash',
     'Osei', 'Petrovic', 'Quinn', 'Rowe', 'Sato', 'Tucker', 'Underwood', 'Vance', 'Whitley', 'Young', 'Zeller', 'Abara',
     'Booker', 'Crane', 'Dunleavy', 'Easton', 'Farrow', 'Greer', 'Hollins', 'Iwundu', 'Jessup', 'Kerr', 'Larkin', 'Mensah',
-    'Novak', 'Ortega', 'Pruitt', 'Rollins', 'Sabally', 'Thornton', 'Ugwu', 'Valdez', 'Wexler', 'Yates', 'Diallo', 'Mbeki'];
+    'Novak', 'Ortega', 'Pruitt', 'Rollins', 'Sabally', 'Thornton', 'Ugwu', 'Valdez', 'Wexler', 'Yates', 'Diallo', 'Mbeki',
+    'Ashby', 'Bellamy', 'Calloway', 'Dorsey', 'Fairley', 'Hargrove', 'Kimbrough', 'Lockhart', 'Merritt', 'Nwosu', 'Oduya',
+    'Pennington', 'Radcliffe', 'Sterling', 'Upshaw', 'Vickers', 'Abernathy', 'Blackwood', 'Cortland', 'Delacroix', 'Emerson',
+    'Fenwick', 'Gaines', 'Hightower', 'Kingsley', 'Lennox', 'Montague', 'Nolan', 'Ogden', 'Prescott', 'Redmond', 'Sinclair',
+    'Talbot', 'Upton', 'Yardley', 'Zamora', 'Adeyemi', 'Baptiste', 'Okonkwo', 'Haddad', 'Lindgren', 'Moreno', 'Saldana',
+    'Takeda', 'Varga', 'Brandt', 'Duquesne', 'Ferreira', 'Galvan', 'Hollis', 'Jarrett', 'Kessler', 'Mabry', 'Pickett'];
+  /* first and last names are drawn apart; these pairs belong to real players, so they are never dealt */
+  PB.REAL = new Set(['Devin Booker', 'Lonnie Walker', 'Emeka Okafor', 'Wes Iwundu', 'Marcus Thornton', 'Trey Young', 'Isaiah Thomas',
+    'Jordan Walker', 'Grant Hill', 'Andre Miller', 'Aaron Gordon', 'Moses Brown', 'Caleb Martin', 'Javon Freeman', 'Keon Ellis']);
 
   /* Attributes, 25..99. */
   PB.ATTRS = [
@@ -159,9 +167,12 @@
   };
 
   let pid = 1;
+  PB.randName = () => { let f = PB.pick(PB.FIRST), l = PB.pick(PB.LAST); while (PB.REAL.has(f + ' ' + l)) l = PB.pick(PB.LAST); return f + ' ' + l; };
   PB.makePlayer = (pos, target, age) => {
     const h = PB.HEIGHT[pos];
-    const p = { id: 'p' + (pid++) + '_' + Math.floor(PB.rand() * 1e6), first: PB.pick(PB.FIRST), last: PB.pick(PB.LAST), pos,
+    let first = PB.pick(PB.FIRST), last = PB.pick(PB.LAST);
+    while (PB.REAL.has(first + ' ' + last)) last = PB.pick(PB.LAST);
+    const p = { id: 'p' + (pid++) + '_' + Math.floor(PB.rand() * 1e6), first, last, pos,
       ht: PB.ri(h[0], h[1]), age: age || PB.ri(20, 34), num: PB.ri(0, 55), r: PB.makeRatings(pos, target), skin: PB.ri(0, 5) };
     p.ovr = PB.ovr(p.r, pos);
     return p;
@@ -176,6 +187,7 @@
       const p = PB.makePlayer(pos[i], Math.round(t + PB.gauss() * 2));
       while (used.has(p.num)) p.num = PB.ri(0, 55);
       used.add(p.num);
+      for (let k = 0; k < 20 && (out.some(q => q.last === p.last) || PB.REAL.has(p.first + ' ' + p.last)); k++) p.last = PB.pick(PB.LAST);   // no two Harmons on one bench
       out.push(p);
     });
     return out;

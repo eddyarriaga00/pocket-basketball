@@ -1734,11 +1734,18 @@
       G.ball.state = 'tip';
       /* the opening: a sweep over the arena with the matchup on screen; a tap skips it */
       if (!o.drill && !o.enterAt) {
-        G.tipT = 3.6; R.setIntro(3.2);
+        G.tipT = 6.2; R.setIntro(5.8);
         const iv = $('#intro');
         iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
-        iv.hidden = false; clearTimeout(iv.h); iv.h = setTimeout(() => { iv.hidden = true; }, 3300);
-        iv.onclick = () => { iv.hidden = true; R.setIntro(0); G.tipT = Math.min(G.tipT, 1.0); };
+        iv.className = ''; iv.hidden = false; clearTimeout(iv.h);
+        /* then the starting lineups, the way the broadcast shows them */
+        const five = t => pl.filter(p => p.team === t).sort((a, b) => a.slot - b.slot).map(p => `<li class="${p.isUser ? 'me' : ''}"><u>${p.num}</u>${p.name}<small>${p.d.pos || ''}</small></li>`).join('');
+        iv.h = setTimeout(() => {
+          iv.className = 'lineups';
+          iv.innerHTML = `<p>Starting lineups</p><div class="lu"><ol style="--c:${o.teams[0].c1}"><h4>${o.teams[0].name}</h4>${five(0)}</ol><ol style="--c:${o.teams[1].c1}"><h4>${o.teams[1].name}</h4>${five(1)}</ol></div>`;
+          iv.h = setTimeout(() => { iv.hidden = true; }, 3100);
+        }, 2600);
+        iv.onclick = () => { clearTimeout(iv.h); iv.hidden = true; R.setIntro(0); G.tipT = Math.min(G.tipT, 1.0); };
       }
       /* the other team wears white when its color is too close to yours */
       const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));

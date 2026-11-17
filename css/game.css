@@ -302,3 +302,13 @@ input[type=color]{height:44px;padding:4px}
 .card.rec span{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
 .card.rec b{font-family:var(--display);font-size:26px;grid-row:span 2;align-self:center}
 .card.rec small{color:var(--ink);font-size:13px}
+/* the starting lineups, after the matchup */
+#intro.lineups{justify-content:center;gap:12px}
+#intro.lineups>p{margin:0;color:var(--acc);font-family:var(--display);font-weight:900;font-size:13px}
+#intro .lu{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:calc(100% - 32px);max-width:420px}
+#intro ol{list-style:none;margin:0;padding:10px;border-radius:14px;background:rgba(10,13,20,.78);border-top:4px solid var(--c)}
+#intro h4{margin:0 0 6px;font-family:var(--display);font-weight:900;font-size:15px;text-transform:uppercase}
+#intro li{display:grid;grid-template-columns:28px 1fr auto;gap:4px;align-items:center;padding:4px 0;font-size:13px;border-top:1px solid rgba(255,255,255,.08)}
+#intro li u{text-decoration:none;font-family:var(--display);font-weight:800;color:var(--mute)}
+#intro li small{font-size:10px;color:var(--mute);letter-spacing:.06em}
+#intro li.me{color:var(--green)}

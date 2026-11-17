@@ -1379,7 +1379,7 @@
     const stars = pool.concat([mine]).sort((a, b) => b.score - a.score);
     const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
     const rook = [mine, { name: PB.full(rv), team: C.rival.team, ppg: rs.pts / rg, rpg: rs.reb / rg, apg: rs.ast / rg }]
-      .concat([0, 1].map(() => ({ name: PB.pick(PB.FIRST) + ' ' + PB.pick(PB.LAST), team: PB.pick(PB.TEAMS).id, ppg: 9 + PB.rand() * 8, rpg: 2 + PB.rand() * 5, apg: 1 + PB.rand() * 4 })));
+      .concat([0, 1].map(() => ({ name: PB.randName(), team: PB.pick(PB.TEAMS).id, ppg: 9 + PB.rand() * 8, rpg: 2 + PB.rand() * 5, apg: 1 + PB.rand() * 4 })));
     rook.forEach(x => { x.score = x.ppg + (x.rpg + x.apg) * 0.5; });
     const aw = [];
     const win = (title, list, key) => { const w = list.slice().sort((a, b) => b[key || 'score'] - a[key || 'score'])[0]; aw.push([title, w]); return w.me; };

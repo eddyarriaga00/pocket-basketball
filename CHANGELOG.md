@@ -33,7 +33,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - The rules: eight seconds, backcourt, three seconds in the lane (with a warning), goaltending. Jump at a shot on
   its way up and you can block it in the air.
 - Markers: the arrow over your pass target, the ring under your man, a release flash; the coverage on every shot.
-- Replays of dunks and buzzer-beaters, an opening flyover, halftime stats, a shot chart and box score.
+- Replays of dunks and buzzer-beaters, an opening flyover with the starting lineups, halftime stats, a shot chart and box score.
 - Controllers, a left-handed layout, shot timing (easy, normal, hard), vibration on Android.
 
 **Career**
