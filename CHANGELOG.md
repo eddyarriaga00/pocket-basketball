@@ -25,6 +25,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - The pick-and-roll, help defense, closeouts, switches, post-ups and hooks, alley-oops, floaters, one- and
   two-handed dunks, misses that rattle on the rim, charges, strips, team fouls and the bonus, fouling out,
   holding for the last shot, fouling to stop the clock, timeouts, stamina, a jump ball.
+- Foul trouble: too many fouls too early and the coach sits you for the rest of the quarter.
 - Inbound plays from the baseline and the sideline; if you take it out, Pass throws it in.
 - The rules: eight seconds, backcourt, three seconds in the lane (with a warning), goaltending. Jump at a shot on
   its way up and you can block it in the air.
@@ -33,6 +34,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - Controllers, a left-handed layout, shot timing (easy, normal, hard), vibration on Android.
 
 **Career**
+- Fixed: a simulated stretch of a quick game (fouling out) could leave the score blank.
 - The pre-draft combine (it moves your pick), draft night in 3D, a rival from your draft class you guard in rival
   games, coach trust and your role (off the bench you check in later), a word from the coach, game goals, team
   practice, life between games, press conferences, a feed, followers and shoe endorsements.

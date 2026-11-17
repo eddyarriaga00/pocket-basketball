@@ -87,7 +87,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Twelve badges, bronze to gold, earned by doing the thing in games, each with a small effect (2026-11-17)
 
 - [x] Off the bench: a sixth man checks in mid-first quarter, a bench player in the second (2026-11-17)
-- [ ] Substitutions, fatigue and foul trouble during a game
+- [x] Foul trouble: two fouls in the first quarter, three in the second, four in the third and you sit the rest of it (2026-11-17)
+- [ ] Substitutions and fatigue during a game
 - [x] A word from the coach every five games; ask for more minutes (it works when you've earned it) (2026-11-17)
 - [x] Game goals: three a game by position, +2 skill points each (2026-11-17)
 - [x] Life between games: small choices (a camp, film, a party, a podcast, a trainer, a hospital visit) (2026-11-17)

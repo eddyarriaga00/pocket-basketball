@@ -755,9 +755,23 @@
      side in the bonus: every foul after it is two free throws. */
   /* six fouls and you are done for the night: the rest of the game is played out */
   function checkFoulOut(p) {
-    if (!p || !p.isUser || G.switching || p.st.pf < 6 || G.fouledOut) return;
+    if (!p || !p.isUser || G.switching || G.drill || G.fouledOut) return;
+    /* foul trouble: two in the first quarter, three in the second, four in the third, and the coach sits you for the
+       rest of that quarter (at the next dead ball) */
+    const lim = [0, 2, 3, 4][G.q];
+    if (p.st.pf < 6) { if (lim && p.st.pf >= lim && G.sitQ !== G.q && !(G.satQ || []).includes(G.q)) { G.sitQ = G.q; toast(`${p.st.pf} fouls`, 'opp'); } return; }
     G.fouledOut = true; toast('Fouled out', 'opp'); feed('You fouled out'); grade(-2, 'Fouled out'); B('fouledout', { prio: 6 });
     setTimeout(() => { if (PB.Game.active && G && !G.replay) simRest(); }, 2200);
+  }
+  /* the rest of the quarter on the bench: played out by the teams' strength, then you check back in */
+  function sitOut() {
+    const left = Math.max(0, G.clock), poss = left / 14;
+    for (const t of [0, 1]) { const str = ((opts.strength && opts.strength[t]) || 75); G.score[t] += Math.max(0, Math.round(poss / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * 1.2)); }
+    (G.satQ = G.satQ || []).push(G.q); G.sitQ = 0;
+    if (G.inb) { G.inb.p.inb = false; G.inb = null; }
+    toast('Foul trouble: you sit', 'opp'); feed(`Foul trouble · you sit the rest of the ${['', '1st', '2nd', '3rd'][G.q]} quarter`);
+    G.clock = 0; endPeriod();
+    setTimeout(() => { if (PB.Game.active && G) toast('You check back in', 'call'); }, 3200);
   }
   function contactFoul(def, off) {
     def.st.pf++;
@@ -806,7 +820,7 @@
       if (!p.isUser && man.drive > 0 && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * 1.05 * (1.3 - p.r.perD / 140)) { contactFoul(p, man); return; }
       /* a driver who runs into a defender set in his path: the charge */
       if (!p.isUser && man.drive > 0 && p.stun <= 0 && hyp(p.vx, p.vz) < 3 && hyp(man.x - p.x, man.z - p.z) < 2.4 && G.phase === 'live' && rand() < dt * 0.35) {
-        man.st.tov++; man.st.pf++; if (man.isUser) grade(-2, 'Charge');
+        man.st.tov++; man.st.pf++; if (man.isUser) grade(-2, 'Charge'); checkFoulOut(man);
         AU().play('whistle'); toast('Offensive foul', man.team === 0 ? 'opp' : ''); feed(`Charge · ${man.name}`); B('turnover', { prio: 2 });
         for (const o of G.pl) { o.shoot = null; o.drive = 0; }
         G.poss = null; dead(0.9, () => give(p)); return;
@@ -1062,6 +1076,7 @@
     /* clocks */
     if (G.drill) drillStep(dt);
     else if (G.phase === 'live') {
+      if (G.sitQ === G.q && G.inb && !G.auto) { sitOut(); return; }
       if (G.inb) inboundStep(dt);
       if (!G.inb || !G.inb.stop) G.clock -= dt;
       if (G.poss !== null && !G.inb && (b.state === 'held' || b.state === 'pass')) G.shotClock -= dt;
@@ -1341,7 +1356,7 @@
     const left = Math.max(0, G.clock) + Math.max(0, 4 - G.q) * G.qlen * 60;
     const poss = left / 14;
     for (const t of [0, 1]) {
-      const str = opts.strength ? opts.strength[t] : 75;
+      const str = ((opts.strength && opts.strength[t]) || 75);
       const ppp = 1.08 + (str - 75) * 0.012;
       G.score[t] += Math.round(poss / 2 * ppp + PB.gauss() * 2);
     }
@@ -1659,7 +1674,7 @@
       if (o.enterAt) {
         const secs = o.enterAt * G.qlen * 60 * 4;
         const poss = secs / 14;
-        for (const t of [0, 1]) { const str = o.strength ? o.strength[t] : 75; G.score[t] += Math.max(0, Math.round(poss / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * 1.5)); }
+        for (const t of [0, 1]) { const str = ((o.strength && o.strength[t]) || 75); G.score[t] += Math.max(0, Math.round(poss / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * 1.5)); }
         let left = secs; while (left >= G.clock) { left -= G.clock; G.q++; G.clock = G.qlen * 60; }
         G.clock -= left;
         G.phase = 'dead'; G.deadT = 1.6; G.tipWinner = 0;

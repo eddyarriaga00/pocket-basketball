@@ -212,11 +212,11 @@
     $('#go').onclick = () => {
       const a = PB.team($('#qa').value), b = PB.team($('#qb').value);
       if (a === b) { alert('Pick two different teams.'); return; }
-      const ra = PB.makeRoster(78).slice(0, 5), rb = PB.makeRoster(78).slice(0, 5);
+      const fa = PB.makeRoster(78), fb = PB.makeRoster(78), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
       const team = slot === 'team'; if (!team) { ra[slot].first = 'You'; ra[slot].last = 'You'; }
       scr().hidden = true;
       PB.Game.start({ teams: [a, b], rosters: [ra, rb], userId: ra[team ? 0 : slot].id, switching: team, qlen: S.qlen, level: S.level,
-        strength: [PB.teamOvr(ra), PB.teamOvr(rb)], onEnd: r => result(r, null) });
+        strength: [PB.teamOvr(fa), PB.teamOvr(fb)], onEnd: r => result(r, null) });
     };
   }
 
