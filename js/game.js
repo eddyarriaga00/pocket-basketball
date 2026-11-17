@@ -118,6 +118,7 @@
     def: 'Defense. Lift your thumb and you stay in front of your man by yourself. JUMP to contest, STEAL to reach.',
     mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
     ft: 'Free throw: hold SHOOT and let go in the green band.',
+    pick: 'PICK brings your big over to screen your man. Pause (top left) to call a play for the next three trips.',
   };
   let seenTips = null;
   function tip(k) {
@@ -180,7 +181,9 @@
     $('#bB').classList.toggle('lit', !has && off && G.callT > 0);
     $('#bC').textContent = has ? 'Move' : off ? 'Cut' : G.switching ? 'Switch' : 'Help';
     if (G.drill && G.drill.kind === 'dunk') { $('#bA').textContent = 'Dunk'; $('#bC').textContent = 'Style'; }
-    $('#bD').classList.toggle('on', has && !u.inb && !G.drill && G.phase === 'live' && along(u.z, u.team) < RIM);
+    const pk = has && !u.inb && !G.drill && G.phase === 'live' && along(u.z, u.team) < RIM;
+    $('#bD').classList.toggle('on', pk);
+    if (pk && G.t > 12 && seenTips && seenTips.ball && $('#tipcard').hidden) tip('pick');   // after the ball tip has had its moment
   }
   /* call for a pick: the nearest big comes to set a screen on your man, then rolls to the rim */
   function pressD() {
