@@ -46,6 +46,11 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 ## M1 · Feel (next)
 
+- [x] Sound (2026-11-16): recorded CC0 squeaks, net, dribble, board and whistle (`tools/sfx.py`, credits in
+      docs/CREDITS.md); the crowd, rim, horn, buzzer, catches and menu beat made in code; the crowd follows the home
+      team, rises late in close games, hushes at the line and chants on defense; muffled on pause; Sound and Menu
+      music switches in Settings
+
 - [ ] **Scoring is ~20% low.** Last balance run (3 games): 89 pts, 82 FGA at 40.7%, 43 3PA at 31.1%, 11.5 FTA,
       12.7 steals (targets 114 / 89 at 47.5% / 35 at 36% / 22 / 8). Raise two-point finishing, fewer contested
       threes from the computer, non-shooting fouls and the bonus, fewer reach-in steals.
@@ -53,7 +58,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [ ] Better player figures: rounded torso and limbs, hands, hair styles, jersey trim, shorts that sway
 - [ ] Dribble moves on swipes of the right thumb (crossover, behind the back, step-back, spin)
 - [ ] Euro step and floater on drives; dunk variety
-- [ ] Sound: dribble, squeaks, rim and net, crowd, horn; haptics on release and makes
+- [ ] Haptics on release and makes
 - [ ] Replays of dunks, blocks and game-winners
 - [ ] Out-of-bounds inbound plays (a man takes it out on the sideline or baseline)
 - [ ] Backcourt and three-second violations, goaltending

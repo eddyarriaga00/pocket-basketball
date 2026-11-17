@@ -28,6 +28,8 @@ plays offline too)
 - **Teammate grade**: every bucket, assist, board, stop, forced shot and turnover moves it, live on the screen.
   After the game you see what moved it.
 - **Quick game**: any two teams, any position.
+- **Sound**: an arena that reacts (the home crowd roars, groans, oohs and chants "DE-FENSE"), squeaks, the net,
+  the rim, the whistle and the horn, and a beat in the menus. Recorded effects are public domain (docs/CREDITS.md).
 - **Three cameras**: Player lock (the default: high behind your player, facing the rim in play), Broadcast (the sideline)
   and Overhead, in Settings or on the pause screen.
 
@@ -57,4 +59,5 @@ Then open http://localhost:8000. Tests: `node tools/smoke.js` and `node tools/ba
 
 ## Built with
 
-Plain JavaScript and three.js (r159, from cdnjs), no build step. Every model and texture is made in code.
+Plain JavaScript and three.js (r159, from cdnjs), no build step. Every model and texture is made in code; a few
+sound effects are public-domain recordings.

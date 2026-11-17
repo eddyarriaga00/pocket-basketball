@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock' }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On' }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   const save = () => { if (C) store(KEY, C); };
@@ -22,6 +22,7 @@
 
   /* ---------- title ---------- */
   function title() {
+    if (PB.audio) PB.audio.music(true);
     C = load(KEY);
     show(`<div class="title">
       <div class="logo"><div class="ball"></div><h1>Pocket<br>Basketball</h1><p>Your career, from draft night to the Hall of Fame.</p></div>
@@ -52,6 +53,8 @@
   function settings() {
     const opt = (k, vals, lab) => `<div class="field"><label>${lab}</label><div class="seg" data-k="${k}">${vals.map(v => `<button class="${S[k] == v ? 'on' : ''}" data-v="${v}">${typeof v === 'number' && k === 'qlen' ? v + ' min' : v}</button>`).join('')}</div></div>`;
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Settings</h2>
+      ${opt('soundOn', ['On', 'Off'], 'Sound')}
+      ${opt('musicOn', ['On', 'Off'], 'Menu music')}
       ${opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera')}
       ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
       ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
@@ -60,7 +63,9 @@
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
     scr().querySelectorAll('.seg button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.k, v = b.dataset.v;
-      S[k] = isNaN(+v) ? v : +v; saveSettings(); settings();
+      S[k] = isNaN(+v) ? v : +v;
+      S.sound = S.soundOn !== 'Off'; S.music = S.musicOn !== 'Off';
+      saveSettings(); if (PB.audio) PB.audio.music(true); settings();
     });
   }
 
@@ -208,6 +213,7 @@
   /* ---------- the hub ---------- */
   let tab = 'home';
   function hub() {
+    if (PB.audio) PB.audio.music(true);
     if (C.gi >= C.games.length) { seasonEnd(); return; }
     const t = PB.team(C.team), me = C.me, g = C.games[C.gi], o = PB.team(g.opp);
     const st = C.standings[C.team], os = C.standings[g.opp];

@@ -11,6 +11,8 @@
   const hoopZ = team => team === 0 ? RIM : -RIM;      // the hoop a team attacks
   const dirOf = team => team === 0 ? 1 : -1;
   const hyp = Math.hypot;
+  const AU = () => PB.audio || { play() {}, crowd: { react() {}, level() {}, on() {} }, muffle() {}, music() {} };
+  const home = t => G && t === G.home;   // the crowd is the home team's
 
   let G = null, raf = 0, last = 0, opts = null;
   const input = { sx: 0, sy: 0, active: false, A: false, Adown: 0, B: 0, C: 0, keys: {} };
@@ -206,6 +208,7 @@
         o.st.blk++; if (o.isUser) grade(3, 'Block');
         if (p.isUser) grade(-1, 'Got blocked');
         toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
+        AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8);
         b.state = 'loose'; b.holder = null; b.lastTouch = o.team;
         b.x = hp.x; b.y = hp.y + 0.6; b.z = hp.z;
         const ang = rand() * 6.28;
@@ -231,7 +234,7 @@
     b.dur = s.kind === 'dunk' ? 0.22 : 0.42 + d * 0.026;
     b.apex = s.kind === 'dunk' ? 0.2 : s.kind === 'layup' ? 2 : 3.5 + d * 0.2;
     b.shot = { shooter: p, made, pts, foul, kind: s.kind, timing, prob };
-    if (foul) { foul.st.pf++; if (foul.isUser) grade(-1, 'Shooting foul'); }
+    if (foul) { foul.st.pf++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); }
   }
 
   let relT = 0;
@@ -246,6 +249,9 @@
       G.score[p.team] += s.pts;
       p.st.pts += s.pts; p.st.fgm++; if (s.pts === 3) p.st.tpm++;
       R.swish(p.team === 0 ? 1 : -1);
+      AU().play(s.kind === 'dunk' ? 'dunk' : s.prob > 0.55 || rand() < 0.62 ? 'swish' : 'rimin', { x: b.x });
+      if (home(p.team)) AU().crowd.react('roar', s.kind === 'dunk' ? 1.2 : s.pts === 3 ? 1 : 0.65); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.pts === 3 ? 0.8 : 0.5);
+      if (s.foul) { AU().crowd.react('roar', 1.1); }
       /* assist: a pass that set it up in the last few seconds */
       let ast = null;
       if (b.passer && b.passer.team === p.team && b.passer !== p && G.t - b.passT < 4.5) { ast = b.passer; ast.st.ast++; }
@@ -272,6 +278,8 @@
         dead(1.1, startFT);
         return;
       }
+      AU().play(rand() < 0.3 ? 'board' : 'rim', { x: b.ex, power: rr(0.5, 1) });
+      if (home(p.team) && G.lastShot.prob > 0.4) AU().crowd.react('aww', 0.6); else if (!home(p.team) && rand() < 0.4) AU().crowd.react('roar', 0.35);
       b.state = 'loose'; b.x = b.ex; b.y = b.ey; b.z = b.ez;
       const out = hyp(b.ex, b.ez - hoopZ(p.team)) || 1;
       const dx = b.ex / out, dz = (b.ez - hoopZ(p.team)) / out;
@@ -301,6 +309,7 @@
     }
     G.ball.state = 'held'; G.ball.holder = p;
     $('#ftmsg').textContent = `Free throw ${q.total - q.n + 1} of ${q.total}`; $('#ftmsg').hidden = false;
+    AU().play('whistle', { vol: 0.6 });
   }
   function shootFT(meter) {
     const q = G.ftq, p = q.shooter, b = G.ball;
@@ -330,8 +339,9 @@
     if (s.made) {
       G.score[p.team]++; p.st.pts++; p.st.ftm++;
       R.swish(p.team === 0 ? 1 : -1);
+      AU().play('swish', { x: b.x }); if (home(p.team)) AU().crowd.react('applause', 0.8);
       if (p.isUser) grade(0.6, 'Free throw');
-    } else if (p.isUser) grade(-0.6, 'Missed free throw');
+    } else { AU().play('rim', { x: b.ex, power: 0.6 }); if (home(p.team)) AU().crowd.react('aww', 0.6); else AU().crowd.react('roar', 0.4); if (p.isUser) grade(-0.6, 'Missed free throw'); }
     if (q.n > 0) { b.state = 'drop'; b.t = 0; dead(0.9, startFT); return; }
     $('#ftmsg').hidden = true;
     G.ftq = null;
@@ -475,6 +485,7 @@
         const ch = clamp(0.02 + (p.r.steal - man.r.handle) * 0.0012, 0.005, 0.06) * G.diff.oppSteal * (man.move > 0 ? 1.6 : 1);
         if (rand() < ch) {
           p.st.stl++; feed(`Steal · ${p.name}`); toast(p.team === 0 ? 'STOLEN' : 'Picked off', p.team === 0 ? 'make' : 'opp');
+          AU().play('steal', { x: p.x }); AU().crowd.react(home(p.team) ? 'roar' : 'groan', 0.8);
           man.st.tov++; if (man.isUser) grade(-3, 'Lost the ball'); if (p.isUser) grade(3, 'Steal');
           give(p);
         }
@@ -598,8 +609,9 @@
       const ch = clamp(0.12 + (u.r.steal - h.r.handle) * 0.004, 0.04, 0.38);
       if (rand() < ch) {
         u.st.stl++; h.st.tov++; grade(3, 'Steal'); toast('STOLEN', 'make'); feed(`Steal · ${u.name}`); give(u);
+        AU().play('steal', { x: u.x }); AU().crowd.react(home(0) ? 'roar' : 'ooh', 0.9);
       } else if (rand() < 0.14) {
-        u.st.pf++; grade(-1, 'Reaching foul'); feed(`Foul · ${u.name}`); toast('Reach-in foul', 'opp');
+        u.st.pf++; grade(-1, 'Reaching foul'); feed(`Foul · ${u.name}`); toast('Reach-in foul', 'opp'); AU().play('whistle');
         const hh = h; dead(0.9, () => give(hh)); G.shotClock = Math.max(G.shotClock, 14);
       }
     } else if (b.state === 'pass' && hyp(b.x - u.x, b.z - u.z) < 4.5 && rand() < 0.35 + u.r.steal * 0.003) {
@@ -640,7 +652,7 @@
         const t = rand() < 0.5 ? 0 : 1;
         G.tipWinner = t; G.phase = 'live';
         const pg = teamOf(t).find(o => o.slot === 0);
-        give(pg); feed(`${G.teams[t].name} win the tip`);
+        give(pg); feed(`${G.teams[t].name} win the tip`); AU().play('whistle', { vol: 0.7 });
       }
       b.x = 0; b.z = 0; b.y = 7 + Math.max(0, Math.sin((1.3 - G.tipT) * 2.5)) * 6;
       return;
@@ -650,6 +662,7 @@
       if (G.deadT <= 0) { G.phase = 'live'; const f = G.then; G.then = null; if (f) f(); }
     }
     if (G.phase === 'ft') {
+      AU().crowd.level(0.08);
       if (G.ftq.shooter.isUser && !G.auto) {
         if (G.ftMeter > 0) { G.ftMeter += dt / 0.9; if (G.ftMeter > 1.15) { const m = G.ftMeter; G.ftMeter = 0; shootFT(m); } }
       } else { G.ftWait -= dt; if (G.ftWait <= 0) shootFT(0); }
@@ -659,8 +672,12 @@
       G.clock -= dt;
       if (G.poss !== null && (b.state === 'held' || b.state === 'pass')) G.shotClock -= dt;
       if (G.callT > 0) G.callT -= dt;
+      /* the building: louder late in a close game, hushed at the line, and the home crowd chants on defense */
+      const late = G.q >= 4 ? clamp(1 - G.clock / (G.qlen * 60), 0, 1) : 0, close = clamp(1 - Math.abs(G.score[0] - G.score[1]) / 12, 0, 1);
+      AU().crowd.level(0.3 + 0.15 * (G.q - 1) / 3 + 0.5 * late * close);
+      if (G.poss === 1 - G.home && G.q >= 2 && close > 0.5 && G.t > (G.chantT || 25) && G.ball.state === 'held') { G.chantT = G.t + rr(35, 60); AU().crowd.react('chant', 0.8); }
       if (G.shotClock <= 0 && (b.state === 'held' || b.state === 'pass')) {
-        const t = G.poss; toast('SHOT CLOCK', 'opp');
+        const t = G.poss; toast('SHOT CLOCK', 'opp'); AU().play('buzzer'); AU().play('whistle', { delay: 0.5 });
         turnover(b.holder || b.from, 'Shot clock violation', 1 - t);
       }
       if (G.clock <= 0 && b.state !== 'shot') { endPeriod(); return; }
@@ -700,6 +717,12 @@
         if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate') p.pose = ''; }
       }
       p.x += p.vx * dt; p.z += p.vz * dt;
+      /* a hard cut squeaks the sneakers */
+      if (live) {
+        const acc = hyp(p.vx - (p.pvx || 0), p.vz - (p.pvz || 0)) / dt, spd = hyp(p.vx, p.vz);
+        if (acc > 70 && spd > 6 && G.t > G.squeakT && rand() < 0.35) { G.squeakT = G.t + rr(0.12, 0.35); AU().play('squeak', { x: p.x, vol: p.isUser ? 1 : 0.7 }); }
+      }
+      p.pvx = p.vx; p.pvz = p.vz;
       /* face: where you run, else the ball or the rim */
       const sp = hyp(p.vx, p.vz);
       let want;
@@ -728,7 +751,12 @@
     if (b.state === 'held') {
       const p = b.holder, hp = handPos(p);
       if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : 0.2); }
-      else { b.x = hp.x; b.z = hp.z; b.y = 0.4 + Math.abs(Math.sin(G.t * 8.5)) * 2.6; }
+      else {
+        b.x = hp.x; b.z = hp.z; b.y = 0.4 + Math.abs(Math.sin(G.t * 8.5)) * 2.6;
+        /* the bounce: one each time the ball meets the floor, quieter the farther it is from you */
+        const k = Math.floor(G.t * 8.5 / Math.PI);
+        if (k !== b.bk) { b.bk = k; if (G.phase === 'live') { const d = G.user ? hyp(b.x - G.user.x, b.z - G.user.z) : 20; AU().play('bounce', { x: b.x, vol: clamp(1.1 - d / 45, 0.25, 1) }); } }
+      }
       return;
     }
     if (b.state === 'pass') {
@@ -740,11 +768,11 @@
         o.st.stl++; p.st.tov++; G.picks = (G.picks || 0) + 1;
         if (o.isUser) grade(3, 'Picked it off'); if (p.isUser) grade(-3, 'Intercepted');
         toast(o.team === 0 ? 'PICKED OFF' : 'Intercepted', o.team === 0 ? 'make' : 'opp'); feed(`Steal · ${o.name}`);
-        give(o); return;
+        give(o); AU().play('steal', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'groan', 0.7); return;
       }
       if (u >= 1) {
         const r = b.to;
-        if (hyp(r.x - b.x, r.z - b.z) < 4) give(r);
+        if (hyp(r.x - b.x, r.z - b.z) < 4) { give(r); AU().play('catch', { x: r.x, vol: 0.7 }); }
         else { b.state = 'loose'; b.vx = (b.ex - b.sx) / b.dur * 0.5; b.vz = (b.ez - b.sz) / b.dur * 0.5; b.vy = 0; b.lastTouch = b.from.team; G.reb = null; }
       }
       return;
@@ -771,7 +799,7 @@
       if (G.phase !== 'live') return;
       if (Math.abs(b.x) > 25.3 || Math.abs(b.z) > 47.3) {
         const to = 1 - (b.lastTouch === undefined ? 0 : b.lastTouch);
-        toast('Out of bounds', ''); G.reb = null;
+        toast('Out of bounds', ''); G.reb = null; AU().play('whistle');
         turnover(null, 'Out of bounds', to, { x: b.x, z: b.z });
         return;
       }
@@ -794,7 +822,8 @@
           if (got.isUser) grade(off ? 2 : 1.5, off ? 'Offensive board' : 'Rebound');
           feed(`${off ? 'Offensive rebound' : 'Rebound'} · ${got.name}`);
           G.reb = null;
-          give(got, off ? 'oreb' : '');
+          give(got, off ? 'oreb' : ''); AU().play('catch', { x: got.x, vol: 0.6 });
+          if (off && home(got.team)) AU().crowd.react('roar', 0.5);
         } else give(got);
       }
     }
@@ -806,6 +835,7 @@
     g.q++;
     g.clock = g.q > 4 ? Math.max(60, g.qlen * 60 * 5 / 12) : g.qlen * 60;
     toast(g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, '');
+    AU().play('horn'); AU().crowd.react('applause', 0.7);
     g.poss = null;
     const t = g.q === 2 || g.q === 3 ? 1 - g.tipWinner : g.tipWinner;
     for (const p of g.pl) { p.shoot = null; p.drive = 0; p.pose = ''; }
@@ -819,6 +849,7 @@
   function finish() {
     G.phase = 'end';
     cancelAnimationFrame(raf);
+    AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
     const res = { score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q };
@@ -926,6 +957,7 @@
   }
   function pause(on) {
     G.paused = on;
+    AU().muffle(on);
     const ov = $('#pause');
     ov.hidden = !on;
     if (on) {
@@ -976,6 +1008,8 @@
         diff: { oppShot: D[0], oppShootEV: D[1], oppSteal: D[2], oppReb: D[3], mateShot: 1.0 },
         ball: { state: 'held', holder: null, x: 0, y: 7, z: 0, vx: 0, vy: 0, vz: 0, lastTouch: 0 } };
       G.user = pl.find(p => p.isUser) || null;
+      G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0;
+      AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
       /* jump ball setup: everyone around the center circle */
       for (const p of pl) {
         const d = dirOf(p.team);
