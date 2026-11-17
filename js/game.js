@@ -354,14 +354,14 @@
       if (o.team === p.team) continue;
       const d = hyp(o.x - p.x, o.z - p.z);
       if (d > 4.5 || (o.y < 0.4 && o.pose !== 'contest')) continue;
-      const ch = (o.r.block / 99) * (s.kind === 'jumper' ? 0.04 : s.kind === 'dunk' ? 0.06 : 0.24) * (1 - d / 4.5) * (o.ht >= p.ht ? 1.15 : 0.8) * (o.isUser ? 1.3 : 1) * (1 + 0.2 * bt(o, 'rim'));
+      const ch = (o.r.block / 99) * (s.kind === 'jumper' ? 0.05 : s.kind === 'dunk' ? 0.07 : 0.33) * (1 - d / 4.5) * (o.ht >= p.ht ? 1.15 : 0.8) * (o.isUser ? 1.3 : 1) * (1 + 0.2 * bt(o, 'rim'));
       if (rand() < ch) { blockShot(o, p, { x: hp.x, y: hp.y + 0.6, z: hp.z }); return; }
     }
     /* foul on the shot */
     let foul = null;
     /* contact on a drive that is not on the shot: a team foul; in the bonus (five in the quarter) it is two shots */
     if (nd.d < (s.kind === 'jumper' ? 3.4 : 5)) {
-      const fp = s.kind === 'jumper' ? 0.08 : s.kind === 'dunk' ? 0.36 : 0.4;
+      const fp = s.kind === 'jumper' ? 0.07 : s.kind === 'dunk' ? 0.3 : 0.34;
       if (rand() < fp) foul = nd.who;
     }
     const made = rand() < prob;
@@ -712,6 +712,15 @@
     const b = G.ball;
     p.hold += dt;
     p.think -= dt;
+    /* pressure: a man in his face now and then makes him travel or lose it off his foot */
+    if (G.phase === 'live' && !G.drill && !p.inb) {
+      const nd = nearestDef(p);
+      if (nd.d < 3 && rand() < dt * 0.019 * (1.25 - p.r.handle / 99) * (p.drive > 0 ? 1.6 : 1)) {
+        const why = rand() < 0.5 ? 'Traveling' : 'Lost it out of bounds';
+        toast(why, p.team === 0 ? 'opp' : ''); AU().play('whistle'); B('turnover', { prio: 2, follow: 0.3 }); tally('lost');
+        turnover(p, why, 1 - p.team, { x: p.x, z: p.z }); return;
+      }
+    }
     const tgt = spotOf(p);
     p.tx = tgt.x; p.tz = tgt.z;
     if (p.drive > 0) { p.drive -= dt; p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 3; }

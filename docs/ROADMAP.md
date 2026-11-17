@@ -56,7 +56,9 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Balance against the league (2026-11-17, 4 games): 115.9 pts, 89.6 FGA at 47.3%, 35.1 threes at 33.8%, 23.9 FTA
       at 81%, 9 TOV, 9 STL, 3.4 BLK, 40 REB, 32 AST, 2 alley-oops (real: 114, 89 at 47.5%, 35 at 36%, 22, 14, 8, 5,
       44, 27). Help defense, closeouts and switches on screens. `tools/balance.js` prints make rates by shot type.
-- [ ] Turnovers, blocks and fouls are still a little low; a few too many threes
+- [x] Rebalanced (2026-11-17, 8 games, with inbounds and violations): 111.9 pts, 83.8 FGA at 47.1%, 36.2 threes at
+      37.1%, 23.4 FTA, 13.8 TOV (travels and balls lost under pressure), 10 STL, 3.4 BLK, 19.7 PF
+- [ ] Rebounds a little low (37 against 44)
 - [x] The pick-and-roll: the big screens the handler's man, who gets caught; the big rolls (2026-11-17)
 - [x] Team fouls and the bonus; contact fouls on drives; floaters (2026-11-17)
 - [x] The booth: two original voices recorded with Chatterbox, 122 lines in 35 calls, wired to the game (2026-11-17)
