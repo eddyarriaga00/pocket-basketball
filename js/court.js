@@ -791,7 +791,8 @@
     show = { p, g };
     const loop = now => {
       show.raf = requestAnimationFrame(loop);
-      const dt = Math.min(0.05, (now - last) / 1000); last = now; g.t += dt; a += dt * 0.25;
+      if (now - last < 31) return;   // thirty frames a second is plenty behind a menu, and kinder to the battery
+      const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; g.t += dt; a += dt * 0.25;
       if (Math.sin(g.t * 0.5) > 0.98 && p.pose !== 'celebrate') { p.pose = 'celebrate'; setTimeout(() => { p.pose = ''; }, 1600); }
       R.update(g, dt);
       cam.position.set(Math.sin(a) * 17, 4.6 + Math.sin(a * 0.7) * 0.8, Math.cos(a) * 17);
