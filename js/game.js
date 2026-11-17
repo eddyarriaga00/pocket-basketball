@@ -134,8 +134,25 @@
       if (h[k] !== undefined && u.st[k] > h[k] && !G.highSaid[k]) { G.highSaid[k] = true; toast(`Career high: ${u.st[k]} ${n}`, 'make'); feed(`Career high · ${u.st[k]} ${n}`); AU().crowd.react('applause', 0.7); }
     }
   }
+  /* the radar: the whole floor at a glance, top right (Settings can turn it off) */
+  function radar() {
+    const cv = $('#radar'); if (!cv) return;
+    const on = !(PB.settings && PB.settings.radar === false) && !G.drill;
+    cv.hidden = !on; if (!on) return;
+    const g = cv.getContext('2d'), W = cv.width, Hh = cv.height, sx = x => W / 2 - x / 50 * W, sz = z => Hh / 2 - z / 94 * Hh;
+    g.clearRect(0, 0, W, Hh);
+    g.fillStyle = 'rgba(8,11,18,.72)'; g.fillRect(0, 0, W, Hh);
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1; g.strokeRect(1, 1, W - 2, Hh - 2);
+    g.beginPath(); g.moveTo(0, Hh / 2); g.lineTo(W, Hh / 2); g.stroke();
+    for (const z of [41.75, -41.75]) { g.beginPath(); g.arc(sx(0), sz(z), 2.5, 0, 7); g.stroke(); }
+    for (const p of G.pl) {
+      g.fillStyle = p.isUser ? '#4cffb0' : p.team === 0 ? G.teams[0].c1 === '#f2f2f2' ? '#ddd' : '#ffffff' : '#ff6a6a';
+      g.beginPath(); g.arc(sx(p.x), sz(p.z), p.isUser ? 3.6 : 2.6, 0, 7); g.fill();
+    }
+    g.fillStyle = '#ffb02e'; g.beginPath(); g.arc(sx(G.ball.x), sz(G.ball.z), 2, 0, 7); g.fill();
+  }
   function hud() {
-    highCheck();
+    highCheck(); radar();
     $('#game').classList.toggle('drill', !!(G && G.drill));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
     const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;

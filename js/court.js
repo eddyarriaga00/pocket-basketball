@@ -433,12 +433,13 @@
     let crouch = p.pose === 'guard' ? 0.5 : 0;
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;   // the gather: down into the legs before the jump
     const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;
-    const jump = air ? 1 : 0;
+    const shooting = p.shoot || p.pose === 'shoot';
+    const jump = air ? (shooting ? 0.3 : 1) : 0;   // a jumper goes up with straight legs, not the tuck of a leap
     const rest = Math.max(0, 1 - jump - dance);
     m.crouch = (m.crouch || 0) + (crouch - (m.crouch || 0)) * Math.min(1, dt * 8);
     const k = dt ? Math.min(1, dt * 10) : 1;
     const set = (n, w) => { const a = m.act[n]; if (!a) return; a.weight = a.weight + (w - a.weight) * k; a.setEffectiveWeight(a.weight); };
-    for (const [n] of LOCO) set(n, ws[n] * rest * (1 - m.crouch));
+    for (const [n] of LOCO) set(n, ws[n] * rest * (1 - m.crouch) + (air && shooting && n === 'Idle_Loop' ? 0.7 : 0));
     set('Crouch_Idle_Loop', rest * m.crouch * (1 - smooth(2, 6, sp)));
     set('Crouch_Fwd_Loop', rest * m.crouch * smooth(2, 6, sp));
     set('Jump_Loop', jump); set('Dance_Loop', dance);
