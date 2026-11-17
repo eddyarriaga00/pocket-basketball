@@ -397,3 +397,11 @@ input[type=color]{height:44px;padding:4px}
 .lookpv img.hd{object-fit:cover}
 .createpv{display:flex;flex-direction:column;align-items:center;margin:4px 0 10px;border-radius:16px;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.12),rgba(255,255,255,0) 70%)}
 .createpv img{height:240px;width:auto}.createpv p{margin:0 0 8px;font-size:12px;letter-spacing:.08em;color:rgba(255,255,255,.6);text-transform:uppercase}
+/* the starter's lower third */
+#intro.spot{justify-content:flex-end;padding-bottom:calc(150px + env(safe-area-inset-bottom));background:none}
+#intro .lt{display:flex;flex-direction:row;align-items:center;gap:12px;margin:0 16px;padding:10px 16px 10px 0;background:rgba(9,9,11,.88);border-radius:14px;overflow:hidden;border-left:6px solid var(--c);animation:ltin .35s ease-out}
+#intro .lt u{text-decoration:none;font-family:var(--display);font-weight:900;font-size:34px;min-width:58px;text-align:center}
+#intro .lt small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+#intro .lt b{font-family:var(--display);font-weight:900;font-size:22px;text-transform:uppercase;line-height:1.05}
+#intro .lt>div{align-items:flex-start;text-align:left}
+@keyframes ltin{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}

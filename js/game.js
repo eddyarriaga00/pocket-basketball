@@ -1354,6 +1354,7 @@
     if (G.switching && G.phase === 'live') autoSwitch();
     const b = G.ball;
     if (relT > 0) { relT -= dt; if (relT <= 0) $('#rel').className = ''; }
+    if (G.spotFn && G.phase === 'tip' && G.tipT < 2.85) { const f = G.spotFn; G.spotFn = null; f(); }   // the starter's close-up, in step with the camera
     /* the routine at the line: a few bounces, then the ball comes up to shoot */
     if (G.phase === 'ft' && G.ftq && G.ftq.shooter && G.ball.holder === G.ftq.shooter && !G.ftMeter) G.ftq.shooter.pose = G.t - (G.ftT0 || 0) < 0.95 ? 'dribble' : '';
     if (G.phase === 'tip') {
@@ -2028,7 +2029,7 @@
       G.ball.state = 'tip';
       /* the opening: a sweep over the arena with the matchup on screen; a tap skips it */
       if (!o.drill && !o.enterAt && !o.scenario) {
-        G.tipT = 6.2; R.setIntro(5.8);
+        G.tipT = 8.4; R.setIntro(8.0, G.user);
         const iv = $('#intro');
         iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
         iv.className = ''; iv.hidden = false; clearTimeout(iv.h);
@@ -2038,9 +2039,17 @@
         iv.h = setTimeout(() => {
           iv.className = 'lineups';
           iv.innerHTML = `<p>Starting lineups</p><div class="lu"><ol style="--c:${o.teams[0].c1}"><h4>${o.teams[0].name}</h4>${five(0)}</ol><ol style="--c:${o.teams[1].c1}"><h4>${o.teams[1].name}</h4>${five(1)}</ol></div>`;
-          iv.h = setTimeout(() => { iv.hidden = true; }, 3100);
+          /* then you, up close, the way the broadcast introduces a starter */
+          iv.h = setTimeout(() => { if (iv.className === 'lineups') iv.hidden = true; }, 3000);
+          G.spotFn = () => {
+            const u = G.user; if (!u) return;
+            clearTimeout(iv.h); iv.hidden = false;
+            iv.className = 'spot';
+            iv.innerHTML = `<div class="lt" style="--c:${o.teams[u.team].c1}"><u>${u.num}</u><div><small>${({ PG: 'Point guard', SG: 'Shooting guard', SF: 'Small forward', PF: 'Power forward', C: 'Center' })[u.d.pos] || ''} · ${o.teams[u.team].name}</small><b>${u.d.first || ''} ${u.d.last || u.name}</b></div></div>`;
+            iv.h = setTimeout(() => { iv.hidden = true; }, 2300);
+          };
         }, 2600);
-        iv.onclick = () => { clearTimeout(iv.h); iv.hidden = true; R.setIntro(0); G.tipT = Math.min(G.tipT, 1.0); };
+        iv.onclick = () => { clearTimeout(iv.h); iv.hidden = true; G.spotFn = null; R.setIntro(0); G.tipT = Math.min(G.tipT, 1.0); };
       }
       /* the other team wears white when its color is too close to yours */
       const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));

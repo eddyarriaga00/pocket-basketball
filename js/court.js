@@ -1313,7 +1313,8 @@
     };
     show.raf = requestAnimationFrame(loop);
   };
-  R.setIntro = sec => { intro = sec; if (sec > 0) introT = sec; };
+  let introFocus = null;
+  R.setIntro = (sec, focus) => { intro = sec; if (sec > 0) introT = sec; introFocus = sec > 0 ? focus || null : null; };
   R.setReplay = on => { replay = on; replayA = PB.rand() * Math.PI * 2; };
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
   R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
@@ -1440,10 +1441,19 @@
     if (G.show) return;
     if (intro > 0) {
       /* the opening: high over the arena, sweeping down toward center court */
-      intro = Math.max(0, intro - dt);
+      intro = G && G.phase === 'tip' && G.tipT > 0 ? Math.max(0, G.tipT - 0.4) : Math.max(0, intro - dt);   // in step with the tip
       const k = 1 - intro / introT, a = 2.4 - k * 2.4;
       cam.position.set(Math.sin(a) * (70 - k * 30), 48 - k * 26, Math.cos(a) * (70 - k * 30) - 10 * k);
       cam.lookAt(0, 6 - k * 4, 0);
+      /* the last stretch: close on your player, slowly circling */
+      if (introFocus && intro < 2.4) { const f = introFocus, H = (f.ht || 78) / 12;
+        /* from in front of him, on whichever side nobody stands in the way */
+        if (f.introA === undefined) { let best = -1; f.introA = f.face || 0;
+          for (const da of [0.35, -0.35, 0, 0.7, -0.7]) { const a0 = (f.face || 0) + da, cx = f.x + Math.sin(a0) * 8, cz = f.z + Math.cos(a0) * 8; let m = 99;
+            for (const o of G.pl) { if (o === f) continue; const vx = cx - f.x, vz = cz - f.z, L2 = vx * vx + vz * vz, t = Math.max(0, Math.min(1, ((o.x - f.x) * vx + (o.z - f.z) * vz) / L2)); m = Math.min(m, Math.hypot(f.x + vx * t - o.x, f.z + vz * t - o.z)); }
+            if (m > best + 0.3) { best = m; f.introA = a0; } } }
+        const aa = f.introA + (2.4 - intro) * 0.12;
+        cam.position.set(f.x + Math.sin(aa) * 8, H * 0.9, f.z + Math.cos(aa) * 8); cam.lookAt(f.x, H * 0.72, f.z); }
       camPos.copy(cam.position); camLook.set(0, 2, 0);
       if (intro === 0) R.snap();
       return;
