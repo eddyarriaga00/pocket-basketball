@@ -47,7 +47,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 - Up to six careers, backups to a file, Auto-upgrade, Sim 5 games, Sim to the playoffs, Edit teams.
 
 **Other modes**
-- Season: one team, the whole team under your thumbs, to a title. Quick game with whole-team control.
+- Season: one team, the whole team under your thumbs, to a title; playoff series (best of 1 to 7 by the season's
+  length), points, rebounds and assists leaders, a Finals MVP. Quick game with whole-team control.
   Practice: the contest and the drill from the menu.
 
 ## 2026-11-16 · the prototype

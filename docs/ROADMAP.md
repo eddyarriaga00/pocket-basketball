@@ -135,6 +135,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 - [x] Whole-team control in quick games: you are the ball handler, or the man guarding it; Switch on defense (2026-11-17)
 - [x] Season mode: one team, the whole team under your thumbs, standings, your leaders, an eight-team playoff (2026-11-17)
+- [x] Season mode playoff series (best of 1/3/5/7 by length), rebounds and assists, a Finals or team MVP (2026-11-17)
 - [ ] Training camp
 - [x] Up to six careers on a device; back one up to a file and bring it in on another device (2026-11-17)
 - [x] Practice: the 3-point contest and the spot-up drill from the menu, with a best score (2026-11-17)

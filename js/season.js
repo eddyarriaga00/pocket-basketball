@@ -1,7 +1,7 @@
 /* PocketBasketball: Season mode. Exposes PB.Season.
    One team, the whole team under your thumbs (you are whoever has the ball, or the man guarding it), through a
    season of 10, 20, 41 or 82 games, the standings, team leaders, and an eight-team playoff (the top four in each
-   conference) to a champion. Saved on the device under its own key, apart from careers. */
+   conference) in series (best of one, three, five or seven by the season's length) to a champion and a Finals MVP. Saved on the device under its own key, apart from careers. */
 (() => {
   'use strict';
   const PB = window.PB;
@@ -48,13 +48,16 @@
   function nextGame() {
     if (!Z.po) { const g = Z.games[Z.gi]; return g && { opp: g.opp, home: g.home, label: `Game ${Z.gi + 1} of ${Z.games.length} · ${g.home ? 'Home' : 'Away'}`, g }; }
     const m = Z.po.round.find(x => !x.w && (x.a === Z.team || x.b === Z.team));
-    return m && { opp: m.a === Z.team ? m.b : m.a, home: m.a === Z.team, label: `Playoffs · ${['Quarterfinal', 'Semifinal', 'Final'][Z.po.r]}`, m };
+    if (!m) return null;
+    const gn = (m.wa || 0) + (m.wb || 0) + 1, top = m.a === Z.team, home = [1, 2, 5, 7].includes(gn) ? top : !top;
+    const mine = top ? m.wa || 0 : m.wb || 0, theirs = top ? m.wb || 0 : m.wa || 0;
+    return { opp: top ? m.b : m.a, home, label: `Playoffs · ${['Quarterfinal', 'Semifinal', 'Final'][Z.po.r]}${m.bo > 1 ? ` · Game ${gn} (${mine}-${theirs})` : ''}`, m };
   }
   function hub() {
     if (PB.audio) PB.audio.music(true);
     const t = PB.team(Z.team), st = Z.st[Z.team], nx = nextGame();
     const conf = c => rank(c).map((id, i) => `<tr class="${id === Z.team ? 'me' : ''} ${i === 4 ? 'cut' : ''}"><td>${i + 1}</td><td>${badge(PB.team(id))} ${esc(PB.team(id).name)}</td><td>${Z.st[id].w}</td><td>${Z.st[id].l}</td></tr>`).join('');
-    const L = Object.values(Z.lead).filter(x => x.gp).map(x => ({ ...x, ppg: x.pts / x.gp })).sort((a, b) => b.ppg - a.ppg).slice(0, 5);
+    const L = Object.values(Z.lead).filter(x => x.gp).map(x => ({ ...x, ppg: x.pts / x.gp, rpg: (x.reb || 0) / x.gp, apg: (x.ast || 0) / x.gp })).sort((a, b) => b.ppg - a.ppg).slice(0, 5);
     let card;
     if (Z.champ) card = `<div class="next"><p class="kick">Champions</p><h3>The ${esc(PB.team(Z.champ).city)} ${esc(PB.team(Z.champ).name)}</h3><p>${Z.champ === Z.team ? 'You did it. A title.' : 'Not this year.'}</p><button class="big" id="again">New season</button></div>`;
     else if (nx) { const o = PB.team(nx.opp); card = `<div class="next"><p class="kick">${nx.label}</p><div class="vs"><div>${badge(t)}<b>${esc(t.name)}</b><span>${st.w}-${st.l} · ${strength(Z.team)}</span></div><em>vs</em><div>${badge(o)}<b>${esc(o.name)}</b><span>${Z.st[o.id].w}-${Z.st[o.id].l} · ${strength(o.id)}</span></div></div>
@@ -62,8 +65,9 @@
     else card = `<div class="next"><p class="kick">Playoffs</p><p>${Z.po ? 'You are out. The playoffs go on.' : 'The regular season is over.'}</p><button class="big" id="po">${Z.po ? 'Sim the rest' : 'To the playoffs'}</button></div>`;
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}"><div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(t.city)} ${esc(t.name)}</b><span>Season mode · ${st.w}-${st.l}</span></div></div><button class="ic" id="menu" aria-label="Menu">⌂</button></div>
       ${card}
-      ${Z.po ? `<div class="card bracket"><h3>Playoffs</h3>${Z.po.round.map(m => `<div class="sr ${m.a === Z.team || m.b === Z.team ? 'me' : ''}">${badge(PB.team(m.a))}<b>${m.w ? (m.w === m.a ? 'W' : 'L') : ''}</b><em>–</em><b>${m.w ? (m.w === m.b ? 'W' : 'L') : ''}</b>${badge(PB.team(m.b))}<span>${m.w ? esc(PB.team(m.w).name) : ''}</span></div>`).join('')}</div>` : ''}
-      ${L.length ? `<div class="card leaders"><h3>Your leaders <small>points a game</small></h3>${L.map((x, i) => `<p><span>${i + 1}</span>${esc(x.name)}<em>${x.ppg.toFixed(1)}</em></p>`).join('')}</div>` : ''}
+      ${Z.po ? `<div class="card bracket"><h3>Playoffs</h3>${Z.po.round.map(m => `<div class="sr ${m.a === Z.team || m.b === Z.team ? 'me' : ''}">${badge(PB.team(m.a))}<b>${m.bo > 1 ? m.wa || 0 : m.w ? (m.w === m.a ? 'W' : 'L') : ''}</b><em>–</em><b>${m.bo > 1 ? m.wb || 0 : m.w ? (m.w === m.b ? 'W' : 'L') : ''}</b>${badge(PB.team(m.b))}<span>${m.w ? esc(PB.team(m.w).name) : ''}</span></div>`).join('')}</div>` : ''}
+      ${L.length ? `<div class="card"><h3>Your leaders <small>a game</small></h3><table class="std"><tr><th></th><th>PTS</th><th>REB</th><th>AST</th></tr>${L.map(x => `<tr><td>${esc(x.name)}</td><td>${x.ppg.toFixed(1)}</td><td>${x.rpg.toFixed(1)}</td><td>${x.apg.toFixed(1)}</td></tr>`).join('')}</table></div>` : ''}
+      ${Z.mvp ? `<div class="card earn"><b>${esc(Z.mvp.title)}</b><span>${esc(Z.mvp.name)} · ${Z.mvp.line}</span></div>` : ''}
       ${['East', 'West'].map(c => `<div class="card"><h3>${c}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th></tr>${conf(c)}</table></div>`).join('')}
       <button class="ghost sm" id="quit">Start over with another team</button></div>`);
     $('#menu').onclick = () => PB.Career.title();
@@ -81,12 +85,18 @@
       onEnd: r => result(nx, r.score[0] > r.score[1], r) });
   }
   function result(nx, win, r) {
-    if (r) for (const b of r.box.filter(x => x.team === 0)) { const e = Z.lead[b.d.id] || (Z.lead[b.d.id] = { name: PB.full(b.d), gp: 0, pts: 0 }); e.gp++; e.pts += b.st.pts * 12 / (S().qlen || 3); }
+    const sc = 12 / (S().qlen || 3);
+    if (r) for (const b of r.box.filter(x => x.team === 0)) { const e = Z.lead[b.d.id] || (Z.lead[b.d.id] = { name: PB.full(b.d), gp: 0, pts: 0, reb: 0, ast: 0 }); e.gp++; e.pts += b.st.pts * sc; e.reb = (e.reb || 0) + b.st.reb * sc; e.ast = (e.ast || 0) + b.st.ast * sc; if (nx.m) { e.ppts = (e.ppts || 0) + b.st.pts * sc; e.pgp = (e.pgp || 0) + 1; } }
     if (!nx.m) {
       const g = nx.g; g.done = true; g.win = win;
       Z.st[Z.team][win ? 'w' : 'l']++; Z.st[g.opp][win ? 'l' : 'w']++;
       leagueDay([Z.team, g.opp]); Z.gi++;
-    } else { nx.m.w = win ? Z.team : nx.opp; for (const m of Z.po.round) if (!m.w) m.w = PB.rand() < winP(m.a, m.b, true) ? m.a : m.b; advance(); }
+    } else {
+      const m = nx.m; if (win === (m.a === Z.team)) m.wa = (m.wa || 0) + 1; else m.wb = (m.wb || 0) + 1;
+      decide(m);
+      for (const o of Z.po.round) if (o !== m && !o.w) { simOne(o); decide(o); }   // the other series play a game too
+      advance();
+    }
     save();
     const o = PB.team(nx.opp);
     show(`<div class="page post"><p class="kick">${r ? 'Final' : 'Simulated'}</p>
@@ -95,19 +105,32 @@
       <button class="big" id="go">Continue</button></div>`);
     $('#go').onclick = hub;
   }
+  /* series: best of one, three, five or seven by the season's length; the higher seed is home in games 1, 2, 5 and 7 */
+  const BO = () => ({ 10: 1, 20: 3, 41: 5, 82: 7 }[Z.games.length] || 3);
+  const mk = (a, b) => ({ a, b, wa: 0, wb: 0, bo: BO() });
+  function simOne(m) { const gn = m.wa + m.wb + 1, aHome = [1, 2, 5, 7].includes(gn); if (PB.rand() < winP(m.a, m.b, aHome)) m.wa++; else m.wb++; }
+  function decide(m) { const need = Math.ceil((m.bo || 1) / 2); if ((m.wa || 0) >= need) m.w = m.a; else if ((m.wb || 0) >= need) m.w = m.b; }
   function startPO() {
     const seeds = c => rank(c).slice(0, 4);
     const e = seeds('East'), w = seeds('West');
-    Z.po = { r: 0, round: [{ a: e[0], b: e[3] }, { a: e[1], b: e[2] }, { a: w[0], b: w[3] }, { a: w[1], b: w[2] }] };
+    Z.po = { r: 0, round: [mk(e[0], e[3]), mk(e[1], e[2]), mk(w[0], w[3]), mk(w[1], w[2])] };
     if (![...e, ...w].includes(Z.team)) while (!Z.champ) simRound();
   }
-  function simRound() { for (const m of Z.po.round) if (!m.w) m.w = PB.rand() < winP(m.a, m.b, true) ? m.a : m.b; advance(); }
+  function simRound() { for (const m of Z.po.round) while (!m.w) { simOne(m); decide(m); } advance(); }
   function advance() {
     if (Z.po.round.some(m => !m.w)) return;
     const ws = Z.po.round.map(m => m.w);
-    if (ws.length === 1) { Z.champ = ws[0]; return; }
-    Z.po.r++; Z.po.round = []; for (let i = 0; i < ws.length; i += 2) Z.po.round.push({ a: ws[i], b: ws[i + 1] });
+    if (ws.length === 1) { Z.champ = ws[0]; seasonMVP(); return; }
+    Z.po.r++; Z.po.round = []; for (let i = 0; i < ws.length; i += 2) Z.po.round.push(mk(ws[i], ws[i + 1]));
     if (!Z.po.round.some(m => m.a === Z.team || m.b === Z.team) && !Z.champ) { /* out: the rest plays on when asked */ }
+  }
+  /* the season's honor for your team: Finals MVP if you won it, else your team's MVP */
+  function seasonMVP() {
+    const won = Z.champ === Z.team, L = Object.values(Z.lead).filter(x => x.gp);
+    if (!L.length) return;
+    const by = won ? (x => (x.ppts || 0) / Math.max(1, x.pgp || 0)) : (x => (x.pts + (x.reb || 0) * 0.7 + (x.ast || 0)) / x.gp);
+    const b = L.sort((a, c) => by(c) - by(a))[0];
+    Z.mvp = { title: won ? 'Finals MVP' : 'Team MVP', name: b.name, line: `${(b.pts / b.gp).toFixed(1)} pts, ${((b.reb || 0) / b.gp).toFixed(1)} reb, ${((b.ast || 0) / b.gp).toFixed(1)} ast` };
   }
   PB.Season = { start };
 })();
