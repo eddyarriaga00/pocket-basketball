@@ -151,11 +151,11 @@
     const t = new T.CanvasTexture(cv); t.wrapS = T.RepeatWrapping; t.colorSpace = T.SRGBColorSpace; return t;
   }
 
-  function hoop(s) {
+  function hoop(s, home) {
     const g = new T.Group();
     const white = new T.MeshLambertMaterial({ color: 0xffffff });
     const steel = new T.MeshLambertMaterial({ color: 0x2a2f38 });
-    const pad = new T.MeshLambertMaterial({ color: 0x1a3a7a });
+    const pad = new T.MeshLambertMaterial({ color: home && home.c1 ? new T.Color(home.c1).multiplyScalar(0.8) : 0x16181d });   // the stanchion pad in the home team's color
     /* stanchion behind the baseline */
     const base = new T.Mesh(new T.BoxGeometry(4, 3, 5), pad); base.position.set(0, 1.5, s * 52); g.add(base);
     const pole = new T.Mesh(new T.BoxGeometry(0.7, 11, 0.7), steel); pole.position.set(0, 8, s * 51.5); g.add(pole);
@@ -1034,7 +1034,7 @@
     courtMat = new T.MeshPhongMaterial({ map: courtTexture(home), shininess: 38, specular: 0x2a2620 });   // a polished floor: the lights glint off it
     const court = new T.Mesh(new T.PlaneGeometry(50, 94), courtMat);
     court.rotation.x = -Math.PI / 2; scene.add(court);
-    scene.add(hoop(1)); scene.add(hoop(-1));
+    scene.add(hoop(1, home)); scene.add(hoop(-1, home));
     /* a pool of light on the floor, brightest at center court, fading toward the stands */
     const lc = document.createElement('canvas'); lc.width = lc.height = 256;
     const lg = lc.getContext('2d'), grd = lg.createRadialGradient(128, 128, 10, 128, 128, 128);

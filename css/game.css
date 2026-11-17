@@ -236,7 +236,7 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 #game.drill #bB,#game.drill:not(.dunk) #bC,#game.drill:not(.dunk) #stickzone,#game.drill:not(.dunk) #sc,#game.drill #feed,#game.drill #bD{display:none}
 .btn.d{width:48px;height:48px;right:136px;bottom:calc(112px + var(--sb));font-size:11px;display:none}
 .btn.d.on{display:block}
-#tipcard{position:absolute;left:12px;right:12px;bottom:calc(46% + 8px);background:rgba(10,14,22,.92);border:1px solid var(--acc);border-radius:14px;padding:11px 13px;font-size:13.5px;line-height:1.4;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#tipcard{position:absolute;left:12px;right:70px;top:calc(104px + env(safe-area-inset-top));background:rgba(10,14,22,.92);border:1px solid var(--acc);border-radius:14px;padding:11px 13px;font-size:13.5px;line-height:1.4;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .meters .wide{grid-column:1/-1}
 .offer .of{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;text-align:left}
 .offer .of .tb{min-width:44px;height:44px;border-radius:12px}
