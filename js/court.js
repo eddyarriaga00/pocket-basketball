@@ -250,6 +250,18 @@
         else if (/foot|toe/.test(name)) r = 3;
         reg[i] = r;
       }
+      /* trim: jersey or shorts vertices that share a triangle with skin get the team's second color (5) */
+      const idx = gm.index ? gm.index.array : null;
+      if (idx) {
+        const trim = new Uint8Array(n);
+        for (let t = 0; t < idx.length; t += 3) {
+          const a = idx[t], b = idx[t + 1], c = idx[t + 2], ra = reg[a], rb = reg[b], rc = reg[c];
+          const hasSkin = ra === 0 || rb === 0 || rc === 0;
+          if (!hasSkin) continue;
+          for (const v of [a, b, c]) if (reg[v] === 1 || reg[v] === 2) trim[v] = 1;
+        }
+        for (let i = 0; i < n; i++) if (trim[i]) reg[i] = 5;
+      }
       gm.setAttribute('region', new T.BufferAttribute(reg, 1));
     }
     /* where the number, the small chest number and the hair sit, relative to their bones */
@@ -273,14 +285,14 @@
   }
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
-    const u = { cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
+    const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
       cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = 'attribute float region;\nvarying float vRegion;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRegion = region;');
-      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nvarying float vRegion;\n' +
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nvarying float vRegion;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );',
-          'vec3 rc = vRegion < 0.5 ? cSkin : vRegion < 1.5 ? cJersey : vRegion < 2.5 ? cShorts : vRegion < 3.5 ? cShoe : cSock;\n  vec4 diffuseColor = vec4( rc, opacity );');
+          'vec3 rc = vRegion < 0.5 ? cSkin : vRegion < 1.5 ? cJersey : vRegion < 2.5 ? cShorts : vRegion < 3.5 ? cShoe : vRegion < 4.5 ? cSock : cTrim;\n  vec4 diffuseColor = vec4( rc, opacity );');
     };
     m.customProgramCacheKey = () => 'pb-kit';
     return m;
@@ -321,7 +333,7 @@
     const d = p.d || p;
     const shorts = new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: '#f7f7f7' });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: '#f7f7f7', trim: kit.c2 });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the number on the back and front, and hair */

@@ -66,7 +66,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Faces, hair styles and colors, headbands, arm sleeves, shoe colors: your Look card, and variety across the league (2026-11-17)
 - [x] Endorsements: shoe companies call as your following grows, with yearly money and a signature colorway (2026-11-17)
 - [x] Builds (bigs wider, guards leaner), a gather before the jumper, misses that rattle on the rim (2026-11-17)
-- [ ] Jersey trim, shorts that sway
+- [x] Jersey trim at the neckline, armholes and the shorts' hem, in the team's second color (2026-11-17)
+- [ ] Shorts that sway
 - [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
 - [x] Alley-oops to cutters (yours with Cut or Call), post-ups and hook shots for bigs, floaters (2026-11-17)
 - [x] Stamina: sprinting drains it, empty legs are slow and short (2026-11-17)
