@@ -225,3 +225,11 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 .awards .aw span{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
 .awards .aw b{font-family:var(--display);font-size:17px}.awards .aw b small{font-family:var(--body);font-weight:500;color:var(--mute);font-size:12px;margin-left:6px}
 .awards .aw.mine{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}.awards .aw.mine span{color:var(--acc)}
+
+/* replays: a tag at the top and a tap anywhere skips */
+#rp{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding-top:96px;gap:8px;background:linear-gradient(180deg,rgba(0,0,0,.25),transparent 30%,transparent 80%,rgba(0,0,0,.25));
+  font-family:var(--display);font-weight:900;letter-spacing:.2em;font-size:15px;color:#fff;z-index:3}
+#rp i{width:10px;height:10px;border-radius:50%;background:#ff3b4e;margin-top:4px;animation:blink 1s infinite}
+#rp small{font-family:var(--body);font-weight:600;letter-spacing:0;font-size:11px;color:rgba(255,255,255,.7);margin-top:2px}
+@keyframes blink{50%{opacity:.2}}
+#game.replaying #btns,#game.replaying #stickzone,#game.replaying #meter{display:none}

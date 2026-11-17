@@ -129,7 +129,7 @@
   function numberTex(num, c1, c2) {
     const cv = document.createElement('canvas'); cv.width = cv.height = 128;
     const g = cv.getContext('2d');
-    g.fillStyle = c1; g.fillRect(0, 0, 128, 128);
+    if (c1) { g.fillStyle = c1; g.fillRect(0, 0, 128, 128); }   // no background: printed straight on the jersey
     g.font = '900 78px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.lineWidth = 8; g.strokeStyle = 'rgba(0,0,0,.35)'; g.strokeText(String(num), 64, 70);
     g.fillStyle = c2; g.fillText(String(num), 64, 70);
@@ -186,12 +186,14 @@
     return tplLoading;
   };
   R.modelReady = () => !!TPL;
+  R._tpl = () => TPL;
   const V3 = () => new T.Vector3(), Q4 = () => new T.Quaternion();
   const bk = n => n.replace(/[.\[\]:/]/g, '');
   function template(g) {
     const scene = g.scene;
     scene.updateMatrixWorld(true);
     const meshes = []; scene.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
+    for (const m of meshes) m.skeleton.update();
     /* three.js drops the dots from node names as it loads them (DEF-shin.L becomes DEF-shinL): look bones up that way */
     const bones = {}; meshes[0].skeleton.bones.forEach(b => { bones[bk(b.name)] = b; });
     const at = n => bones[bk(n)].getWorldPosition(V3());
@@ -208,7 +210,10 @@
         const ws = [sw.getX(i), sw.getY(i), sw.getZ(i), sw.getW(i)], is = [si.getX(i), si.getY(i), si.getZ(i), si.getW(i)];
         for (let k = 0; k < 4; k++) if (ws[k] > bw) { bw = ws[k]; best = is[k]; }
         const name = m.skeleton.bones[best].name;
-        const y = v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld).y;
+        /* the vertex where it really is: through the skin (the quantized mesh's raw positions are in a squeezed space) */
+        v.fromBufferAttribute(pos, i);
+        if (m.applyBoneTransform) m.applyBoneTransform(i, v); else m.boneTransform(i, v);
+        const y = v.applyMatrix4(m.matrixWorld).y;
         let r = 0;
         if (/spine|shoulder/.test(name)) r = 1;
         else if (/hips/.test(name)) r = 2;
@@ -229,11 +234,12 @@
     const decals = {
       back: local(spine, new T.Vector3(0, chestY - H * 0.02, -torsoZ - H * 0.012), backQ),
       front: local(spine, new T.Vector3(0, chestY - H * 0.035, torsoZ + H * 0.022), new T.Quaternion()),
-      hair: local(head, new T.Vector3(headP.x, box.max.y - H * 0.045, headP.z - H * 0.008), new T.Quaternion()),
+      /* the feet stand at y = 0, so the top of the head is the height (the quantized mesh's own box is centered on zero) */
+      hair: local(head, new T.Vector3(headP.x, H * 0.945, headP.z - H * 0.01), new T.Quaternion()),
     };
     const sideR = Math.sign(at('DEF-hand.R').x - at('DEF-hips').x) || -1;
     const clips = {}; for (const c of g.animations) clips[c.name] = c;
-    return { scene, clips, H, decals, sideR, torsoZ };
+    return { scene, clips, H, decals, sideR, torsoZ, box, headP };
   }
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
@@ -262,14 +268,14 @@
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the number on the back and front, and hair */
-    const tex = numberTex(p.num, kit.c1, kit.c2);
-    const numMat = new T.MeshBasicMaterial({ map: tex });
+    const tex = numberTex(p.num, null, kit.c2);
+    const numMat = new T.MeshLambertMaterial({ map: tex, transparent: true, alphaTest: 0.4, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     const H = TPL.H;
     const put = (bone, dcl, obj) => { obj.position.copy(dcl.pos); obj.quaternion.copy(dcl.quat); bone.add(obj); };
     put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
     put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
     const hair = new T.Mesh(new T.SphereGeometry(H * 0.07, 14, 9, 0, Math.PI * 2, 0, Math.PI / 1.9), new T.MeshLambertMaterial({ color: 0x17110d }));
-    hair.scale.set(1.02, 0.8, 1.1);
+    hair.scale.set(1.04, 0.98, 1.1);
     put(bones[bk('DEF-head')], TPL.decals.hair, hair);
     const shadow = new T.Mesh(new T.CircleGeometry(1.1, 16), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; root.add(shadow);
@@ -435,6 +441,8 @@
   };
 
   R.setZoom = z => { zoom = PB.clamp(z, 0.7, 1.5); };
+  let replay = false, replayA = 0;
+  R.setReplay = on => { replay = on; replayA = PB.rand() * Math.PI * 2; };
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
   R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
   let snap = false; R.snap = () => { snap = true; };
@@ -486,6 +494,14 @@
       n.swish = Math.max(0, n.swish - dt * 2.2);
       n.mesh.scale.set(1 - n.swish * 0.25, 1 + n.swish * 0.35, 1 - n.swish * 0.25);
       n.mesh.position.y = 9.25 - n.swish * 0.26;
+    }
+    if (replay) {
+      /* replay: low, close, circling the ball */
+      replayA += dt * 0.35;
+      const bx = PB.clamp(b.x, -20, 20), bz = PB.clamp(b.z, -44, 44);
+      cam.position.set(bx + Math.sin(replayA) * 22, 7.5, bz + Math.cos(replayA) * 22);
+      cam.lookAt(bx, Math.max(4, b.y * 0.6), bz);
+      return;
     }
     if (camMode === 'lock') {
       /* player lock, the way career modes on consoles play it: low behind your own player, looking down the floor

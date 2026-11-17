@@ -274,6 +274,7 @@
       if (p.isUser) G.streak = (G.streak || 0) + 1;
       const run = G.run && G.run.team === p.team ? G.run : (G.run = { team: p.team, pts: 0, said: false });
       run.pts += s.pts;
+      if (s.kind === 'dunk' || G.clock <= 0.05 || (p.isUser && s.foul)) wantReplay(s.kind);
       if (G.clock <= 0.05) B('buzzer', { prio: 6 });
       else if (p.isUser && G.streak === 3) B('hot', { prio: 5, follow: 0.6 });
       else if (s.foul) B('and1', { prio: 4 });
@@ -942,6 +943,7 @@
 
   function endPeriod() {
     const g = G;
+    if (G.replayAt) { G.replayAt = 0; startReplay(); }
     if (g.q >= 4 && g.score[0] !== g.score[1]) { finish(); return; }
     g.q++;
     g.clock = g.q > 4 ? Math.max(60, g.qlen * 60 * 5 / 12) : g.qlen * 60;
@@ -987,13 +989,68 @@
   }
 
   /* ---------- frame ---------- */
+  /* ---------- replays ----------
+     The last few seconds are kept as snapshots (positions, poses, the ball) thirty times a second. A dunk, an
+     and-one of yours or a shot at the buzzer plays back at half speed from a camera circling the play, in the pause
+     before the inbound; a tap skips it. Settings can turn them off. */
+  const SNAP = ['x', 'y', 'z', 'vx', 'vz', 'face', 'pose', 'jg', 'vy'];
+  let tape = [], snapT = 0, replayCd = 0;
+  function record(dt) {
+    snapT += dt;
+    if (snapT < 1 / 30) return;
+    snapT = 0;
+    tape.push({ t: G.t, pl: G.pl.map(p => SNAP.map(k => p[k])), shoot: G.pl.map(p => p.shoot ? { t: p.shoot.t, T: p.shoot.T } : null),
+      ball: [G.ball.x, G.ball.y, G.ball.z, G.ball.state, G.ball.holder ? G.pl.indexOf(G.ball.holder) : -1] });
+    if (tape.length > 150) tape.shift();
+  }
+  function wantReplay(kind) {
+    if (PB.settings && PB.settings.replays === false) return;
+    if (G.t < replayCd || G.replay || tape.length < 40) return;
+    replayCd = G.t + 25;
+    G.replayAt = G.t + 0.9; G.replayKind = kind;
+  }
+  function startReplay() {
+    const n = Math.min(tape.length, 80);      // the last two and a half seconds or so
+    const live = { pl: G.pl.map(p => ({ ...p })), ball: { ...G.ball } };
+    G.replay = { frames: tape.slice(-n), i: 0, live, kind: G.replayKind };
+    $('#rp').hidden = false; $('#game').classList.add('replaying'); R.setReplay(true);
+  }
+  function endReplay() {
+    const r = G.replay; if (!r) return;
+    G.pl.forEach((p, i) => Object.assign(p, r.live.pl[i]));
+    Object.assign(G.ball, r.live.ball);
+    G.replay = null; $('#rp').hidden = true; $('#game').classList.remove('replaying'); R.setReplay(false);
+  }
+  function replayFrame(dt) {
+    const r = G.replay;
+    r.i += dt * 30 * 0.5;                     // half speed
+    const k = Math.floor(r.i);
+    if (k >= r.frames.length - 1) { endReplay(); return; }
+    const f = r.frames[k], g = r.frames[k + 1], u = r.i - k;
+    G.pl.forEach((p, i) => {
+      SNAP.forEach((key, j) => { const a = f.pl[i][j], c = g.pl[i][j]; p[key] = typeof a === 'number' ? a + (c - a) * u : a; });
+      const sh = f.shoot[i]; p.shoot = sh ? { t: sh.t, T: sh.T, kind: 'jumper' } : null;
+    });
+    G.ball.x = f.ball[0] + (g.ball[0] - f.ball[0]) * u; G.ball.y = f.ball[1] + (g.ball[1] - f.ball[1]) * u; G.ball.z = f.ball[2] + (g.ball[2] - f.ball[2]) * u;
+    G.ball.state = f.ball[3] === 'held' ? 'replay' : f.ball[3]; G.ball.holder = f.ball[4] >= 0 ? G.pl[f.ball[4]] : null;
+  }
+
+  /* ---------- frame ---------- */
   function frame(now) {
     raf = requestAnimationFrame(frame);
     let dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now;
+    if (G.replay) {
+      if (!G.paused) replayFrame(dt);
+      R.update(G, G.paused || !G.replay ? 0 : dt * 0.5);
+      R.render(); hud(); $('#meter').hidden = true;
+      return;
+    }
     if (!G.paused) {
       const n = Math.ceil(dt / 0.017);
       for (let i = 0; i < n && G.phase !== 'end'; i++) step(dt / n);
       if (G.phase === 'end') return;
+      record(dt);
+      if (G.replayAt && G.t >= G.replayAt) { G.replayAt = 0; startReplay(); }
     }
     R.update(G, G.paused ? 0 : dt);
     R.render();
@@ -1060,6 +1117,7 @@
         else pressC(dy > 0 ? 'step' : 'spin');
       };
       el.addEventListener('pointerup', end); el.addEventListener('pointercancel', e => { id = null; el.classList.remove('press'); }); }
+    $('#rp').onclick = () => endReplay();
     $('#pz').onclick = () => pause(true);
     $('#zi').onclick = () => R.setZoom(R.getZoom() - 0.12);
     $('#zo').onclick = () => R.setZoom(R.getZoom() + 0.12);
@@ -1136,6 +1194,7 @@
         pl, teams: o.teams, poss: null, paused: false, tf: [0, 0], callT: 0, idle: 9, grade: 0, gradeLog: [],
         diff: { oppShot: D[0], oppShootEV: D[1], oppSteal: D[2], oppReb: D[3], mateShot: 1.0 },
         ball: { state: 'held', holder: null, x: 0, y: 7, z: 0, vx: 0, vy: 0, vz: 0, lastTouch: 0 } };
+      tape = []; replayCd = 0;
       G.user = pl.find(p => p.isUser) || null;
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0;
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
@@ -1168,6 +1227,7 @@
     /* test hooks */
     dbg: { state: () => G,
       auto: on => { G.auto = on; },
+      replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },
       /* run the simulation ahead without drawing: sec seconds of game time */
       run: sec => { for (let t = 0; t < sec && G.phase !== 'end'; t += 1 / 60) step(1 / 60); return G && { score: G.score, q: G.q, clock: G.clock, phase: G.phase }; }, simRest: () => simRest(), press: (b, down, k, d) => b === 'A' ? pressA(down) : b === 'B' ? pressB() : pressC(k, d), stick: (x, y) => { input.sx = x; input.sy = y; } },
   };
