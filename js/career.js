@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   const save = () => { if (C) store(KEY, C); };
@@ -57,6 +57,7 @@
       ${opt('musicOn', ['On', 'Off'], 'Menu music')}
       ${opt('commentaryOn', ['On', 'Off'], 'Commentary')}
       ${opt('replaysOn', ['On', 'Off'], 'Replays')}
+      ${opt('vibrateOn', ['On', 'Off'], 'Vibration (Android)')}
       ${opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera')}
       ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
       ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
@@ -66,7 +67,7 @@
     scr().querySelectorAll('.seg button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.k, v = b.dataset.v;
       S[k] = isNaN(+v) ? v : +v;
-      S.sound = S.soundOn !== 'Off'; S.music = S.musicOn !== 'Off'; S.commentary = S.commentaryOn !== 'Off'; S.replays = S.replaysOn !== 'Off';
+      S.sound = S.soundOn !== 'Off'; S.music = S.musicOn !== 'Off'; S.commentary = S.commentaryOn !== 'Off'; S.replays = S.replaysOn !== 'Off'; S.vibrate = S.vibrateOn !== 'Off';
       saveSettings(); if (PB.audio) PB.audio.music(true); settings();
     });
   }
@@ -397,7 +398,8 @@
     scr().hidden = true;
     C.me.badges = C.me.badges || {};
     PB.Game.start({ teams: [t, o], rosters: [liveFive(), starters(o.id)], userId: 'me', qlen: S.qlen, level: S.level,
-      floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g) });
+      floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
+      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0 });
   }
   function simGame() {
     const nx = nextGame(); if (!nx) return;

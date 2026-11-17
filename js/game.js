@@ -15,6 +15,8 @@
   const home = t => G && t === G.home;   // the crowd is the home team's
   const B = (k, o) => { if (PB.booth) PB.booth.say(k, o); };   // the booth
   const bt = (p, k) => (p && p.d && p.d.badges && p.d.badges[k]) || 0;   // a badge's tier, 0 to 3
+  /* a short buzz in the hand, where the phone allows it (Android; iPhones do not let web pages vibrate) */
+  const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
 
   let G = null, raf = 0, last = 0, opts = null;
@@ -198,7 +200,7 @@
       else if (ae <= w * 2.2) { timing = err < 0 ? 'Slightly early' : 'Slightly late'; }
       else if (ae <= w * 4) { timing = err < 0 ? 'Early' : 'Late'; prob *= 0.72; }
       else { timing = err < 0 ? 'Very early' : 'Very late'; prob *= 0.35; }
-      showRelease(timing, meter, w);
+      showRelease(timing, meter, w); buzz(timing === 'Excellent' ? [12, 40, 12] : 10);
     } else {
       const err = Math.abs(s.aiRel - 0.82);
       prob *= err < 0.05 ? 1.08 : err < 0.12 ? 1 : 0.8;
@@ -218,7 +220,7 @@
       if (d > 4.5 || (o.y < 0.4 && o.pose !== 'contest')) continue;
       const ch = (o.r.block / 99) * (s.kind === 'jumper' ? 0.04 : s.kind === 'dunk' ? 0.06 : 0.24) * (1 - d / 4.5) * (o.ht >= p.ht ? 1.15 : 0.8) * (o.isUser ? 1.3 : 1) * (1 + 0.2 * bt(o, 'rim'));
       if (rand() < ch) {
-        o.st.blk++; if (o.isUser) grade(3, 'Block');
+        o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); }
         if (p.isUser) grade(-1, 'Got blocked');
         toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
         AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); B('block', { prio: 4, follow: 0.4 });
@@ -286,7 +288,7 @@
       const call = s.kind === 'dunk' ? 'SLAM' : s.pts === 3 ? 'SPLASH' : 'BUCKET';
       if (p.team === 0) toast(call + (s.foul ? ' · AND ONE' : ''), 'make'); else toast(`${p.name} scores`, 'opp');
       feed(`${p.name} ${s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : 'jumper'}${ast ? ` (${ast.name} ast)` : ''}`);
-      if (p.isUser) grade(s.pts === 3 ? 4 : 3, s.pts === 3 ? 'Made three' : 'Scored');
+      if (p.isUser) { grade(s.pts === 3 ? 4 : 3, s.pts === 3 ? 'Made three' : 'Scored'); buzz([20, 30, 30]); }
       if (ast && ast.isUser) grade(3, 'Assist');
       /* the man you guard scored */
       if (G.user && p.team === 1 && G.user.slot === p.slot && hyp(G.user.x - p.x, G.user.z - p.z) < 9) grade(-2, 'Your man scored');
@@ -693,7 +695,7 @@
     if (h && hyp(h.x - u.x, h.z - u.z) < 5 && !h.shoot) {
       const ch = clamp(0.12 + (u.r.steal - h.r.handle) * 0.004, 0.04, 0.38) + 0.025 * bt(u, 'pick');
       if (rand() < ch) {
-        u.st.stl++; h.st.tov++; grade(3, 'Steal'); toast('STOLEN', 'make'); feed(`Steal · ${u.name}`); give(u);
+        u.st.stl++; h.st.tov++; grade(3, 'Steal'); buzz(25); toast('STOLEN', 'make'); feed(`Steal · ${u.name}`); give(u);
         AU().play('steal', { x: u.x }); AU().crowd.react(home(0) ? 'roar' : 'ooh', 0.9); B('steal', { prio: 4, follow: 0.4 });
       } else if (rand() < 0.14) {
         toast('Reach-in foul', 'opp'); contactFoul(u, h);
@@ -1219,6 +1221,19 @@
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
       $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Teammate grade</span>' : '';
       $('#grade').hidden = !G.user; $('#ftmsg').hidden = true; $('#pause').hidden = true;
+      /* off the bench: the game before you check in is played out by the teams' strength */
+      if (o.enterAt) {
+        const secs = o.enterAt * G.qlen * 60 * 4;
+        const poss = secs / 14;
+        for (const t of [0, 1]) { const str = o.strength ? o.strength[t] : 75; G.score[t] += Math.max(0, Math.round(poss / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * 1.5)); }
+        let left = secs; while (left >= G.clock) { left -= G.clock; G.q++; G.clock = G.qlen * 60; }
+        G.clock -= left;
+        G.phase = 'dead'; G.deadT = 1.6; G.tipWinner = 0;
+        G.then = () => { inboundTo(G.score[0] > G.score[1] ? 1 : 0, toCourt(G.score[0] > G.score[1] ? 1 : 0, 0, 70)); };
+        for (const p of pl) { const c = toCourt(p.team, SPOTS[p.slot][0][0] * 0.8, p.team === 0 ? 40 : 55); p.x = c.x; p.z = c.z; }
+        setTimeout(() => toast(o.enterAt < 0.2 ? 'You check in' : 'Off the bench: you check in', 'call'), 300);
+        feed(`You start on the bench · ${G.q === 1 ? '1st' : '2nd'} quarter, ${Math.floor(G.clock / 60)}:${String(Math.floor(G.clock % 60)).padStart(2, '0')}`);
+      }
       this.active = true;
       last = performance.now();
       cancelAnimationFrame(raf);
