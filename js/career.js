@@ -473,6 +473,7 @@
         ${rivalGame ? `<p class="rivaltag">Rival game: ${esc(PB.full(rivalP()))} is on the other side</p>` : `<p class="fine">Their ${me.pos}: ${esc(PB.full(them))} (${them.ovr}). You guard him.</p>`}
         ${(C.goals = C.goals || makeGoals()) && `<div class="goals"><b>Your goals</b>${C.goals.map(g => `<span>${esc(g.text)}</span>`).join('')}<em>+2 skill points each</em></div>`}
         <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button>
+        ${C.phase === 'regular' ? '<div class="row2"><button class="ghost sm" id="sim5">Sim 5 games</button><button class="ghost sm" id="simall">Sim to the playoffs</button></div>' : ''}
         ${C.practiced !== C.gi + (C.phase === 'playoffs' ? 1000 : 0) ? '<button class="ghost sm" id="practice">Team practice first: spot-up drill, up to +5 skill points</button>' : ''}</div>`;
       } else if (C.phase === 'playoffs' && !C.po.champ && alive()) {
         card = C.po.round < 2 ? `<div class="next"><p class="kick">Playoffs</p><p>You're the ${ordinal(C.po.seeds[PB.team(C.team).conf].indexOf(C.team) + 1)} seed, waiting on the play-in.</p>
@@ -563,6 +564,8 @@
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
+    if ($('#sim5')) $('#sim5').onclick = () => simMany(5);
+    if ($('#simall')) $('#simall').onclick = () => simMany(999);
     if ($('#asg')) $('#asg').onclick = () => allStarGame(true);
     if ($('#asgsim')) $('#asgsim').onclick = () => allStarGame(false);
     scr().querySelectorAll('[data-ev]').forEach(b => b.onclick = () => eventPick(+b.dataset.ev));
@@ -705,6 +708,31 @@
     PB.Game.start({ teams: [t, o], rosters: [liveFive(), opp5], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
       enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+  }
+  /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
+     wait on the hub. The run shows as a list. */
+  function simMany(n) {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const nx = nextGame(); if (!nx || C.phase !== 'regular') break;
+      simOne(nx);
+      out.push(nx.g);
+      if (C.contest === 'invited' || (C.season.allstar && !C.asg) || C.gi >= C.games.length) break;   // the rest (talks, life, offers) waits on the hub
+    }
+    const w = out.filter(g => g.res.win).length;
+    show(`<div class="page post"><p class="kick">Simulated ${out.length} game${out.length === 1 ? '' : 's'}</p><h2>${w}-${out.length - w}</h2>
+      <div class="card">${out.map((g, i) => glog(g, C.gi - out.length + i + 1)).join('')}</div>
+      <div class="card earn"><b>${C.me.sp} skill points to spend</b><span>Coach trust ${Math.round(C.trust)} · ${role()}</span></div>
+      <button class="big" id="go">Continue</button></div>`);
+    $('#go').onclick = () => { tab = 'home'; hub(); };
+  }
+  function simOne(nx) {
+    const g = nx.g;
+    const win = PB.rand() < winP(C.team, g.opp, g.home);
+    const base = 104 + PB.gauss() * 9, margin = Math.abs(PB.gauss() * 9) + 1;
+    const us = Math.round(win ? base + margin / 2 : base - margin / 2), them = Math.round(win ? base - margin / 2 : base + margin / 2);
+    const line = simLine(C.me, role(), win);
+    record(g, { us, them, win, line, grade: LET[line.gs], gscore: line.gs, sim: true, ct: line.ct });
   }
   function simGame() {
     const nx = nextGame(); if (!nx) return;
