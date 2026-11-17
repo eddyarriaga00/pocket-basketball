@@ -102,14 +102,15 @@
     return tex;
   }
 
-  function crowdTexture() {
+  function crowdTexture(home) {
     const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
     const g = cv.getContext('2d');
     g.fillStyle = '#141a26'; g.fillRect(0, 0, 512, 128);
     const cols = ['#d9d9d9', '#30343c', '#b22a2a', '#2b4f9e', '#e0c070', '#6e7c8c', '#1d1d1d', '#8d5a3a'];
     for (let r = 0; r < 8; r++) for (let c = 0; c < 64; c++) {
       if (PB.rand() < 0.12) continue;
-      g.fillStyle = cols[Math.floor(PB.rand() * cols.length)];
+      const fan = home && PB.rand() < 0.4;   // a good share of the building in the home team's colors
+      g.fillStyle = fan ? (PB.rand() < 0.7 ? home.c1 : home.c2) : cols[Math.floor(PB.rand() * cols.length)];
       const x = c * 8 + 2 + PB.rand() * 2, y = r * 16 + 4;
       g.fillRect(x, y + 5, 5, 8);
       g.fillStyle = PB.SKIN[Math.floor(PB.rand() * 6)];
@@ -563,7 +564,7 @@
     const pool = new T.Mesh(new T.PlaneGeometry(80, 130), new T.MeshBasicMaterial({ map: new T.CanvasTexture(lc), transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
     pool.rotation.x = -Math.PI / 2; pool.position.y = 0.015; scene.add(pool);
     /* stands: tiers on all four sides */
-    const crowd = crowdTexture();
+    const crowd = crowdTexture(home);
     /* all 44 tiers of each kind in one mesh: two draws for the whole crowd instead of eighty-eight */
     const sideM = crowd.clone(), endM = crowd.clone();
     sideM.needsUpdate = endM.needsUpdate = true; sideM.repeat.set(6, 1); endM.repeat.set(3, 1);
