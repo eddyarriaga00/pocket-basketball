@@ -272,6 +272,12 @@
     return m;
   }
   const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
+  const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short'];
+  const HAIRC = ['#17110d', '#17110d', '#2b1d12', '#17110d', '#4a3020', '#c9a46a', '#17110d', '#6b4a2b'];
+  function autoLook(d) {
+    let h = 0; const id = String(d.id || d.last || 'x'); for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return { hair: HAIRS[h % HAIRS.length], hairColor: HAIRC[(h >> 3) % HAIRC.length], band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null };
+  }
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
     const root = new T.Group(), body = A.SkeletonUtils.clone(TPL.scene);
@@ -280,7 +286,8 @@
     root.add(body);
     const d = p.d || p;
     const shorts = new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: kit.shoe || '#f2f2f2', sock: '#f7f7f7' });
+    const lk = d.look || autoLook(d);
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: '#f7f7f7' });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the number on the back and front, and hair */
@@ -301,9 +308,32 @@
     /* the team's name across the chest, over the number */
     const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', kit.c2), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     put(bones[bk('DEF-spine.003')], TPL.decals.chest, wm);
-    const hair = new T.Mesh(new T.SphereGeometry(H * 0.07, 14, 9, 0, Math.PI * 2, 0, Math.PI / 1.9), new T.MeshLambertMaterial({ color: 0x17110d }));
-    hair.scale.set(1.04, 0.98, 1.1);
-    put(bones[bk('DEF-head')], TPL.decals.hair, hair);
+    /* the look: hair (style and color), a headband, an arm sleeve; yours from the Look card, everyone else's picked
+       once from his id so the floor is not ten identical heads */
+    const look = d.look || autoLook(d);
+    const hairMat = new T.MeshLambertMaterial({ color: new T.Color(look.hairColor || '#17110d') });
+    const head = bones[bk('DEF-head')];
+    if (look.hair !== 'bald') {
+      let hair;
+      if (look.hair === 'high') { hair = new T.Mesh(new T.CylinderGeometry(H * 0.062, H * 0.066, H * 0.07, 14), hairMat); hair.position.y = H * 0.022; }
+      else if (look.hair === 'afro') { hair = new T.Mesh(new T.SphereGeometry(H * 0.088, 14, 10), hairMat); hair.position.y = -H * 0.005; }
+      else if (look.hair === 'buzz') { hair = new T.Mesh(new T.SphereGeometry(H * 0.067, 14, 9, 0, Math.PI * 2, 0, Math.PI / 2.1), hairMat); hair.scale.set(1.02, 0.85, 1.06); hair.position.y = -H * 0.004; }
+      else { hair = new T.Mesh(new T.SphereGeometry(H * 0.07, 14, 9, 0, Math.PI * 2, 0, Math.PI / 1.9), hairMat); hair.scale.set(1.04, 0.98, 1.1); }
+      const holder = new T.Group(); holder.add(hair); put(head, TPL.decals.hair, holder);
+    }
+    if (look.band) {
+      const band = new T.Mesh(new T.TorusGeometry(H * 0.066, H * 0.011, 6, 18), new T.MeshLambertMaterial({ color: new T.Color(look.band) }));
+      band.rotation.x = Math.PI / 2; band.scale.set(1, 1.1, 1); const g2 = new T.Group(); g2.add(band); band.position.y = -H * 0.02;
+      put(head, TPL.decals.hair, g2);
+    }
+    if (look.sleeve) {
+      const fore = bones[bk('DEF-forearm.R')], hand = bones[bk('DEF-hand.R')];
+      const len = hand.position.length();
+      const sl = new T.Mesh(new T.CylinderGeometry(H * 0.03, H * 0.027, len * 0.8, 10), new T.MeshLambertMaterial({ color: new T.Color(look.sleeve) }));
+      const g3 = new T.Group(); g3.add(sl); sl.position.y = len * 0.42;
+      g3.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), hand.position.clone().normalize());
+      fore.add(g3);
+    }
     const shadow = new T.Mesh(new T.CircleGeometry(1.1, 16), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; root.add(shadow);
     const mixer = new T.AnimationMixer(body), act = {};

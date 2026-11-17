@@ -63,7 +63,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Real player bodies (2026-11-17): Quaternius's CC0 mannequin with idle, walk, jog, sprint, jump and stance
       clips blended by speed; jersey, shorts, socks and shoes painted on by body region in team colors; numbers and
       hair; dribble, jumper, follow-through, contest, reach and defensive arms set in code; the ball in the real hand
-- [ ] Faces and hair styles (Quaternius Universal Base Characters, CC0), jersey trim, shorts that sway
+- [x] Faces, hair styles and colors, headbands, arm sleeves, shoe colors: your Look card, and variety across the league (2026-11-17)
+- [ ] Jersey trim, shorts that sway
 - [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
 - [x] Alley-oops to cutters (yours with Cut or Call), post-ups and hook shots for bigs, floaters (2026-11-17)
 - [x] Stamina: sprinting drains it, empty legs are slow and short (2026-11-17)

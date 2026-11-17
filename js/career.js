@@ -503,6 +503,7 @@
           <button data-k="${k}" ${can ? '' : 'disabled'}>+1<small>${me.r[k] >= A.cap[k] ? 'max' : c + ' SP'}</small></button></div>`; }).join('')}
         <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p>
         ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
+        <div class="card look"><h3>Look</h3>${lookEditor(me)}</div>
         <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
         <div class="card"><h3>Business</h3><p class="fine">${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
         ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>`;
@@ -532,6 +533,12 @@
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
+    scr().querySelectorAll('[data-look] button').forEach(b => b.onclick = () => {
+      const k = b.parentElement.dataset.look, v = b.dataset.v || null, tm = PB.team(C.team);
+      me.look[k + 'Pick'] = v || '';
+      me.look[k] = v === 'team' ? (k === 'shoe' ? tm.c1 : tm.c2 === '#f2f2f2' ? tm.c1 : tm.c2) : v;
+      save(); hub();
+    });
     if ($('#practice')) $('#practice').onclick = () => {
       scr().hidden = true;
       const tm = PB.team(C.team);
@@ -583,6 +590,18 @@
   const cost = v => v < 60 ? 1 : v < 70 ? 2 : v < 80 ? 3 : v < 90 ? 4 : 6;
   const LET = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];
+  const LOOK = {
+    hair: [['short', 'Short'], ['high', 'High-top'], ['afro', 'Afro'], ['buzz', 'Buzz'], ['bald', 'Bald']],
+    hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Bleached']],
+    band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
+    sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],
+    shoe: [[null, 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#e63946', 'Red'], ['#ffd23f', 'Gold']],
+  };
+  function lookEditor(me) {
+    me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
+    const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(me.look[k + 'Pick'] ?? me.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
+    return row('hair', 'Hair') + row('hairColor', 'Hair color') + row('band', 'Headband') + row('sleeve', 'Arm sleeve') + row('shoe', 'Shoes') + '<p class="fine">Your look on the floor from your next game.</p>';
+  }
   function badgeList() {
     return PB.BADGES.map(b => {
       const n = C.ct[b.stat] || 0, t = C.me.badges[b.k] || 0, nextAt = b.tiers[t];
