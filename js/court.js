@@ -1219,10 +1219,21 @@
       show.raf = requestAnimationFrame(loop);
       if (now - last < 31) return;   // thirty frames a second is plenty behind a menu, and kinder to the battery
       const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; g.t += dt; a += dt * 0.25;
-      if (Math.sin(g.t * 0.5) > 0.98 && p.pose !== 'celebrate') { p.pose = 'celebrate'; setTimeout(() => { p.pose = ''; }, 1600); }
+      /* he works the ball: a dribble, and every couple of seconds a move (crossover, between the legs, behind the back) */
+      const b = g.ball;
+      if (!p.mv || g.t - p.mv.t0 > 2.4) { const k = ['cross', 'legs', 'btb', 'cross', 'hesi'][Math.floor(g.t / 2.4) % 5], from = p.dribHand || 1, to = k === 'hesi' ? from : -from;
+        p.mv = { k, t0: g.t, T: { cross: 0.32, btb: 0.4, legs: 0.38, hesi: 0.5 }[k], a: from, b: to }; p.dribHand = to; }
       R.update(g, dt);
-      cam.position.set(Math.sin(a) * 17, 4.6 + Math.sin(a * 0.7) * 0.8, Math.cos(a) * 17);
-      cam.lookAt(0, 3.3, 0);
+      const H = R.hands(p);
+      if (H) { b.state = 'held'; b.holder = p;
+        const mv = p.mv, ms = (g.t - mv.t0) / mv.T, A0 = mv.a < 0 ? H.l : H.r, B0 = mv.b < 0 ? H.l : H.r;
+        if (ms < 1 && mv.k !== 'hesi') { const fx = Math.sin(p.face), fz = Math.cos(p.face), off = mv.k === 'btb' ? -1.0 : mv.k === 'legs' ? 0.15 : 1.2, M = { x: p.x + fx * off, y: 0.35, z: p.z + fz * off };
+          const [P0, P1, t] = ms < 0.5 ? [A0, M, (ms / 0.5) ** 2] : [M, B0, 1 - (1 - (ms - 0.5) / 0.5) ** 2];
+          b.x = P0.x + (P1.x - P0.x) * t; b.y = P0.y + (P1.y - P0.y) * t; b.z = P0.z + (P1.z - P0.z) * t; }
+        else if (ms < 1) { b.x = A0.x; b.y = Math.max(1.2, A0.y - 0.15); b.z = A0.z; }
+        else { const hh = p.dribHand < 0 ? H.l : H.r; b.x = hh.x; b.z = hh.z; b.y = 0.4 + Math.abs(Math.sin(g.t * 8.5)) * (Math.max(1.2, hh.y - 0.35) - 0.4); } }
+      cam.position.set(Math.sin(a) * 14.5, 4.4 + Math.sin(a * 0.7) * 0.6, Math.cos(a) * 14.5);
+      cam.lookAt(0, 2.5, 0);
       R.render();
     };
     show.raf = requestAnimationFrame(loop);
