@@ -792,7 +792,7 @@
     const lx = clamp(r.x + r.vx * T0 * 0.8, -24, 24), lz = clamp(r.z + r.vz * T0 * 0.8, -46, 46);
     const hp = handPos(p);
     b.state = 'pass'; b.holder = null; b.from = p; b.to = r; b.t = 0;
-    p.pose = 'reach'; p.reachT = 0.28;   // the arm goes out on the throw
+    p.pose = 'chest'; p.reachT = 0.32;   // both arms push the ball out
     b.sx = hp.x; b.sy = hp.y - 1; b.sz = hp.z; b.ex = lx; b.ez = lz; b.ey = r.ht / 12 * 0.6 + 1.2;
     b.dur = hyp(lx - p.x, lz - p.z) / 46 + 0.12; b.apex = 0.6 + b.dur * 1.4;
     b.passer = p; b.passT = G.t + b.dur;
@@ -1418,7 +1418,7 @@
       if (p.move > 0) p.move -= dt;
       if (p.moveCd > 0) p.moveCd -= dt;
       if (p.reachCd > 0) p.reachCd -= dt;
-      if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && p.pose === 'reach') p.pose = ''; }
+      if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && (p.pose === 'reach' || p.pose === 'chest')) p.pose = ''; }
       if (p.holdPoseT > 0) { p.holdPoseT -= dt; if (p.holdPoseT <= 0 && p.pose === 'hold') p.pose = ''; }
       /* going up for a rebound: the ball coming down near you, above your reach */
       if (b.state === 'loose' && !p.isUser && p.y === 0 && b.vy < 0 && b.y > 8 && b.y < 13 && hyp(b.x - p.x, b.z - p.z) < 3.2 && rand() < dt * 6) {
@@ -1444,7 +1444,7 @@
         else if (b.state === 'loose') { reboundAI(p); seek(p, dt, 1); if (p.pose !== 'contest') p.pose = ''; }
         else {
           const offTeam = b.holder ? b.holder.team : G.poss;
-          if (offTeam === p.team) { offBallAI(p, dt); seek(p, dt, b.state === 'pass' && b.to === p ? 1 : 0.8); p.pose = ''; }
+          if (offTeam === p.team) { offBallAI(p, dt); seek(p, dt, b.state === 'pass' && b.to === p ? 1 : 0.8); if (!(p.reachT > 0)) p.pose = b.state === 'pass' && b.to === p && b.dur - b.t < 0.45 ? 'catch' : ''; }
           else {
             defAI(p, dt);
             /* closing out on a shooter who just caught it: a sprint, then short choppy steps */
