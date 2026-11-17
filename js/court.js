@@ -434,7 +434,7 @@
         add(ellip(V(wr.x + o * 0.07, wr.y, wr.z + 0.005), 0.072, 0.034, 0.05), () => 0, one(`DEF-hand.${sd}`));
         add(ellip(V(wr.x + o * 0.035, wr.y + 0.004, wr.z + 0.055), 0.04, 0.024, 0.022, 10), () => 0, one(`DEF-hand.${sd}`));
         const hp = at(`DEF-thigh.${sd}`), kn = at(`DEF-shin.${sd}`), an = at(`DEF-foot.${sd}`), to = at(`DEF-toe.${sd}`);
-        add(capsule(V(hp.x, hp.y + 0.03, hp.z), kn, 0.088, 0.066, 16), () => 0, one(`DEF-thigh.${sd}`));
+        add(capsule(V(hp.x, hp.y - 0.02, hp.z - 0.01), kn, 0.074, 0.066, 16), () => 0, one(`DEF-thigh.${sd}`));
         add(capsule(kn, V(an.x, an.y + 0.02, an.z), 0.07, 0.052, 16), (x, y) => y < sockTo ? 4 : 0, one(`DEF-shin.${sd}`));
         /* a chunky shoe: heel and body on the foot, the front on the toe */
         const sw = 0.072, sb = new T.BoxGeometry(1, 1, 1, 6, 4, 8);
@@ -509,9 +509,13 @@
   if (vRegion > 2.5 && vRegion < 3.5 && vK.y < 0.512) rc = vec3(0.96);                    // the sole
   else if (vRegion > 2.5 && vRegion < 3.5 && vK.y < 0.522) rc = cTrim;                  // a midsole in the team's second color
   if (vRegion > 3.5 && vRegion < 4.5 && vK.y > 0.596 && vK.y < 0.607) rc = cAlt;           // a stripe at the top of the sock
+  /* soft shading painted in: a little darker low on the jersey and shorts and at the torso's sides, so the cloth has
+     some form under flat light */
+  if (top) rc *= mix(0.86, 1.04, smoothstep(1.0, 1.28, vK.y)) * (1.0 - 0.14 * smoothstep(0.055, 0.095, abs(vK.x)));
+  if (bot) rc *= mix(0.84, 1.0, smoothstep(0.86, 0.98, vK.y));
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit7';
+    m.customProgramCacheKey = () => 'pb-kit8';
     return m;
   }
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
@@ -794,6 +798,11 @@
 
   /* turn a bone so the segment from it to `tip` points along `dir` (world), by `w` of the way */
   const _a = V3(), _b = V3(), _q = Q4(), _qw = Q4(), _qp = Q4();
+  function abduct(m, face, k) {
+    if (!TPL.simpleGeo || PB.mannequin) return;
+    _ax.set(Math.sin(face), 0, Math.cos(face));
+    for (const [arm, sd] of [[m.R, 1], [m.L, -1]]) { const b = arm.up; b.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, -k * sd * (TPL.sideR < 0 ? 1 : -1)).multiply(_qw); b.parent.getWorldQuaternion(_qp).invert().multiply(_q); b.quaternion.copy(_qp); b.updateMatrixWorld(true); }
+  }
   function aim(bone, tip, dir, w) {
     bone.getWorldPosition(_a); tip.getWorldPosition(_b);
     _b.sub(_a).normalize();
@@ -900,8 +909,7 @@
     if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|windmill)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
-    if (TPL.simpleGeo && !PB.mannequin) { const fx = Math.sin(p.face + (p.spinA || 0)), fz = Math.cos(p.face + (p.spinA || 0)); _ax.set(fx, 0, fz);
-      for (const [arm, sd] of [[m.R, 1], [m.L, -1]]) { const b = arm.up; b.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, ABD * sd * (TPL.sideR < 0 ? 1 : -1)).multiply(_qw); b.parent.getWorldQuaternion(_qp).invert().multiply(_q); b.quaternion.copy(_qp); b.updateMatrixWorld(true); } }
+    abduct(m, p.face + (p.spinA || 0), ABD);
     /* the arms */
     const has = G.ball.holder === p;
     let pose = p.pose;
@@ -963,7 +971,7 @@
       const p = { d: player, team: 0, slot: 0, r: player.r, ht: player.ht, num: player.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: 0, pose: '' };
       const m = skinnedPlayer(p, PB.kit ? PB.kit(team, o.kit || 'icon') : { c1: team.c1, c2: team.c2, name: team.name });
       sc.add(m.root); m.shadow.visible = false; if (o.yell && m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = true;
-      m.mixer.update(0.3); m.body.updateMatrixWorld(true);
+      m.mixer.update(0.3); m.body.updateMatrixWorld(true); abduct(m, 0, ABD);
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
       if (o.body) { const z = o.back ? -1 : 1, d = o.tight ? 12 : 14.5; c.position.set(0.6 * z, H * 0.55, d * z); c.lookAt(0, H * 0.5, 0); }
