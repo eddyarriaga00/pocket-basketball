@@ -1205,6 +1205,8 @@
       ov.innerHTML = `<div class="card"><h2>Paused</h2>
         <div class="pscore"><span>${G.teams[0].id}</span><b>${G.score[0]} – ${G.score[1]}</b><span>${G.teams[1].id}</span></div>
         <p class="mute">${$('#qt').textContent} · ${$('#clk').textContent} · your grade ${G.user ? gradeLetter(G.grade) : '–'}</p>
+        ${opts.goals && G.user ? `<div class="pgoals"><b>Your goals</b>${opts.goals.map(g => { const v = g.k === 'grade' ? null : G.user.st[g.k] || 0; const ok = g.k === 'grade' ? LETTERS.indexOf(gradeLetter(G.grade)) >= g.n : g.k === 'tov' ? v <= g.n : v >= g.n;
+          return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
         <button class="big" id="pr">Resume</button>
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         <button class="ghost" id="ps">Sim to the end</button>

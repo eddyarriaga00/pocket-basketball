@@ -241,3 +241,9 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 .offer .of b{font-family:var(--display);font-size:15px}.offer .of b small{color:var(--mute);font-size:11px}
 .offer .of span{display:block;font-size:12.5px;color:var(--mute)}
 .offer .big{margin:10px 0 0;padding:11px}
+.goals{display:flex;flex-direction:column;gap:3px;background:rgba(0,0,0,.25);border-radius:12px;padding:10px 12px;margin:10px 0 4px;font-size:13px}
+.goals b{font-family:var(--display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.goals span::before{content:"○ ";color:var(--mute)}.goals em{font-style:normal;font-size:11px;color:var(--mute)}
+.goalsdone p{margin:5px 0;font-size:13.5px}
+.pgoals{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--panel2);border-radius:12px;padding:10px 12px;margin:10px 0;font-size:13px}
+.pgoals b{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}.pgoals small{color:var(--mute)}

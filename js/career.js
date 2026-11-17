@@ -334,6 +334,7 @@
         <div class="vs"><div>${badge(t)}<b>${t.name}</b><span>${st.w}-${st.l} · ${strength(C.team)}</span></div><em>vs</em>
         <div>${badge(o)}<b>${o.name}</b><span>${os.w}-${os.l} · ${strength(o.id)}</span></div></div>
         ${rivalGame ? `<p class="rivaltag">Rival game: ${esc(PB.full(rivalP()))} is on the other side</p>` : `<p class="fine">Their ${me.pos}: ${esc(PB.full(them))} (${them.ovr}). You guard him.</p>`}
+        ${(C.goals = C.goals || makeGoals()) && `<div class="goals"><b>Your goals</b>${C.goals.map(g => `<span>${esc(g.text)}</span>`).join('')}<em>+2 skill points each</em></div>`}
         <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button></div>`;
       } else if (C.phase === 'playoffs' && !C.po.champ && alive()) {
         card = C.po.round < 2 ? `<div class="next"><p class="kick">Playoffs</p><p>You're the ${ordinal(C.po.seeds[PB.team(C.team).conf].indexOf(C.team) + 1)} seed, waiting on the play-in.</p>
@@ -454,6 +455,27 @@
     return null;
   }
 
+  /* ---------- game goals: three a game, by position, scaled to the game's length and your minutes ---------- */
+  const GOALS = {
+    pts: [8, 'Score {n}+ points'], ast: [3, 'Hand out {n}+ assists'], reb: [4, 'Grab {n}+ rebounds'], stl: [1, 'Get {n}+ steal{s}'],
+    blk: [1, 'Block {n}+ shot{s}'], tpm: [2, 'Make {n}+ three{s}'], tov: [2, 'Keep turnovers to {n} or fewer'], grade: [7, 'Earn a B- or better'],
+  };
+  const BY_POS = { PG: ['pts', 'ast', 'tov', 'stl', 'grade'], SG: ['pts', 'tpm', 'stl', 'grade', 'ast'], SF: ['pts', 'reb', 'stl', 'tpm', 'grade'],
+    PF: ['reb', 'pts', 'blk', 'grade', 'stl'], C: ['reb', 'blk', 'pts', 'grade', 'ast'] };
+  function makeGoals() {
+    const f = Math.pow(S.qlen / 3, 0.85) * ({ Starter: 1, 'Sixth man': 0.8, Bench: 0.65 }[role()] || 1);
+    const pool = BY_POS[C.me.pos].slice();
+    const pick3 = [pool[0], pool[1], pool[2 + Math.floor(PB.rand() * 3)]];
+    return pick3.map(k => {
+      const n = k === 'grade' ? 7 : k === 'tov' ? Math.max(1, Math.round(GOALS[k][0] * Math.max(1, f))) : Math.max(1, Math.round(GOALS[k][0] * f));
+      return { k, n, text: GOALS[k][1].replace('{n}', n).replace('{s}', n === 1 ? '' : 's') };
+    });
+  }
+  function goalMet(g, line, gs) {
+    if (g.k === 'grade') return gs >= g.n;
+    if (g.k === 'tov') return (line.tov || 0) <= g.n;
+    return (line[g.k] || 0) >= g.n;
+  }
   function playGame() {
     const nx = nextGame(); if (!nx) return;
     const g = nx.g, t = PB.team(C.team), o = PB.team(g.opp);
@@ -461,7 +483,7 @@
     C.me.badges = C.me.badges || {};
     PB.Game.start({ teams: [t, o], rosters: [liveFive(), starters(o.id)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
-      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0 });
+      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, goals: C.goals });
   }
   function simGame() {
     const nx = nextGame(); if (!nx) return;
@@ -492,6 +514,13 @@
     if (C.rival && g.opp === C.rival.team) {
       const rl = rivalGame(!res.win);
       if (rl) { const meWon = res.line.pts + res.line.reb + res.line.ast >= rl.pts + rl.reb + rl.ast; C.rival.h2h[meWon ? 0 : 1]++; res.rival = rl; }
+    }
+    /* the game's goals */
+    if (C.goals) {
+      res.goals = C.goals.map(g => ({ text: g.text, met: goalMet(g, res.line, res.gscore) }));
+      const met = res.goals.filter(g => g.met).length;
+      me.sp += met * 2; C.trust = PB.clamp((C.trust ?? 45) + met * 1.5, 0, 100);
+      C.goals = null;
     }
     /* trust, skill points, followers */
     C.trust = PB.clamp((C.trust ?? 45) + (res.gscore - 6) * 1.3 + (res.win ? 1 : -0.5), 0, 100);
@@ -578,6 +607,7 @@
       <div class="tiles"><div><b>${l.pts}</b><span>PTS</span></div><div><b>${l.reb}</b><span>REB</span></div><div><b>${l.ast}</b><span>AST</span></div>
       <div><b>${l.fgm}/${l.fga}</b><span>FG</span></div><div><b>${l.tpm}/${l.tpa}</b><span>3PT</span></div><div><b>${l.stl}/${l.blk}</b><span>STL/BLK</span></div></div>
       ${r.rival ? `<div class="card rival"><h3>Rival</h3><p>${esc(rivalP().last)}: ${r.rival.pts} pts, ${r.rival.reb} reb, ${r.rival.ast} ast. Head to head, you're ${C.rival.h2h[0]}-${C.rival.h2h[1]}.</p></div>` : ''}
+      ${r.goals ? `<div class="card goalsdone"><h3>Goals <small>${r.goals.filter(g => g.met).length} of ${r.goals.length} · +${r.goals.filter(g => g.met).length * 2} SP</small></h3>${r.goals.map(g => `<p class="${g.met ? 'w' : 'l'}">${g.met ? '✓' : '✗'} ${esc(g.text)}</p>`).join('')}</div>` : ''}
       ${r.newBadges && r.newBadges.length ? `<div class="card earn"><b>Badge earned</b><span>${r.newBadges.map(esc).join(' · ')}</span></div>` : ''}
       ${P ? `<div class="card press" id="press"><h3>Press conference</h3><p class="q">“${esc(P.q(pr[1]))}”</p>${P.a.map((a, i) => `<button class="ans" data-i="${i}">${esc(a[0])}</button>`).join('')}</div>` : ''}
       ${r.log && r.log.length ? `<div class="card"><h3>What moved your grade</h3>${summarize(r.log)}</div>` : ''}
