@@ -15,7 +15,7 @@ play around you, and a teammate grade follows every play.
 **Play it:** https://eddyarriaga00.github.io/pocket-basketball/ (no install; add it to your home screen and it
 plays offline too)
 
-The design is in [docs/PLAN.md](docs/PLAN.md) and the order of work in [docs/ROADMAP.md](docs/ROADMAP.md).
+The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMAP.md](docs/ROADMAP.md), and what changed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Career (the main mode)
 
