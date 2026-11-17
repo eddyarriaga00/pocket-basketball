@@ -10,7 +10,8 @@ const REAL = { pts: 114, fga: 89, 'FG%': 47.5, tpa: 35, '3P%': 36, fta: 22, tov:
   const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const pg = await b.newPage({ viewport: { width: 390, height: 844 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto('file://' + path.resolve(__dirname, '..', 'index.html'));
+  const srv = await require('./serve-test').serve();
+  await pg.goto(srv.url);
   await pg.waitForTimeout(500);
   const all = {}, scores = [];
   for (let g = 0; g < N; g++) {
@@ -33,5 +34,5 @@ const REAL = { pts: 114, fga: 89, 'FG%': 47.5, tpa: 35, '3P%': 36, fta: 22, tov:
   for (const k of ['pts', 'fga', 'tpa', 'fta', 'tov', 'stl', 'reb', 'ast']) console.log(row(k, all[k]));
   console.log(row('FG%', all.fgm / all.fga * 100)); console.log(row('3P%', all.tpm / all.tpa * 100));
   if (errs.length) { console.log('page errors:', errs.slice(0, 5)); process.exitCode = 1; }
-  await b.close();
+  srv.close(); await b.close();
 })();

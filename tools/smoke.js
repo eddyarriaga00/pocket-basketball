@@ -4,11 +4,12 @@
 const { chromium } = require('playwright');
 const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
 (async () => {
-  const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
   const pg = await b.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
   const errs = []; pg.on('pageerror', e => errs.push('PAGE ' + e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('CON ' + m.text()); });
   pg.on('dialog', d => d.accept());
-  await pg.goto('file://' + require('path').resolve(__dirname, '..', 'index.html'));
+  const srv = await require('./serve-test').serve();
+  await pg.goto(srv.url);
   await pg.evaluate(() => localStorage.clear()); await pg.reload(); await pg.waitForTimeout(500);
   await pg.click('#newc'); await pg.waitForTimeout(200);
   await pg.fill('#fn', 'Eddy'); await pg.fill('#ln', 'Arriaga');
@@ -58,5 +59,5 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   await pg.click('.tabs button[data-t="log"]'); await pg.waitForTimeout(200);
   await pg.screenshot({ path: OUT + '/c11-log.png' });
   console.log('errors', errs.slice(0, 8));
-  await b.close();
+  srv.close(); await b.close();
 })();
