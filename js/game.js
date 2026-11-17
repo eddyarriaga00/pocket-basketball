@@ -131,7 +131,7 @@
     const u = G.user, h = opts.highs; if (!u || !h || G.switching) return;
     G.highSaid = G.highSaid || {};
     for (const [k, n] of [['pts', 'points'], ['reb', 'rebounds'], ['ast', 'assists']]) {
-      if (h[k] !== undefined && u.st[k] > h[k] && !G.highSaid[k]) { G.highSaid[k] = true; toast(`Career high: ${u.st[k]} ${n}`, 'make'); feed(`Career high · ${u.st[k]} ${n}`); AU().crowd.react('applause', 0.7); }
+      if (h[k] !== undefined && u.st[k] > h[k] && !G.highSaid[k]) { G.highSaid[k] = true; toast(`Career high: ${u.st[k]} ${n}`, 'make'); feed(`Career high · ${u.st[k]} ${n}`); AU().crowd.react('applause', 0.7); B('high', { prio: 5, follow: 0.5 }); }
     }
   }
   /* the radar: the whole floor at a glance, top right (Settings can turn it off) */
@@ -304,11 +304,11 @@
     const a = h ? along(h.z, t) : along(b.z, t);   // the holder, not the ball: the ball is still where it was the moment he gets it
     if (!V.crossed && a < HALF - 0.5 && (!h || h.team === t)) V.crossed = true;
     if (!V.crossed && V.start - G.shotClock > 8) {
-      toast('8 SECONDS', t === 0 ? 'opp' : ''); AU().play('whistle'); feed('Eight-second violation'); tally('8 sec');
+      toast('8 SECONDS', t === 0 ? 'opp' : ''); AU().play('whistle'); feed('Eight-second violation'); tally('8 sec'); B('eight', { prio: 3 });
       turnover(h || b.from, '8-second violation', 1 - t, { x: b.x, z: 0 }); return true;
     }
     if (V.crossed && h && h.team === t && along(h.z, t) > HALF + 0.5 && b.lastTouch === t) {
-      toast('BACKCOURT', t === 0 ? 'opp' : ''); AU().play('whistle'); feed('Backcourt violation'); tally('backcourt');
+      toast('BACKCOURT', t === 0 ? 'opp' : ''); AU().play('whistle'); feed('Backcourt violation'); tally('backcourt'); B('backcourt', { prio: 3 });
       turnover(h, 'Backcourt violation', 1 - t, { x: h.x, z: 0 }); return true;
     }
     const u = G.user;
@@ -318,7 +318,7 @@
       if (u.lane > 2 && !u.laneWarn) { u.laneWarn = true; toast('Out of the lane', ''); buzz(8); }
       if (u.lane < 1) u.laneWarn = false;
       if (u.lane > 3.2) {
-        u.lane = 0; toast('3 SECONDS', 'opp'); AU().play('whistle'); feed('Three seconds in the lane'); tally('3 sec');
+        u.lane = 0; toast('3 SECONDS', 'opp'); AU().play('whistle'); feed('Three seconds in the lane'); tally('3 sec'); B('three_sec', { prio: 3 });
         turnover(u, '3 seconds in the lane', 1 - t, { x: 25 * Math.sign(u.x || 1), z: u.z }); return true;
       }
     } else if (u) u.lane = 0;
@@ -419,7 +419,7 @@
         s.made = true; s.gt = true;
         if (G.shotLog && G.shotLog.length) G.shotLog[G.shotLog.length - 1].made = true;
         if (o.isUser) grade(-2, 'Goaltending');
-        AU().play('whistle'); shotLands(); toast('GOALTENDING', o.team === 0 ? 'opp' : 'make'); feed(`Goaltending · ${o.name}`); tally('goaltend');
+        AU().play('whistle'); shotLands(); B('goaltend', { prio: 5 }); toast('GOALTENDING', o.team === 0 ? 'opp' : 'make'); feed(`Goaltending · ${o.name}`); tally('goaltend');
         return;
       }
       if (u < 0.4 && o.isUser && rand() < 0.15 + o.r.block / 300) {
@@ -482,6 +482,7 @@
     if (s.made) { R.swish(1); AU().play('dunk', { x: b.x }); AU().crowd.react(sum >= 45 ? 'roar' : 'applause', sum >= 45 ? 1.2 : 0.7); R.hype(sum >= 45 ? 1.4 : 0.8, sum >= 47 ? 0.8 : 0); buzz([20, 30, 30]); if (sum >= 46) wantReplay('dunk'); }
     else { AU().play('rim', { x: b.ex, power: 0.8 }); AU().crowd.react('aww', 0.8); }
     toast(`${judges.join(' ')} · ${sum}`, s.made ? 'judge' : 'judge miss');
+    B(sum === 50 ? 'dk_fifty' : s.made ? 'dk_good' : 'dk_miss', { prio: 4, follow: s.made && sum < 50 ? 0.45 : 0 });
     feed(`${st[0]}${s.made ? '' : ' (missed)'} · ${sum}`);
     if (sum === 50) setTimeout(() => toast('FIFTY!', 'make'), 1400);
     b.state = 'drop'; b.t = 0;
@@ -728,7 +729,7 @@
       const nd = nearestDef(p);
       if (nd.d < 3 && rand() < dt * 0.019 * (1.25 - p.r.handle / 99) * (p.drive > 0 ? 1.6 : 1)) {
         const why = rand() < 0.5 ? 'Traveling' : 'Lost it out of bounds';
-        toast(why, p.team === 0 ? 'opp' : ''); AU().play('whistle'); B('turnover', { prio: 2, follow: 0.3 }); tally('lost');
+        toast(why, p.team === 0 ? 'opp' : ''); AU().play('whistle'); B(why === 'Traveling' ? 'travel' : 'turnover', { prio: 2, follow: 0.3 }); tally('lost');
         turnover(p, why, 1 - p.team, { x: p.x, z: p.z }); return;
       }
     }
@@ -816,6 +817,7 @@
         /* the screener's man switches onto the ball for a moment */
         const sw = G.pl.find(o => o.team !== p.team && o.slot === p.slot); if (sw && !sw.isUser) { sw.switchOn = h; sw.switchT = 1.8; }
         if (!h.isUser && lane(h) > 2.5) h.drive = 1.4;
+        if (h.isUser || rand() < 0.15) B('pick_ana', { prio: 1 });
       }
     } else { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 5; }   // the roll
     return true;
@@ -850,7 +852,7 @@
     for (const t of [0, 1]) { const str = ((opts.strength && opts.strength[t]) || 75); G.score[t] += Math.max(0, Math.round(poss / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * 1.2)); }
     (G.satQ = G.satQ || []).push(G.q); G.sitQ = 0;
     if (G.inb) { G.inb.p.inb = false; G.inb = null; }
-    toast('Foul trouble: you sit', 'opp'); feed(`Foul trouble · you sit the rest of the ${['', '1st', '2nd', '3rd'][G.q]} quarter`);
+    toast('Foul trouble: you sit', 'opp'); B('sit', { prio: 4 }); feed(`Foul trouble · you sit the rest of the ${['', '1st', '2nd', '3rd'][G.q]} quarter`);
     G.clock = 0; endPeriod();
     setTimeout(() => { if (PB.Game.active && G) toast('You check back in', 'call'); }, 3200);
   }
@@ -1714,6 +1716,7 @@
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
+      if (PB.booth && o.drill === 'dunk') { const L = PB.booth.load(); if (L) L.then(() => PB.booth.pa('dk_intro')); }
       if (PB.booth && !o.drill) {
         /* the home city's own opening when it is recorded, the general one otherwise */
         const fl = o.floor || o.teams[0], ck = PB.VO && PB.VO['city_' + fl.id] && PB.VO['city_' + fl.id].length ? 'city_' + fl.id : 'intro';

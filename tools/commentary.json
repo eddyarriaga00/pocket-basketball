@@ -1183,6 +1183,174 @@
     "text": "Let's hear it for the defense!",
     "ex": 0.8
    }
+  ],
+  "high": [
+   {
+    "who": "pbp",
+    "text": "That's a career high for him!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "A new career best, right there!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Write it down. That is a career high.",
+    "ex": 0.65
+   }
+  ],
+  "high_ana": [
+   {
+    "who": "ana",
+    "text": "He has never had a night like this.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Everything is falling for him tonight.",
+    "ex": 0.5
+   }
+  ],
+  "travel": [
+   {
+    "who": "pbp",
+    "text": "Whistle. He traveled.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "That's a walk. Turnover.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Too many steps. Traveling.",
+    "ex": 0.45
+   }
+  ],
+  "goaltend": [
+   {
+    "who": "pbp",
+    "text": "Goaltending! The basket counts.",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "He got it on the way down. That's goaltending.",
+    "ex": 0.55
+   }
+  ],
+  "eight": [
+   {
+    "who": "pbp",
+    "text": "Eight seconds! They couldn't get it across.",
+    "ex": 0.55
+   }
+  ],
+  "backcourt": [
+   {
+    "who": "pbp",
+    "text": "Back over the line. Backcourt violation.",
+    "ex": 0.5
+   }
+  ],
+  "three_sec": [
+   {
+    "who": "pbp",
+    "text": "Three seconds in the lane. Turnover.",
+    "ex": 0.5
+   }
+  ],
+  "pick_ana": [
+   {
+    "who": "ana",
+    "text": "Great screen. That's how you free a ball handler.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Big pick, and his man is caught on it.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Watch the roll man there.",
+    "ex": 0.45
+   }
+  ],
+  "sit": [
+   {
+    "who": "pbp",
+    "text": "Foul trouble. The coach goes to the bench.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "He picks up another one, and he'll have to sit.",
+    "ex": 0.45
+   }
+  ],
+  "dk_intro": [
+   {
+    "who": "pa",
+    "text": "Ladies and gentlemen... it is time for the Dunk Contest!",
+    "ex": 0.8
+   }
+  ],
+  "dk_good": [
+   {
+    "who": "pbp",
+    "text": "Oh my! Look at that!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Are you kidding me?!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "He threw it down!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "What a dunk!",
+    "ex": 0.85
+   }
+  ],
+  "dk_good_ana": [
+   {
+    "who": "ana",
+    "text": "The judges have to love that one.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "The height on that! Unreal.",
+    "ex": 0.6
+   }
+  ],
+  "dk_miss": [
+   {
+    "who": "pbp",
+    "text": "Oh, he couldn't finish it.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "Off the back of the rim. So close.",
+    "ex": 0.5
+   }
+  ],
+  "dk_fifty": [
+   {
+    "who": "pbp",
+    "text": "That's a fifty! A perfect score!",
+    "ex": 0.95
+   }
   ]
  }
 }
