@@ -1180,6 +1180,7 @@
     const t = g.q === 2 || g.q === 3 ? 1 - g.tipWinner : g.tipWinner;
     for (const p of g.pl) { p.shoot = null; p.drive = 0; p.pose = ''; }
     g.tf = [0, 0];
+    if (g.q === 3 || g.q === 5) g.to = [2, 2];
     for (const p of g.pl) if (p.energy !== undefined) p.energy = Math.min(1, p.energy + 0.35);
     dead(1.8, () => {
       /* the team with the ball starts in its backcourt, the defense back in front of its rim */
@@ -1424,6 +1425,7 @@
         ${opts.goals && G.user ? `<div class="pgoals"><b>Your goals</b>${opts.goals.map(g => { const v = g.k === 'grade' ? null : G.user.st[g.k] || 0; const ok = g.k === 'grade' ? LETTERS.indexOf(gradeLetter(G.grade)) >= g.n : g.k === 'tov' ? v <= g.n : v >= g.n;
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
         <button class="big" id="pr">Resume</button>
+        ${G.user && !G.drill && (G.poss === 0 || G.phase === 'dead') && G.to[0] > 0 ? `<button class="ghost" id="pto">Timeout <small>${G.to[0]} left this half</small></button>` : ''}
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         <button class="ghost" id="ps">Sim to the end</button>
         <div class="help"><b>Controls</b><br>Left thumb: move (push to the edge to sprint).<br>
@@ -1432,6 +1434,19 @@
         Defense: Jump to contest and block, Steal to reach. Lift your thumb and you stay in front of your man.<br>
         Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin.</div></div>`;
       $('#pr').onclick = () => pause(false);
+      if ($('#pto')) $('#pto').onclick = () => {
+        /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */
+        G.to[0]--; ov.hidden = true; G.paused = false; AU().muffle(false);
+        for (const p of G.pl) { if (p.energy !== undefined) p.energy = Math.min(1, p.energy + 0.4); p.shoot = null; p.drive = 0; }
+        AU().play('whistle'); toast('Timeout', 'call'); if (AU().organ) setTimeout(() => AU().organ('walk'), 800);
+        const late = G.q >= 4 && G.clock < 120;
+        G.poss = null;
+        dead(2.4, () => {
+          if (late) for (const p of G.pl) { const c = toCourt(0, SPOTS[p.slot][0][0] * 0.9, p.team === 0 ? 30 : 24); p.x = c.x; p.z = c.z; p.vx = p.vz = 0; }
+          const h = G.ball.holder && G.ball.holder.team === 0 ? G.ball.holder : G.pl.find(p => p.team === 0 && p.slot === 0);
+          give(h); G.shotClock = Math.max(G.shotClock, late ? 14 : G.shotClock);
+        });
+      };
       $('#pc').onclick = () => {
         const ks = Object.keys(R.CAMS), m = ks[(ks.indexOf(R.getCam()) + 1) % ks.length];
         R.setCam(m);
@@ -1471,7 +1486,7 @@
       const lvl = o.level || 'Pro';
       const D = { Rookie: [0.8, 1.3, 0.6, 0.85], Pro: [0.92, 1.12, 0.85, 0.95], 'All-Star': [1.0, 1.0, 1.0, 1.0], Legend: [1.08, 0.92, 1.25, 1.08] }[lvl] || [0.92, 1.12, 0.85, 0.95];
       G = PB.G = { t: 0, q: 1, qlen: o.qlen || 3, clock: (o.qlen || 3) * 60, shotClock: 24, score: [0, 0], phase: 'tip', tipT: 1.3,
-        pl, teams: o.teams, poss: null, paused: false, tf: [0, 0], callT: 0, idle: 9, grade: 0, gradeLog: [],
+        pl, teams: o.teams, poss: null, paused: false, tf: [0, 0], to: [2, 2], callT: 0, idle: 9, grade: 0, gradeLog: [],
         diff: { oppShot: D[0], oppShootEV: D[1], oppSteal: D[2], oppReb: D[3], mateShot: 1.0 },
         ball: { state: 'held', holder: null, x: 0, y: 7, z: 0, vx: 0, vy: 0, vz: 0, lastTouch: 0 } };
       tape = []; replayCd = 0;
