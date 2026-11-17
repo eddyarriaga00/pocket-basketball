@@ -50,7 +50,8 @@
       ${live ? `<button class="big" id="cont">Continue career<small>${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></button>` : ''}
       <button class="${live ? 'ghost' : 'big'}" id="newc">New career</button>
       ${list.length > 1 || (list.length && !live) ? `<button class="ghost" id="careers">Careers <small>${list.length} on this device</small></button>` : ''}
-      <div class="row2"><button class="ghost" id="qg">Quick game</button><button class="ghost" id="prac">Practice</button></div>
+      <div class="row2"><button class="ghost" id="qg">Quick game</button><button class="ghost" id="seas">Season</button></div>
+      <button class="ghost sm" id="prac">Practice: 3-point contest, spot-up drill</button>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
       <p class="fine">Every team and player is fictional.</p></div>`);
     if (live) $('#cont').onclick = hub;
@@ -58,6 +59,7 @@
     if ($('#careers')) $('#careers').onclick = careers;
     $('#qg').onclick = quick;
     $('#prac').onclick = practice;
+    $('#seas').onclick = () => PB.Season.start();
     $('#how').onclick = how;
     $('#set').onclick = settings;
   }

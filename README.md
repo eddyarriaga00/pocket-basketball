@@ -49,7 +49,8 @@ The design is in [docs/PLAN.md](docs/PLAN.md) and the order of work in [docs/ROA
 - Sound: a crowd that reacts to the home team (roars, groans, oohs, "DE-FENSE"), the arena organ, squeaks, the
   net, the rim, the whistle, the horn, and a two-voice broadcast booth.
 
-Also: Quick game (any two teams, one player or the whole team), Practice (the contest and the drill), Edit teams.
+Also: Season (one team, the whole team under your thumbs, to a title), Quick game (any two teams, one player or the
+whole team), Practice (the contest and the drill), Edit teams.
 
 ## Controls
 
