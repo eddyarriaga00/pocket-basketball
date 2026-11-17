@@ -684,7 +684,10 @@
     /* a slight smile: a short arc, lower in the middle */
     const sm = new T.TorusGeometry(R * 0.32, R * 0.045, 5, 12, 0.95); sm.rotateZ(-Math.PI / 2 - 0.475);
     { const yy = my + R * 0.16; face.push(prep(sm, 1, 0.55, 1, 0, yy, surfZ(R, 0, yy) * (1 + 0.1 * jawLo(yy / (HS.y * R))) - R * 0.005, 0, 0x4a2219)); }
-    return { skin: merge(skin, false), face: merge(face, true) };
+    /* closed lids for a blink: shown for a moment every few seconds */
+    const blink = [];
+    for (const sx of [-1, 1]) { const ex = sx * R * 0.37, ey = R * 0.02, ez = surfZ(R, ex, ey); blink.push(prep(new T.SphereGeometry(R * 0.215 * F.eye, 12, 8), 1, 1.1, 0.82, ex, ey, ez + R * 0.01)); }
+    return { skin: merge(skin, false), face: merge(face, true), blink: merge(blink, false) };
   }
     const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short', 'twists', 'short', 'fade', 'fade', 'cornrows', 'bun', 'locs', 'fade', 'mohawk'];
   const HAIRC = ['#17110d', '#17110d', '#2b1d12', '#17110d', '#4a3020', '#c9a46a', '#17110d', '#6b4a2b'];
@@ -760,6 +763,7 @@
     const hg = new T.Group(); put(head, TPL.decals.headC, hg);
     hg.add(new T.Mesh(HG.skin, skinMat(d.skin || 0)));
     hg.add(new T.Mesh(HG.face, FACE_MAT));
+    { const bl = new T.Mesh(HG.blink, skinMat(d.skin || 0)); bl.visible = false; hg.add(bl); hg.userData.blink = bl; hg.userData.bph = Math.random() * 4; }
     /* an open mouth for a yell after a big play (hidden until then) */
     if (!TPL.mouthGeo) { const yy = -R * 0.5; TPL.mouthGeo = new T.SphereGeometry(R * 0.21, 14, 10); TPL.mouthGeo.scale(1.05, 1, 0.4); TPL.mouthGeo.translate(0, yy, surfZ(R, 0, yy) * (1 + 0.1 * jawLo(yy / (HS.y * R))) - R * 0.03); TPL.mouthGeo.userData.shared = true; }
     const yell = new T.Mesh(TPL.mouthGeo, MOUTH_MAT); yell.visible = false; hg.add(yell); hg.userData.yell = yell;
@@ -971,6 +975,7 @@
     if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
     m.mixer.update(dt);
     if (m.head) m.head.scale.setScalar(HEAD);
+    if (m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = (G.t + m.hg.userData.bph) % 3.8 < 0.13;
     if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
@@ -1036,7 +1041,7 @@
       const rim = new T.DirectionalLight(0xffffff, 0.35); rim.position.set(-4, 3, o.back ? 6 : -6); sc.add(rim);
       const p = { d: player, team: 0, slot: 0, r: player.r, ht: player.ht, num: player.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: 0, pose: '' };
       const m = skinnedPlayer(p, PB.kit ? PB.kit(team, o.kit || 'icon') : { c1: team.c1, c2: team.c2, name: team.name });
-      sc.add(m.root); m.shadow.visible = false; if (o.yell && m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = true;
+      sc.add(m.root); m.shadow.visible = false; if (o.yell && m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = true; if (o.blink && m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = true;
       m.mixer.update(0.3); m.body.updateMatrixWorld(true); abduct(m, 0, ABD);
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
