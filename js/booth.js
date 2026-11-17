@@ -73,6 +73,15 @@
       if (!pack || !PB.VO) return;
       for (const k of ['intro', 'tip', 'three', 'dunk', 'layup', 'jumper', 'block', 'steal']) for (const c of (PB.VO[k] || []).slice(0, 3)) decode(c);
     },
+    /* the arena announcer: his own channel through the arena speakers, never more than one line at a time */
+    async pa(key) {
+      if (!on() || !pack) return;
+      if (performance.now() < (PB.booth._paUntil || 0)) return;
+      const c = pick(key); if (!c) return;
+      const buf = await decode(c); if (!buf) return;
+      PB.booth._paUntil = performance.now() + buf.duration * 1000 + 300;
+      PB.audio.voice(buf, { pa: true, vol: 0.85 });
+    },
     stop() { followT++; if (cur) { try { cur.stop(); } catch (e) { /* done */ } } busyUntil = 0; },
   };
 })();

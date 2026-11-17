@@ -944,7 +944,13 @@
       const late = G.q >= 4 ? clamp(1 - G.clock / (G.qlen * 60), 0, 1) : 0, close = clamp(1 - Math.abs(G.score[0] - G.score[1]) / 12, 0, 1);
       AU().crowd.level(0.3 + 0.15 * (G.q - 1) / 3 + 0.5 * late * close);
       if (G.q >= 4 && G.clock < 60 && Math.abs(G.score[0] - G.score[1]) <= 5 && !G.clutchSaid) { G.clutchSaid = true; B('clutch', { prio: 2, follow: 0.5 }); }
-      if (G.poss === 1 - G.home && G.q >= 2 && close > 0.5 && G.t > (G.chantT || 25) && G.ball.state === 'held') { G.chantT = G.t + rr(35, 60); AU().crowd.react('chant', 0.8); }
+      /* the arena announcer and the clock */
+      if (PB.booth && G.qlen >= 3) {
+        const qk = 'q' + G.q;
+        if (G.clock < 120 && G.clock > 110 && G.paTwo !== qk) { G.paTwo = qk; PB.booth.pa('pa_two'); }
+        if (G.clock < 60 && G.clock > 50 && G.paLast !== qk && G.q >= 4) { G.paLast = qk; PB.booth.pa('pa_last'); }
+      }
+      if (G.poss === 1 - G.home && G.q >= 2 && close > 0.5 && G.t > (G.chantT || 25) && G.ball.state === 'held') { G.chantT = G.t + rr(35, 60); AU().crowd.react('chant', 0.8); if (PB.booth) PB.booth.pa(rand() < 0.5 ? 'pa_defense' : 'pa_noise'); }
       if (G.poss === 1 - G.home && G.t > G.organT && G.ball.state === 'held' && along(G.ball.z, 1 - G.home) > 40) { G.organT = G.t + rr(45, 80); if (AU().organ) AU().organ(rand() < 0.5 ? 'charge' : 'letsgo'); }
       if (G.shotClock <= 0 && (b.state === 'held' || b.state === 'pass')) {
         const t = G.poss; toast('SHOT CLOCK', 'opp'); AU().play('buzzer'); AU().play('whistle', { delay: 0.5 }); B('shotclock', { prio: 3 });
@@ -1464,7 +1470,7 @@
       if (PB.booth && !o.drill) {
         /* the home city's own opening when it is recorded, the general one otherwise */
         const fl = o.floor || o.teams[0], ck = PB.VO && PB.VO['city_' + fl.id] && PB.VO['city_' + fl.id].length ? 'city_' + fl.id : 'intro';
-        const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B(ck, { prio: 2 }); }); else B(ck, { prio: 2 });
+        const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B(ck, { prio: 2 }); setTimeout(() => PB.booth.pa('pa_home_' + fl.id), 2600); }); else B(ck, { prio: 2 });
       }
       /* jump ball setup: everyone around the center circle */
       for (const p of pl) {
