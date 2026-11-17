@@ -53,6 +53,17 @@
   };
   R._marks = () => ({ pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
   R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
+  /* a shockwave: a white ring racing out across the floor (a slam, an ankle-breaker); a few at a time */
+  const shocks = [];
+  R.shock = (x, z, size) => {
+    if (!scene) return;
+    let r = shocks.find(o => o.t <= 0);
+    if (!r) { if (shocks.length > 3) return; const m = new T.Mesh(new T.RingGeometry(0.86, 1, 48), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, side: T.DoubleSide }));
+      m.rotation.x = -Math.PI / 2; r = { m, t: 0 }; shocks.push(r); }
+    if (r.m.parent !== scene) scene.add(r.m);
+    r.m.position.set(x, 0.06, z); r.t = 0.55; r.size = size || 9; r.m.visible = true;
+  };
+  function shockTick(dt) { for (const r of shocks) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / 0.55; r.m.scale.setScalar(1 + k * r.size); r.m.material.opacity = 0.8 * (1 - k) * (1 - k); } }
   let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
   /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
   let boardMsg = null;
@@ -1296,6 +1307,7 @@
 
   /* Pose every player from the game state. */
   R.update = (G, dt) => {
+    shockTick(dt);
     if (!G.replay) moveRefs(G, dt);
     benchT += dt;
     benchMesh.forEach((m, t) => { if (benchJ[t] > 0) { benchJ[t] = Math.max(0, benchJ[t] - dt); m.position.y = Math.abs(Math.sin(benchT * 11 + t)) * 0.7 * Math.min(1, benchJ[t]); } else m.position.y = 0; });

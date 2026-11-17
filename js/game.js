@@ -672,6 +672,7 @@
       /* assist: a pass that set it up in the last few seconds */
       let ast = null;
       if (b.passer && b.passer.team === p.team && b.passer !== p && G.t - b.passT < 3.2 && (p.hold || 0) < 2.4) { ast = b.passer; ast.st.ast++; }
+      if (s.kind === 'dunk' && R.shock) R.shock(0, hoopZ(p.team) - (p.team === 0 ? 1 : -1) * 1.5, 10);
       const call = s.kind === 'dunk' ? 'SLAM' : s.pts === 3 ? 'SPLASH' : 'BUCKET';
       if (p.team === 0) toast(call + (s.foul ? ' · AND ONE' : ''), 'make'); else toast(`${p.name} scores`, 'opp');
       feed(`${p.name} ${s.oop ? 'alley-oop' : s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : s.kind === 'hook' ? 'hook shot' : s.kind === 'floater' ? 'floater' : 'jumper'}${ast ? ` (${ast.name} ast)` : ''}`);
@@ -1318,7 +1319,7 @@
   /* a dribble move the body and ball act out: the ball's path from hand to hand (court.js poses the arms from p.mv) */
   const MV_T = { cross: 0.32, btb: 0.4, legs: 0.38, hesi: 0.5, spin: 0.5 };
   /* an ankle-breaker: the beaten defender goes down and needs a moment to get up */
-  function ankles(d) { d.fallT = G.t; d.stun = 1.5; d.vx *= 0.3; d.vz *= 0.3; }
+  function ankles(d) { d.fallT = G.t; d.stun = 1.5; d.vx *= 0.3; d.vz *= 0.3; if (R.shock) R.shock(d.x, d.z, 5); }
   function startMv(p, k, a, b, side) { p.mv = { k, t0: G.t, T: MV_T[k], a, b, side: side || 1, bn: false }; }
   function feedMove(lbl) { const r = $('#rel'); r.textContent = lbl; r.className = 'on y'; relT = 0.6; }
 
