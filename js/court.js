@@ -504,10 +504,12 @@
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
     const P = POSES[pose](kk), w = m.poseW, s = TPL.sideR < 0 ? 1 : -1;
-    aim(m.R.up, m.R.fore, dirOf(p.face, P[0][0], P[0][1] + hi, P[0][2] - hi, s), w);
-    aim(m.R.fore, m.R.hand, dirOf(p.face, P[1][0], P[1][1] + hi, P[1][2] - hi, s), w);
-    aim(m.L.up, m.L.fore, dirOf(p.face, P[2][0], P[2][1], P[2][2], -s), w);
-    aim(m.L.fore, m.L.hand, dirOf(p.face, P[3][0], P[3][1], P[3][2], -s), w);
+    /* dribbling with the left hand: the arms trade jobs */
+    const sw = pose === 'dribble' && p.dribHand < 0, A = sw ? P[2] : P[0], Af = sw ? P[3] : P[1], Bu = sw ? P[0] : P[2], Bf = sw ? P[1] : P[3];
+    aim(m.R.up, m.R.fore, dirOf(p.face, A[0], A[1] + hi, A[2] - hi, s), w);
+    aim(m.R.fore, m.R.hand, dirOf(p.face, Af[0], Af[1] + hi, Af[2] - hi, s), w);
+    aim(m.L.up, m.L.fore, dirOf(p.face, Bu[0], Bu[1], Bu[2], -s), w);
+    aim(m.L.fore, m.L.hand, dirOf(p.face, Bf[0], Bf[1], Bf[2], -s), w);
   }
   /* where a player's hands are, in feet, for the ball (null for the simple figures) */
   const _h = V3();

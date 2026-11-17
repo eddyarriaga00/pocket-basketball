@@ -299,7 +299,7 @@
   function handPos(p) {
     /* the model's real hand when there is one: the ball leaves from where it is */
     const H = R.hands && R.hands(p);
-    if (H) return p.shoot || p.pose === 'shoot' ? { x: (H.r.x + H.l.x) / 2, y: Math.max(H.r.y, H.l.y) + 0.35, z: (H.r.z + H.l.z) / 2 } : { x: H.r.x, y: H.r.y, z: H.r.z };
+    if (H) return p.shoot || p.pose === 'shoot' ? { x: (H.r.x + H.l.x) / 2, y: Math.max(H.r.y, H.l.y) + 0.35, z: (H.r.z + H.l.z) / 2 } : p.dribHand < 0 ? { x: H.l.x, y: H.l.y, z: H.l.z } : { x: H.r.x, y: H.r.y, z: H.r.z };
     const fx = Math.sin(p.face), fz = Math.cos(p.face);
     return { x: p.x + fx * 0.6 + fz * 0.5, y: p.ht / 12 * 0.95 + p.y + 1.5, z: p.z + fz * 0.6 - fx * 0.5 };
   }
@@ -887,6 +887,7 @@
       const def = nearestDef(p).who, Bs = R.basis(), side = rand() < 0.5 ? 1 : -1;
       p.move = 0.35; p.moveCd = 1.6;
       const sp = maxSpeed(p) * 1.3; p.vx = (Bs.rx * side) * sp; p.vz = (Bs.rz * side) * sp;
+      { const fx = Math.sin(p.face), fz = Math.cos(p.face); p.dribHand = (p.vx * -fz + p.vz * fx) >= 0 ? 1 : -1; }
       if (def && rand() < clamp(0.12 + (p.r.handle - def.r.perD) * 0.006, 0.03, 0.4)) {
         def.stun = 0.6; p.drive = 1.2;
         if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); AU().crowd.react('ooh', 0.8); }
@@ -1234,6 +1235,7 @@
         else if (w) { dx = w.x; dz = w.z; }
         else { const side = rand() < 0.5 ? 1 : -1; dx = Bs.rx * side + Bs.fx * 0.4; dz = Bs.rz * side + Bs.fz * 0.4; }
         u.move = 0.38; u.moveCd = 1.1; lbl = 'Crossover';
+        { const fx = Math.sin(u.face), fz = Math.cos(u.face); u.dribHand = (dx * -fz + dz * fx) >= 0 ? 1 : -1; }   // the ball goes to the hand on the side you cross to
         /* on a drive near the rim a sideways swipe is a euro step: one step across, one toward the rim */
         const toRim = (hx * u.vx + hz * u.vz) / hl;
         if (hl < 15 && toRim > 6) { dx = dx * 0.7 + hx / hl * 0.7; dz = dz * 0.7 + hz / hl * 0.7; u.euroT = G.t; lbl = 'Euro step'; shake = 0.3; }
@@ -1438,7 +1440,7 @@
       else {
         /* the dribble: from the hand to the floor and back, under the hand */
         b.x = hp.x; b.z = hp.z;
-        const top = H ? Math.max(1.2, H.r.y - 0.35) : 3.0;
+        const top = H ? Math.max(1.2, (p.dribHand < 0 ? H.l.y : H.r.y) - 0.35) : 3.0;
         b.y = 0.4 + Math.abs(Math.sin(G.t * 8.5)) * (top - 0.4);
         /* the bounce: one each time the ball meets the floor, quieter the farther it is from you */
         const k = Math.floor(G.t * 8.5 / Math.PI);
