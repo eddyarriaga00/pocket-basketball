@@ -619,6 +619,7 @@
     jb.position.set(0, 44, 0); scene.add(jb);
     /* banners in the rafters over both ends: the titles won and the jerseys retired on this floor (kept on the device) */
     let bn = []; try { bn = (JSON.parse(localStorage.getItem('pbb.banners') || '{}')[home.id] || []).slice(-8); } catch (e) { bn = []; }
+    if (PB.settings && PB.settings.gfx === 'Low') bn = [];
     bn.forEach((b, i) => {
       const cv = document.createElement('canvas'); cv.width = 128; cv.height = 224;
       const g = cv.getContext('2d');
@@ -692,7 +693,7 @@
   let refs = [];
   R.addRefs = () => {
     refs = [];
-    if (!TPL) return;
+    if (!TPL || (PB.settings && PB.settings.gfx === 'Low')) return;
     for (let i = 0; i < 2; i++) {
       const p = { id: 'ref' + i, x: 26.5, z: i ? 30 : -10, y: 0, vx: 0, vz: 0, face: -Math.PI / 2, pose: '', ht: 75, num: [14, 37][i], pos: 'SG', skin: [1, 4][i],
         look: { hair: i ? 'buzz' : 'bald', hairColor: '#2a2a2a', shoe: '#111111' } };
@@ -724,7 +725,7 @@
   R.setBenches = (kits) => {
     for (const m of benchMesh) { scene.remove(m); m.geometry.dispose(); }
     benchMesh = [];
-    if (!kits) return;
+    if (!kits || (PB.settings && PB.settings.gfx === 'Low')) return;
     let parts = [];
     const col = new T.Color();
     const add = (g, x, y, z, c) => {
@@ -995,7 +996,8 @@
     const el = renderer.domElement.parentElement;
     if (!el.clientWidth) return;   // the game view is hidden (a menu is up): size it when it shows
     W = el.clientWidth; H = el.clientHeight;
-    DPR = Math.min(window.devicePixelRatio || 1, prCap);
+    const low = PB.settings && PB.settings.gfx === 'Low';
+    DPR = Math.min(window.devicePixelRatio || 1, low ? 1 : prCap);
     renderer.setPixelRatio(DPR); renderer.setSize(W, H, false);
     cam.aspect = W / H;
     /* a narrow portrait screen gets a wider lens so the court's width still fits */
