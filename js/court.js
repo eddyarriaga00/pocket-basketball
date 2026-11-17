@@ -152,20 +152,22 @@
   }
 
   /* A player: legs, shorts, torso with the number, arms and a head, built at 6.1 ft and scaled to his height. */
-  function wordTex(word, color) {
+  function wordTex(word, color, edge) {
     const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
     const g = cv.getContext('2d');
-    g.font = '900 44px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    const w = g.measureText(word.toUpperCase()).width, sc = Math.min(1, 240 / Math.max(1, w));
-    g.save(); g.translate(128, 34); g.scale(sc, 1); g.fillStyle = color; g.fillText(word.toUpperCase(), 0, 0); g.restore();
+    g.font = '900 44px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    const w = g.measureText(word.toUpperCase()).width, sc = Math.min(1, 236 / Math.max(1, w));
+    g.save(); g.translate(128, 34); g.scale(sc, 1);
+    if (edge) { g.lineWidth = 7; g.strokeStyle = edge; g.strokeText(word.toUpperCase(), 0, 0); }
+    g.fillStyle = color; g.fillText(word.toUpperCase(), 0, 0); g.restore();
     const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; return t;
   }
-  function numberTex(num, c1, c2) {
+  function numberTex(num, c1, c2, edge) {
     const cv = document.createElement('canvas'); cv.width = cv.height = 128;
     const g = cv.getContext('2d');
     if (c1) { g.fillStyle = c1; g.fillRect(0, 0, 128, 128); }   // no background: printed straight on the jersey
-    g.font = '900 78px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.lineWidth = 8; g.strokeStyle = 'rgba(0,0,0,.35)'; g.strokeText(String(num), 64, 70);
+    g.font = '900 78px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    g.lineWidth = edge ? 12 : 8; g.strokeStyle = edge || 'rgba(0,0,0,.35)'; g.strokeText(String(num), 64, 70);
     g.fillStyle = c2; g.fillText(String(num), 64, 70);
     const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; return t;
   }
@@ -238,7 +240,7 @@
     /* region of every vertex, from its heaviest bone: 0 skin, 1 jersey, 2 shorts, 3 shoe, 4 sock */
     for (const m of meshes) {
       const gm = m.geometry, si = gm.attributes.skinIndex, sw = gm.attributes.skinWeight, pos = gm.attributes.position, n = pos.count;
-      const reg = new Float32Array(n), v = V3();
+      const reg = new Float32Array(n), kp = new Float32Array(n * 3), v = V3();
       for (let i = 0; i < n; i++) {
         let best = 0, bw = -1;
         const ws = [sw.getX(i), sw.getY(i), sw.getZ(i), sw.getW(i)], is = [si.getX(i), si.getY(i), si.getZ(i), si.getW(i)];
@@ -248,6 +250,7 @@
         v.fromBufferAttribute(pos, i);
         if (m.applyBoneTransform) m.applyBoneTransform(i, v); else m.boneTransform(i, v);
         const y = v.applyMatrix4(m.matrixWorld).y;
+        kp[i * 3] = v.x / H; kp[i * 3 + 1] = (y - box.min.y) / H; kp[i * 3 + 2] = v.z / H;   // where it sits on the body, for jersey designs
         let r = 0;
         if (/spine|shoulder/.test(name)) r = 1;
         else if (/hips/.test(name)) r = 2;
@@ -269,6 +272,7 @@
         for (let i = 0; i < n; i++) if (trim[i]) reg[i] = 5;
       }
       gm.setAttribute('region', new T.BufferAttribute(reg, 1));
+      gm.setAttribute('kpos', new T.BufferAttribute(kp, 3));
     }
     /* where the number, the small chest number and the hair sit, relative to their bones */
     const fwd = new T.Vector3(0, 0, 1);
@@ -279,6 +283,7 @@
     const backQ = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), Math.PI);
     const decals = {
       back: local(spine, new T.Vector3(0, chestY - H * 0.02, -torsoZ - H * 0.012), backQ),
+      nameBack: local(spine, new T.Vector3(0, chestY + H * 0.052, -torsoZ - H * 0.03), backQ),
       front: local(spine, new T.Vector3(0, chestY - H * 0.035, torsoZ + H * 0.022), new T.Quaternion()),
       /* the feet stand at y = 0, so the top of the head is the height (the quantized mesh's own box is centered on zero) */
       hair: local(head, new T.Vector3(headP.x, H * 0.945, headP.z - H * 0.01), new T.Quaternion()),
@@ -286,21 +291,84 @@
       chest: local(spine, new T.Vector3(0, chestY + H * 0.02, torsoZ + H * 0.024), new T.Quaternion()),
     };
     const sideR = Math.sign(at('DEF-hand.R').x - at('DEF-hips').x) || -1;
+    /* real shorts: a flared shell on each thigh and a band around the hips, built in the rest pose and handed to the
+       bones (so they swing with the legs). kc per vertex: 0 the shorts' color, 1 the side stripe, 2 the hem */
+    const hipsC = at('DEF-hips');
+    const toBone = (g, bone) => { bone.updateMatrixWorld(true); g.applyMatrix4(bone.matrixWorld.clone().invert()); return g; };
+    const shell = side => {
+      const hj = at(`DEF-thigh.${side}`), kn = at(`DEF-shin.${side}`), dir = kn.clone().sub(hj), L = dir.length(); dir.normalize();
+      const len = L * 0.9, r1 = H * 0.068, r2 = H * 0.066, out = Math.sign(hj.x - hipsC.x) || 1;
+      const g = new T.CylinderGeometry(r1, r2, len, 24, 6, true).toNonIndexed(); g.translate(0, -len / 2, 0);
+      const kc = new Float32Array(g.attributes.position.count);
+      /* one color per triangle, from its middle: sharp stripes */
+      const P = g.attributes.position;
+      for (let t = 0; t < kc.length; t += 6) {   // two triangles make each quad: one color for both, so the stripe edges are clean
+        let x = 0, y = 0; for (let j = 0; j < 6; j++) { x += P.getX(t + j); y += P.getY(t + j); } x /= 6; y /= 6;
+        const c = y < -len * 0.86 ? 2 : x * out > r1 * 0.76 ? 1 : 0; for (let j = 0; j < 6; j++) kc[t + j] = c;
+      }
+      g.setAttribute('kc', new T.BufferAttribute(kc, 1));
+      g.applyQuaternion(new T.Quaternion().setFromUnitVectors(new T.Vector3(0, -1, 0), dir)); g.translate(hj.x, hj.y + H * 0.03, hj.z);
+      return g;
+    };
+    const hipBand = (() => {
+      const top = hipsC.y + H * 0.045, bot = at('DEF-thigh.L').y - H * 0.04, h = top - bot;
+      const g = new T.CylinderGeometry(H * 0.094, H * 0.108, h, 28, 1, true).toNonIndexed(); g.scale(1, 1, 0.74); g.translate(hipsC.x, bot + h / 2, hipsC.z);
+      const kc = new Float32Array(g.attributes.position.count), P = g.attributes.position;
+      for (let t = 0; t < kc.length; t += 6) { let x = 0; for (let j = 0; j < 6; j++) x += P.getX(t + j); const c = Math.abs(x / 6 - hipsC.x) > H * 0.088 ? 1 : 0; for (let j = 0; j < 6; j++) kc[t + j] = c; }
+      g.setAttribute('kc', new T.BufferAttribute(kc, 1));
+      return g;
+    })();
+    /* one skinned mesh for all three, each part riding its own bone: one draw per player */
+    const parts = [[shell('L'), 'DEF-thigh.L'], [shell('R'), 'DEF-thigh.R'], [hipBand, 'DEF-hips']];
+    const sk = meshes[0].skeleton, idxOf = n => sk.bones.findIndex(b => bk(b.name) === bk(n));
+    let nv = 0; for (const [g] of parts) nv += g.attributes.position.count;
+    const pos = new Float32Array(nv * 3), kcA = new Float32Array(nv), sI = new Uint16Array(nv * 4), sW = new Float32Array(nv * 4);
+    let o = 0; const m0 = meshes[0];
+    for (const [g, bn] of parts) {
+      /* this model's raw vertices are not its rest pose: the skin carries them there. Undo what the skin will do for
+         this bone (mesh world · bind⁻¹ · bone world · bone inverse · bind) so the part lands where it was built */
+      const bi = idxOf(bn), n = g.attributes.position.count;
+      const A = m0.matrixWorld.clone().multiply(m0.bindMatrixInverse).multiply(sk.bones[bi].matrixWorld).multiply(sk.boneInverses[bi]).multiply(m0.bindMatrix);
+      g.applyMatrix4(A.invert());
+      pos.set(g.attributes.position.array, o * 3); kcA.set(g.attributes.kc.array, o);
+      for (let i = 0; i < n; i++) { sI[(o + i) * 4] = bi; sW[(o + i) * 4] = 1; }
+      o += n;
+    }
+    const sg = new T.BufferGeometry();
+    sg.setAttribute('position', new T.BufferAttribute(pos, 3)); sg.setAttribute('kc', new T.BufferAttribute(kcA, 1));
+    sg.setAttribute('skinIndex', new T.Uint16BufferAttribute(sI, 4)); sg.setAttribute('skinWeight', new T.BufferAttribute(sW, 4));
+    sg.computeVertexNormals();
+    const shortsGeo = sg;
     const clips = {}; for (const c of g.animations) clips[c.name] = c;
-    return { scene, clips, H, decals, sideR, torsoZ, box, headP };
+    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo };
   }
+  /* the kit: colors by body region, and a design on the jersey and shorts. Designs (cols.pat):
+     0 plain, 1 side panels (down the jersey and the shorts), 2 pinstripes, 3 a chest band, 4 a fade to dark,
+     5 shoulder yokes, 6 a diagonal sash. cAlt is the design's color. */
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
     const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
-      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) } };
+      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
-      sh.vertexShader = 'attribute float region;\nvarying float vRegion;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRegion = region;');
-      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nvarying float vRegion;\n' +
-        sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );',
-          'vec3 rc = vRegion < 0.5 ? cSkin : vRegion < 1.5 ? cJersey : vRegion < 2.5 ? cShorts : vRegion < 3.5 ? cShoe : vRegion < 4.5 ? cSock : cTrim;\n  vec4 diffuseColor = vec4( rc, opacity );');
+      sh.vertexShader = 'attribute float region;\nattribute vec3 kpos;\nvarying float vRegion;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRegion = region; vK = kpos;');
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nvarying float vRegion;\nvarying vec3 vK;\n' +
+        sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
+  vec3 rc = vRegion < 0.5 ? cSkin : vRegion < 1.5 ? cJersey : vRegion < 2.5 ? cShorts : vRegion < 3.5 ? cShoe : vRegion < 4.5 ? cSock : cTrim;
+  bool top = vRegion > 0.5 && vRegion < 1.5, bot = vRegion > 1.5 && vRegion < 2.5;
+  float ax = abs(vK.x);
+  if (top || bot) {
+    if (kPat > 0.5 && kPat < 1.5 && ax > (top ? 0.07 : 0.066)) rc = cAlt;
+    else if (kPat > 1.5 && kPat < 2.5 && fract(vK.x * 70.0) < 0.13) rc = mix(rc, cAlt, 0.6);
+    else if (kPat > 2.5 && kPat < 3.5 && top && vK.y > 1.195 && vK.y < 1.222) rc = cAlt;
+    else if (kPat > 3.5 && kPat < 4.5) rc = rc * mix(0.55, 1.0, smoothstep(0.9, 1.28, vK.y));
+    else if (kPat > 4.5 && kPat < 5.5 && top && vK.y > 1.262) rc = cAlt;
+    else if (kPat > 5.5 && top && abs(vK.x + (vK.y - 1.18) * 0.85) < 0.016) rc = cAlt;
+    if (bot && kPat > 2.5 && kPat < 3.5 && vK.y < 0.918) rc = cAlt;   // the chest band's partner: a hem band on the shorts
+  }
+  vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit';
+    m.customProgramCacheKey = () => 'pb-kit2';
     return m;
   }
   const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
@@ -340,11 +408,23 @@
     const d = p.d || p;
     const shorts = kit.shorts || new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2 });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0 });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
+    /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
+    if (TPL.shortsGeo) {
+      const cs = [new T.Color(shorts), new T.Color(kit.alt || kit.c2), new T.Color(kit.c2)];
+      const sm = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide });
+      const paint = g => { g = g.clone(); const kc = g.attributes.kc, col = new Float32Array(kc.count * 3); for (let i = 0; i < kc.count; i++) { const c = cs[kc.getX(i)]; col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; } g.setAttribute('color', new T.BufferAttribute(col, 3)); return g; };
+      let bodyMesh = null; body.traverse(o => { if (o.isSkinnedMesh && !bodyMesh) bodyMesh = o; });
+      if (bodyMesh) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
+    }
     /* the number on the back and front, and hair */
-    const tex = numberTex(p.num, null, kit.c2);
+    /* lettering that reads on any design: on a dark jersey the numbers are white (or a light second color) edged in
+       the team color; on a light one they are the team color */
+    const lum = c => { const n = parseInt(String(c).slice(1), 16); return (n >> 16) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11; };
+    const jl = lum(kit.c1) > 170, ink = jl ? kit.c2 : lum(kit.c2) > 150 ? kit.c2 : '#ffffff', edge = jl ? null : (lum(kit.alt || kit.c2) < 120 ? kit.alt || kit.c2 : '#0c0c0e');
+    const tex = numberTex(p.num, null, ink, edge);
     const numMat = new T.MeshLambertMaterial({ map: tex, transparent: true, alphaTest: 0.4, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     const H = TPL.H;
     const put = (bone, dcl, obj) => { obj.position.copy(dcl.pos); obj.quaternion.copy(dcl.quat); bone.add(obj); };
@@ -355,7 +435,9 @@
     const face = new T.Mesh(TPL.faceGeo, FACE_MAT);
     put(bones[bk('DEF-head')], TPL.decals.face, face);
     /* the team's name across the chest, over the number */
-    const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', kit.c2), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', ink, edge), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    /* and his name across the back, over the number */
+    if (TPL.decals.nameBack && d.last) put(bones[bk('DEF-spine.003')], TPL.decals.nameBack, new T.Mesh(new T.PlaneGeometry(H * 0.12, H * 0.032), new T.MeshLambertMaterial({ map: wordTex(d.last, ink, edge), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })));
     put(bones[bk('DEF-spine.003')], TPL.decals.chest, wm);
     /* the look: hair (style and color), a headband, an arm sleeve; yours from the Look card, everyone else's picked
        once from his id so the floor is not ten identical heads */
@@ -522,19 +604,26 @@
   };
 
   /* a portrait: head and shoulders in the team's jersey, rendered once off screen to an image for the hub */
-  R.portrait = (player, team, size) => {
+  /* a picture of a player, drawn once off screen: a head-and-shoulders portrait, or (o.body) the whole player from the
+     front or (o.back) the back, in any of the team's uniforms (o.kit: 'icon', 'assoc', 'city') */
+  R.portrait = (player, team, size, o) => {
     if (!TPL) return null;
+    o = o || {};
     try {
-      const cv = document.createElement('canvas'); cv.width = cv.height = size || 192;
+      const W = size || 192, Hh = o.body ? Math.round(W * 1.6) : W;
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = Hh;
       const rr = new T.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true, alpha: true });
       const sc = new T.Scene();
-      sc.add(new T.HemisphereLight(0xfff6e8, 0x3a3028, 1.1)); const k = new T.DirectionalLight(0xffffff, 0.8); k.position.set(3, 6, 8); sc.add(k);
+      sc.add(new T.HemisphereLight(0xffffff, 0x303034, 1.15)); const k = new T.DirectionalLight(0xffffff, 0.85); k.position.set(3, 6, o.back ? -8 : 8); sc.add(k);
+      const rim = new T.DirectionalLight(0xffffff, 0.35); rim.position.set(-4, 3, o.back ? 6 : -6); sc.add(rim);
       const p = { d: player, team: 0, slot: 0, r: player.r, ht: player.ht, num: player.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: 0, pose: '' };
-      const m = skinnedPlayer(p, { c1: team.c1, c2: team.c2, name: team.name });
+      const m = skinnedPlayer(p, PB.kit ? PB.kit(team, o.kit || 'icon') : { c1: team.c1, c2: team.c2, name: team.name });
       sc.add(m.root); m.shadow.visible = false;
       m.mixer.update(0.3); m.body.updateMatrixWorld(true);
       const H = (player.ht || 78) / 12;
-      const c = new T.PerspectiveCamera(28, 1, 0.1, 50); c.position.set(0.35, H * 0.9, 3.1); c.lookAt(0, H * 0.86, 0);
+      const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
+      if (o.body) { const z = o.back ? -1 : 1; c.position.set(0.6 * z, H * 0.55, 14.5 * z); c.lookAt(0, H * 0.5, 0); }
+      else { c.position.set(0.35, H * 0.9, 3.1); c.lookAt(0, H * 0.86, 0); }
       rr.render(sc, c);
       const url = cv.toDataURL('image/png');
       rr.dispose(); rr.forceContextLoss && rr.forceContextLoss();
@@ -793,7 +882,7 @@
     el.hidden = false; el.classList.add('show'); R.resize();
     R.build(team);
     const p = { d: player, team: 0, slot: 0, r: player.r, ht: player.ht, num: player.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: Math.PI, pose: '' };
-    R.addPlayer(p, { c1: team.c1, c2: team.c2, name: team.name });
+    R.addPlayer(p, PB.kit ? PB.kit(team, "icon") : { c1: team.c1, c2: team.c2, name: team.name });
     let a = Math.PI;   // start in front of him
     const g = { t: 0, ball: { x: 0, y: -5, z: 0, state: 'show', holder: null }, user: null, pl: [p], teams: [team, team], score: [0, 0], q: 1, clock: 0, shotClock: 0, poss: null, show: true };
     let last = performance.now();

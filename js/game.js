@@ -1959,8 +1959,13 @@
       /* the other team wears white when its color is too close to yours */
       const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
       const cd = (a, c) => { const x = rgb(a), y = rgb(c); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
-      const k0 = { c1: o.teams[0].c1, c2: o.teams[0].c2, name: o.teams[0].name };
-      const k1 = cd(o.teams[0].c1, o.teams[1].c1) < 120 ? { c1: '#f2f2f2', c2: o.teams[1].c1, name: o.teams[1].name } : { c1: o.teams[1].c1, c2: o.teams[1].c2, name: o.teams[1].name };
+      /* the home side in its colors (now and then its black City edition), the visitors in theirs, or in white when the
+         two would look alike */
+      const hi = G.home, homeT = o.teams[hi], awayT = o.teams[1 - hi];
+      const kh = PB.kit ? PB.kit(homeT, !o.drill && rand() < 0.15 ? 'city' : 'icon') : { c1: homeT.c1, c2: homeT.c2, name: homeT.name };
+      let ka = PB.kit ? PB.kit(awayT, 'icon') : { c1: awayT.c1, c2: awayT.c2, name: awayT.name };
+      if (cd(kh.c1, ka.c1) < 120) ka = PB.kit ? PB.kit(awayT, 'assoc') : { c1: '#f2f2f2', c2: awayT.c1, name: awayT.name };
+      const k0 = hi === 0 ? kh : ka, k1 = hi === 0 ? ka : kh;
       for (const p of pl) R.addPlayer(p, p.team === 0 ? k0 : k1);
       G.kits = [k0, k1];
       /* the bench: identities that can trade places with the men on the floor */

@@ -174,6 +174,15 @@
     const b = L(bg); if (cr(b, L(fg)) >= 2.6) return fg;
     return cr(b, 1) >= cr(b, L('#111111')) ? '#ffffff' : '#111111';
   };
+  /* a team's uniforms. 'icon' in its colors, 'assoc' white with its colors as trim, 'city' black with its colors as
+     accents. Each team has its own design (side panels, pinstripes, a chest band, a fade, shoulder yokes, a sash) */
+  PB.kit = (t, which) => {
+    let h = 0; for (const ch of String(t.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const pat = [1, 2, 3, 4, 5, 6, 1, 3, 5, 2][h % 10], light = c => { const n = parseInt(String(c).slice(1), 16); return ((n >> 16) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11) > 200; };
+    if (which === 'assoc') return { c1: '#f2f2f2', c2: light(t.c1) ? t.c2 : t.c1, alt: light(t.c1) ? t.c2 : t.c1, pat, name: t.name, kind: 'assoc' };
+    if (which === 'city') return { c1: '#141416', c2: t.c1 === '#000000' || !light(t.c2) && false ? t.c2 : t.c1, alt: t.c1, pat: [1, 6, 2, 5][h % 4], name: t.city.toUpperCase(), kind: 'city' };
+    return { c1: t.c1, c2: t.c2, alt: t.c2, pat, name: t.name, kind: 'icon' };
+  };
   PB.randName = () => { let f = PB.pick(PB.FIRST), l = PB.pick(PB.LAST); while (PB.REAL.has(f + ' ' + l)) l = PB.pick(PB.LAST); return f + ' ' + l; };
   PB.makePlayer = (pos, target, age) => {
     const h = PB.HEIGHT[pos];
