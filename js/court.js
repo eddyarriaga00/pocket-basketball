@@ -914,6 +914,7 @@
     dunk1: () => [[0.15, 0.97, 0.2], [0.05, 0.99, 0.1], [0.55, -0.55, 0.35], [0.3, -0.6, 0.6]],
     hang: () => [[0.12, 0.98, 0.12], [0.04, 0.99, 0.12], [0.12, 0.98, 0.12], [0.04, 0.99, 0.12]],   // on the rim
     bpass: () => [[0.22, -0.55, 0.8], [0.05, -0.6, 0.8], [0.22, -0.55, 0.8], [0.05, -0.6, 0.8]],   // a bounce pass, pushed down
+    sad: () => [[0.2, -0.75, 0.62], [0.05, -0.85, 0.5], [0.2, -0.75, 0.62], [0.05, -0.85, 0.5]],   // hands on knees
     chest: () => [[0.22, -0.12, 0.97], [0.0, 0.02, 1], [0.22, -0.12, 0.97], [0.0, 0.02, 1]],   // a chest pass, arms out
     catch: () => [[0.32, 0.05, 0.94], [0.12, 0.25, 0.96], [0.32, 0.05, 0.94], [0.12, 0.25, 0.96]],   // hands up for the ball
     reach: () => [[0.1, -0.15, 0.98], [0.05, -0.2, 0.98], [0.6, -0.6, 0.4], [0.3, -0.5, 0.8]],
@@ -954,9 +955,10 @@
     let crouch = p.pose === 'guard' ? 0.5 : 0;
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
     if (fall > 0) crouch = 1;
+    if (p.pose === 'sad') crouch = 0.55;
     if (G.ball.holder === p && !p.shoot && p.d && p.d.look && p.d.look.drib === 'low') crouch = Math.max(crouch, 0.3);   // a low dribbler gets down
     if (ms < 1 && (mv.k === 'legs' || mv.k === 'cross' || mv.k === 'btb')) crouch = Math.max(crouch, mv.k === 'legs' ? 0.55 : 0.35);   // low on a move   // the gather: down into the legs before the jump
-    const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;
+    const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;   // (and the losers at the horn bend over: 'sad')
     const shooting = p.shoot || p.pose === 'shoot';
     const jump = air ? (shooting ? 0.3 : 1) : 0;   // a jumper goes up with straight legs, not the tuck of a leap
     const rest = Math.max(0, 1 - jump - dance);

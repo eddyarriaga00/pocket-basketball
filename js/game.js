@@ -1351,6 +1351,14 @@
   /* ---------- main step ---------- */
   function step(dt) {
     G.t += dt;
+    if (G.phase === 'buzzer') {
+      G.buzzT -= dt;
+      for (const p of G.pl) { p.vx *= Math.max(0, 1 - dt * 4); p.vz *= Math.max(0, 1 - dt * 4); p.x += p.vx * dt; p.z += p.vz * dt; if (p.y > 0 || p.vy) { p.y = Math.max(0, p.y + p.vy * dt); p.vy -= (p.jg || 60) * dt; if (p.y <= 0) p.vy = 0; } }
+      if (G.ball.state === 'held' && G.ball.holder) { G.ball.state = 'loose'; G.ball.holder = null; G.ball.vx = G.ball.vz = 0; G.ball.vy = 4; }
+      if (G.ball.state !== 'held') { const b = G.ball; b.vy = (b.vy || 0) - 32 * dt; b.y += b.vy * dt; if (b.y < 0.4) { b.y = 0.4; b.vy = Math.abs(b.vy) * 0.55; } }
+      if (G.buzzT <= 0) finish();
+      return;
+    }
     if (G.tko && G.tko.on) tkoTick();
     if (G.switching && G.phase === 'live') autoSwitch();
     const b = G.ball;
@@ -1643,7 +1651,16 @@
   function endPeriod() {
     const g = G;
     if (G.replayAt) { G.replayAt = 0; startReplay(); }
-    if (g.q >= 4 && g.score[0] !== g.score[1]) { finish(); return; }
+    if (g.q >= 4 && g.score[0] !== g.score[1]) {
+      /* the final horn: a moment on the floor first, the winners celebrating, the losers hands on knees */
+      if (g.drill) { finish(); return; }
+      g.phase = 'buzzer'; g.buzzT = 2.8; g.buzzed = true;
+      AU().play('horn', { len: 2 }); AU().crowd.react(g.score[g.home] > g.score[1 - g.home] ? 'roar' : 'applause', 1);
+      const w = g.score[0] > g.score[1] ? 0 : 1, kinds = ['celebrate', 'flex', 'roar', 'three', 'point', 'chest'];
+      for (const p of g.pl) { p.shoot = null; p.drive = 0; p.vx *= 0.3; p.vz *= 0.3; p.pose = p.team === w ? (p.d && p.d.look && p.d.look.celeb) || kinds[Math.floor(rand() * kinds.length)] : 'sad'; }
+      if (R.benchJump) R.benchJump(w);
+      return;
+    }
     g.q++;
     g.clock = g.q > 4 ? Math.max(60, g.qlen * 60 * 5 / 12) : g.qlen * 60;
     toast(g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, '');
@@ -1683,7 +1700,7 @@
   function finish() {
     G.phase = 'end';
     cancelAnimationFrame(raf);
-    AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1);
+    if (!G.buzzed) { AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1); }
     if (AU().pulse) AU().pulse(false);
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.played ? G.playedBy.map((x, i) => ({ d: x.d, team: x.team, st: G.played[i], user: !!(G.user && x.d === G.user.d) })) : G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
