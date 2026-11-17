@@ -414,13 +414,20 @@
   /* ---------- the league around you ---------- */
   function simLeagueDay(myOpp) {
     const ids = PB.TEAMS.map(t => t.id).filter(id => id !== C.team && id !== myOpp).sort(() => PB.rand() - 0.5);
+    C.dayBest = null;
     for (let i = 0; i + 1 < ids.length; i += 2) {
       const a = ids[i], b = ids[i + 1];
       const w = PB.rand() < winP(a, b, true) ? a : b, l = w === a ? b : a;
       C.standings[w].w++; C.standings[l].l++;
+      /* streaks around the league */
+      C.streaks = C.streaks || {};
+      C.streaks[w] = (C.streaks[w] || 0) >= 0 ? (C.streaks[w] || 0) + 1 : 1; C.streaks[l] = (C.streaks[l] || 0) <= 0 ? (C.streaks[l] || 0) - 1 : -1;
+      if (C.streaks[w] === 7) C.news.unshift(`The ${PB.team(w).name} have won seven straight`);
+      if (C.streaks[l] === -7) C.news.unshift(`The ${PB.team(l).name} have lost seven in a row`);
       leagueLines(a, w === a); leagueLines(b, w === b);
       if (C.rival && (a === C.rival.team || b === C.rival.team)) rivalGame(w === C.rival.team);
     }
+    if (C.dayBest) C.news.unshift(`${C.dayBest.name} drops ${C.dayBest.pts} for the ${PB.team(C.dayBest.team).name}`);
   }
   /* every starter's line from a simmed game, for the league leaders and the awards */
   const LS = ['gp', 'pts', 'reb', 'ast', 'stl', 'blk', 'tpm'];
@@ -430,6 +437,7 @@
       if (!p || (C.rival && p.id === C.rival.id)) continue;   // the rival keeps his own line
       const ln = simLine(p, 'Starter', win), e = C.ls[p.id] || (C.ls[p.id] = { name: PB.full(p), team: tid, rookie: !!p.rookie, gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 });
       e.gp++; for (const k of LS.slice(1)) e[k] += ln[k]; e.team = tid;
+      if (ln.pts >= 33 && (!C.dayBest || ln.pts > C.dayBest.pts)) C.dayBest = { name: PB.full(p), pts: ln.pts, team: tid };
     }
   }
   function rivalGame(win, vsMe) {
@@ -438,6 +446,7 @@
     const ln = simLine(rv, rl, win);
     for (const k of ['pts', 'reb', 'ast', 'stl', 'blk', 'fga', 'fgm', 'tpa', 'tpm']) { C.rival.season[k] += ln[k]; C.rival.totals[k] += ln[k]; }
     C.rival.season.gp++; C.rival.totals.gp++;
+    if (ln.pts >= 28) C.news.unshift(`Your rival ${PB.full(rv)} scores ${ln.pts} for the ${PB.team(C.rival.team).name}`);
     return ln;
   }
   const confRank = conf => PB.TEAMS.filter(x => x.conf === conf).map(x => x.id)
