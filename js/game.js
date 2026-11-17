@@ -353,6 +353,8 @@
       if (p.isUser && G.q >= 4 && G.clock < 5 && G.score[p.team] > G.score[1 - p.team] && G.score[p.team] - s.pts <= G.score[1 - p.team]) G.userWinner = true;
       if (G.clock <= 0.05) B('buzzer', { prio: 6 });
       else if (p.isUser && G.streak === 3) B('hot', { prio: 5, follow: 0.6 });
+      /* the home crowd starts the chant when you are rolling */
+      if (p.isUser && home(p.team) && !G.mvpSaid && (G.streak >= 3 || p.st.pts * 12 / G.qlen >= 20)) { G.mvpSaid = true; setTimeout(() => AU().crowd.react('mvp', 1), 1500); }
       else if (s.oop) B('oop', { prio: 5 });
       else if (s.pts === 3 && p.stepT !== undefined && G.t - p.stepT < 2) B('stepback', { prio: 4 });
       else if (s.foul) B('and1', { prio: 4 });

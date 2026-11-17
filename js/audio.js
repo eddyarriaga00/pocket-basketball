@@ -180,6 +180,18 @@
     stems.aww = await render(1.7, (c, o) => { for (let i = 0; i < 70; i++) { const t = rnd(0, 0.15), f = rnd(130, 260); voice(c, o, t, rnd(1.0, 1.4), f, f * 0.72, 'a', 0.045, rnd(-1, 1), 1); } });
     stems.groan = await render(1.5, (c, o) => { for (let i = 0; i < 60; i++) { const t = rnd(0, 0.2), f = rnd(90, 160); voice(c, o, t, rnd(0.8, 1.2), f * 1.1, f * 0.8, 'uh', 0.04, rnd(-1, 1), 1); } });
     stems.applause = await render(3, (c, o) => claps(c, o, 3, 140, 0.2));
+    /* "M-V-P! M-V-P!": three hits, a breath, three again */
+    stems.mvp = await render(4.6, (c, o) => {
+      for (let r = 0; r < 3; r++) {
+        const t0 = r * 1.5;
+        for (let i = 0; i < 45; i++) {
+          const f = rnd(110, 220), w = rnd(-1, 1);
+          voice(c, o, t0 + rnd(0, 0.04), 0.2, f * 1.1, f, 'e', 0.05, w, 1);
+          voice(c, o, t0 + 0.3 + rnd(0, 0.04), 0.2, f * 1.15, f * 1.05, 'i', 0.05, w, 1);
+          voice(c, o, t0 + 0.6 + rnd(0, 0.04), 0.3, f * 1.2, f * 1.1, 'i', 0.055, w, 1);
+        }
+      }
+    });
     stems.chant = await render(4.4, (c, o) => {
       /* DE-FENSE, stomp stomp, four times */
       for (let r = 0; r < 4; r++) {
@@ -304,7 +316,7 @@
         if (kind === 'roar') { swell((0.55 + 0.45 * k) * 1.7, 0.8 + k); return; }
         const buf = stems[kind]; if (!buf) return;
         const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = rnd(0.95, 1.05);
-        chain(s, gain(ctx, (kind === 'applause' ? 1.2 : kind === 'chant' ? 1.4 : 1.3) * k), bus.crowd); s.start();
+        chain(s, gain(ctx, (kind === 'applause' ? 1.2 : kind === 'chant' || kind === 'mvp' ? 1.4 : 1.3) * k), bus.crowd); s.start();
       },
     },
     organ,

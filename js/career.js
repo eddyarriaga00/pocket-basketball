@@ -503,6 +503,7 @@
           <div><b>${avg('pts')}</b><span>PTS</span></div><div><b>${avg('reb')}</b><span>REB</span></div><div><b>${avg('ast')}</b><span>AST</span></div>
           <div><b>${s.fga ? Math.round(s.fgm / s.fga * 100) : 0}%</b><span>FG</span></div><div><b>${s.tpa ? Math.round(s.tpm / s.tpa * 100) : 0}%</b><span>3PT</span></div><div><b>${s.gp ? gradeAvg(s.grades / s.gp) : '–'}</b><span>GRADE</span></div></div>
         <div class="card meters"><div><span>Coach trust</span><i><u style="width:${C.trust}%"></u></i><b>${Math.round(C.trust)}</b></div>
+          ${C.injury ? `<div class="wide"><span>Questionable</span><b class="inj">${esc(C.injury.what)} · ${C.injury.games} game${C.injury.games > 1 ? 's' : ''}</b></div>` : ''}
           <div><span>Role</span><b class="tag">${role()}</b></div><div><span>Followers</span><b>${fmtFans(C.fans)}</b></div>
           ${C.contract ? `<div class="wide"><span>Contract</span><b>${C.contract.years} yr${C.contract.years === 1 ? '' : 's'} · ${M(C.contract.salary)}</b></div>` : ''}</div>
         <div class="card rival"><h3>Rival <small>${esc(PB.team(C.rival.team).name)}</small></h3>
@@ -777,6 +778,16 @@
     for (let i = C.endorse.tier; i < tiers.length; i++) if (C.fans >= tiers[i][0]) { C.endorse.offer = i; break; }
     /* between games, now and then, life happens: a choice with a cost and a payoff */
     if (!g.po && !C.event && PB.rand() < 0.28) C.event = EVENTS[Math.floor(PB.rand() * EVENTS.length)].k;
+    /* now and then the body pays for it: a sore ankle or a tight hamstring, a few points for a game or two */
+    if (C.injury) { C.injury.games--; if (C.injury.games <= 0) { for (const k in C.injury.r) me.r[k] = Math.min(99, me.r[k] + C.injury.r[k]); me.ovr = PB.ovr(me.r, me.pos); C.news.unshift(`${me.last} is back to full health`); C.injury = null; } }
+    else if (PB.rand() < 0.045) {
+      const kinds = [['a sore ankle', { speed: 4, vert: 3 }], ['a tight hamstring', { speed: 5 }], ['a jammed finger', { three: 3, mid: 3, handle: 2 }], ['a bruised knee', { vert: 4, dunk: 3 }]];
+      const [what, r] = kinds[Math.floor(PB.rand() * kinds.length)], games = 1 + Math.floor(PB.rand() * 2);
+      for (const k in r) me.r[k] -= r[k];
+      me.ovr = PB.ovr(me.r, me.pos);
+      C.injury = { what, r, games };
+      C.news.unshift(`${me.last} is listed as questionable with ${what} (${games} game${games > 1 ? 's' : ''})`);
+    }
     /* every fifth game the coach has a word: where you stand and what he wants */
     if (!g.po && (C.gi + 1) % 5 === 0) C.coachTalk = true;
     if (!g.po) {
