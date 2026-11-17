@@ -198,10 +198,12 @@
       <div class="card"><h3>Passing and moves</h3><p><b>Pass</b> goes to the teammate under the green arrow: the open man, or the one your stick points at.<br>
       <b>Move</b>: tap for a crossover, or swipe the button: left or right to cross that way, down for a step-back (room for the jumper), up for a spin to the rim. Near the rim, a sideways swipe is a euro step. <b>Pick</b> (over half court with the ball) calls your big to set a screen on your man, then roll.</p></div>
       <div class="card"><h3>Without the ball</h3><p><b>Call</b> asks for it. <b>Cut</b> runs you to the rim and calls for it; a big enough leaper gets the alley-oop thrown up for him.</p></div>
-      <div class="card"><h3>Defense</h3><p>Lift your thumb and you stay in front of your man by yourself (the red ring). <b>Jump</b> to contest, block and rebound. <b>Steal</b> to reach (too many reaches is a foul; six fouls and you are out).</p></div>
+      <div class="card"><h3>Defense</h3><p>Lift your thumb and you stay in front of your man by yourself (the red ring). <b>Jump</b> to contest, block and rebound; time it on a shot's way up and you can block it in the air, but touch it on the way down and it is goaltending. <b>Steal</b> to reach (too many reaches is a foul).</p></div>
+      <div class="card"><h3>Calling plays</h3><p>Pause and call a play for the next three trips: <b>Get me the ball</b> (the others clear out), <b>Pick-and-roll</b>, or <b>Feed the post</b>. Get hot and the defense will send two at you: pass to the open man.</p></div>
+      <div class="card"><h3>The rules</h3><p>Eight seconds to cross half court, no going back over it, three seconds in the lane (a warning comes first), the shot clock. Two fouls in the first quarter, three in the second or four in the third and the coach sits you for the rest of it; six and you are out.</p></div>
       <div class="card"><h3>Your grade and growth</h3><p>Every play moves your teammate grade. The grade, your goals, practice and badges earn skill points; the Player tab spends them (Auto-upgrade does it for you). The coach's trust decides whether you start.</p></div>
-      <div class="card"><h3>Controller</h3><p>Left stick or d-pad to move, A to shoot or jump, B to pass, call or steal, X for a crossover or a cut, Y for a step-back, the right bumper for a spin, Start to pause.</p></div>
-      <div class="card"><h3>Keyboard</h3><p>WASD or arrows to move, J or Space to shoot or jump, K to pass, call or steal, L for a crossover or a cut, U for a step-back, I for a spin, P to pause.</p></div>
+      <div class="card"><h3>Controller</h3><p>Left stick or d-pad to move, A to shoot or jump, B to pass, call or steal, X for a crossover or a cut, Y for a step-back, the right bumper for a spin, the left bumper to call a pick, Start to pause.</p></div>
+      <div class="card"><h3>Keyboard</h3><p>WASD or arrows to move, J or Space to shoot or jump, K to pass, call or steal, L for a crossover or a cut, U for a step-back, I for a spin, O to call a pick, P to pause.</p></div>
       <p class="fine">Left-handed? Settings › Buttons puts them on the left.</p></div>`);
     $('#bk').onclick = title;
   }
