@@ -918,7 +918,8 @@
     chest: () => [[0.22, -0.12, 0.97], [0.0, 0.02, 1], [0.22, -0.12, 0.97], [0.0, 0.02, 1]],   // a chest pass, arms out
     catch: () => [[0.32, 0.05, 0.94], [0.12, 0.25, 0.96], [0.32, 0.05, 0.94], [0.12, 0.25, 0.96]],   // hands up for the ball
     reach: () => [[0.1, -0.15, 0.98], [0.05, -0.2, 0.98], [0.6, -0.6, 0.4], [0.3, -0.5, 0.8]],
-    guard: () => [[0.85, -0.3, 0.42], [0.65, 0.15, 0.7], [0.85, -0.3, 0.42], [0.65, 0.15, 0.7]],
+    /* active hands: one up in the ball's face (it mirrors the dribble), the other low and wide in the passing lane */
+    guard: (k) => { const b = 0.06 * Math.sin(k * 5); return [[0.5, 0.05 + b, 0.86], [0.2, 0.72 + b, 0.66], [0.9, -0.38 - b, 0.25], [0.78, -0.42, 0.46]]; },
     hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
     /* the windmill: the ball arm goes down, back, over the top and through; k is the time in the air */
     windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
@@ -952,7 +953,7 @@
       const [n, v] = LOCO[i], lo = i ? LOCO[i - 1][1] : -1, hi = i < LOCO.length - 1 ? LOCO[i + 1][1] : 1e9;
       ws[n] = sp <= v ? (i ? smooth(lo, v, sp) : 1 - smooth(v, hi, sp)) : (i < LOCO.length - 1 ? 1 - smooth(v, hi, sp) : 1);
     }
-    let crouch = p.pose === 'guard' ? 0.5 : 0;
+    let crouch = p.pose === 'guard' ? 0.72 : 0;
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
     if (fall > 0) crouch = 1;
     if (p.pose === 'sad') crouch = 0.55;
@@ -966,8 +967,8 @@
     const k = dt ? Math.min(1, dt * 10) : 1;
     const set = (n, w) => { const a = m.act[n]; if (!a) return; a.weight = a.weight + (w - a.weight) * k; a.setEffectiveWeight(a.weight); };
     for (const [n] of LOCO) set(n, ws[n] * rest * (1 - m.crouch) + (air && shooting && n === 'Idle_Loop' ? 0.7 : 0));
-    set('Crouch_Idle_Loop', rest * m.crouch * (1 - smooth(2, 6, sp)));
-    set('Crouch_Fwd_Loop', rest * m.crouch * smooth(2, 6, sp));
+    { const fw = smooth(2, 6, sp) * (p.pose === 'guard' ? 0.25 : 1);   // sliding in a stance is a shuffle, not a crouched walk
+      set('Crouch_Idle_Loop', rest * m.crouch * (1 - fw)); set('Crouch_Fwd_Loop', rest * m.crouch * fw); }
     set('Jump_Loop', jump); set('Dance_Loop', dance);
     /* the clips' feet match the ground at about these speeds (feet a second, at this player's size) */
     const scl = (p.ht || 78) / 12 / 6.1;
@@ -991,6 +992,19 @@
     m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
     abduct(m, p.face + (p.spinA || 0), ABD);
+    /* the defensive stance: feet wide, sitting low, and a shuffle (the feet open and close, they never cross) when he
+       slides. gw eases in and out so he drops into it */
+    { const g = p.pose === 'guard' && !air ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);
+      if (m.gw > 0.02 && TPL.simpleGeo && !PB.mannequin) {
+        const f = p.face, lat = Math.abs(p.vx * -Math.cos(f) + p.vz * Math.sin(f)), amp = Math.min(1, (lat + sp * 0.35) / 9);
+        m.gph = (m.gph || 0) + dt * (5 + sp * 0.7);
+        const wide = 0.36 * m.gw, sh = Math.sin(m.gph) * 0.2 * amp * m.gw, sgn = TPL.sideR < 0 ? 1 : -1;
+        _ax.set(Math.sin(f), 0, Math.cos(f));
+        for (const [nm, th] of [['DEF-thigh.L', (wide + sh) * sgn], ['DEF-thigh.R', -(wide - sh) * sgn]]) { const b = m.bones[bk(nm)]; if (!b) continue;
+          b.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, th).multiply(_qw); b.parent.getWorldQuaternion(_qp).invert().multiply(_q); b.quaternion.copy(_qp); }
+        m.body.position.y = p.y - 3.2 * (m.sc || 1) / 3.4 * (1 - Math.cos(wide)) - 0.12 * m.gw * Math.abs(Math.sin(m.gph)) * amp;
+        m.body.updateMatrixWorld(true);
+      } }
     /* the arms */
     const has = G.ball.holder === p;
     let pose = p.pose;
@@ -1004,7 +1018,7 @@
     if (pose === 'dribble') kk = (G.t * 8.5 * dsf / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
-    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three') kk = G.t;
+    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
@@ -1020,7 +1034,9 @@
       P = (p.dribHand < 0) === fromR ? [O[0], O[1], F[0], F[1]] : [F[0], F[1], O[0], O[1]];
     }
     /* dribbling with the left hand: the arms trade jobs */
-    const sw = pose === 'dribble' && p.dribHand < 0, A = sw ? P[2] : P[0], Af = sw ? P[3] : P[1], Bu = sw ? P[0] : P[2], Bf = sw ? P[1] : P[3];
+    /* the high hand goes to the side the ball is on */
+    if (pose === 'guard') { const bx = G.ball.x - p.x, bz = G.ball.z - p.z, side = bx * -Math.cos(p.face) + bz * Math.sin(p.face); if (Math.abs(side) > 0.35) m.gsw = side < 0; }
+    const sw = (pose === 'dribble' && p.dribHand < 0) || (pose === 'guard' && m.gsw), A = sw ? P[2] : P[0], Af = sw ? P[3] : P[1], Bu = sw ? P[0] : P[2], Bf = sw ? P[1] : P[3];
     aim(m.R.up, m.R.fore, dirOf(p.face, A[0], A[1] + hi, A[2] - hi, s), w);
     aim(m.R.fore, m.R.hand, dirOf(p.face, Af[0], Af[1] + hi, Af[2] - hi, s), w);
     aim(m.L.up, m.L.fore, dirOf(p.face, Bu[0], Bu[1], Bu[2], -s), w);

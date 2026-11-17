@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Defense you can play: in a stance you face your man and slide (feet wide, sitting low, a shuffle that never crosses
+  the feet), one hand up on the ball and one in the passing lane. Get set in front of a driver and you cut him off
+  ("Cut off"): he loses his speed toward the rim. Your hands go up by themselves when your man rises to shoot.
+- At the final horn the winners celebrate and the losers put their hands on their knees.
 - Players blink and turn their heads to follow the ball. Five face types, sports goggles, a number on the shorts.
 - Before the tip, after the lineups: a close-up of you with a broadcast name graphic. Home shows you against the man
   you guard; the Team tab opens on a banner in the team's colors; awards night shows the winners' faces.

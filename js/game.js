@@ -1207,13 +1207,20 @@
       if (G.ball.holder === u) u.pose = 'dribble';
       else if (!off) u.pose = 'guard';
       else u.pose = '';
+      if (!off) handsUp(u);
     } else {
       G.idle += dt;
       /* thumb off the stick: on defense the game keeps you in front of your man; on offense you stand */
-      if (!off && G.idle > 0.6 && G.ball.state !== 'loose') { defAI(u, dt); seek(u, dt, 0.9); }
+      if (!off && G.idle > 0.6 && G.ball.state !== 'loose') { defAI(u, dt); seek(u, dt, 0.9); handsUp(u); }
       else if (G.ball.state === 'loose' && G.idle > 0.4) { reboundAI(u); seek(u, dt, 0.95); }
       else steer(u, dt, 0, 0);
     }
+  }
+  /* on defense, both hands go up by themselves when the man in front of you rises to shoot (a jump is better) */
+  function handsUp(u) {
+    if (u.y > 0) return;
+    const sh = G.pl.find(o => o.team !== u.team && o.shoot && o.shoot.kind !== 'dunk');
+    if (sh && hyp(sh.x - u.x, sh.z - u.z) < 6) u.pose = 'contest';
   }
   function pressA(down) {
     const u = G.user; if (!u) return;
@@ -1498,10 +1505,36 @@
       const sp = hyp(p.vx, p.vz);
       let want;
       if (p.shoot || b.holder === p && sp < 3) want = Math.atan2(0 - p.x, hoopZ(p.team) - p.z);
+      else if (p.pose === 'guard' && sp < maxSpeed(p) * 0.92) {
+        /* in a stance you face your man and slide, you don't turn and run (until he is gone) */
+        const h = b.holder && b.holder.team !== p.team ? b.holder : null, tgt = h && hyp(h.x - p.x, h.z - p.z) < 14 ? h : b;
+        want = Math.atan2(tgt.x - p.x, tgt.z - p.z);
+      }
       else if (sp > 2.5) want = Math.atan2(p.vx, p.vz);
       else want = Math.atan2(b.x - p.x, b.z - p.z);
       let da = want - p.face; while (da > Math.PI) da -= 6.2832; while (da < -Math.PI) da += 6.2832;
       p.face += da * Math.min(1, dt * 10);
+    }
+    /* the body-up: a ball handler who runs into a defender set in front of him (in his stance, between him and the
+       rim) is cut off: most of his speed toward the rim is gone and he is pushed off line */
+    { const h = b.holder;
+      if (h && b.state === 'held' && !h.shoot && G.phase === 'live' && !h.inb && !G.drill) {
+        const hx = 0 - h.x, hz = hoopZ(h.team) - h.z, hl = hyp(hx, hz) || 1, ux = hx / hl, uz = hz / hl;
+        const vin = h.vx * ux + h.vz * uz;
+        if (vin > 3) for (const d of G.pl) {
+          if (d.team === h.team || d.pose !== 'guard' || d.y > 0.2 || d.stun > 0) continue;
+          const rx = d.x - h.x, rz = d.z - h.z, ahead = rx * ux + rz * uz, side = Math.abs(rx * -uz + rz * ux);
+          if (ahead > 0.6 && ahead < 3.0 && side < 1.7) {
+            const k = clamp(0.55 + (d.r.perD - h.r.handle) * 0.008 + (h.move > 0 ? -0.25 : 0), 0.15, 0.8);
+            h.vx -= ux * vin * k; h.vz -= uz * vin * k;
+            const sd = (rx * -uz + rz * ux) > 0 ? -1 : 1; h.vx += -uz * sd * vin * k * 0.35; h.vz += ux * sd * vin * k * 0.35;
+            if (!(h.bumpT > G.t)) { h.bumpT = G.t + 0.9; d.bodyT = G.t;
+              if (d.isUser) { grade(0.5, 'Cut him off'); toast('Cut off', 'make'); buzz(12); } else if (h.isUser) toast('Bumped', 'opp');
+              AU().play('squeak', { x: d.x, vol: 0.7 }); }
+            break;
+          }
+        }
+      }
     }
     /* bodies don't overlap */
     const n = G.pl.length;
