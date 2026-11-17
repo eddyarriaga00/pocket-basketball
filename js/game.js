@@ -437,7 +437,7 @@
       else if (ae <= w * 4) { timing = err < 0 ? 'Early' : 'Late'; prob *= 0.72; }
       else { timing = err < 0 ? 'Very early' : 'Very late'; prob *= 0.35; }
       showRelease(timing, meter, w); buzz(timing === 'Excellent' ? [12, 40, 12] : 10);
-      R.flash(timing === 'Excellent' ? 0x4cffb0 : /Slightly/.test(timing) ? 0xffe066 : 0xff5a6b);
+      R.flash(timing === 'Excellent' ? 0x4cffb0 : /Slightly/.test(timing) ? 0xffffff : 0xff5a6b);
     } else {
       const err = Math.abs(s.aiRel - 0.82);
       prob *= err < 0.05 ? 1.08 : err < 0.12 ? 1 : 0.8;
