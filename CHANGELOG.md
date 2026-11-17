@@ -55,6 +55,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - Banners in the rafters: win a title or have your jersey retired and it hangs in that arena for good.
 - Player of the Week every seven games, and the All-Star fan vote's first returns on your hub.
 - Share your player card: an image of you in your team's colors with your numbers.
+- Twenty-two achievements across every career on your device, from your draft to the Hall of Fame.
 - A record book: the best single games and seasons by any career on your device.
 - Training camp every summer: pick a focus; the shooting and dunk drills decide how much you grow.
 - Contracts: a rookie deal, an extension, free agency, trade requests, earnings; retirement and the Hall of Fame.

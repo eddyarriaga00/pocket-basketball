@@ -329,3 +329,9 @@ input[type=color]{height:44px;padding:4px}
 .title.t3d{background:linear-gradient(180deg,rgba(10,13,20,.75) 0%,rgba(10,13,20,.15) 24%,rgba(10,13,20,0) 36%,rgba(10,13,20,.25) 52%,rgba(10,13,20,.88) 64%,var(--bg) 78%)}
 .title.t3d .logo{margin:6px 0 auto}.title.t3d .logo .ball{display:none}
 .title.t3d .logo h1{text-shadow:0 4px 24px rgba(0,0,0,.6)}
+/* achievements */
+.card.ach{display:flex;gap:12px;align-items:center;padding:10px 14px;opacity:.55}.card.ach.got{opacity:1;border-color:rgba(255,176,46,.5)}
+.card.ach i{font-style:normal;font-size:22px;color:var(--acc)}.card.ach b{display:block;font-size:14px}.card.ach span{font-size:12px;color:var(--mute)}
+#achtoast{position:fixed;left:50%;top:14px;transform:translate(-50%,-140%);z-index:60;background:#141a26;border:1px solid rgba(255,176,46,.6);color:var(--ink,#fff);
+  padding:10px 16px;border-radius:14px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4);transition:transform .35s;max-width:calc(100% - 32px);text-align:center}
+#achtoast.on{transform:translate(-50%,0)}#achtoast b{display:block;color:var(--acc);font-size:11px;letter-spacing:.1em;text-transform:uppercase}

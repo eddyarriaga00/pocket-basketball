@@ -25,8 +25,45 @@
     if (old && !slots().length) { store('pbb.career.c1', old); store(IDX, [{ id: 'c1' }]); setCur('c1'); try { localStorage.removeItem(KEY); } catch (e) { /* fine */ } }
   })();
   const loadCur = () => { const id = curId(); return id ? load('pbb.career.' + id) : null; };
+  /* achievements: across every career on this device, kept even when a career is deleted */
+  const ACH = [
+    ['drafted', 'Welcome to the league', 'Get drafted', C => !!C.team],
+    ['lottery', 'Lottery pick', 'Go in the top five', C => C.pick && C.pick <= 5],
+    ['starter', 'Starting five', 'Earn a starting role', C => (C.trust || 0) >= 70],
+    ['g30', 'Thirty-piece', 'Score 30 in a game', C => (C.highs || {}).pts >= 30],
+    ['g40', 'Forty-burger', 'Score 40 in a game', C => (C.highs || {}).pts >= 40],
+    ['g50', 'Fifty', 'Score 50 in a game', C => (C.highs || {}).pts >= 50],
+    ['td', 'Triple-double', 'Double figures in three stats', C => !!(C.miles || {}).td],
+    ['winner', 'Ice in the veins', 'Hit a game-winner', C => !!(C.miles || {}).winner],
+    ['allstar', 'All-Star', 'Make an All-Star team', C => C.trophies.some(t => /^All-Star,/.test(t))],
+    ['potw', 'Player of the Week', 'Win a Player of the Week', C => C.trophies.some(t => /Player of the Week/.test(t))],
+    ['three', 'From way downtown', 'Win the 3-Point Contest', C => C.trophies.some(t => /3-Point Contest champion/.test(t))],
+    ['dunk', 'Above the rim', 'Win the Dunk Contest', C => C.trophies.some(t => /Dunk Contest champion/.test(t))],
+    ['roy', 'Rookie of the Year', 'Win Rookie of the Year', C => C.trophies.some(t => /Rookie of the Year/.test(t))],
+    ['mvp', 'Most Valuable', 'Win an MVP', C => C.trophies.some(t => /^MVP/.test(t))],
+    ['title', 'Champion', 'Win a title', C => C.trophies.some(t => /^Champion,/.test(t))],
+    ['fmvp', 'Finals MVP', 'Win Finals MVP', C => C.trophies.some(t => /Finals MVP/.test(t))],
+    ['rival', 'Bragging rights', 'Lead your rival by five head to head', C => C.rival && C.rival.h2h && C.rival.h2h[0] - C.rival.h2h[1] >= 5],
+    ['ovr80', 'Eighty club', 'Reach 80 overall', C => C.me.ovr >= 80],
+    ['ovr90', 'Superstar', 'Reach 90 overall', C => C.me.ovr >= 90],
+    ['rich', 'Max money', 'Earn $100M in a career', C => (C.earnings || 0) >= 100],
+    ['shoe', 'Signature shoe', 'Land a shoe deal', C => !!(C.endorse && C.endorse.brand)],
+    ['hof', 'Hall of Famer', 'Make the Hall of Fame', C => !!(C.retired && C.retired.hof)],
+  ];
+  function achCheck() {
+    const got = load('pbb.ach') || {}, fresh = [];
+    for (const [k, n, , ok] of ACH) { let v = false; try { v = !!ok(C); } catch (e) { v = false; } if (v && !got[k]) { got[k] = { t: Date.now(), who: PB.full(C.me) }; fresh.push(n); } }
+    if (fresh.length) { store('pbb.ach', got); for (const n of fresh) C.news.unshift(`Achievement: ${n}`); achToast(fresh); }
+  }
+  function achToast(list) {
+    let el = document.getElementById('achtoast');
+    if (!el) { el = document.createElement('div'); el.id = 'achtoast'; document.body.appendChild(el); }
+    el.innerHTML = `<b>Achievement</b>${list.map(esc).join(' · ')}`; el.className = 'on';
+    clearTimeout(achToast.h); achToast.h = setTimeout(() => { el.className = ''; }, 3200);
+  }
   function save() {
     if (!C) return;
+    if (C.me && C.trophies) achCheck();
     let id = curId();
     const list = slots();
     if (!id || !list.find(x => x.id === id)) { id = 'c' + Date.now().toString(36); list.push({ id }); setCur(id); }
@@ -54,6 +91,7 @@
       <button class="ghost sm" id="prac">Practice: 3-point and dunk contests, the drill</button>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
+      ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
     if (live) $('#cont').onclick = hub;
     title3d(live ? C.me : null, live && C.team ? PB.team(C.team) : null);
@@ -75,6 +113,12 @@
       $('#bk').onclick = title;
     };
     $('#set').onclick = settings;
+    if ($('#achv')) $('#achv').onclick = () => {
+      const got = load('pbb.ach') || {};
+      show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Achievements</h2><p class="mute">${Object.keys(got).length} of ${ACH.length}, across every career on this device.</p>
+        ${ACH.map(([k, n, d]) => `<div class="card ach ${got[k] ? 'got' : ''}"><i>${got[k] ? '★' : '☆'}</i><div><b>${n}</b><span>${d}${got[k] ? ` · ${esc(got[k].who)}` : ''}</span></div></div>`).join('')}</div>`);
+      $('#bk').onclick = title;
+    };
   }
   /* the title over the arena: your player at center court (or tonight's featured player), the camera circling */
   let featured = null;
