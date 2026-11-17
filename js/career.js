@@ -14,7 +14,26 @@
   const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
-  const save = () => { if (C) store(KEY, C); };
+  /* careers: up to six kept on this device, one of them current. A career saved by an older build (one slot) moves
+     into the first. */
+  const IDX = 'pbb.careers', CUR = 'pbb.current';
+  const slots = () => load(IDX) || [];
+  const curId = () => { try { return localStorage.getItem(CUR); } catch (e) { return null; } };
+  const setCur = id => { try { localStorage.setItem(CUR, id); } catch (e) { /* fine */ } };
+  (function migrate() {
+    const old = load(KEY);
+    if (old && !slots().length) { store('pbb.career.c1', old); store(IDX, [{ id: 'c1' }]); setCur('c1'); try { localStorage.removeItem(KEY); } catch (e) { /* fine */ } }
+  })();
+  const loadCur = () => { const id = curId(); return id ? load('pbb.career.' + id) : null; };
+  function save() {
+    if (!C) return;
+    let id = curId();
+    const list = slots();
+    if (!id || !list.find(x => x.id === id)) { id = 'c' + Date.now().toString(36); list.push({ id }); setCur(id); }
+    const e = list.find(x => x.id === id);
+    Object.assign(e, { name: PB.full(C.me), team: C.team, year: C.year, ovr: C.me.ovr, pos: C.me.pos, t: Date.now() });
+    store('pbb.career.' + id, C); store(IDX, list);
+  }
 
   function show(html) { const s = scr(); s.innerHTML = html; s.hidden = false; s.scrollTop = 0; }
   const badge = t => `<i class="tb" style="background:${t.c1};color:${t.c2}">${t.id}</i>`;
@@ -23,21 +42,79 @@
   /* ---------- title ---------- */
   function title() {
     if (PB.audio) PB.audio.music(true);
-    C = load(KEY);
+    C = loadCur();
+    const list = slots();
+    const live = C && C.me;
     show(`<div class="title">
       <div class="logo"><div class="ball"></div><h1>Pocket<br>Basketball</h1><p>Your career, from draft night to the Hall of Fame.</p></div>
-      ${C ? `<button class="big" id="cont">Continue career<small>${esc(PB.full(C.me))} · ${esc(PB.team(C.team).name)} · Season ${C.year}</small></button>` : ''}
-      <button class="${C ? 'ghost' : 'big'}" id="newc">New career</button>
-      <button class="ghost" id="qg">Quick game</button>
+      ${live ? `<button class="big" id="cont">Continue career<small>${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></button>` : ''}
+      <button class="${live ? 'ghost' : 'big'}" id="newc">New career</button>
+      ${list.length > 1 || (list.length && !live) ? `<button class="ghost" id="careers">Careers <small>${list.length} on this device</small></button>` : ''}
+      <div class="row2"><button class="ghost" id="qg">Quick game</button><button class="ghost" id="prac">Practice</button></div>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
-      <p class="fine">Every team and player is fictional. Prototype build.</p></div>`);
-    if (C) $('#cont').onclick = hub;
-    $('#newc').onclick = () => { if (!C || confirm('Start a new career? Your current one will be replaced.')) create(); };
+      <p class="fine">Every team and player is fictional.</p></div>`);
+    if (live) $('#cont').onclick = hub;
+    $('#newc').onclick = () => { if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one under Careers first.'); return; } setCur(''); C = null; create(); };
+    if ($('#careers')) $('#careers').onclick = careers;
     $('#qg').onclick = quick;
+    $('#prac').onclick = practice;
     $('#how').onclick = how;
     $('#set').onclick = settings;
   }
-
+  /* the careers on this device: play one, back it up to a file, bring one in from a file, delete one */
+  function careers() {
+    const list = slots().sort((a, b) => (b.t || 0) - (a.t || 0)), cur = curId();
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Careers</h2>
+      ${list.map(x => `<div class="card slot ${x.id === cur ? 'cur' : ''}"><div><b>${esc(x.name || 'Unnamed')}</b><span>${x.pos || ''} · ${x.ovr || ''} OVR · ${x.team ? esc(PB.team(x.team).name) : 'pre-draft'} · season ${x.year || 1}</span></div>
+        <div class="row3"><button class="ghost sm" data-play="${x.id}">Play</button><button class="ghost sm" data-exp="${x.id}">Back up</button><button class="ghost sm" data-del="${x.id}">Delete</button></div></div>`).join('') || '<p class="mute">No careers yet.</p>'}
+      <label class="ghost sm imp">Bring in a backup file<input type="file" id="imp" accept=".json,application/json" hidden></label>
+      <p class="fine">A backup is a small file you can keep, or open on another phone or computer to carry the career over.</p></div>`);
+    $('#bk').onclick = title;
+    scr().querySelectorAll('[data-play]').forEach(b => b.onclick = () => { setCur(b.dataset.play); C = loadCur(); hub(); });
+    scr().querySelectorAll('[data-exp]').forEach(b => b.onclick = () => {
+      const data = load('pbb.career.' + b.dataset.exp); if (!data) return;
+      const blob = new Blob([JSON.stringify({ pocketbasketball: 1, career: data })], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `pocketbasketball-${(data.me.last || 'career').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-season${data.year}.json`;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+    scr().querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+      if (!confirm('Delete this career?') || !confirm('Really delete it? This cannot be undone.')) return;
+      const id = b.dataset.del; store(IDX, slots().filter(x => x.id !== id));
+      try { localStorage.removeItem('pbb.career.' + id); } catch (e) { /* fine */ }
+      if (curId() === id) setCur('');
+      careers();
+    });
+    $('#imp').onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      f.text().then(txt => {
+        let d; try { d = JSON.parse(txt); } catch (err) { alert('That file is not a PocketBasketball backup.'); return; }
+        const c = d && d.pocketbasketball && d.career;
+        if (!c || !c.me || !c.rosters) { alert('That file is not a PocketBasketball backup.'); return; }
+        if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one first.'); return; }
+        setCur(''); C = c; save(); careers();
+      });
+    };
+  }
+  /* practice: the contests on your own, with your career player if you have one */
+  function practice() {
+    const cur = loadCur();
+    const me = cur && cur.me ? cur.me : { id: 'me', first: 'Practice', last: 'Shooter', pos: 'SG', ht: 77, skin: 2, num: 30, r: PB.makeRatings('SG', 80), badges: {} };
+    const t = cur && cur.team ? PB.team(cur.team) : PB.team('SF');
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Practice</h2>
+      <p class="mute">${cur && cur.me ? `As ${esc(PB.full(me))}, with your ratings and badges.` : 'As a practice shooter (80 overall).'}</p>
+      <button class="big" id="p3">3-Point Contest<small>five racks, money balls, 60 seconds</small></button>
+      <button class="ghost" id="pc">Spot-up drill<small>the combine's fifteen shots in 45 seconds</small></button></div>`);
+    $('#bk').onclick = title;
+    const go = kind => { scr().hidden = true; PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: me.id, drill: kind, qlen: 1, level: S.level, floor: t,
+      onEnd: r => { const d = r.drill || { score: 0, made: 0, att: 0 };
+        const best = load('pbb.best') || {}; const k = kind; const nb = !best[k] || d.score > best[k]; if (nb) { best[k] = d.score; store('pbb.best', best); }
+        show(`<div class="page post"><p class="kick">${kind === 'contest' ? '3-Point Contest' : 'Spot-up drill'}</p><div class="gradebig"><b>${d.score}</b><span>${d.made} of ${d.att} made</span></div>
+          <p class="mute">${nb ? 'A new best on this device.' : `Your best: ${best[k]}`}</p><button class="big" id="again">Again</button><button class="ghost" id="done">Done</button></div>`);
+        $('#again').onclick = () => go(kind); $('#done').onclick = title; } }); };
+    $('#p3').onclick = () => go('contest');
+    $('#pc').onclick = () => go('combine');
+  }
   function how() {
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>How to play</h2>
       <div class="card"><h3>Moving</h3><p>Put your left thumb anywhere on the lower left and drag: the stick appears under it. Push to the edge to sprint.</p></div>
@@ -324,6 +401,7 @@
   let tab = 'home';
   function hub() {
     if (PB.audio) PB.audio.music(true);
+    if (!C) { title(); return; }
     upgrade();
     if (C.phase === 'regular' && C.gi >= C.games.length) { startPlayoffs(); }
     if (C.phase === 'combine') { combine(); return; }

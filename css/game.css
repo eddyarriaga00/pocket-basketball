@@ -266,3 +266,6 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 .chart{width:100%;height:auto;display:block}.chart .floor{fill:#2a2118}.chart .paint{fill:rgba(255,176,46,.12)}
 .chart .ln{stroke:rgba(255,255,255,.35);stroke-width:1.2}.chart .rim{fill:none;stroke:#ff6a2a;stroke-width:1.5}
 .chart .mk{fill:#3ddc84;stroke:#0a0d14;stroke-width:1}.chart .ms line{stroke:#ff5a6b;stroke-width:2;stroke-linecap:round}
+.slot{display:flex;flex-direction:column;gap:10px}.slot b{font-family:var(--display);font-size:16px}.slot span{display:block;font-size:12.5px;color:var(--mute)}
+.slot.cur{border-color:var(--acc)}.row3{display:flex;gap:8px}.row3>*{flex:1;margin:0}
+.imp{display:block;text-align:center;cursor:pointer}
