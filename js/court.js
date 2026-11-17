@@ -11,6 +11,7 @@
   let zoom = 1, camMode = 'lock', lockDir = 1, yaw = 0;
   const anchor = new T.Vector3();
   const meshes = new Map();
+  let board = null, ribbons = [];
   let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [];
 
   const PX = 20;  // court texture pixels per foot
@@ -69,13 +70,14 @@
       /* lane hash marks */
       for (const d of [7, 8, 11, 14]) for (const sx of [-1, 1]) line([[sx * 8, bz - s * d], [sx * 8.7, bz - s * d]]);
     }
-    /* center logo and the names on the far sideline, readable from the broadcast camera at the scorer's table */
-    g.save(); g.translate(X(0), Z(0)); g.rotate(Math.PI / 2);
+    /* center logo, readable from behind the team attacking +z (player lock, the default camera); the baseline names
+       each read the right way up as you attack toward them */
+    g.save(); g.translate(X(0), Z(0)); g.rotate(Math.PI);
     g.fillStyle = home.c2; g.font = `900 ${3 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(home.id, 0, 0); g.restore();
-    for (const [z, txt] of [[-21, home.city], [21, home.name]]) {
-      g.save(); g.fillStyle = 'rgba(255,255,255,.8)'; g.font = `800 ${2.4 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.translate(X(21.2), Z(z)); g.rotate(Math.PI / 2); g.fillText(txt.toUpperCase(), 0, 0); g.restore();
+    for (const [z, rot, txt] of [[44.9, Math.PI, home.name], [-44.9, 0, home.city]]) {
+      g.save(); g.fillStyle = 'rgba(255,255,255,.85)'; g.font = `800 ${2.2 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.translate(X(0), Z(z)); g.rotate(rot); g.fillText(txt.toUpperCase(), 0, 0); g.restore();
     }
     const tex = new T.CanvasTexture(cv);
     tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
@@ -415,6 +417,39 @@
         e.position.set(0, h - 1.6, side * (47 + 10 + d)); scene.add(e);
       }
     }
+    /* the center-hung scoreboard: four screens over center court showing the score and the clock, and a ring of light */
+    const jc = document.createElement('canvas'); jc.width = 512; jc.height = 256;
+    board = { cv: jc, g: jc.getContext('2d'), tex: new T.CanvasTexture(jc), key: '' };
+    const jm = new T.MeshBasicMaterial({ map: board.tex });
+    const frame = new T.MeshLambertMaterial({ color: 0x15181f });
+    const jb = new T.Group();
+    const body = new T.Mesh(new T.BoxGeometry(17, 9, 17), frame); jb.add(body);
+    for (let i = 0; i < 4; i++) {
+      const sc = new T.Mesh(new T.PlaneGeometry(15.4, 7.7), jm);
+      const a = i * Math.PI / 2; sc.position.set(Math.sin(a) * 8.55, 0, Math.cos(a) * 8.55); sc.rotation.y = a; jb.add(sc);
+    }
+    const ring = new T.Mesh(new T.CylinderGeometry(10, 10, 1.4, 32, 1, true), new T.MeshBasicMaterial({ color: new T.Color(home.c1), side: T.DoubleSide }));
+    ring.position.y = -5.4; jb.add(ring);
+    const ringT = new T.Mesh(new T.CylinderGeometry(9.2, 10, 0.5, 32, 1, true), new T.MeshBasicMaterial({ color: 0xffffff, side: T.DoubleSide, transparent: true, opacity: 0.7 }));
+    ringT.position.y = -6.3; jb.add(ringT);
+    const cable = new T.Mesh(new T.CylinderGeometry(0.15, 0.15, 30, 4), frame); cable.position.y = 19; jb.add(cable);
+    jb.position.set(0, 44, 0); scene.add(jb);
+    /* LED ribbons along the front of the stands, in the home colors, scrolling */
+    const rc = document.createElement('canvas'); rc.width = 512; rc.height = 32;
+    const rg = rc.getContext('2d');
+    rg.fillStyle = home.c1; rg.fillRect(0, 0, 512, 32);
+    rg.fillStyle = home.c2; rg.font = '900 22px Archivo, Arial'; rg.textBaseline = 'middle';
+    for (let x = 0; x < 512; x += 256) { rg.fillText(home.name.toUpperCase(), x + 10, 17); rg.fillRect(x + 200, 12, 40, 8); }
+    const rt = new T.CanvasTexture(rc); rt.wrapS = T.RepeatWrapping;
+    ribbons = [];
+    for (const side of [-1, 1]) {
+      const t1 = rt.clone(); t1.needsUpdate = true; t1.repeat.set(10, 1);
+      const m = new T.Mesh(new T.PlaneGeometry(150, 1.6), new T.MeshBasicMaterial({ map: t1 }));
+      m.position.set(side * 30.45, 1.6, 0); m.rotation.y = -side * Math.PI / 2; scene.add(m); ribbons.push(t1);
+      const t2 = rt.clone(); t2.needsUpdate = true; t2.repeat.set(6, 1);
+      const e = new T.Mesh(new T.PlaneGeometry(90, 1.6), new T.MeshBasicMaterial({ map: t2 }));
+      e.position.set(0, 1.6, side * 62.45); e.rotation.y = side > 0 ? Math.PI : 0; scene.add(e); ribbons.push(t2);
+    }
     /* scorer's table */
     const table = new T.Mesh(new T.BoxGeometry(2.5, 3, 24), new T.MeshLambertMaterial({ color: new T.Color(home.c1) }));
     table.position.set(-29, 1.5, 0); scene.add(table);
@@ -490,6 +525,27 @@
     const h = b.state === 'held' && b.holder !== u ? b.holder : null;
     handRing.visible = !!h;
     if (h) { handRing.position.x = h.x; handRing.position.z = h.z; handRing.material.color.set(h.team === 0 ? 0xffffff : 0xff6a6a); }
+    if (board && G.teams) {
+      const fmt = c => c >= 60 ? `${Math.floor(c / 60)}:${String(Math.floor(c % 60)).padStart(2, '0')}` : Math.max(0, c).toFixed(1);
+      const q = G.q <= 4 ? ['1ST', '2ND', '3RD', '4TH'][G.q - 1] : 'OT';
+      const key = `${G.score[0]}|${G.score[1]}|${q}|${fmt(G.clock)}|${Math.ceil(G.shotClock)}`;
+      if (key !== board.key) {
+        board.key = key;
+        const g = board.g, W2 = 512;
+        g.fillStyle = '#05070b'; g.fillRect(0, 0, W2, 256);
+        for (const [i, t] of [[0, G.teams[0]], [1, G.teams[1]]]) {
+          const x = i ? 384 : 128;
+          g.fillStyle = t.c1; g.fillRect(x - 118, 18, 236, 44);
+          g.fillStyle = '#fff'; g.font = '900 34px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t.id, x, 41);
+          g.fillStyle = '#ffb02e'; g.font = '900 96px Archivo, Arial'; g.fillText(String(G.score[i]), x, 132);
+        }
+        g.fillStyle = '#fff'; g.font = '800 40px Archivo, Arial'; g.fillText(fmt(G.clock), 256, 212);
+        g.fillStyle = '#8d99b0'; g.font = '800 26px Archivo, Arial'; g.fillText(q, 256, 176);
+        g.fillStyle = '#ff5a6b'; g.font = '900 30px Archivo, Arial'; g.fillText(String(Math.max(0, Math.ceil(G.shotClock))), 460, 212);
+        board.tex.needsUpdate = true;
+      }
+    }
+    for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
     for (const n of nets) {
       n.swish = Math.max(0, n.swish - dt * 2.2);
       n.mesh.scale.set(1 - n.swish * 0.25, 1 + n.swish * 0.35, 1 - n.swish * 0.25);
