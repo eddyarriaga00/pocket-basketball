@@ -39,6 +39,7 @@ What changed, newest first. The full list is the git log; the order of work is [
   games, coach trust and your role (off the bench you check in later), a word from the coach, game goals, team
   practice, life between games, press conferences, a feed, followers and shoe endorsements.
 - Twelve badges, career highs and milestones, injuries now and then.
+- A real schedule (your division most often), back-to-backs with heavy legs, injuries around the league.
 - League leaders, All-Star picks, the All-Star Game, the 3-Point Contest and the Dunk Contest (a 360, a windmill,
   a reverse, from as far as the free-throw line; five judges), a play-in, playoff series, awards night.
 - Contracts: a rookie deal, an extension, free agency, trade requests, earnings; retirement and the Hall of Fame.

@@ -354,10 +354,20 @@
     const sched = [];
     /* the rival's team twice, then everyone else */
     if (C.rival) sched.push(C.rival.team);
-    while (sched.length < n) { const sh = others.slice().sort(() => PB.rand() - 0.5); for (const o of sh) if (sched.length < n) sched.push(o); }
+    /* like the real league: the division most often, then the conference, then the rest */
+    const me = PB.team(C.team), wt = id => { const t = PB.team(id); return t.div === me.div ? 3 : t.conf === me.conf ? 2 : 1.2; };
+    const seen = {};
+    while (sched.length < n) {
+      let pick = null, best = -1;
+      for (const o of others) { const v = wt(o) / (1 + (seen[o] || 0) * 2.2) * (0.6 + PB.rand()); if (v > best) { best = v; pick = o; } }
+      seen[pick] = (seen[pick] || 0) + 1; sched.push(pick);
+    }
     if (C.rival && n >= 10) { const k = Math.floor(n * 0.6); sched.splice(k, 0, C.rival.team); sched.length = n; }
     sched.sort(() => PB.rand() - 0.5);
     C.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false }));
+    /* back-to-backs: about one game in seven is the second of two nights; your legs start the game heavier */
+    for (let i = 1; i < C.games.length; i++) if (!C.games[i - 1].b2b && PB.rand() < 0.15) C.games[i].b2b = true;
+    for (const id in C.rosters) for (const p of C.rosters[id]) p.out = 0;
     C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
     if (C.contract) C.earnings = (C.earnings || 0) + C.contract.salary;
     if (C.endorse && C.endorse.pay) C.earnings = (C.earnings || 0) + C.endorse.pay;
@@ -386,8 +396,10 @@
   /* ---------- team helpers ---------- */
   const myRoster = () => C.rosters[C.team];
   function starters(teamId) {
-    const ro = C.rosters[teamId].slice();
-    const five = PB.POS.map(pos => ro.filter(p => p.pos === pos).sort((a, b) => b.ovr - a.ovr)[0]);
+    const ro = C.rosters[teamId].filter(p => !(p.out > 0)), used = new Set();
+    const five = PB.POS.map(pos => { const p = ro.filter(q => q.pos === pos && !used.has(q)).sort((a, b) => b.ovr - a.ovr)[0]; if (p) used.add(p); return p; });
+    /* a position with everyone hurt: the best healthy man left plays it */
+    for (let i = 0; i < 5; i++) if (!five[i]) { const p = ro.filter(q => !used.has(q)).sort((a, b) => b.ovr - a.ovr)[0] || C.rosters[teamId][i]; used.add(p); five[i] = p; }
     return five;
   }
   /* your role: your overall against the best at your position, moved by how much the coach trusts you */
@@ -397,7 +409,9 @@
     return d >= -1 ? 'Starter' : d >= -6 ? 'Sixth man' : 'Bench';
   }
   const roleLine = () => { const r = role(); return r === 'Starter' ? 'The coach has you in the starting five.' : r === 'Sixth man' ? 'You come off the bench as the first man in, and you start when the starter rests.' : 'You start on the bench: play well and the minutes come.'; };
-  const strength = id => PB.teamOvr(C.rosters[id].concat(id === C.team ? [C.me] : []));
+  const strength = id => { const ro = C.rosters[id].filter(p => !(p.out > 0)).concat(id === C.team && !C.injury ? [C.me] : []);
+    while (ro.length < 8) ro.push({ ovr: 60 });
+    return PB.teamOvr(ro); };
   function liveFive() {
     const five = starters(C.team).map(p => p);
     five[PB.POS.indexOf(C.me.pos)] = C.me;
@@ -439,6 +453,19 @@
       if (C.rival && (a === C.rival.team || b === C.rival.team)) rivalGame(w === C.rival.team);
     }
     if (C.dayBest) C.news.unshift(`${C.dayBest.name} drops ${C.dayBest.pts} for the ${PB.team(C.dayBest.team).name}`);
+    leagueInjuries();
+  }
+  /* injuries around the league: a day off to a few weeks, scaled to the season's length; a star's is news */
+  function leagueInjuries() {
+    const len = C.len || 20;
+    for (const t of PB.TEAMS) for (const p of C.rosters[t.id]) {
+      if (p.out > 0) { p.out--; if (!p.out && p.ovr >= 80 && p.outN >= 3) C.news.unshift(`${PB.full(p)} returns for the ${PB.team(t.id).name}`); continue; }
+      if (PB.rand() < 0.005) {
+        p.out = Math.max(1, Math.round(PB.pick([1, 1, 2, 3, 5, 8, 12]) * len / 41));
+        const tm = PB.team(t.id), weeks = p.out >= 4; p.outN = p.out;
+        if ((p.ovr >= 80 || t.id === C.team) && p.out >= 2) C.news.unshift(`${PB.full(p)} (${tm.ab}) is out ${p.out} games${weeks ? ` with ${PB.pick(['a sprained ankle', 'a hamstring strain', 'a bone bruise in his knee', 'back spasms', 'a sprained wrist'])}` : ''}`);
+      }
+    }
   }
   /* every starter's line from a simmed game, for the league leaders and the awards */
   const LS = ['gp', 'pts', 'reb', 'ast', 'stl', 'blk', 'tpm'];
@@ -693,7 +720,7 @@
   function nextGame() {
     if (C.phase === 'regular') {
       const g = C.games[C.gi];
-      return g && { opp: g.opp, home: g.home, label: `Game ${C.gi + 1} of ${C.games.length} · ${g.home ? 'Home' : 'Away'}`, g };
+      return g && { opp: g.opp, home: g.home, label: `Game ${C.gi + 1} of ${C.games.length} · ${g.home ? 'Home' : 'Away'}${g.b2b ? ' · Back-to-back' : ''}`, g };
     }
     if (C.phase === 'playoffs') {
       const sr = mySeries();
@@ -739,7 +766,7 @@
     if (C.rival && o.id === C.rival.team && rivalP()) opp5[PB.POS.indexOf(rivalP().pos)] = rivalP();
     PB.Game.start({ teams: [t, o], rosters: [liveFive(), opp5], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
-      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, tired: !!g.b2b, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */

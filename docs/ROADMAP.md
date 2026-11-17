@@ -106,13 +106,13 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Play-in (7-10) and playoff series (best of 1/3/5/7 by season length), a bracket, the Finals (2026-11-17)
 - [x] Awards night: MVP, Rookie of the Year, DPOY, Sixth Man, Most Improved, All-League teams, Finals MVP; All-Star picks at midseason (2026-11-17)
 
-- [ ] Real schedule (division, conference, other conference weights), back-to-backs
+- [x] A real schedule (the division most, then the conference), back-to-backs that start you with heavy legs (2026-11-17)
 - [ ] League leaders from simmed box scores
 - [x] All-Star weekend 3-Point Contest: five racks, money balls, against seven of the league's shooters (2026-11-17)
 - [x] The All-Star Game: East against West, the best at every position, an All-Star MVP (2026-11-17)
 - [x] Dunk Contest: two dunks, the top two to a final; Move picks two-hand, tomahawk, reverse, windmill or 360,
       take off from as far as the free-throw line; five judges; also in Practice (2026-11-17)
-- [ ] Injuries (day-to-day, out for weeks)
+- [x] Injuries around the league (a game to a few weeks; a team without its star is weaker, and it's news) (2026-11-17)
 
 ## M4 · Contracts and legacy
 

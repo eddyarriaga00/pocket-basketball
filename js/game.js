@@ -1745,6 +1745,8 @@
         $('#grade').hidden = true;
         setTimeout(() => toast(def.title, 'call'), 200);
       }
+      /* the second night of a back-to-back: your legs start heavier */
+      if (o.tired && G.user) { G.user.energy = 0.78; setTimeout(() => feed('Second night of a back-to-back: heavy legs'), 600); }
       /* off the bench: the game before you check in is played out by the teams' strength */
       if (o.enterAt) {
         const secs = o.enterAt * G.qlen * 60 * 4;
