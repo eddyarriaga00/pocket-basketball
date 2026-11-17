@@ -233,3 +233,4 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 #rp small{font-family:var(--body);font-weight:600;letter-spacing:0;font-size:11px;color:rgba(255,255,255,.7);margin-top:2px}
 @keyframes blink{50%{opacity:.2}}
 #game.replaying #btns,#game.replaying #stickzone,#game.replaying #meter{display:none}
+#game.drill #bB,#game.drill #bC,#game.drill #stickzone,#game.drill #sc,#game.drill #feed{display:none}

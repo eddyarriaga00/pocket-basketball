@@ -108,6 +108,7 @@
     if (before !== gradeLetter(G.grade)) g.classList.add('chg');
   }
   function hud() {
+    $('#game').classList.toggle('drill', !!(G && G.drill));
     const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : s.toFixed(1);
     $('#s0').textContent = G.score[0]; $('#s1').textContent = G.score[1];
     $('#qt').textContent = G.q <= 4 ? ['1st', '2nd', '3rd', '4th'][G.q - 1] : (G.q === 5 ? 'OT' : `${G.q - 4}OT`);
@@ -120,8 +121,8 @@
     const off = G.poss === 0 || (G.poss === null && G.ball.holder && G.ball.holder.team === 0);
     const has = G.ball.holder === u;
     const ft = G.phase === 'ft' && G.ftq && G.ftq.shooter === u;
-    $('#bA').textContent = ft ? 'Shoot' : has ? 'Shoot' : off ? 'Jump' : 'Jump';
-    $('#bA').className = 'btn a ' + (has || ft ? 'shoot' : 'jump');
+    $('#bA').textContent = ft || has || G.drill ? 'Shoot' : 'Jump';
+    $('#bA').className = 'btn a ' + (has || ft || G.drill ? 'shoot' : 'jump');
     $('#bB').textContent = has ? 'Pass' : off ? 'Call' : 'Steal';
     $('#bB').classList.toggle('lit', !has && off && G.callT > 0);
     $('#bC').textContent = has ? 'Move' : off ? 'Cut' : 'Help';
@@ -260,8 +261,40 @@
     relT = 1.4;
   }
 
+  /* ---------- drills: the pre-draft combine and the 3-point contest ----------
+     You alone on the floor, a rack of balls at each spot, a clock. A rebounder feeds you the next ball; after the last
+     ball of a rack you jog to the next spot. In the contest the last ball of each rack is the money ball, worth two. */
+  const DRILLS = {
+    contest: { secs: 60, spots: [[-22, 3], [-15.5, 18], [0, 25], [15.5, 18], [22, 3]], balls: 5, money: true, title: '3-Point Contest' },
+    combine: { secs: 45, spots: [[-22, 3], [-9, 14], [0, 25], [9, 14], [22, 3]], balls: 3, money: false, title: 'Combine · spot-up shooting' },
+  };
+  function drillSpot() { const D = G.drill, sp = D.def.spots[D.rack]; return toCourt(0, sp[0], sp[1]); }
+  function drillLands(s) {
+    const D = G.drill, b = G.ball, money = D.def.money && D.ball === D.def.balls - 1;
+    D.att++;
+    if (s.made) { D.made++; D.score += money ? 2 : 1; R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); AU().crowd.react(money ? 'roar' : 'applause', money ? 0.9 : 0.5); if (money) toast('MONEY BALL', 'make'); buzz([15, 30, 15]); }
+    else { AU().play('rim', { x: b.ex, power: 0.6 }); }
+    b.state = 'drop'; b.t = 0;
+    D.ball++;
+    if (D.ball >= D.def.balls) { D.ball = 0; D.rack++; }
+    D.next = D.rack >= D.def.spots.length ? -1 : 0.45;
+    if (D.next < 0) D.over = true;
+  }
+  function drillStep(dt) {
+    const D = G.drill, u = G.user;
+    if (!D.over) { D.t -= dt; if (D.t <= 0) { D.t = 0; D.over = true; } }
+    G.clock = D.t; G.shotClock = 24; G.score[0] = D.score; G.score[1] = D.att;
+    const sp = D.rack < D.def.spots.length ? drillSpot() : { x: u.x, z: u.z };
+    if (!u.shoot) { u.tx = sp.x; u.tz = sp.z; seek(u, dt, 1); }
+    if (D.next > 0) { D.next -= dt; if (D.next <= 0 && !D.over) { D.next = 0; give(u); u.hold = 0; } }
+    const left = D.rack < D.def.spots.length ? `Rack ${D.rack + 1} · ball ${D.ball + 1}${D.def.money && D.ball === D.def.balls - 1 ? ' (money)' : ''}` : 'Done';
+    $('#ftmsg').hidden = false; $('#ftmsg').textContent = `${left} · ${D.score} pts`;
+    if (D.over && G.ball.state !== 'shot') { D.endT = (D.endT || 0) + dt; if (D.endT > 1.2) finish(); }
+  }
+
   function shotLands() {
     const b = G.ball, s = b.shot, p = s.shooter;
+    if (G.drill) { drillLands(s); return; }
     if (s.made) {
       G.score[p.team] += s.pts;
       p.st.pts += s.pts; p.st.fgm++; if (s.pts === 3) p.st.tpm++;
@@ -775,7 +808,8 @@
       } else { G.ftWait -= dt; if (G.ftWait <= 0) shootFT(0); }
     }
     /* clocks */
-    if (G.phase === 'live') {
+    if (G.drill) drillStep(dt);
+    else if (G.phase === 'live') {
       G.clock -= dt;
       if (G.poss !== null && (b.state === 'held' || b.state === 'pass')) G.shotClock -= dt;
       if (G.callT > 0) G.callT -= dt;
@@ -807,6 +841,7 @@
         else if (!s.user && s.t / s.T >= s.aiRel) release(p, s.aiRel);
       }
       if (!live) { if (G.phase === 'dead' || G.phase === 'ftflight') { p.vx *= 0.9; p.vz *= 0.9; } }
+      else if (p.isUser && G.drill) { /* the drill moves you */ }
       else if (p.isUser && !G.auto) {
         userStep(p, dt);
         if (p.cutUser > 0) { p.cutUser -= dt; if (!stickWorld()) { p.tx = 0; p.tz = hoopZ(0) - 6; seek(p, dt, 1); } }
@@ -969,7 +1004,7 @@
     AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1);
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
-    const res = { score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
+    const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att } : null, score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q };
     PB.Game.active = false;
     $('#game').hidden = true;
@@ -1200,7 +1235,7 @@
       G.user = pl.find(p => p.isUser) || null;
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0;
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
-      if (PB.booth) { const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B('intro', { prio: 2, follow: 0.6 }); }); else B('intro', { prio: 2, follow: 0.6 }); }
+      if (PB.booth && !o.drill) { const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B('intro', { prio: 2, follow: 0.6 }); }); else B('intro', { prio: 2, follow: 0.6 }); }
       /* jump ball setup: everyone around the center circle */
       for (const p of pl) {
         const d = dirOf(p.team);
@@ -1221,6 +1256,16 @@
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
       $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Teammate grade</span>' : '';
       $('#grade').hidden = !G.user; $('#ftmsg').hidden = true; $('#pause').hidden = true;
+      if (o.drill) {
+        const def = DRILLS[o.drill];
+        G.drill = { kind: o.drill, def, rack: 0, ball: 0, score: 0, made: 0, att: 0, t: def.secs, next: 0, over: false };
+        G.phase = 'live'; G.poss = 0; G.clock = def.secs;
+        const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0;
+        give(G.user);
+        $('#a0').textContent = 'PTS'; $('#a1').textContent = 'SHOTS';
+        $('#grade').hidden = true;
+        setTimeout(() => toast(def.title, 'call'), 200);
+      }
       /* off the bench: the game before you check in is played out by the teams' strength */
       if (o.enterAt) {
         const secs = o.enterAt * G.qlen * 60 * 4;

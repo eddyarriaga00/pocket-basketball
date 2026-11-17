@@ -21,6 +21,7 @@ The order of work. [PLAN.md](PLAN.md) is the design. Update this file after ever
 python3 tools/serve.py 8000          # then open http://localhost:8000 (phone: your computer's address on the same Wi-Fi)
 node tools/smoke.js                  # a career loop with real input; must print "errors []"
 node tools/balance.js 6              # six 48-minute computer games against the league's numbers
+node tools/drill.js                  # the combine and the 3-point contest, shot by shot
 ```
 The two node tools need Playwright (`npm i -g playwright`).
 
@@ -62,10 +63,10 @@ The two node tools need Playwright (`npm i -g playwright`).
       clips blended by speed; jersey, shorts, socks and shoes painted on by body region in team colors; numbers and
       hair; dribble, jumper, follow-through, contest, reach and defensive arms set in code; the ball in the real hand
 - [ ] Faces and hair styles (Quaternius Universal Base Characters, CC0), jersey trim, shorts that sway
-- [ ] Dribble moves on swipes of the right thumb (crossover, behind the back, step-back, spin)
+- [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
 - [ ] Euro step and floater on drives; dunk variety
-- [ ] Haptics on release and makes
-- [ ] Replays of dunks, blocks and game-winners
+- [x] Vibration on releases, makes, steals and blocks (Android) (2026-11-17)
+- [x] Replays of dunks, your and-ones and shots at the buzzer (2026-11-17)
 - [ ] Out-of-bounds inbound plays (a man takes it out on the sideline or baseline)
 - [ ] Backcourt and three-second violations, goaltending
 
@@ -75,9 +76,11 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] A draft-class rival in your division, with head-to-head stats and rival games (2026-11-17)
 - [x] Twelve badges, bronze to gold, earned by doing the thing in games, each with a small effect (2026-11-17)
 
-- [ ] Minutes and role: starters and bench, substitutions, fatigue, foul trouble; you check in off the bench
+- [x] Off the bench: a sixth man checks in mid-first quarter, a bench player in the second (2026-11-17)
+- [ ] Substitutions, fatigue and foul trouble during a game
 - [ ] A talk with the coach every few games
-- [ ] Pre-draft combine (shooting, agility, vertical) and two team interviews
+- [x] Pre-draft combine: fifteen spot-up shots in 45 seconds that move your draft stock (2026-11-17)
+- [ ] Combine agility and vertical drills; team interviews
 - [ ] Career highs on the broadcast; the record book
 
 ## M3 · The season around you
@@ -87,7 +90,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 - [ ] Real schedule (division, conference, other conference weights), back-to-backs
 - [ ] League leaders from simmed box scores
-- [ ] All-Star weekend: three-point contest and dunk contest mini-games, the game
+- [x] All-Star weekend 3-Point Contest: five racks, money balls, against seven of the league's shooters (2026-11-17)
+- [ ] Dunk contest; the All-Star game itself
 - [ ] Injuries (day-to-day, out for weeks)
 
 ## M4 · Contracts and legacy

@@ -563,7 +563,9 @@
       /* player lock, the way career modes on consoles play it: low behind your own player, looking down the floor
          at the rim being attacked. The view swings around (it doesn't cut) when the ball changes hands. */
       if (G.poss === 0) lockDir = 1; else if (G.poss === 1) lockDir = -1;
-      const want = lockDir > 0 ? 0 : Math.PI;
+      const me0 = G.user || b.holder || b;
+      /* in a drill the camera stands behind you facing the rim, wherever you are on the arc */
+      const want = G.drill ? Math.atan2(0 - me0.x, 41.75 - me0.z) : lockDir > 0 ? 0 : Math.PI;
       let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
       if (Math.abs(Math.abs(dy) - Math.PI) < 0.01) dy = Math.PI * 0.999;   // a half turn always swings the same way
       yaw += dy * Math.min(1, dt * 4);

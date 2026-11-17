@@ -13,11 +13,12 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   await pg.waitForFunction(() => window.PB && PB.R && PB.R.modelReady && PB.R.modelReady(), { timeout: 30000 }).catch(() => errs.push('player model did not load'));
   await pg.evaluate(() => localStorage.clear()); await pg.reload(); await pg.waitForTimeout(500);
   await pg.click('#newc'); await pg.waitForTimeout(200);
-  await pg.fill('#fn', 'Eddy'); await pg.fill('#ln', 'Arriaga');
+  await pg.fill('#fn', 'Test'); await pg.fill('#ln', 'Player');
   await pg.click('#pos button[data-v="PG"]'); await pg.waitForTimeout(100);
   await pg.click('.arch button[data-v="Playmaker"]'); await pg.waitForTimeout(100);
   await pg.screenshot({ path: OUT + '/c1-create.png', fullPage: false });
   await pg.click('#go'); await pg.waitForTimeout(300);
+  await pg.click('#skip'); await pg.waitForTimeout(300);   // the combine: skipped here (tools/drill.js plays it)
   await pg.screenshot({ path: OUT + '/c2-draft.png' });
   await pg.click('#go'); await pg.waitForTimeout(300);
   await pg.screenshot({ path: OUT + '/c3-hub.png' });

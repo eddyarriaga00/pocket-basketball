@@ -146,16 +146,48 @@
     const r = startRatings(st);
     const me = { id: 'me', first: st.first, last: st.last, pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {} };
     me.ovr = PB.ovr(r, st.pos);
-    /* draft position: lottery teams (the weakest) pick first; your stock sets the pick */
-    const order = PB.TEAMS.slice().sort((a, b) => strengths[a.id] - strengths[b.id] + PB.gauss() * 3);
-    const pick = PB.clamp(Math.round(14 - (me.ovr - 62) * 1.6 + PB.gauss() * 3), 1, 30);
-    const team = order[pick - 1].id;
-    C = { v: 2, me, team, pick, year: 1, rosters, standings: {}, games: [], gi: 0, news: [], seasons: [], totals: zero(), awards: [], trophies: [],
-      trust: 42, fans: 1500 + (31 - pick) * 400, ct: {}, feed: [], phase: 'regular', streak: 0 };
-    makeRival(order, pick);
+    /* the draft order: lottery teams (the weakest) pick first */
+    const order = PB.TEAMS.slice().sort((a, b) => strengths[a.id] - strengths[b.id] + PB.gauss() * 3).map(t => t.id);
+    C = { v: 2, me, team: null, pick: 0, year: 1, rosters, standings: {}, games: [], gi: 0, news: [], seasons: [], totals: zero(), awards: [], trophies: [],
+      trust: 42, fans: 0, ct: {}, feed: [], phase: 'combine', streak: 0, order };
+    combine();
+  }
+  /* The pre-draft combine: fifteen spot-up shots in 45 seconds with the scouts watching. A good day moves you up
+     the board, a bad one down. Skipping it sends the scouts your college numbers instead (an average day). */
+  function combine() {
+    const me = C.me;
+    show(`<div class="page post"><p class="kick">Pre-draft combine</p><h2>The scouts are watching</h2>
+      <div class="card"><p>Fifteen spot-up shots from five spots, three balls each, in 45 seconds: the corners, the elbows, the top of the key.
+      Hold Shoot and let go at the top of your jump, in the green band.</p>
+      <p class="fine">Your stock now: about pick ${projected()} of 30. Each make above an average day moves you up the board; each below moves you down.</p></div>
+      <button class="big" id="go">Take the floor</button><button class="ghost" id="skip">Skip (send them my tape)</button></div>`);
+    $('#go').onclick = () => {
+      scr().hidden = true;
+      const t = PB.team(C.order[projected() - 1]);
+      PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: 'me', drill: 'combine', qlen: 1, level: S.level, floor: t,
+        onEnd: r => finishDraft(r.drill ? r.drill.score : 6) });
+    };
+    $('#skip').onclick = () => finishDraft(null);
+  }
+  const projected = () => PB.clamp(Math.round(14 - (C.me.ovr - 62) * 1.6), 1, 30);
+  function finishDraft(score) {
+    const me = C.me;
+    const avg = 6.5;   // an ordinary day: about 43% from these spots
+    const moved = score === null ? 0 : Math.round((score - avg) * 1.6);
+    const pick = PB.clamp(projected() - moved + Math.round(PB.gauss() * 2), 1, 30);
+    C.pick = pick; C.team = C.order[pick - 1]; C.combine = score; C.phase = 'regular';
+    C.fans = 1500 + (31 - pick) * 400;
+    C.news.unshift(score === null ? `${me.last} skips the combine shooting drills` : `${me.last} makes ${score} of 15 at the combine${moved > 0 ? ', and climbs draft boards' : moved < 0 ? ', and slides on draft boards' : ''}`);
+    makeRival(null, pick);
     newSeason();
     save();
-    draft();
+    if (score !== null) {
+      show(`<div class="page post"><p class="kick">Combine results</p><div class="gradebig"><b>${score}/15</b><span>spot-up shooting</span></div>
+        <div class="card"><p>${moved > 1 ? 'Scouts loved it. You are moving up.' : moved < -1 ? 'Not your day. Some teams cooled on you.' : 'About what they expected.'}</p>
+        <p class="fine">Projected before: pick ${projected()} · now heading to draft night.</p></div>
+        <button class="big" id="go">Draft night</button></div>`);
+      $('#go').onclick = draft;
+    } else draft();
   }
   const zero = () => ({ gp: 0, min: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, w: 0, l: 0, grades: 0 });
 
@@ -177,7 +209,7 @@
     if (!C) return;
     C.trust = C.trust ?? 45; C.fans = C.fans ?? 2000; C.ct = C.ct || {}; C.feed = C.feed || []; C.phase = C.phase || 'regular';
     C.me.badges = C.me.badges || {}; C.streak = C.streak || 0;
-    if (!C.rival) makeRival(PB.TEAMS, C.pick || 15);
+    if (!C.rival && C.team) makeRival(null, C.pick || 15);
     C.v = 2;
   }
 
@@ -278,6 +310,7 @@
     if (PB.audio) PB.audio.music(true);
     upgrade();
     if (C.phase === 'regular' && C.gi >= C.games.length) { startPlayoffs(); }
+    if (C.phase === 'combine') { combine(); return; }
     if (C.phase === 'awards') { awardsNight(); return; }
     if (C.phase === 'offseason') { seasonEnd(C.lastGot); return; }
     const t = PB.team(C.team), me = C.me;
@@ -307,6 +340,8 @@
         <p>${C.po && C.po.champ ? `The ${esc(tname(PB.team(C.po.champ)))} are champions.` : `Your season is over. The playoffs go on without you.`}</p>
         <button class="big" id="simpo">${C.po && C.po.champ ? 'Go to awards night' : 'Sim the rest of the playoffs'}</button></div>`;
       }
+      if (C.contest === 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>3-Point Contest</h3><p>Five racks, five balls each, 60 seconds; the last ball of every rack is the money ball, worth two. Seven of the league's best shooters are waiting.</p>
+        <button class="big" id="contest">Take the floor</button><button class="ghost" id="nocontest">Pass this year</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
       body = card + (C.phase === 'playoffs' ? bracketCard() : '') + `
         <div class="tiles">
@@ -349,6 +384,11 @@
     $('#menu').onclick = title;
     if ($('#play')) $('#play').onclick = playGame;
     if ($('#sim')) $('#sim').onclick = simGame;
+    if ($('#contest')) $('#contest').onclick = () => {
+      scr().hidden = true;
+      PB.Game.start({ teams: [t, t], rosters: [[C.me], []], userId: 'me', drill: 'contest', qlen: 1, level: S.level, floor: t, onEnd: r => contestResult(r.drill ? r.drill.score : 0) });
+    };
+    if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#simpi')) $('#simpi').onclick = () => { while (C.po.round < 2) simPlayoffRound(); hub(); };
     if ($('#simrd')) $('#simrd').onclick = () => { simPlayoffRound(); hub(); };
     if ($('#simpo')) $('#simpo').onclick = () => { while (!C.po.champ) simPlayoffRound(true); C.phase = 'awards'; save(); hub(); };
@@ -574,6 +614,34 @@
       C.feed.unshift({ who: '@league', text: `Your All-Stars are here. Congrats to ${PB.full(C.me)} of the ${PB.team(C.team).name}!` });
       C.season.allstar = true;
     } else C.news.unshift('All-Star rosters are out. Not this year for the rookie. Keep stacking games.');
+    /* the 3-point contest wants shooters */
+    if (C.season.allstar || C.me.r.three >= 72 || (C.season.tpm / Math.max(1, C.season.gp)) >= 2) {
+      C.contest = 'invited'; C.news.unshift(`${C.me.last} is in the 3-Point Contest at All-Star weekend`);
+    }
+  }
+  /* the 3-Point Contest: you and seven of the league's shooters, five racks, a money ball at the end of each */
+  function contestField() {
+    const field = [];
+    const all = []; for (const t of PB.TEAMS) for (const p of C.rosters[t.id]) all.push([p, t.id]);
+    all.sort((a, b) => b[0].r.three - a[0].r.three);
+    for (const [p, tid] of all.slice(0, 7)) {
+      let sc = 0; const pr = 0.3 + p.r.three / 99 * 0.32;
+      for (let r = 0; r < 5; r++) for (let k = 0; k < 5; k++) if (PB.rand() < pr) sc += k === 4 ? 2 : 1;
+      field.push({ name: PB.full(p), team: tid, score: sc });
+    }
+    return field;
+  }
+  function contestResult(score) {
+    const field = contestField().concat([{ name: PB.full(C.me), team: C.team, score, me: true }]).sort((a, b) => b.score - a.score);
+    const won = field[0].me;
+    C.contest = 'done';
+    if (won) { C.trophies.push(`3-Point Contest champion, season ${C.year}`); C.fans = Math.round(C.fans * 1.1); C.me.sp += 5; C.news.unshift(`${C.me.last} wins the 3-Point Contest with ${score}!`); }
+    else C.news.unshift(`${field[0].name} wins the 3-Point Contest; ${C.me.last} finishes ${ordinal(field.indexOf(field.find(x => x.me)) + 1)} with ${score}`);
+    save();
+    show(`<div class="page post awards"><p class="kick">All-Star weekend · 3-Point Contest</p>
+      ${field.map((x, i) => `<div class="card aw ${x.me ? 'mine' : ''}"><span>${ordinal(i + 1)}</span><b>${esc(x.name)} <small>${PB.team(x.team).id} · ${x.score} pts</small></b></div>`).join('')}
+      <button class="big" id="go">Back to the season</button></div>`);
+    $('#go').onclick = hub;
   }
 
   /* ---------- the playoffs ---------- */
