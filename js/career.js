@@ -685,9 +685,12 @@
     const g = nx.g, t = PB.team(C.team), o = PB.team(g.opp);
     scr().hidden = true;
     C.me.badges = C.me.badges || {};
-    PB.Game.start({ teams: [t, o], rosters: [liveFive(), starters(o.id)], userId: 'me', qlen: S.qlen, level: S.level,
+    /* in a rival game he starts, at his position (yours): you guard each other */
+    const opp5 = starters(o.id);
+    if (C.rival && o.id === C.rival.team && rivalP()) opp5[PB.POS.indexOf(rivalP().pos)] = rivalP();
+    PB.Game.start({ teams: [t, o], rosters: [liveFive(), opp5], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
-      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, goals: C.goals, highs: C.highs });
+      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   function simGame() {
     const nx = nextGame(); if (!nx) return;

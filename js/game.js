@@ -1488,6 +1488,7 @@
       const k0 = { c1: o.teams[0].c1, c2: o.teams[0].c2, name: o.teams[0].name };
       const k1 = cd(o.teams[0].c1, o.teams[1].c1) < 120 ? { c1: '#f2f2f2', c2: o.teams[1].c1, name: o.teams[1].name } : { c1: o.teams[1].c1, c2: o.teams[1].c2, name: o.teams[1].name };
       for (const p of pl) R.addPlayer(p, p.team === 0 ? k0 : k1);
+      R.tag(o.rivalId ? pl.find(p => p.d.id === o.rivalId) || null : null, 'RIVAL');
       $('#a0').textContent = o.teams[0].ab || o.teams[0].id; $('#a1').textContent = o.teams[1].ab || o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
       $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Teammate grade</span>' : '';

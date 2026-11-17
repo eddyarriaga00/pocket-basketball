@@ -14,6 +14,16 @@
   let board = null, ribbons = [];
   let passArrow = null, manRing = null, flash = null, flashT = 0, passTarget = null, manTarget = null;
   R.marks = (pass, man) => { passTarget = pass; manTarget = man; };
+  /* a tag floating over a player (your rival) */
+  let tag = null, tagP = null;
+  R.tag = (p, text, color) => {
+    if (tag) { scene.remove(tag); tag = null; } tagP = p; if (!p) return;
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const g = cv.getContext('2d');
+    g.fillStyle = color || '#ff4d5e'; g.beginPath(); g.roundRect ? g.roundRect(28, 8, 200, 48, 14) : g.rect(28, 8, 200, 48); g.fill();
+    g.fillStyle = '#fff'; g.font = '900 30px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 128, 34);
+    const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace;
+    tag = new T.Sprite(new T.SpriteMaterial({ map: t, depthTest: false, transparent: true })); tag.scale.set(5.6, 1.4, 1); tag.renderOrder = 6; scene.add(tag);
+  };
   R._marks = () => ({ pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
   R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
   let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
@@ -666,6 +676,7 @@
       }
     }
     for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
+    if (tag && tagP) tag.position.set(tagP.x, (tagP.ht || 78) / 12 + 2.6 + tagP.y, tagP.z);
     if (passArrow) {
       passArrow.visible = !!passTarget;
       if (passTarget) { passArrow.position.set(passTarget.x, (passTarget.ht || 78) / 12 + 2.4 + Math.sin(G.t * 6) * 0.25 + passTarget.y, passTarget.z); passArrow.rotation.y += dt * 2; }
