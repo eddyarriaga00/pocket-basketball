@@ -453,7 +453,7 @@
     if (timing === 'Excellent') prob = 1;   // a perfect release goes in: only a block stops it
     const nd = nearestDef(p);
     /* how covered you were, next to the timing: a miss explains itself */
-    if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}`; }
+    if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing === 'Excellent' ? 'Perfect' : timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}`; }
     p.st.fga++; if (s.three) p.st.tpa++;
     G.lastShot = { shooter: p, three: s.three, open: nd.d, prob, guard: nd.who };
     (G.shotLog = G.shotLog || []).push({ kind: s.three ? 'three' : s.oop ? 'oop' : s.kind, prob, d: s.d, x: p.x, a: along(p.z, p.team), user: p.isUser, team: p.team });
@@ -532,7 +532,7 @@
 
   let relT = 0;
   function showRelease(txt, m, w) {
-    const r = $('#rel'); r.textContent = txt; r.className = 'on ' + (txt === 'Excellent' ? 'g' : /Slightly/.test(txt) ? 'y' : 'r');
+    const r = $('#rel'); r.textContent = txt === 'Excellent' ? 'Perfect' : txt; r.className = 'on ' + (txt === 'Excellent' ? 'g' : /Slightly/.test(txt) ? 'y' : 'r');
     relT = 1.4;
   }
 
