@@ -291,7 +291,7 @@
       const want = lockDir > 0 ? 0 : Math.PI;
       let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
       if (Math.abs(Math.abs(dy) - Math.PI) < 0.01) dy = Math.PI * 0.999;   // a half turn always swings the same way
-      yaw += dy * Math.min(1, dt * 2.6);
+      yaw += dy * Math.min(1, dt * 4);
       const me = G.user || b.holder || b;
       const ax = me.x + (b.x - me.x) * 0.25, az = me.z + (b.z - me.z) * 0.25;
       anchor.lerp(new T.Vector3(ax, 0, az), Math.min(1, dt * 5));
