@@ -107,6 +107,21 @@
     g.classList.remove('flash'); void g.offsetWidth; g.classList.add('flash');
     if (before !== gradeLetter(G.grade)) g.classList.add('chg');
   }
+  /* ---------- first-game tips: shown once each, the first time the moment comes up ---------- */
+  const TIPS = {
+    ball: 'You have the ball. Hold SHOOT, let go at the top of the jump (green band). PASS finds the open man; swipe MOVE to break your man down.',
+    def: 'Defense. Lift your thumb and you stay in front of your man by yourself. JUMP to contest, STEAL to reach.',
+    mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
+    ft: 'Free throw: hold SHOOT and let go in the green band.',
+  };
+  let seenTips = null;
+  function tip(k) {
+    if (!G.user || G.drill || G.auto) return;
+    if (!seenTips) { try { seenTips = JSON.parse(localStorage.getItem('pbb.tips') || '{}'); } catch (e) { seenTips = {}; } }
+    if (seenTips[k]) return;
+    seenTips[k] = 1; try { localStorage.setItem('pbb.tips', JSON.stringify(seenTips)); } catch (e) { /* fine */ }
+    const t = $('#tipcard'); t.textContent = TIPS[k]; t.hidden = false; clearTimeout(tip.h); tip.h = setTimeout(() => { t.hidden = true; }, 6500);
+  }
   function hud() {
     $('#game').classList.toggle('drill', !!(G && G.drill));
     const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : s.toFixed(1);
@@ -121,6 +136,8 @@
     const off = G.poss === 0 || (G.poss === null && G.ball.holder && G.ball.holder.team === 0);
     const has = G.ball.holder === u;
     const ft = G.phase === 'ft' && G.ftq && G.ftq.shooter === u;
+    if (G.phase === 'live' && G.t > 2) { if (has) tip('ball'); else if (!off && G.ball.holder) tip('def'); else if (off && G.ball.holder) tip('mate'); }
+    if (ft) tip('ft');
     $('#bA').textContent = ft || has || G.drill ? 'Shoot' : 'Jump';
     $('#bA').className = 'btn a ' + (has || ft || G.drill ? 'shoot' : 'jump');
     $('#bB').textContent = has ? 'Pass' : off ? 'Call' : 'Steal';
@@ -1213,6 +1230,7 @@
     active: false,
     /* o: { teams:[userTeam, oppTeam], rosters:[[5],[5]], userId, qlen, floor, strength:[a,b], diff, onEnd } */
     start(o) {
+      if (PB.noGL) { alert('This browser cannot draw the 3D court (WebGL is off or unavailable). Try another browser, or turn on hardware acceleration.'); if (o.onEnd) setTimeout(() => PB.Career.title(), 0); return; }
       opts = o;
       $('#game').hidden = false;
       if (!bound) { bindControls(); bound = true; }

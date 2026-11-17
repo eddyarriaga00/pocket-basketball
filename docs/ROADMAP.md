@@ -22,6 +22,7 @@ python3 tools/serve.py 8000          # then open http://localhost:8000 (phone: y
 node tools/smoke.js                  # a career loop with real input; must print "errors []"
 node tools/balance.js 6              # six 48-minute computer games against the league's numbers
 node tools/drill.js                  # the combine and the 3-point contest, shot by shot
+node tools/career.js                 # five short seasons: playoffs, awards, contracts, free agency, retirement
 ```
 The two node tools need Playwright (`npm i -g playwright`).
 
@@ -96,9 +97,11 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 ## M4 · Contracts and legacy
 
-- [ ] Rookie deal, extensions, free agency with offers, trade requests
+- [x] Rookie deal scaled by pick, an extension offer with a year left, free agency with four offers (money, years,
+      projected role, team strength), trade requests, career earnings (2026-11-17)
 - [ ] Ten-man rosters to fifteen; trades and signings across the league
-- [ ] Retirement, jersey retirement, Hall of Fame
+- [x] Retirement from 33 and the Hall of Fame vote; your athleticism slips after 30 (2026-11-17)
+- [ ] Jersey retirement ceremony
 
 ## M5 · More modes and polish
 

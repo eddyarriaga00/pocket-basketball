@@ -176,6 +176,7 @@
     const moved = score === null ? 0 : Math.round((score - avg) * 1.6);
     const pick = PB.clamp(projected() - moved + Math.round(PB.gauss() * 2), 1, 30);
     C.pick = pick; C.team = C.order[pick - 1]; C.combine = score; C.phase = 'regular';
+    C.contract = { years: 4, salary: rookieScale(pick), kind: 'Rookie deal' }; C.earnings = 0;
     C.fans = 1500 + (31 - pick) * 400;
     C.news.unshift(score === null ? `${me.last} skips the combine shooting drills` : `${me.last} makes ${score} of 15 at the combine${moved > 0 ? ', and climbs draft boards' : moved < 0 ? ', and slides on draft boards' : ''}`);
     makeRival(null, pick);
@@ -209,6 +210,7 @@
     if (!C) return;
     C.trust = C.trust ?? 45; C.fans = C.fans ?? 2000; C.ct = C.ct || {}; C.feed = C.feed || []; C.phase = C.phase || 'regular';
     C.me.badges = C.me.badges || {}; C.streak = C.streak || 0;
+    if (!C.contract && C.team) { C.contract = { years: Math.max(1, 4 - (C.year - 1)), salary: rookieScale(C.pick || 15), kind: 'Rookie deal' }; C.earnings = C.earnings || 0; }
     if (!C.rival && C.team) makeRival(null, C.pick || 15);
     C.v = 2;
   }
@@ -225,6 +227,7 @@
     sched.sort(() => PB.rand() - 0.5);
     C.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false }));
     C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
+    if (C.contract) C.earnings = (C.earnings || 0) + C.contract.salary;
     C.startOvr = C.me.ovr;
     if (C.rival) C.rival.season = zero();
     C.news.unshift(`Season ${C.year} begins: ${n} games, ${PB.TEAMS.length} teams.`);
@@ -311,6 +314,7 @@
     upgrade();
     if (C.phase === 'regular' && C.gi >= C.games.length) { startPlayoffs(); }
     if (C.phase === 'combine') { combine(); return; }
+    if (C.phase === 'retired') { hallOfFame(); return; }
     if (C.phase === 'awards') { awardsNight(); return; }
     if (C.phase === 'offseason') { seasonEnd(C.lastGot); return; }
     const t = PB.team(C.team), me = C.me;
@@ -348,7 +352,8 @@
           <div><b>${avg('pts')}</b><span>PTS</span></div><div><b>${avg('reb')}</b><span>REB</span></div><div><b>${avg('ast')}</b><span>AST</span></div>
           <div><b>${s.fga ? Math.round(s.fgm / s.fga * 100) : 0}%</b><span>FG</span></div><div><b>${s.tpa ? Math.round(s.tpm / s.tpa * 100) : 0}%</b><span>3PT</span></div><div><b>${s.gp ? gradeAvg(s.grades / s.gp) : '–'}</b><span>GRADE</span></div></div>
         <div class="card meters"><div><span>Coach trust</span><i><u style="width:${C.trust}%"></u></i><b>${Math.round(C.trust)}</b></div>
-          <div><span>Role</span><b class="tag">${role()}</b></div><div><span>Followers</span><b>${fmtFans(C.fans)}</b></div></div>
+          <div><span>Role</span><b class="tag">${role()}</b></div><div><span>Followers</span><b>${fmtFans(C.fans)}</b></div>
+          ${C.contract ? `<div class="wide"><span>Contract</span><b>${C.contract.years} yr${C.contract.years === 1 ? '' : 's'} · ${M(C.contract.salary)}</b></div>` : ''}</div>
         <div class="card rival"><h3>Rival <small>${esc(PB.team(C.rival.team).name)}</small></h3>
           <div class="rv"><div><b>${esc(PB.full(me))}</b><span>${avg('pts')} / ${avg('reb')} / ${avg('ast')}</span></div><em>${C.rival.h2h[0]}–${C.rival.h2h[1]}</em>
           <div><b>${esc(PB.full(rv))}</b><span>${(rs.pts / rg).toFixed(1)} / ${(rs.reb / rg).toFixed(1)} / ${(rs.ast / rg).toFixed(1)}</span></div></div>
@@ -362,8 +367,11 @@
         ${PB.ATTRS.map(([k, n, d]) => { const c = cost(me.r[k]); const can = me.r[k] < A.cap[k] && me.sp >= c;
           return `<div class="bar up"><span>${n}<small>${d}</small></span><i><u style="width:${me.r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${me.r[k]}</b>
           <button data-k="${k}" ${can ? '' : 'disabled'}>+1<small>${me.r[k] >= A.cap[k] ? 'max' : c + ' SP'}</small></button></div>`; }).join('')}
-        <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p></div>
-        <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>`;
+        <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p>
+        ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
+        <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
+        <div class="card"><h3>Business</h3><p class="fine">${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
+        ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>`;
     } else if (tab === 'league') {
       const conf = c => confRank(c).map((id, i) => { const x = PB.team(id), st = C.standings[id];
         return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${strength(id)}</td></tr>`; }).join('');
@@ -389,6 +397,20 @@
       PB.Game.start({ teams: [t, t], rosters: [[C.me], []], userId: 'me', drill: 'contest', qlen: 1, level: S.level, floor: t, onEnd: r => contestResult(r.drill ? r.drill.score : 0) });
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
+    if ($('#trade')) $('#trade').onclick = requestTrade;
+    if ($('#auto')) $('#auto').onclick = () => {
+      /* spend on the attributes that count most at your position, cheapest first among those, up to each ceiling */
+      const A = PB.ARCH[me.arch];
+      const w = { PG: ['handle', 'pass', 'three', 'speed', 'mid', 'close'], SG: ['three', 'mid', 'close', 'speed', 'handle', 'perD'], SF: ['three', 'close', 'perD', 'dunk', 'mid', 'vert'],
+        PF: ['close', 'reb', 'inD', 'dunk', 'block', 'mid'], C: ['close', 'reb', 'inD', 'block', 'dunk', 'vert'] }[me.pos];
+      let spent = true;
+      while (spent) {
+        spent = false;
+        const opts = w.filter(k => me.r[k] < A.cap[k] && cost(me.r[k]) <= me.sp).sort((a, b) => cost(me.r[a]) - cost(me.r[b]) || w.indexOf(a) - w.indexOf(b));
+        if (opts.length) { const k = opts[0]; me.sp -= cost(me.r[k]); me.r[k]++; spent = true; }
+      }
+      me.ovr = PB.ovr(me.r, me.pos); save(); hub();
+    };
     if ($('#simpi')) $('#simpi').onclick = () => { while (C.po.round < 2) simPlayoffRound(); hub(); };
     if ($('#simrd')) $('#simrd').onclick = () => { simPlayoffRound(); hub(); };
     if ($('#simpo')) $('#simpo').onclick = () => { while (!C.po.champ) simPlayoffRound(true); C.phase = 'awards'; save(); hub(); };
@@ -792,23 +814,135 @@
       <h2>${st.w}-${st.l} · ${ordinal(rank)} in the ${PB.team(C.team).conf}</h2><p class="mute">${how}</p>
       <div class="tiles"><div><b>${ppg.toFixed(1)}</b><span>PPG</span></div><div><b>${rpg.toFixed(1)}</b><span>RPG</span></div><div><b>${apg.toFixed(1)}</b><span>APG</span></div></div>
       <div class="card"><h3>Honors</h3>${aw.length ? aw.map(a => `<p class="news">🏆 ${esc(a)}</p>`).join('') : '<p class="mute">None this year. Next year.</p>'}</div>
-      <p class="fine">Free agency, contracts and trades come in a later build (see the plan). Young players grow over the summer; you get 6 skill points.</p>
-      <button class="big" id="go">Start season ${C.year + 1}</button></div>`);
-    $('#go').onclick = () => {
+      <div class="card"><h3>Contract</h3><p>${C.contract ? `${C.contract.kind}: ${C.contract.years - 1 > 0 ? (C.contract.years - 1) + ' more season' + (C.contract.years - 1 > 1 ? 's' : '') : 'it ends now'} at ${M(C.contract.salary)} a year.` : ''} Career earnings ${M(C.earnings || 0)}.</p></div>
+      <p class="fine">Young players grow over the summer, players past thirty slow down; you get 6 skill points.</p>
+      <button class="big" id="go">The offseason</button>${me.age >= 33 ? '<button class="ghost" id="retire">Retire</button>' : ''}</div>`);
+    if ($('#retire')) $('#retire').onclick = () => { if (confirm('Retire now? Your career ends here and the Hall of Fame votes.')) hallOfFame(); };
+    $('#go').onclick = () => offseason(() => {
       C.year++; me.age++;
+      /* past thirty the legs go first */
+      if (me.age >= 30) for (const k of ['speed', 'vert', 'dunk', 'perD', 'steal', 'block']) me.r[k] = PB.clamp(me.r[k] - PB.ri(me.age >= 33 ? 2 : 1, me.age >= 33 ? 5 : 3), 25, 99);
+      me.ovr = PB.ovr(me.r, me.pos);
       for (const id in C.rosters) for (const p of C.rosters[id]) {
         const d = p.age < 24 ? 2 : p.age < 29 ? 0.5 : p.age < 32 ? -1 : -3;
         p.age++; p.rookie = false; for (const k in p.r) p.r[k] = PB.clamp(Math.round(p.r[k] + d + PB.gauss()), 25, 99); p.ovr = PB.ovr(p.r, p.pos);
       }
       me.sp += 6;
       newSeason(); save(); tab = 'home'; hub();
-    };
+    });
+  }
+
+  /* ---------- contracts: the rookie deal, an extension, free agency, a trade request ---------- */
+  const M = n => '$' + (n >= 10 ? n.toFixed(1) : n.toFixed(2)) + 'M';
+  const rookieScale = pick => +(10.5 - (pick - 1) * 0.28).toFixed(2);
+  /* what the league would pay you a year, in millions: your overall, last season, your honors, your age */
+  function marketValue() {
+    const me = C.me, s = C.season, gp = s.gp || 1;
+    const prod = s.pts / gp + (s.reb + s.ast) / gp * 0.6;
+    let v = 1.2 + Math.max(0, me.ovr - 60) * 1.25 + Math.max(0, prod - 8) * 0.8 + C.trophies.length * 0.6;
+    if (me.age >= 31) v *= 0.85;
+    if (me.age >= 34) v *= 0.7;
+    return Math.min(52, Math.max(1.2, v));
+  }
+  function projectedRole(tid) {
+    const best = C.rosters[tid].filter(p => p.pos === C.me.pos).sort((a, b) => b.ovr - a.ovr)[0];
+    const d = C.me.ovr - (best ? best.ovr : 0);
+    return d >= -1 ? 'Starter' : d >= -6 ? 'Sixth man' : 'Bench';
+  }
+  function offseason(next) {
+    const c = C.contract;
+    if (!c) { next(); return; }
+    if (c.decYear !== C.year) { c.years--; c.decYear = C.year; }   // once a summer, even after a reload
+    if (C.tradeReq) {
+      const opts = PB.TEAMS.filter(t => t.id !== C.team);
+      const to = opts[Math.floor(PB.rand() * opts.length)];
+      C.news.unshift(`Trade: ${C.me.last} heads to the ${tname(to)}`);
+      C.tradeReq = false; moveTo(to.id); C.trust = 50;
+      show(`<div class="page post"><p class="kick">Trade</p><h2>You've been traded</h2><div class="cap" style="background:${to.c1};color:${to.c2};width:120px;height:120px;border-radius:24px;display:flex;align-items:center;justify-content:center;margin:16px auto;font-family:var(--display);font-weight:900;font-size:22px">${to.id}</div>
+        <p>The ${esc(tname(to))} take on your contract: ${c.years} season${c.years === 1 ? '' : 's'} at ${M(c.salary)}.</p><button class="big" id="go">Report to camp</button></div>`);
+      $('#go').onclick = () => offseasonContract(next);
+      return;
+    }
+    offseasonContract(next);
+  }
+  function offseasonContract(next) {
+    const c = C.contract;
+    if (c.years <= 0) { freeAgency(next); return; }
+    if (c.years === 1 && !c.extOffered && C.trust >= 30) { extension(next); return; }
+    next();
+  }
+  function moveTo(tid) { C.team = tid; }
+  function extension(next) {
+    const c = C.contract; c.extOffered = true;
+    const v = marketValue(), yrs = C.me.age < 27 ? 4 : 3, sal = +(v * 0.95).toFixed(2);
+    show(`<div class="page post"><p class="kick">Contract extension</p><h2>The ${esc(PB.team(C.team).name)} want to keep you</h2>
+      <div class="card"><p>One season left on your deal at ${M(c.salary)}. They offer ${yrs} more years at <b>${M(sal)}</b> a year, starting after this season.</p>
+      <p class="fine">Turn it down and you play out the year, then hit free agency with offers from around the league. Your market value today: about ${M(v)}.</p></div>
+      <button class="big" id="yes">Sign the extension</button><button class="ghost" id="no">Bet on yourself</button></div>`);
+    $('#yes').onclick = () => { c.ext = { years: yrs, salary: sal }; C.news.unshift(`${C.me.last} signs a ${yrs}-year extension worth ${M(sal * yrs)}`); C.trust = Math.min(100, C.trust + 6); save(); next(); };
+    $('#no').onclick = () => { C.news.unshift(`${C.me.last} turns down an extension; free agency awaits`); save(); next(); };
+  }
+  function freeAgency(next) {
+    const c = C.contract;
+    if (c.ext) {   // the extension starts
+      C.contract = { years: c.ext.years, salary: c.ext.salary, kind: 'Extension' };
+      next(); return;
+    }
+    const v = marketValue();
+    const teams = new Set();
+    if (C.trust >= 35) teams.add(C.team);
+    const pool = PB.TEAMS.map(t => t.id).filter(id => id !== C.team).sort(() => PB.rand() - 0.5);
+    while (teams.size < 4) teams.add(pool.pop());
+    const ranked = PB.TEAMS.map(t => t.id).sort((a, b) => strength(b) - strength(a));
+    const offers = [...teams].map(id => {
+      const yrs = PB.clamp(Math.round(PB.rr(1, C.me.age < 28 ? 5 : 3)), 1, 5);
+      const sal = +(v * PB.rr(0.8, 1.2) * (id === C.team ? 1.05 : 1)).toFixed(2);
+      const rank = ranked.indexOf(id) + 1;
+      return { id, yrs, sal, role: projectedRole(id), rank };
+    }).sort((a, b) => b.sal - a.sal);
+    show(`<div class="page post"><p class="kick">Free agency</p><h2>The offers are in</h2>
+      <p class="mute">Your market value: about ${M(v)} a year</p>
+      ${offers.map((o, i) => { const t = PB.team(o.id); return `<div class="card offer"><div class="of">${badge(t)}<div><b>${esc(tname(t))}${o.id === C.team ? ' <small>(your team)</small>' : ''}</b>
+        <span>${o.yrs} yr${o.yrs > 1 ? 's' : ''} · ${M(o.sal)} a year · ${M(o.sal * o.yrs)} total</span><span>Projected role: ${o.role} · team strength ${ordinal(o.rank)} of 30</span></div></div>
+        <button class="big" data-i="${i}">Sign</button></div>`; }).join('')}</div>`);
+    scr().querySelectorAll('.offer button').forEach(b => b.onclick = () => {
+      const o = offers[+b.dataset.i];
+      const moved = o.id !== C.team;
+      C.contract = { years: o.yrs, salary: o.sal, kind: moved ? 'Free-agent deal' : 'New deal' };
+      C.news.unshift(moved ? `${C.me.last} signs with the ${tname(PB.team(o.id))}: ${o.yrs} years, ${M(o.sal * o.yrs)}` : `${C.me.last} re-signs with the ${PB.team(o.id).name}: ${o.yrs} years, ${M(o.sal * o.yrs)}`);
+      if (moved) { moveTo(o.id); C.trust = 45; }
+      save(); next();
+    });
+  }
+  function requestTrade() {
+    if (!confirm('Ask for a trade? Your coach and the fans will not like it, and you will be moved this summer.')) return;
+    C.tradeReq = true; C.trust = Math.max(0, C.trust - 15); C.fans = Math.round(C.fans * 0.95);
+    C.news.unshift(`${C.me.last} asks out: a trade request this summer`);
+    save(); hub();
+  }
+
+  /* ---------- retirement and the Hall of Fame ---------- */
+  function hallOfFame() {
+    const T = C.totals, gp = T.gp || 1;
+    const score = T.pts / 1000 * 2 + T.reb / 1000 + T.ast / 1000 * 1.3 + C.trophies.filter(t => /MVP/.test(t)).length * 4 + C.trophies.filter(t => /Champion,/.test(t)).length * 3
+      + C.trophies.filter(t => /All-Star/.test(t)).length * 1.2 + C.trophies.filter(t => /All-League/.test(t)).length * 1.5 + C.seasons.length * 0.3;
+    const inHall = score >= 22;
+    C.retired = { year: C.year, hof: inHall, score: +score.toFixed(1) };
+    C.phase = 'retired'; save();
+    show(`<div class="page post"><p class="kick">Retirement</p><h2>${esc(PB.full(C.me))} hangs them up</h2>
+      <div class="tiles"><div><b>${C.seasons.length}</b><span>SEASONS</span></div><div><b>${(T.pts / gp).toFixed(1)}</b><span>PPG</span></div><div><b>${T.pts}</b><span>POINTS</span></div></div>
+      <div class="card"><h3>${inHall ? 'Hall of Fame: inducted' : 'Hall of Fame: not this time'}</h3><p>${inHall ? 'First ballot. Your jersey goes to the rafters.' : 'A fine career. The voters wanted more hardware.'}</p>
+      <p class="fine">Hall score ${score.toFixed(1)} (22 gets you in): points, boards and assists, MVPs, titles, All-Star and All-League nods, seasons played.</p></div>
+      <div class="card"><h3>Trophy case</h3>${C.trophies.map(x => `<p class="news">🏆 ${esc(x)}</p>`).join('') || '<p class="mute">Empty.</p>'}</div>
+      <button class="big" id="go">Main menu</button></div>`);
+    $('#go').onclick = title;
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 
   PB.Career = { title, hub, get: () => C };
   PB.boot = () => {
-    PB.R.init($('#gl'));
+    /* without WebGL the menus and the career still work; only the court cannot be drawn */
+    try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }
     title();
   };
 })();

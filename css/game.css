@@ -234,3 +234,10 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 @keyframes blink{50%{opacity:.2}}
 #game.replaying #btns,#game.replaying #stickzone,#game.replaying #meter{display:none}
 #game.drill #bB,#game.drill #bC,#game.drill #stickzone,#game.drill #sc,#game.drill #feed{display:none}
+#tipcard{position:absolute;left:12px;right:12px;bottom:calc(46% + 8px);background:rgba(10,14,22,.92);border:1px solid var(--acc);border-radius:14px;padding:11px 13px;font-size:13.5px;line-height:1.4;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.meters .wide{grid-column:1/-1}
+.offer .of{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;text-align:left}
+.offer .of .tb{min-width:44px;height:44px;border-radius:12px}
+.offer .of b{font-family:var(--display);font-size:15px}.offer .of b small{color:var(--mute);font-size:11px}
+.offer .of span{display:block;font-size:12.5px;color:var(--mute)}
+.offer .big{margin:10px 0 0;padding:11px}
