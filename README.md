@@ -68,7 +68,7 @@ whole team), Practice (the 3-point and dunk contests, the drill, a shoot-around)
 | Shoot / Jump | Big button: hold, let go at the top of the jump (the green band) | J or Space | A |
 | Pass / Call / Steal | Middle button | K | B |
 | Crossover / Cut | Small button: tap, or swipe left or right | L | X |
-| Step-back / Spin | Small button: swipe down / up | U / I | Y / right bumper |
+| Step-back (bigs inside 16 ft: post up) / Spin | Small button: swipe down / up | U / I | Y / right bumper |
 | Call a pick | Pick (with the ball, over half court) | O | Left bumper |
 | Pause | ⏸ | P or Esc | Start |
 

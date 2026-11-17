@@ -74,6 +74,7 @@
     if (p.stepT !== undefined && G.t - p.stepT < 1.1) best = 1 - (1 - best) * 0.55;   // the step-back bought room
     if (p.euroT !== undefined && G.t - p.euroT < 1.2) best = 1 - (1 - best) * 0.5;   // the euro step went around the shot-blocker
     if (p.fadeT !== undefined && G.t - p.fadeT < 1.2) best = 1 - (1 - best) * 0.6;   // the fadeaway leans away from the hand
+    if (p.postHookT !== undefined && G.t - p.postHookT < 1.2) best = 1 - (1 - best) * 0.7;   // backed him down first: the hook goes over him
     return clamp(best, 0.5, 1);
   }
   const nearestDef = p => {
@@ -316,7 +317,8 @@
     /* yours: a big who goes up contested in the paint shoots a hook; a jumper drifting away from the rim is a fadeaway */
     let fade = false;
     if (forUser && !force) {
-      if (kind !== 'dunk' && ['PF', 'C'].includes(p.d.pos) && d > 5 && d < 15 && nearestDef(p).d < 4) kind = 'hook';
+      if (kind !== 'dunk' && ['PF', 'C'].includes(p.d.pos) && d > 4 && d < 15 && (nearestDef(p).d < 4 || p.postUp > 0)) kind = 'hook';
+      if (p.postUp > 0) { p.postUp = 0; p.postHookT = G.t; }
       else if (kind === 'jumper' && d > 8 && d < 22) { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, L = hyp(hx, hz) || 1; if ((p.vx * hx + p.vz * hz) / L < -3.5) fade = true; }
     }
     const T = kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.5 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55;
@@ -1120,6 +1122,19 @@
   }
   function userStep(u, dt) {
     if (G.ball.holder === u) u.hold = (u.hold || 0) + dt;   // how long you have had it (doubles, assists)
+    if (u.postUp > 0) {
+      u.postUp -= dt;
+      if (G.ball.holder !== u || u.shoot) u.postUp = 0;
+      else {
+        /* backing him down: slow steps toward the rim, back to the basket, the defender pushed back a little */
+        const hx = 0 - u.x, hz = hoopZ(u.team) - u.z, hl = hyp(hx, hz) || 1, w = stickWorld();
+        const sp = maxSpeed(u) * 0.26;
+        const tx = w ? w.x * 0.5 + hx / hl * 0.5 : hx / hl, tz = w ? w.z * 0.5 + hz / hl * 0.5 : hz / hl;
+        steer(u, dt, tx * sp, tz * sp); u.face = Math.atan2(-hx, -hz); u.pose = 'dribble';
+        const d = nearestDef(u).who; if (d && hyp(d.x - u.x, d.z - u.z) < 3.2 && hl > 5) { d.x += hx / hl * dt * 1.6 * (1.1 - d.r.inD / 160); d.z += hz / hl * dt * 1.6 * (1.1 - d.r.inD / 160); }
+        return;
+      }
+    }
     const w = stickWorld();
     const off = G.ball.holder ? G.ball.holder.team === 0 : G.poss === 0;
     if (w) {
@@ -1194,6 +1209,8 @@
       kind = kind || 'cross';
       const nd = nearestDef(u), Bs = R.basis();
       const hx = 0 - u.x, hz = hoopZ(0) - u.z, hl = hyp(hx, hz) || 1;
+      /* a big inside sixteen feet: down on Move posts up instead of stepping back */
+      if (kind === 'step' && ['PF', 'C'].includes(u.d.pos) && hl < 16 && !u.postUp) { u.postUp = 2.6; u.moveCd = 0.6; toast('Post up', 'call'); buzz(10); return; }
       let dx, dz, sp = maxSpeed(u) * 1.4, shake = 0.18, lbl = '';
       if (kind === 'step') {
         /* back, away from the man in front of you; the next jumper gets the room */
