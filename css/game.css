@@ -388,3 +388,6 @@ input[type=color]{height:44px;padding:4px}
 #intro li:has(img){grid-template-columns:30px 22px 1fr auto}
 #intro li img{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);object-fit:cover}
 #intro li.me{color:#fff;font-weight:800}
+/* the opening is a broadcast moment: the controls step aside until the tip */
+#btns,#stickzone,#hud .sub,#radar{transition:opacity .35s}
+#game:has(#intro:not([hidden])) :is(#btns,#stickzone,#hud .sub,#radar){opacity:0;pointer-events:none}
