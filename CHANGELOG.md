@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Made dunks: most of the time the dunker hangs on the rim for a moment (with a yell) before he drops. Chest passes
+  push out with both arms; a man about to catch puts his hands up. Starting lineups have headshots, Home opens on your
+  player card, the Look card shows you as you change, and the player of the game gets a card.
 - A perfect release (Excellent, the green) always goes in, free throws too. Only a block stops it.
 - New hair: fade, cornrows, locs, a bun and a mohawk (on the Look card too). Beards show again. The title screen's
   player dribbles and works his moves. Sneakers are high-tops with a swoop in the team's second color. A thin outline

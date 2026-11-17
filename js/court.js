@@ -856,6 +856,7 @@
     three: (k) => { const b = 0.05 * Math.sin(k * 8); return [[0.3, 0.94 + b, 0.15], [0.12, 0.99, 0.05], [0.2, -0.97, 0.1], [0.15, -0.95, 0.25]]; },
     point: () => [[0.35, 0.75, 0.55], [0.25, 0.8, 0.55], [0.25, -0.9, 0.3], [0.2, -0.6, 0.75]],
     dunk1: () => [[0.15, 0.97, 0.2], [0.05, 0.99, 0.1], [0.55, -0.55, 0.35], [0.3, -0.6, 0.6]],
+    hang: () => [[0.12, 0.98, 0.12], [0.04, 0.99, 0.12], [0.12, 0.98, 0.12], [0.04, 0.99, 0.12]],   // on the rim
     chest: () => [[0.22, -0.12, 0.97], [0.0, 0.02, 1], [0.22, -0.12, 0.97], [0.0, 0.02, 1]],   // a chest pass, arms out
     catch: () => [[0.32, 0.05, 0.94], [0.12, 0.25, 0.96], [0.32, 0.05, 0.94], [0.12, 0.25, 0.96]],   // hands up for the ball
     reach: () => [[0.1, -0.15, 0.98], [0.05, -0.2, 0.98], [0.6, -0.6, 0.4], [0.3, -0.5, 0.8]],
@@ -916,7 +917,7 @@
     if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
     m.mixer.update(dt);
     if (m.head) m.head.scale.setScalar(HEAD);
-    if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|windmill)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
+    if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
     abduct(m, p.face + (p.spinA || 0), ABD);

@@ -473,6 +473,7 @@
       if (rand() < fp) foul = nd.who;
     }
     const made = rand() < prob;
+    if (made && s.kind === 'dunk' && !G.drill && rand() < 0.6) p.hangPlan = true;
     const pts = s.three ? 3 : 2;
     b.state = 'shot'; b.holder = null; b.lastTouch = p.team;
     b.sx = hp.x; b.sy = hp.y; b.sz = hp.z; b.t = 0;
@@ -1460,9 +1461,15 @@
         const S = p.spin; S.t += dt; const k = Math.min(1, S.t / (S.T * 0.85)); p.spinA = S.total * k * k * (3 - 2 * k);
         if (S.t > S.T * 0.5 && p.y <= 0) { p.face += S.total; p.spinA = 0; p.spin = null; }
       }
-      if (p.vy !== 0 || p.y > 0) {
+      /* after a made dunk: a moment hanging on the rim, then the drop */
+      if (p.hangPlan && p.vy <= 0 && p.y > 1 && !p.shoot) { p.hangPlan = false; p.hangT = 0.55; p.pose = 'hang'; }
+      if (p.hangT > 0) {
+        p.hangT -= dt; p.vx = p.vz = 0; p.vy = 0; p.pose = 'hang';
+        const hy = Math.max(0.6, 10.25 - p.ht / 12 * 1.3); p.y += (hy - p.y) * Math.min(1, dt * 12);   // hands on the rim
+        if (p.hangT <= 0) { p.vy = -2; p.pose = ''; }
+      } else if (p.vy !== 0 || p.y > 0) {
         p.y += p.vy * dt; p.vy -= p.jg * dt;
-        if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'windmill') p.pose = ''; }
+        if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'windmill' || p.pose === 'hang') p.pose = ''; }
       }
       p.x += p.vx * dt; p.z += p.vz * dt;
       /* a hard cut squeaks the sneakers */
