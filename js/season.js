@@ -10,7 +10,7 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(Z)); } catch (e) { /* fine */ } };
-  const badge = t => `<i class="tb" style="background:${t.c1};color:${t.c2}">${esc(t.ab || t.id)}</i>`;
+  const badge = t => `<i class="tb" style="background:${t.c1};color:${PB.ink(t.c1, t.c2)}">${esc(t.ab || t.id)}</i>`;
   let Z = null;
   const show = html => { const s = $('#screen'); s.classList.remove('over3d'); s.innerHTML = html; s.hidden = false; s.scrollTop = 0; };
   const S = () => PB.settings || { qlen: 3, level: 'Pro', season: 20 };

@@ -312,3 +312,4 @@ input[type=color]{height:44px;padding:4px}
 #intro li u{text-decoration:none;font-family:var(--display);font-weight:800;color:var(--mute)}
 #intro li small{font-size:10px;color:var(--mute);letter-spacing:.06em}
 #intro li.me{color:var(--green)}
+.leaders p i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.leaders p i small{color:var(--mute);margin-left:4px}

@@ -167,6 +167,13 @@
   };
 
   let pid = 1;
+  /* text on a team color: the second color when it reads, else white or near-black, whichever stands out more */
+  PB.ink = (bg, fg) => {
+    const L = h => { const v = [1, 3, 5].map(i => parseInt(String(h).slice(i, i + 2), 16) / 255).map(c => c <= 0.04 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+    const cr = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    const b = L(bg); if (cr(b, L(fg)) >= 2.6) return fg;
+    return cr(b, 1) >= cr(b, L('#111111')) ? '#ffffff' : '#111111';
+  };
   PB.randName = () => { let f = PB.pick(PB.FIRST), l = PB.pick(PB.LAST); while (PB.REAL.has(f + ' ' + l)) l = PB.pick(PB.LAST); return f + ' ' + l; };
   PB.makePlayer = (pos, target, age) => {
     const h = PB.HEIGHT[pos];
