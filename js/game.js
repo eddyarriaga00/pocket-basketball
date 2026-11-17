@@ -65,6 +65,7 @@
       f -= 0.025 * bt(o, 'lock') * (d < 5 ? 1 : 0);
       best = Math.min(best, f);
     }
+    if (p.stepT !== undefined && G.t - p.stepT < 1.1) best = 1 - (1 - best) * 0.55;   // the step-back bought room
     return clamp(best, 0.5, 1);
   }
   const nearestDef = p => {
@@ -700,28 +701,49 @@
       b.pick = { who: u, f: b.t / b.dur + 0.05 };
     }
   }
-  function pressC() {
+  /* The Move button: tap for a crossover; swipe it for the move you want. kind: 'cross' (dir -1 left, 1 right on
+     screen, 0 any), 'step' (step-back: room for the jumper), 'spin' (spin toward the rim). */
+  function pressC(kind, dir) {
     const u = G.user; if (!u || G.phase !== 'live') return;
     const b = G.ball;
     if (b.holder === u) {
       if (u.moveCd > 0 || u.shoot) return;
-      /* a crossover: a burst to the side, maybe shaking your man */
-      u.move = 0.38; u.moveCd = 1.1;
-      const w = stickWorld();
-      const nd = nearestDef(u);
-      let dx, dz;
-      if (w) { dx = w.x; dz = w.z; } else { const B = R.basis(); const side = rand() < 0.5 ? 1 : -1; dx = B.rx * side + B.fx * 0.4; dz = B.rz * side + B.fz * 0.4; }
-      const sp = maxSpeed(u) * 1.4;
-      u.vx = dx * sp; u.vz = dz * sp;
-      if (nd.who && nd.d < 6) {
-        const ch = clamp(0.18 + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.6) + 0.05 * bt(u, 'handles');
-        if (rand() < ch) { nd.who.stun = 0.75; u.st.shake++; toast('Shook him', 'make'); grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+      kind = kind || 'cross';
+      const nd = nearestDef(u), Bs = R.basis();
+      const hx = 0 - u.x, hz = hoopZ(0) - u.z, hl = hyp(hx, hz) || 1;
+      let dx, dz, sp = maxSpeed(u) * 1.4, shake = 0.18, lbl = '';
+      if (kind === 'step') {
+        /* back, away from the man in front of you; the next jumper gets the room */
+        dx = -hx / hl; dz = -hz / hl; sp = maxSpeed(u) * 1.25; u.move = 0.3; u.moveCd = 1.2; u.stepT = G.t; shake = 0.12; lbl = 'Step-back';
+      } else if (kind === 'spin') {
+        /* a spin: around the defender and on toward the rim */
+        const side = rand() < 0.5 ? 1 : -1;
+        dx = hx / hl * 0.8 + Bs.rx * side * 0.6; dz = hz / hl * 0.8 + Bs.rz * side * 0.6; u.move = 0.45; u.moveCd = 1.3; u.spinT = G.t; shake = 0.24; lbl = 'Spin';
+        u.drive = 1.0;
+      } else {
+        const w = stickWorld();
+        if (dir) { dx = Bs.rx * dir + Bs.fx * 0.35; dz = Bs.rz * dir + Bs.fz * 0.35; }
+        else if (w) { dx = w.x; dz = w.z; }
+        else { const side = rand() < 0.5 ? 1 : -1; dx = Bs.rx * side + Bs.fx * 0.4; dz = Bs.rz * side + Bs.fz * 0.4; }
+        u.move = 0.38; u.moveCd = 1.1; lbl = 'Crossover';
       }
+      const L = hyp(dx, dz) || 1;
+      u.vx = dx / L * sp; u.vz = dz / L * sp;
+      if (nd.who && nd.d < 6) {
+        const ch = clamp(shake + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.62) + 0.05 * bt(u, 'handles');
+        if (rand() < ch) { nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; toast(kind === 'step' ? 'Created space' : 'Shook him', 'make'); grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+        else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
+          /* a spin into a set defender can cost you the ball */
+          nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
+        } else feedMove(lbl);
+      } else feedMove(lbl);
+      AU().play('squeak', { x: u.x });
       return;
     }
     const off = b.holder ? b.holder.team === 0 : G.poss === 0;
     if (off) { u.cutUser = 1.6; toast('Cutting', 'call'); G.callT = 2; }
   }
+  function feedMove(lbl) { const r = $('#rel'); r.textContent = lbl; r.className = 'on y'; relT = 0.6; }
 
   /* ---------- main step ---------- */
   function step(dt) {
@@ -1024,7 +1046,20 @@
       el.addEventListener('pointerup', u); el.addEventListener('pointercancel', u); el.addEventListener('pointerleave', e => { if (el.classList.contains('press')) u(e); });
     };
     btn('#bA', () => pressA(true), () => pressA(false));
-    btn('#bB', pressB); btn('#bC', pressC);
+    btn('#bB', pressB);
+    /* the Move button reads a swipe: left or right is a crossover that way, down a step-back, up a spin; a tap is a
+       crossover */
+    { const el = $('#bC'); let sx = 0, sy = 0, id = null;
+      el.addEventListener('pointerdown', e => { e.preventDefault(); id = e.pointerId; sx = e.clientX; sy = e.clientY; el.classList.add('press'); el.setPointerCapture(id); });
+      const end = e => {
+        if (e.pointerId !== id) return; id = null; el.classList.remove('press');
+        if (G.paused) return;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (hyp(dx, dy) < 18) pressC();
+        else if (Math.abs(dx) > Math.abs(dy)) pressC('cross', dx > 0 ? 1 : -1);
+        else pressC(dy > 0 ? 'step' : 'spin');
+      };
+      el.addEventListener('pointerup', end); el.addEventListener('pointercancel', e => { id = null; el.classList.remove('press'); }); }
     $('#pz').onclick = () => pause(true);
     $('#zi').onclick = () => R.setZoom(R.getZoom() - 0.12);
     $('#zo').onclick = () => R.setZoom(R.getZoom() + 0.12);
@@ -1037,6 +1072,8 @@
       if (e.key === ' ' || e.key === 'j' || e.key === 'J') { pressA(true); e.preventDefault(); }
       else if (e.key === 'k' || e.key === 'K') pressB();
       else if (e.key === 'l' || e.key === 'L') pressC();
+      else if (e.key === 'u' || e.key === 'U') pressC('step');
+      else if (e.key === 'i' || e.key === 'I') pressC('spin');
       else if (e.key === 'Escape' || e.key === 'p') pause(!G.paused);
     });
     window.addEventListener('keyup', e => {
@@ -1061,9 +1098,9 @@
         <button class="ghost" id="ps">Sim to the end</button>
         <div class="help"><b>Controls</b><br>Left thumb: move (push to the edge to sprint).<br>
         Shoot: hold, let go at the top of the jump (the green band). Pass: to the open man, or the one your stick points at.
-        Move: a crossover that can shake your man. Off the ball: Call asks for it, Cut runs to the rim.<br>
+        Move: tap for a crossover, or swipe it: left or right to cross that way, down for a step-back (room for the jumper), up to spin to the rim. Off the ball: Call asks for it, Cut runs to the rim.<br>
         Defense: Jump to contest and block, Steal to reach. Lift your thumb and you stay in front of your man.<br>
-        Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L move.</div></div>`;
+        Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin.</div></div>`;
       $('#pr').onclick = () => pause(false);
       $('#pc').onclick = () => {
         const ks = Object.keys(R.CAMS), m = ks[(ks.indexOf(R.getCam()) + 1) % ks.length];
@@ -1132,6 +1169,6 @@
     dbg: { state: () => G,
       auto: on => { G.auto = on; },
       /* run the simulation ahead without drawing: sec seconds of game time */
-      run: sec => { for (let t = 0; t < sec && G.phase !== 'end'; t += 1 / 60) step(1 / 60); return G && { score: G.score, q: G.q, clock: G.clock, phase: G.phase }; }, simRest: () => simRest(), press: (b, down) => b === 'A' ? pressA(down) : b === 'B' ? pressB() : pressC(), stick: (x, y) => { input.sx = x; input.sy = y; } },
+      run: sec => { for (let t = 0; t < sec && G.phase !== 'end'; t += 1 / 60) step(1 / 60); return G && { score: G.score, q: G.q, clock: G.clock, phase: G.phase }; }, simRest: () => simRest(), press: (b, down, k, d) => b === 'A' ? pressA(down) : b === 'B' ? pressB() : pressC(k, d), stick: (x, y) => { input.sx = x; input.sy = y; } },
   };
 })();

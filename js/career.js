@@ -42,11 +42,11 @@
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>How to play</h2>
       <div class="card"><h3>Moving</h3><p>Put your left thumb anywhere on the lower left and drag: the stick appears under it. Push to the edge to sprint.</p></div>
       <div class="card"><h3>With the ball</h3><p><b>Shoot</b>: hold, then let go at the top of your jump, when the meter crosses the green band. Close to the rim it is a layup or a dunk.<br>
-      <b>Pass</b>: goes to the open man, or the one your stick points at.<br><b>Move</b>: a crossover; it can leave your man stumbling.</p></div>
+      <b>Pass</b>: goes to the open man, or the one your stick points at.<br><b>Move</b>: tap for a crossover, or swipe the button: left or right to cross that way, down for a step-back (your next jumper is harder to contest), up for a spin to the rim (riskier against a good defender).</p></div>
       <div class="card"><h3>Without the ball</h3><p><b>Call</b> asks the ball handler for it. <b>Cut</b> runs you to the rim and calls for it.</p></div>
       <div class="card"><h3>Defense</h3><p>Lift your thumb and you stay in front of your man by yourself. <b>Jump</b> to contest, block and rebound. <b>Steal</b> to reach (too many reaches is a foul).</p></div>
       <div class="card"><h3>Your grade</h3><p>Every play moves your teammate grade: buckets, assists, boards, stops, and also bad shots, turnovers and your man scoring. The grade earns skill points after the game.</p></div>
-      <div class="card"><h3>Keyboard</h3><p>WASD or arrows to move, J or Space to shoot or jump, K to pass, call or steal, L to move or cut, P to pause.</p></div></div>`);
+      <div class="card"><h3>Keyboard</h3><p>WASD or arrows to move, J or Space to shoot or jump, K to pass, call or steal, L for a crossover or a cut, U for a step-back, I for a spin, P to pause.</p></div></div>`);
     $('#bk').onclick = title;
   }
 
