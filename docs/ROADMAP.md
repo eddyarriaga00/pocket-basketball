@@ -70,6 +70,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Builds (bigs wider, guards leaner), a gather before the jumper, misses that rattle on the rim (2026-11-17)
 - [x] Jersey trim at the neckline, armholes and the shorts' hem, in the team's second color (2026-11-17)
 - [ ] Shorts that sway
+- [x] Two referees who work the play (lead and trail, switching on a change of ends) (2026-11-17)
 - [x] The dribbling arm from motion capture (CMU subject 06), in step with the ball (2026-11-17)
 - [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
 - [x] Alley-oops to cutters (yours with Cut or Call), post-ups and hook shots for bigs, floaters (2026-11-17)

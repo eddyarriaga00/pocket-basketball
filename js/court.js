@@ -331,9 +331,9 @@
     body.scale.set(sc * wide, sc, sc * wide);
     root.add(body);
     const d = p.d || p;
-    const shorts = new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
+    const shorts = kit.shorts || new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: '#f7f7f7', trim: kit.c2 });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2 });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the number on the back and front, and hair */
@@ -533,7 +533,7 @@
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
   R.build = (home) => {
     for (const m of meshes.values()) scene.remove(m.root);
-    meshes.clear();
+    meshes.clear(); refs = [];
     while (scene.children.length > 2) scene.remove(scene.children[2]);
     nets = [];
     const apron = new T.Mesh(new T.PlaneGeometry(90, 140), new T.MeshLambertMaterial({ color: 0x1c2333 }));
@@ -650,6 +650,36 @@
     flash.rotation.x = -Math.PI / 2; flash.position.y = 0.04; scene.add(flash);
   };
 
+  /* the officials: two of them, gray shirts and black slacks. The lead works the baseline at the ball's end, the
+     trail the far sideline a step behind the play. They are not players: nothing in the game touches them. */
+  let refs = [];
+  R.addRefs = () => {
+    refs = [];
+    if (!TPL) return;
+    for (let i = 0; i < 2; i++) {
+      const p = { id: 'ref' + i, x: 26.5, z: i ? 30 : -10, y: 0, vx: 0, vz: 0, face: -Math.PI / 2, pose: '', ht: 75, num: [14, 37][i], pos: 'SG', skin: [1, 4][i],
+        look: { hair: i ? 'buzz' : 'bald', hairColor: '#2a2a2a', shoe: '#111111' } };
+      const m = skinnedPlayer(p, { c1: '#a3a8ad', c2: '#16181b', name: '', shorts: '#15171a', sock: '#15171a', shoe: '#111111' });
+      scene.add(m.root); meshes.set(p, m); refs.push(p);
+    }
+  };
+  R._refs = () => refs;
+  function moveRefs(G, dt) {
+    if (!refs.length || !G.ball) return;
+    const b = G.ball, end = G.poss === 0 ? 1 : G.poss === 1 ? -1 : Math.sign(b.z) || 1;
+    const tg = [{ x: 11, z: end * 48.6 }, { x: 26.3, z: Math.max(-38, Math.min(38, b.z - end * 13)) }];
+    /* on a change of ends the lead becomes the trail and the trail the lead, the way crews work: whoever is nearer */
+    const D = (r, t) => Math.hypot(r.x - t.x, r.z - t.z);
+    if (D(refs[0], tg[0]) + D(refs[1], tg[1]) > D(refs[0], tg[1]) + D(refs[1], tg[0])) tg.reverse();
+    refs.forEach((r, i) => {
+      const dx = tg[i].x - r.x, dz = tg[i].z - r.z, d = Math.hypot(dx, dz), top = d > 12 ? 17 : d > 3 ? 9 : 0;
+      const tvx = d > 0.5 ? dx / d * top : 0, tvz = d > 0.5 ? dz / d * top : 0, k = Math.min(1, dt * 3);
+      r.vx += (tvx - r.vx) * k; r.vz += (tvz - r.vz) * k;
+      r.x += r.vx * dt; r.z += r.vz * dt;
+      const want = Math.atan2(b.x - r.x, b.z - r.z); let da = want - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.face += da * Math.min(1, dt * 5);
+    });
+  }
+
   R.addPlayer = (p, kit) => {
     const m = TPL ? skinnedPlayer(p, kit) : playerMesh(p, kit);
     scene.add(m.root);
@@ -697,6 +727,7 @@
 
   /* Pose every player from the game state. */
   R.update = (G, dt) => {
+    if (!G.replay) moveRefs(G, dt);
     for (const [p, m] of meshes) {
       if (m.kind === 'skin') { updateSkinned(p, m, G, dt); m.shadow.position.set(0, 0.02, 0); m.shadow.scale.setScalar(1 - Math.min(p.y / 8, 0.5)); continue; }
       m.root.position.set(p.x, 0, p.z);
