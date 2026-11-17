@@ -46,6 +46,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - League leaders, All-Star picks, the All-Star Game, the 3-Point Contest and the Dunk Contest (a 360, a windmill,
   a reverse, from as far as the free-throw line; five judges), a play-in, playoff series, awards night.
 - Banners in the rafters: win a title or have your jersey retired and it hangs in that arena for good.
+- Training camp every summer: pick a focus; the shooting and dunk drills decide how much you grow.
 - Contracts: a rookie deal, an extension, free agency, trade requests, earnings; retirement and the Hall of Fame.
 - Up to six careers, backups to a file, Auto-upgrade, Sim 5 games, Sim to the playoffs, Edit teams.
 

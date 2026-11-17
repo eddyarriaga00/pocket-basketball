@@ -1365,7 +1365,7 @@
       <p class="fine">Young players grow over the summer, players past thirty slow down; you get 6 skill points.</p>
       <button class="big" id="go">The offseason</button>${me.age >= 33 ? '<button class="ghost" id="retire">Retire</button>' : ''}</div>`);
     if ($('#retire')) $('#retire').onclick = () => { if (confirm('Retire now? Your career ends here and the Hall of Fame votes.')) hallOfFame(); };
-    $('#go').onclick = () => offseason(() => {
+    $('#go').onclick = () => offseason(() => camp(() => {
       C.year++; me.age++;
       /* past thirty the legs go first */
       if (me.age >= 30) for (const k of ['speed', 'vert', 'dunk', 'perD', 'steal', 'block']) me.r[k] = PB.clamp(me.r[k] - PB.ri(me.age >= 33 ? 2 : 1, me.age >= 33 ? 5 : 3), 25, 99);
@@ -1376,7 +1376,49 @@
       }
       me.sp += 6;
       newSeason(); save(); tab = 'home'; hub();
+    }));
+  }
+  /* training camp: one thing to work on all summer. Shooting and finishing have a drill that sets how much you gain;
+     the rest is the work itself. Past thirty the gains come slower. */
+  const CAMP = [
+    { k: 'shoot', name: 'Shooting', what: 'Three-point, mid-range, free throws', attrs: ['three', 'mid', 'ft'], drill: 'combine' },
+    { k: 'finish', name: 'Finishing', what: 'Close shots, dunks, your vertical', attrs: ['close', 'dunk', 'vert'], drill: 'dunk' },
+    { k: 'play', name: 'Playmaking', what: 'Handle, passing, speed', attrs: ['handle', 'pass', 'speed'] },
+    { k: 'def', name: 'Defense', what: 'Perimeter and interior D, steals, blocks', attrs: ['perD', 'inD', 'steal', 'block'] },
+    { k: 'glass', name: 'The glass', what: 'Rebounding, strength inside, vertical', attrs: ['reb', 'inD', 'vert'] },
+  ];
+  function camp(next) {
+    const me = C.me;
+    show(`<div class="page post"><p class="kick">Training camp</p><h2>What do you work on this summer?</h2>
+      <p class="mute">One focus. Shooting and finishing come with a drill: the better you do, the more you gain.</p>
+      ${CAMP.map(c => `<button class="ghost camp" data-k="${c.k}">${c.name}<small>${c.what}${c.drill ? ' · drill' : ''}</small></button>`).join('')}
+      <button class="ghost sm" id="skipcamp">Rest this summer</button></div>`);
+    $('#skipcamp').onclick = next;
+    scr().querySelectorAll('.camp').forEach(b => b.onclick = () => {
+      const c = CAMP.find(x => x.k === b.dataset.k);
+      if (!c.drill) { campResult(c, PB.rand() < 0.5 ? 1 : 2, next); return; }
+      scr().hidden = true;
+      const t = PB.team(C.team);
+      PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: 'me', drill: c.drill, dunks: 3, qlen: 1, level: S.level, floor: t,
+        onEnd: r => { const d = r.drill || { score: 0 }; const g = c.drill === 'dunk' ? (d.score >= 132 ? 3 : d.score >= 112 ? 2 : 1) : (d.score >= 10 ? 3 : d.score >= 7 ? 2 : 1); campResult(c, g, next, d.score); } });
     });
+  }
+  function campResult(c, g, next, score) {
+    const me = C.me, A = PB.ARCH[me.arch], old = me.age >= 31;
+    const got = [];
+    for (const k of c.attrs) {
+      const add = old ? Math.max(0, g - 1 - (PB.rand() < 0.5 ? 1 : 0)) : g - (c.attrs.length > 3 && PB.rand() < 0.5 ? 1 : 0);
+      const v = PB.clamp(me.r[k] + add, 25, A.cap[k]), d = v - me.r[k];
+      if (d > 0) { me.r[k] = v; got.push(`+${d} ${PB.ATTRS.find(a => a[0] === k)[1]}`); }
+    }
+    me.ovr = PB.ovr(me.r, me.pos);
+    C.news.unshift(`${me.last} spends the summer on ${c.name.toLowerCase()}`);
+    save();
+    show(`<div class="page post"><p class="kick">Training camp · ${c.name}</p>
+      ${score !== undefined ? `<div class="gradebig"><b>${score}</b><span>${c.drill === 'dunk' ? 'judges\' points' : 'made'}</span></div>` : ''}
+      <div class="card"><h3>${got.length ? 'The work shows' : 'No gains this time'}</h3>${got.map(x => `<p class="news">${esc(x)}</p>`).join('') || `<p class="mute">${old ? 'Past thirty, holding on is the work.' : 'You are at your ceiling there.'}</p>`}
+      <p class="fine">Overall ${me.ovr}</p></div><button class="big" id="go">On to the season</button></div>`);
+    $('#go').onclick = next;
   }
 
   /* ---------- contracts: the rookie deal, an extension, free agency, a trade request ---------- */
