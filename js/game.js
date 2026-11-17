@@ -146,6 +146,8 @@
     const sc = $('#sc'); sc.textContent = Math.ceil(Math.max(0, G.shotClock)); sc.classList.toggle('low', G.shotClock < 5);
     sc.style.visibility = G.phase === 'live' && G.poss !== null ? 'visible' : 'hidden';
     $('#sd0').classList.toggle('poss', G.poss === 0); $('#sd1').classList.toggle('poss', G.poss === 1);
+    /* in the bonus: the other side has five fouls this quarter, every foul now is two shots */
+    if (G.tf) { $('#sd0').classList.toggle('bonus', G.tf[1] >= 5); $('#sd1').classList.toggle('bonus', G.tf[0] >= 5); }
     /* the buttons read what they do right now */
     const u = G.user; if (!u) return;
     const off = G.poss === 0 || (G.poss === null && G.ball.holder && G.ball.holder.team === 0);
