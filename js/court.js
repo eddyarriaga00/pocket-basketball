@@ -457,6 +457,9 @@
     m.root.position.set(p.x, 0, p.z);
     m.root.rotation.y = p.face + (p.spinA || 0);   // the turn of a reverse or a 360 in the air
     m.body.position.y = p.y;
+    /* a fadeaway leans back in the air */
+    const lean = p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : 0;
+    m.lean = (m.lean || 0) + (lean - (m.lean || 0)) * Math.min(1, dt * 10); m.body.rotation.x = m.lean;
     const sp = Math.hypot(p.vx, p.vz), air = p.y > 0.3;
     /* legs: idle, walk, jog and sprint blended by speed; the stance on defense; the jump in the air */
     const ws = {};
