@@ -249,6 +249,12 @@
       if (['speed', 'handle', 'steal', 'perD'].includes(k)) v -= Math.round(t * 4);
       r[k] = PB.clamp(v, 25, A.cap[k]);
     }
+    /* every build and position starts near 60 overall: shifted evenly, so the build's strengths stay its strengths */
+    for (let i = 0; i < 6; i++) {
+      const d = 60 - PB.ovr(r, st.pos);
+      if (Math.abs(d) < 1) break;
+      for (const k in r) r[k] = PB.clamp(Math.round(r[k] + d * 0.6), 25, A.cap[k]);
+    }
     return r;
   }
 

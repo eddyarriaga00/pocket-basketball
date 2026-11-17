@@ -135,6 +135,9 @@
       cap: { three: 60, mid: 72, ft: 80, close: 95, dunk: 99, handle: 60, pass: 75, speed: 70, vert: 92, perD: 70, inD: 99, steal: 65, block: 99, reb: 99 } },
   };
 
+  /* every build starts five points up on its base (a rookie near 60 overall), never past a ceiling */
+  for (const A of Object.values(PB.ARCH)) for (const k in A.base) A.base[k] = Math.min(A.cap[k], A.base[k] + 5);
+
   /* A computer player at a position and a talent tier (overall it aims for). */
   const POS_SHAPE = {
     PG: { three: 4, mid: 2, ft: 6, close: 0, dunk: -10, handle: 10, pass: 10, speed: 8, vert: -4, perD: 2, inD: -16, steal: 4, block: -18, reb: -14 },
