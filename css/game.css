@@ -325,3 +325,7 @@ input[type=color]{height:44px;padding:4px}
 .plays{margin:4px 0 8px;text-align:left}.plays b{display:block;font-size:12px;margin-bottom:6px}.plays b small{color:var(--mute);font-weight:500;margin-left:6px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.row3 button{margin:0;padding:10px 4px;font-size:12px}
 .pline{margin:0 0 10px;font-size:13px;color:var(--mute)}.pline b{color:var(--ink);font-family:var(--display);font-size:16px}
+/* the title over the 3D arena */
+.title.t3d{background:linear-gradient(180deg,rgba(10,13,20,.75) 0%,rgba(10,13,20,.15) 24%,rgba(10,13,20,0) 36%,rgba(10,13,20,.25) 52%,rgba(10,13,20,.88) 64%,var(--bg) 78%)}
+.title.t3d .logo{margin:6px 0 auto}.title.t3d .logo .ball{display:none}
+.title.t3d .logo h1{text-shadow:0 4px 24px rgba(0,0,0,.6)}

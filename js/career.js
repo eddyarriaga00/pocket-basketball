@@ -56,6 +56,7 @@
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
     if (live) $('#cont').onclick = hub;
+    title3d(live ? C.me : null, live && C.team ? PB.team(C.team) : null);
     $('#newc').onclick = () => { if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one under Careers first.'); return; } setCur(''); C = null; create(); };
     if ($('#careers')) $('#careers').onclick = careers;
     $('#qg').onclick = quick;
@@ -74,6 +75,19 @@
       $('#bk').onclick = title;
     };
     $('#set').onclick = settings;
+  }
+  /* the title over the arena: your player at center court (or tonight's featured player), the camera circling */
+  let featured = null;
+  function title3d(me, team, tries) {
+    if (PB.noGL) return;
+    const el = scr().querySelector('.title'); if (!el) return;
+    if (!PB.R.modelReady || !PB.R.modelReady()) { if ((tries || 0) < 40) setTimeout(() => title3d(me, team, (tries || 0) + 1), 250); return; }
+    if (!me) {
+      if (!featured) { const d = new Date(), t = PB.TEAMS[(d.getDate() * 7 + d.getMonth()) % PB.TEAMS.length]; featured = { p: PB.makePlayer(PB.pick(['PG', 'SG', 'SF']), 86, 26), t }; }
+      me = featured.p; team = featured.t;
+    }
+    if (!team) team = PB.team('SF');
+    scr().classList.add('over3d'); el.classList.add('t3d'); PB.R.showcase(me, team);
   }
   /* the careers on this device: play one, back it up to a file, bring one in from a file, delete one */
   function careers() {
