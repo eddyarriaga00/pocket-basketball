@@ -51,9 +51,10 @@ The two node tools need Playwright (`npm i -g playwright`).
       team, rises late in close games, hushes at the line and chants on defense; muffled on pause; Sound and Menu
       music switches in Settings
 
-- [ ] **Scoring is ~20% low.** Last balance run (3 games): 89 pts, 82 FGA at 40.7%, 43 3PA at 31.1%, 11.5 FTA,
-      12.7 steals (targets 114 / 89 at 47.5% / 35 at 36% / 22 / 8). Raise two-point finishing, fewer contested
-      threes from the computer, non-shooting fouls and the bonus, fewer reach-in steals.
+- [x] Balance against the league (2026-11-17, 4 games): 105 pts, 87 FGA at 45.0%, 37.5 threes at 34.0%, 18 FTA at
+      77.6%, 8 TOV, 8 STL, 4 BLK, 42 REB, 27.5 AST. Blocks no longer eat layups; dunks shrug off contests; charges,
+      strips under pressure and errant passes; `tools/balance.js` prints make rates by shot type.
+- [ ] Turnovers (8 against 14) and fouls (14 against 19) are still a little low
 - [x] The pick-and-roll: the big screens the handler's man, who gets caught; the big rolls (2026-11-17)
 - [x] Team fouls and the bonus; contact fouls on drives; floaters (2026-11-17)
 - [x] The booth: two original voices recorded with Chatterbox, 122 lines in 35 calls, wired to the game (2026-11-17)
