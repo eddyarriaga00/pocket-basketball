@@ -393,6 +393,9 @@
     sg.setAttribute('skinIndex', new T.Uint16BufferAttribute(sI, 4)); sg.setAttribute('skinWeight', new T.BufferAttribute(sW, 4));
     sg.computeVertexNormals();
     const shortsGeo = sg;
+    /* a small number on the front of the shorts' left leg */
+    { const hj = at('DEF-thigh.L'), kn = at('DEF-shin.L'), r1 = H * 0.068, o = Math.sign(hj.x - hipsC.x) || 1, nrm = V3(0.55 * o, 0, 0.83).normalize();
+      decals.shorts = local(bones[bk('DEF-thigh.L')], V3(hj.x + nrm.x * r1 * 1.04, hj.y + H * 0.03 - (hj.y - kn.y) * 0.45, hj.z + nrm.z * r1 * 1.04), new T.Quaternion().setFromUnitVectors(V3(0, 0, 1), nrm)); }
     let simpleGeo = null;
     try { simpleGeo = simpleBody(); } catch (e) { console.warn('simple body', e); }
     if (simpleGeo) {
@@ -739,6 +742,7 @@
     const put = (bone, dcl, obj) => { obj.position.copy(dcl.pos); obj.quaternion.copy(dcl.quat); bone.add(obj); };
     put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
     put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
+    if (TPL.decals.shorts) put(bones[bk('DEF-thigh.L')], TPL.decals.shorts, new T.Mesh(new T.PlaneGeometry(H * 0.045, H * 0.045), numMat));
     /* the team's name across the chest, over the number */
     const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', ink, edge), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     /* and his name across the back, over the number */
