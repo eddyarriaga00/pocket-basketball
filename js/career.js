@@ -1219,13 +1219,13 @@
       save();
       show(`<div class="page post"><p class="kick">All-Star Game</p><div class="final"><div><b>${us_}</b></div><em>${win ? 'WIN' : 'LOSS'}</em><div><b>${them_}</b></div></div>
         <p class="mute">${mine} vs ${other}</p>${line ? `<div class="tiles"><div><b>${line.pts}</b><span>PTS</span></div><div><b>${line.reb}</b><span>REB</span></div><div><b>${line.ast}</b><span>AST</span></div></div>` : ''}
-        ${mvp ? '<div class="card earn"><b>All-Star Game MVP</b><span>The trophy and the spotlight are yours.</span></div>' : ''}<button class="big" id="go">Back to the season</button></div>`);
-      $('#go').onclick = hub;
+        ${mvp ? '<div class="card earn"><b>All-Star Game MVP</b><span>The trophy and the spotlight are yours.</span></div>' : ''}${sim ? '' : reelBtn()}<button class="big" id="go">Back to the season</button></div>`);
+      $('#go').onclick = () => { lastReels = []; hub(); }; if (!sim) reelWire();
     };
     if (!play) { const ln = simLine(C.me, 'Starter', PB.rand() < 0.5); const a = 140 + Math.round(PB.gauss() * 10), b = 140 + Math.round(PB.gauss() * 10) + (a === 140 ? 1 : 0); done(a, b, ln, true); return; }
     scr().hidden = true;
     PB.Game.start({ teams: [T(mine), T(other)], rosters: [us, them], userId: 'me', qlen: S.qlen, level: 'All-Star', callIntro: 'allstar', floor: PB.team(C.team), strength: [90, 90],
-      onEnd: r => done(r.score[0], r.score[1], r.user, false) });
+      onEnd: r => { lastReels = r.reels || []; done(r.score[0], r.score[1], r.user, false); } });
   }
   /* the 3-Point Contest: you and seven of the league's shooters, five racks, a money ball at the end of each */
   function contestField() {
