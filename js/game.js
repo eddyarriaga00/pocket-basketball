@@ -559,6 +559,8 @@
       p.tx = d.x + side * 2.2; p.tz = d.z + dirOf(p.team) * 0.4;
       if (hyp(d.x - p.x, d.z - p.z) < 2.8 && !d.isUser && d.stun <= 0 && p.screen < 2.6) {
         d.stun = 0.55 * (1.2 - d.r.perD / 160); p.screen = 1.4;
+        /* the screener's man switches onto the ball for a moment */
+        const sw = G.pl.find(o => o.team !== p.team && o.slot === p.slot); if (sw && !sw.isUser) { sw.switchOn = h; sw.switchT = 1.8; }
         if (!h.isUser && lane(h) > 2.5) h.drive = 1.4;
       }
     } else { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 5; }   // the roll
@@ -590,7 +592,23 @@
   }
   function defAI(p, dt) {
     const offT = 1 - p.team;
-    const man = G.pl.find(o => o.team === offT && o.slot === p.slot);
+    if (p.switchT > 0) p.switchT -= dt;
+    const man = p.switchT > 0 && p.switchOn && G.ball.holder === p.switchOn ? p.switchOn : G.pl.find(o => o.team === offT && o.slot === p.slot);
+    /* help: a driver who has beaten his man into the paint draws the nearest defender, who steps in front of him */
+    const drv = G.ball.holder;
+    if (!p.isUser && drv && drv.team === offT && drv !== man && drv.drive > 0 && distHoop(drv.x, drv.z, offT) < 15) {
+      const own = G.pl.find(o => o.team === p.team && o.slot === drv.slot);
+      const beaten = own && distHoop(own.x, own.z, offT) > distHoop(drv.x, drv.z, offT) + 1;
+      if (beaten) {
+        let near = null, nd = 1e9;
+        for (const o of G.pl) if (o.team === p.team && o !== own && !o.isUser) { const d = hyp(o.x - drv.x, o.z - drv.z); if (d < nd) { nd = d; near = o; } }
+        if (near === p && nd < 16) {
+          const hz = hoopZ(offT);
+          p.tx = drv.x * 0.6; p.tz = drv.z + (hz - drv.z) * 0.45; p.pose = 'guard'; p.helping = 0.4;
+          return;
+        }
+      }
+    }
     const H = { x: 0, z: hoopZ(offT) };
     const b = G.ball;
     const bx = b.x, bz = b.z;
@@ -868,7 +886,13 @@
         else {
           const offTeam = b.holder ? b.holder.team : G.poss;
           if (offTeam === p.team) { offBallAI(p, dt); seek(p, dt, b.state === 'pass' && b.to === p ? 1 : 0.8); p.pose = ''; }
-          else { defAI(p, dt); seek(p, dt, 0.92 + p.r.perD * 0.0012); }
+          else {
+            defAI(p, dt);
+            /* closing out on a shooter who just caught it: a sprint, then short choppy steps */
+            const gap = hyp(p.tx - p.x, p.tz - p.z), man = G.ball.holder;
+            const close = man && man.team !== p.team && hyp(man.x - p.x, man.z - p.z) > 6 && hyp(man.x - p.x, man.z - p.z) < 26 && (man.caughtT !== undefined && G.t - man.caughtT < 1.2);
+            seek(p, dt, (0.92 + p.r.perD * 0.0012) * (close || gap > 9 ? 1.12 : 1));
+          }
         }
       }
       /* jump */

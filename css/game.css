@@ -260,3 +260,5 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 .leaders p{display:grid;grid-template-columns:18px 1fr auto;gap:6px;align-items:center;margin:0;padding:5px 0;border-top:1px solid var(--line);font-size:13px}
 .leaders p span{color:var(--mute)}.leaders p small{color:var(--mute);font-size:10.5px}.leaders p em{font-style:normal;font-family:var(--display);font-weight:800}
 .leaders p.me{color:var(--acc)}.leaders p.rv{color:#ff8f9b}
+.coach .q{font-size:15px;font-weight:600;margin:6px 0}
+.coach .ghost{margin:8px 0 0;padding:11px;font-size:14px}

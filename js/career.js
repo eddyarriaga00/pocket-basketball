@@ -357,6 +357,16 @@
         <p>${C.po && C.po.champ ? `The ${esc(tname(PB.team(C.po.champ)))} are champions.` : `Your season is over. The playoffs go on without you.`}</p>
         <button class="big" id="simpo">${C.po && C.po.champ ? 'Go to awards night' : 'Sim the rest of the playoffs'}</button></div>`;
       }
+      if (C.coachTalk) {
+        const s5 = C.games.filter(x => x.done).slice(-5), avgG = s5.reduce((a, x) => a + (x.res.gscore || 6), 0) / Math.max(1, s5.length);
+        const r = role(), tr = C.trust;
+        const msg = avgG >= 9 ? `You've been great. ${r === 'Starter' ? 'Keep doing what you are doing; this is your spot.' : 'Keep this up and the starting job is yours.'}`
+          : avgG >= 6.5 ? `Solid. ${r === 'Bench' ? 'I need to see more before you get more minutes.' : 'Now give me more on defense: contest everything.'}`
+          : `I need better from you. Smart shots, take care of the ball, and run back on defense${r === 'Starter' ? ', or somebody else starts' : ''}.`;
+        card = `<div class="next coach"><p class="kick">A word from the coach</p><p class="q">“${msg}”</p>
+          <p class="fine">Last five games: average grade ${gradeAvg(avgG)} · trust ${Math.round(tr)}</p>
+          <button class="ghost" id="coachok">Got it, coach</button><button class="ghost" id="coachmore">“I want more minutes”</button></div>` + card;
+      }
       if (C.contest === 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>3-Point Contest</h3><p>Five racks, five balls each, 60 seconds; the last ball of every rack is the money ball, worth two. Seven of the league's best shooters are waiting.</p>
         <button class="big" id="contest">Take the floor</button><button class="ghost" id="nocontest">Pass this year</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
@@ -411,6 +421,15 @@
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
+    if ($('#coachok')) $('#coachok').onclick = () => { C.coachTalk = false; C.trust = Math.min(100, C.trust + 1); save(); hub(); };
+    if ($('#coachmore')) $('#coachmore').onclick = () => {
+      /* asking works when you've earned it, and costs you when you haven't */
+      const s5 = C.games.filter(x => x.done).slice(-5), avgG = s5.reduce((a, x) => a + (x.res.gscore || 6), 0) / Math.max(1, s5.length);
+      C.coachTalk = false;
+      if (avgG >= 8.5) { C.trust = Math.min(100, C.trust + 8); C.news.unshift(`${C.me.last} asks the coach for more minutes, and gets them`); }
+      else { C.trust = Math.max(0, C.trust - 6); C.news.unshift(`${C.me.last} asks for more minutes; the coach is not convinced`); }
+      save(); hub();
+    };
     if ($('#auto')) $('#auto').onclick = () => {
       /* spend on the attributes that count most at your position, cheapest first among those, up to each ceiling */
       const A = PB.ARCH[me.arch];
@@ -561,6 +580,8 @@
     C.news.unshift(hl);
     C.news = C.news.slice(0, 30);
     feedAfter(g, res);
+    /* every fifth game the coach has a word: where you stand and what he wants */
+    if (!g.po && (C.gi + 1) % 5 === 0) C.coachTalk = true;
     if (!g.po) {
       C.gi++;
       /* the All-Star picks come out at the halfway mark */

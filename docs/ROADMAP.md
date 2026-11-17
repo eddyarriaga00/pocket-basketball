@@ -53,10 +53,10 @@ The two node tools need Playwright (`npm i -g playwright`).
       team, rises late in close games, hushes at the line and chants on defense; muffled on pause; Sound and Menu
       music switches in Settings
 
-- [x] Balance against the league (2026-11-17, 4 games): 105 pts, 87 FGA at 45.0%, 37.5 threes at 34.0%, 18 FTA at
-      77.6%, 8 TOV, 8 STL, 4 BLK, 42 REB, 27.5 AST. Blocks no longer eat layups; dunks shrug off contests; charges,
-      strips under pressure and errant passes; `tools/balance.js` prints make rates by shot type.
-- [ ] Turnovers (8 against 14) and fouls (14 against 19) are still a little low
+- [x] Balance against the league (2026-11-17, 4 games): 113.5 pts, 86.6 FGA at 47.2%, 40 threes at 36.1%, 20.8 FTA
+      at 83%, 10 TOV, 9.6 STL, 2.5 BLK, 41 REB, 31 AST (real: 114, 89 at 47.5%, 35 at 36%, 22, 14, 8, 5, 44, 27).
+      Help defense, closeouts and switches on screens (2026-11-17). `tools/balance.js` prints make rates by shot type.
+- [ ] Turnovers, blocks and fouls are still a little low; a few too many threes
 - [x] The pick-and-roll: the big screens the handler's man, who gets caught; the big rolls (2026-11-17)
 - [x] Team fouls and the bonus; contact fouls on drives; floaters (2026-11-17)
 - [x] The booth: two original voices recorded with Chatterbox, 122 lines in 35 calls, wired to the game (2026-11-17)
@@ -79,7 +79,9 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 - [x] Off the bench: a sixth man checks in mid-first quarter, a bench player in the second (2026-11-17)
 - [ ] Substitutions, fatigue and foul trouble during a game
-- [ ] A talk with the coach every few games
+- [x] A word from the coach every five games; ask for more minutes (it works when you've earned it) (2026-11-17)
+- [x] Game goals: three a game by position, +2 skill points each (2026-11-17)
+- [x] League leaders; your games count at full length for leaders, awards and value (2026-11-17)
 - [x] Pre-draft combine: fifteen spot-up shots in 45 seconds that move your draft stock (2026-11-17)
 - [ ] Combine agility and vertical drills; team interviews
 - [ ] Career highs on the broadcast; the record book
