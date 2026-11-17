@@ -897,6 +897,7 @@
     let crouch = p.pose === 'guard' ? 0.5 : 0;
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
     if (fall > 0) crouch = 1;
+    if (G.ball.holder === p && !p.shoot && p.d && p.d.look && p.d.look.drib === 'low') crouch = Math.max(crouch, 0.3);   // a low dribbler gets down
     if (ms < 1 && (mv.k === 'legs' || mv.k === 'cross' || mv.k === 'btb')) crouch = Math.max(crouch, mv.k === 'legs' ? 0.55 : 0.35);   // low on a move   // the gather: down into the legs before the jump
     const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;
     const shooting = p.shoot || p.pose === 'shoot';
@@ -930,7 +931,8 @@
     m.poseW = Math.min(1, (m.poseW || 0) + dt * (POSES[pose] ? 9 : -6));
     if (!POSES[pose]) { m.poseW = Math.max(0, m.poseW - dt * 6); return; }
     let kk = 0;
-    if (pose === 'dribble') kk = (G.t * 8.5 / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
+    const dsf = (ds => ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1)(p.d && p.d.look && p.d.look.drib);
+    if (pose === 'dribble') kk = (G.t * 8.5 * dsf / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three') kk = G.t;

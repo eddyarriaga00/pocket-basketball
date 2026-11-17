@@ -140,7 +140,7 @@
     tkoHud();
   }
   /* a celebration after a big play: a flex, a roar, the three goggles, a chest thump, a point to the crowd */
-  function celebrate(p, kinds) { p.celebK = kinds[Math.floor(rand() * kinds.length)]; p.celebT = p.celebK === 'chest' || p.celebK === 'roar' ? 1.4 : 1.2; }
+  function celebrate(p, kinds) { const sig = p.d && p.d.look && p.d.look.celeb; p.celebK = sig || kinds[Math.floor(rand() * kinds.length)]; p.celebT = p.celebK === 'chest' || p.celebK === 'roar' ? 1.4 : 1.2; }
   function tkoEnd(why) { const k = G.tko; if (!k) return; k.on = false; k.m = 0; if (why) toast(why); tkoHud(); }
   function tkoTick() { const k = G.tko; if (k && k.on) { if (G.t > k.until) tkoEnd(); else tkoHud(); } }
   /* ---------- first-game tips: shown once each, the first time the moment comes up ---------- */
@@ -1528,10 +1528,10 @@
         }
         /* the dribble: from the hand to the floor and back, under the hand */
         b.x = hp.x; b.z = hp.z;
-        const top = H ? Math.max(1.2, (p.dribHand < 0 ? H.l.y : H.r.y) - 0.35) : 3.0;
-        b.y = 0.4 + Math.abs(Math.sin(G.t * 8.5)) * (top - 0.4);
+        const ds = p.d && p.d.look && p.d.look.drib, top = (H ? Math.max(1.2, (p.dribHand < 0 ? H.l.y : H.r.y) - 0.35) : 3.0) * (ds === 'low' ? 0.78 : ds === 'high' ? 1.06 : 1);
+        b.y = 0.4 + Math.abs(Math.sin(G.t * 8.5 * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1))) * (top - 0.4);
         /* the bounce: one each time the ball meets the floor, quieter the farther it is from you */
-        const k = Math.floor(G.t * 8.5 / Math.PI);
+        const k = Math.floor(G.t * 8.5 * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1) / Math.PI);
         if (k !== b.bk) { b.bk = k; if (G.phase === 'live') { const d = G.user ? hyp(b.x - G.user.x, b.z - G.user.z) : 20; AU().play('bounce', { x: b.x, vol: clamp(1.1 - d / 45, 0.25, 1) }); } }
       }
       return;

@@ -1068,11 +1068,13 @@
     wrist: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     legs: [[null, 'None'], ['one', 'Leg sleeve'], ['both', 'Both legs'], ['pads', 'Knee pads']],
     tat: [[null, 'None'], [1, 'Arm band'], [2, 'Sleeve'], [3, 'Both'], [4, 'Forearm']],
+    celeb: [[null, 'Mixed'], ['flex', 'Flex'], ['roar', 'Roar'], ['goggles', 'Goggles'], ['three', 'Three up'], ['point', 'Point'], ['chest', 'Chest']],
+    drib: [[null, 'Standard'], ['low', 'Low and quick'], ['high', 'High and loose']],
   };
   function lookEditor(me) {
     me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
     const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(me.look[k + 'Pick'] ?? me.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
-    return row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('sleeve', 'Arm sleeve') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + '<p class="fine">Your look on the floor from your next game.</p>';
+    return row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('sleeve', 'Arm sleeve') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + row('celeb', 'Signature celebration') + row('drib', 'Dribble style') + '<p class="fine">Your look on the floor from your next game.</p>';
   }
   function badgeList() {
     return PB.BADGES.map(b => {
