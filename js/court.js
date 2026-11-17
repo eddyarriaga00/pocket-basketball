@@ -58,7 +58,7 @@
   let boardMsg = null;
   R.board = (text, secs) => { boardMsg = { text, t: secs || 3 }; };   // the scoreboard shows a message for a few seconds
   R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk) shake = Math.max(shake, shk); };
-  let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [];
+  let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [], tkoBeam = null;
 
   const PX = 20;  // court texture pixels per foot
 
@@ -880,6 +880,11 @@
     ballShadow.rotation.x = -Math.PI / 2; scene.add(ballShadow);
     userRing = new T.Mesh(new T.RingGeometry(1.35, 1.75, 28), new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0.9, depthWrite: false }));
     userRing.rotation.x = -Math.PI / 2; userRing.position.y = 0.04; scene.add(userRing);
+    /* Takeover: a column of white light around you, fading up from the floor */
+    { const cv = document.createElement('canvas'); cv.width = 4; cv.height = 64; const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 64, 0, 0);
+      gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.18)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 4, 64);
+      tkoBeam = new T.Mesh(new T.CylinderGeometry(1.5, 1.7, 7, 24, 1, true), new T.MeshBasicMaterial({ map: new T.CanvasTexture(cv), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+      tkoBeam.position.y = 3.5; tkoBeam.visible = false; scene.add(tkoBeam); }
     handRing = new T.Mesh(new T.RingGeometry(1.15, 1.35, 24), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false }));
     handRing.rotation.x = -Math.PI / 2; handRing.position.y = 0.03; scene.add(handRing);
     /* the pass preview (an arrow over the teammate your pass would go to), your man's ring on defense, a release flash */
@@ -1065,6 +1070,9 @@
     const u = G.user;
     userRing.visible = !!u;
     if (u) { userRing.position.x = u.x; userRing.position.z = u.z; userRing.material.opacity = 0.65 + 0.3 * Math.sin(G.t * 5); }
+    const tk = !!(u && G.tko && G.tko.on);
+    if (tkoBeam) { tkoBeam.visible = tk; if (tk) { tkoBeam.position.set(u.x, 3.5 + u.y, u.z); const k = 1 + 0.06 * Math.sin(G.t * 9); tkoBeam.scale.set(k, 1, k); tkoBeam.rotation.y += dt * 1.5; } }
+    if (u) { userRing.material.color.set(tk ? 0xffffff : 0x4cffb0); userRing.scale.setScalar(tk ? 1.12 + 0.08 * Math.sin(G.t * 9) : 1); }
     const h = b.state === 'held' && b.holder !== u ? b.holder : null;
     handRing.visible = !!h;
     if (h) { handRing.position.x = h.x; handRing.position.z = h.z; handRing.material.color.set(h.team === 0 ? 0xffffff : 0xff6a6a); }

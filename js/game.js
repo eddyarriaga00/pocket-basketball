@@ -91,7 +91,7 @@
       spot: 0, drive: 0, move: 0, moveCd: 0, shoot: null, isUser: false,
       st: { pts: 0, reb: 0, oreb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, pf: 0, cs3: 0, mid: 0, lay: 0, dunk: 0, shake: 0, cmiss: 0, clutch: 0, fade: 0, hookm: 0 } };
   }
-  const maxSpeed = p => (11.5 + p.r.speed * 0.075) * (G.ball.holder === p ? 0.9 : 1) * (p.energy !== undefined ? 0.82 + 0.18 * Math.min(1, p.energy * 2) : 1);
+  const maxSpeed = p => (11.5 + p.r.speed * 0.075) * (G.ball.holder === p ? 0.9 : 1) * (p.isUser && G.tko && G.tko.on ? 1.05 : 1) * (p.energy !== undefined ? 0.82 + 0.18 * Math.min(1, p.energy * 2) : 1);
   const teamOf = t => G.pl.filter(p => p.team === t);
 
   /* ---------- HUD and feedback ---------- */
@@ -111,10 +111,36 @@
     const before = gradeLetter(G.grade);
     G.grade = clamp(G.grade + delta, -26, 26);
     G.gradeLog.push([delta, why]);
+    tkoAdd(delta > 0 ? delta * 0.05 : delta * 0.025);
     const g = $('#grade'); g.innerHTML = `<b>${gradeLetter(G.grade)}</b><span class="${delta >= 0 ? 'up' : 'dn'}">${delta >= 0 ? '+' : '−'} ${why}</span>`;
     g.classList.remove('flash'); void g.offsetWidth; g.classList.add('flash');
     if (before !== gradeLetter(G.grade)) g.classList.add('chg');
   }
+  /* ---------- Takeover: good plays fill the meter (your grade's gains, a little back for its losses); full, tap it
+     (or T) for 25 seconds of hot hands: a wider green window, better looks, a quicker first step, moves that land.
+     Two misses in a row cool you off. ---------- */
+  const TKO_LEN = 25;
+  const tkoOn = () => !!(G.tko && G.tko.on);
+  function tkoHud() {
+    const e = $('#tko'); if (!e) return;
+    const k = G.tko; e.hidden = !k || !G.user; if (e.hidden) return;
+    e.className = k.on ? 'on' : k.m >= 1 ? 'ready' : '';
+    e.style.setProperty('--f', (k.on ? Math.max(0, (k.until - G.t) / TKO_LEN) : k.m).toFixed(3));
+  }
+  function tkoAdd(x) {
+    const k = G.tko; if (!k || k.on) return;
+    const was = k.m >= 1; k.m = clamp(k.m + x, 0, 1);
+    if (!was && k.m >= 1) { toast('Takeover ready', 'make'); buzz([20, 40, 20]); }
+    tkoHud();
+  }
+  function tkoGo() {
+    const k = G.tko; if (!k || k.on || k.m < 1 || !G.user || G.paused) return;
+    k.on = true; k.until = G.t + TKO_LEN; k.miss = 0; k.n = (k.n || 0) + 1;
+    toast('Takeover', 'make'); B('hot', { prio: 6 }); AU().crowd.react('roar', 1); R.flash(0xffffff); buzz([30, 50, 30]);
+    tkoHud();
+  }
+  function tkoEnd(why) { const k = G.tko; if (!k) return; k.on = false; k.m = 0; if (why) toast(why); tkoHud(); }
+  function tkoTick() { const k = G.tko; if (k && k.on) { if (G.t > k.until) tkoEnd(); else tkoHud(); } }
   /* ---------- first-game tips: shown once each, the first time the moment comes up ---------- */
   const TIPS = {
     ball: 'You have the ball. Hold SHOOT, let go at the top of the jump (green band). PASS finds the open man; swipe MOVE to break your man down.',
@@ -401,7 +427,7 @@
     let prob = baseProb(p, p.x, p.z, s.kind) * (s.js === 'quick' ? 0.97 : 1) * (s.fade ? 0.9 + 0.025 * bt(p, 'fade') : 1) * (s.kind === 'hook' ? 1 + 0.025 * bt(p, 'post') : 1);
     let timing = '';
     if (s.user) {
-      const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase();
+      const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase() * (tkoOn() ? 1.4 : 1);
       const err = meter - 0.82;
       const ae = Math.abs(err);
       if (ae <= w) { timing = 'Excellent'; prob = prob + (1 - prob) * 0.62; }
@@ -421,6 +447,7 @@
     if (s.kind === 'dunk') cf = 1 - (1 - cf) * 0.3;   // a hand in the face barely matters above the rim
     else if (s.kind === 'hook') cf = 1 - (1 - cf) * 0.6;   // the hook goes up over the defender
     prob = clamp(prob * cf, 0.01, 0.985);
+    if (p.isUser && tkoOn()) prob = clamp(prob + (1 - prob) * 0.2, 0.01, 0.985);   // Takeover: hot hands
     const nd = nearestDef(p);
     /* how covered you were, next to the timing: a miss explains itself */
     if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}`; }
@@ -617,7 +644,7 @@
       if (home(p.team) || s.kind === 'dunk') R.hype(s.kind === 'dunk' ? 1.4 : s.pts === 3 ? 1 : 0.6, s.kind === 'dunk' ? 0.9 : 0); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.pts === 3 ? 0.8 : 0.5);
       if (s.foul) { AU().crowd.react('roar', 1.1); }
       /* the call: a buzzer-beater, a hot hand, an and-one, or the shot itself */
-      if (p.isUser) G.streak = (G.streak || 0) + 1;
+      if (p.isUser) { G.streak = (G.streak || 0) + 1; if (tkoOn()) G.tko.miss = 0; }
       const run = G.run && G.run.team === p.team ? G.run : (G.run = { team: p.team, pts: 0, said: false });
       run.pts += s.pts;
       if ((s.kind === 'dunk' || s.pts === 3) && home(p.team) && R.board) R.board(s.kind === 'dunk' ? 'SLAM!' : 'SPLASH!', 2.2);
@@ -675,6 +702,7 @@
       }
       AU().play(rand() < 0.3 ? 'board' : 'rim', { x: b.ex, power: rr(0.5, 1) });
       if (p.isUser) G.streak = 0;
+      if (p.isUser && tkoOn() && ++G.tko.miss >= 2) tkoEnd('Cooled off');
       if (rand() < 0.22) B('miss', { prio: 1, follow: 0.3 });
       if (home(p.team) && G.lastShot.prob > 0.4) AU().crowd.react('aww', 0.6); else if (!home(p.team) && rand() < 0.4) AU().crowd.react('roar', 0.35);
       /* close misses rattle: a hop or two on the rim before it falls off */
@@ -1256,7 +1284,7 @@
       const L = hyp(dx, dz) || 1;
       u.vx = dx / L * sp; u.vz = dz / L * sp;
       if (nd.who && nd.d < 6) {
-        const ch = clamp(shake + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.62) + 0.05 * bt(u, 'handles');
+        const ch = clamp(shake + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.62) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0);
         if (rand() < ch) { nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; toast(kind === 'step' ? 'Created space' : 'Shook him', 'make'); grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
@@ -1296,6 +1324,7 @@
   /* ---------- main step ---------- */
   function step(dt) {
     G.t += dt;
+    if (G.tko && G.tko.on) tkoTick();
     if (G.switching && G.phase === 'live') autoSwitch();
     const b = G.ball;
     if (relT > 0) { relT -= dt; if (relT <= 0) $('#rel').className = ''; }
@@ -1700,7 +1729,7 @@
     if (G.paused) { edge(9, () => pause(false)); return; }
     edge(0, () => pressA(true), () => pressA(false));
     edge(1, () => pressB()); edge(2, () => pressC()); edge(3, () => pressC('step')); edge(5, () => pressC('spin')); edge(4, () => pressD());
-    edge(9, () => pause(!G.paused));
+    edge(9, () => pause(!G.paused)); edge(10, tkoGo); edge(11, tkoGo); edge(7, tkoGo);
   }
 
   /* ---------- frame ---------- */
@@ -1782,6 +1811,7 @@
     btn('#bA', () => pressA(true), () => pressA(false));
     btn('#bB', pressB);
     btn('#bD', pressD);
+    btn('#tko', tkoGo);
     /* the Move button reads a swipe: left or right is a crossover that way, down a step-back, up a spin; a tap is a
        crossover */
     { const el = $('#bC'); let sx = 0, sy = 0, id = null;
@@ -1813,6 +1843,7 @@
       else if (e.key === 'l' || e.key === 'L') pressC();
       else if (e.key === 'u' || e.key === 'U') pressC('step');
       else if (e.key === 'i' || e.key === 'I') pressC('spin');
+      else if (e.key === 't' || e.key === 'T') tkoGo();
       else if (e.key === 'Escape' || e.key === 'p') pause(!G.paused);
     });
     window.addEventListener('keyup', e => {
@@ -1920,6 +1951,7 @@
         ball: { state: 'held', holder: null, x: 0, y: 7, z: 0, vx: 0, vy: 0, vz: 0, lastTouch: 0 } };
       tape = []; replayCd = 0;
       G.user = pl.find(p => p.isUser) || null;
+      G.tko = !o.drill && !o.switching && G.user ? { m: 0, on: false, until: 0, miss: 0 } : null; tkoHud();
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);

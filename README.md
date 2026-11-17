@@ -49,6 +49,8 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
   strips, rebounds, the shot clock and overtime. Computer games average about 114 points a team on 47% shooting,
   like the real league.
 - The rules: eight seconds, backcourt, three seconds, goaltending, inbound plays, foul trouble.
+- Takeover: good plays fill a meter; full, tap it for 25 seconds of hot hands (a wider green window, better looks, a
+  quicker first step, moves that land). Two misses in a row and you cool off.
 - Call a pick, call a play (get me the ball, pick-and-roll, feed the post); post up as a big; hooks and fadeaways;
   get hot and they double you. The bench plays: computer players tire and sub at dead balls; fast breaks.
 - Dribble moves on the Move button (swipe for a crossover either way, a step-back, a spin), stamina, replays of
@@ -73,6 +75,7 @@ whole team), Practice (the 3-point and dunk contests, the drill, a shoot-around)
 | Crossover / Cut | Small button: tap, or swipe left or right | L | X |
 | Step-back (bigs inside 16 ft: post up) / Spin | Small button: swipe down / up | U / I | Y / right bumper |
 | Call a pick | Pick (with the ball, over half court) | O | Left bumper |
+| Takeover (when the meter is full) | Tap the Takeover meter over the buttons | T | Right trigger or a stick click |
 | Pause | ⏸ | P or Esc | Start |
 
 On defense, lift your thumb and your player stays in front of the man you guard on their own.

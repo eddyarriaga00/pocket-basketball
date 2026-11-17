@@ -361,3 +361,13 @@ input[type=color]{height:44px;padding:4px}
 .roster .kick+.ros{border-top:0}
 .roster .kick{margin:12px 0 2px}
 .field label small{text-transform:none;letter-spacing:0;font-weight:500;margin-left:4px}
+/* Takeover: the meter over the buttons; full, it lights up white (tap it); on, it drains */
+#tko{position:absolute;right:24px;bottom:calc(204px + var(--sb));width:92px;height:28px;border-radius:14px;pointer-events:auto;overflow:hidden;
+  background:rgba(14,14,16,.86);border:1.5px solid rgba(255,255,255,.28);color:#bfbfc6;font:800 10.5px var(--display);letter-spacing:.1em;text-transform:uppercase;touch-action:none}
+#tko i{position:absolute;left:0;top:0;bottom:0;width:calc(var(--f,0) * 100%);background:rgba(255,255,255,.24);transition:width .3s}
+#tko b{position:relative}
+#tko.ready{background:#fff;border-color:#fff;color:#000;animation:tkop .9s infinite}
+#tko.ready i{display:none}
+#tko.on{background:#fff;border-color:#fff;color:#000}#tko.on i{background:rgba(0,0,0,.2);transition:none}
+@keyframes tkop{50%{box-shadow:0 0 0 5px rgba(255,255,255,.3);transform:scale(1.06)}}
+#game.bigbtn #tko{bottom:calc(232px + var(--sb))}#game.lefty #tko{right:auto;left:24px}
