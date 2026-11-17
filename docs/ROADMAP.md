@@ -53,9 +53,9 @@ The two node tools need Playwright (`npm i -g playwright`).
       team, rises late in close games, hushes at the line and chants on defense; muffled on pause; Sound and Menu
       music switches in Settings
 
-- [x] Balance against the league (2026-11-17, 4 games): 113.5 pts, 86.6 FGA at 47.2%, 40 threes at 36.1%, 20.8 FTA
-      at 83%, 10 TOV, 9.6 STL, 2.5 BLK, 41 REB, 31 AST (real: 114, 89 at 47.5%, 35 at 36%, 22, 14, 8, 5, 44, 27).
-      Help defense, closeouts and switches on screens (2026-11-17). `tools/balance.js` prints make rates by shot type.
+- [x] Balance against the league (2026-11-17, 4 games): 115.9 pts, 89.6 FGA at 47.3%, 35.1 threes at 33.8%, 23.9 FTA
+      at 81%, 9 TOV, 9 STL, 3.4 BLK, 40 REB, 32 AST, 2 alley-oops (real: 114, 89 at 47.5%, 35 at 36%, 22, 14, 8, 5,
+      44, 27). Help defense, closeouts and switches on screens. `tools/balance.js` prints make rates by shot type.
 - [ ] Turnovers, blocks and fouls are still a little low; a few too many threes
 - [x] The pick-and-roll: the big screens the handler's man, who gets caught; the big rolls (2026-11-17)
 - [x] Team fouls and the bonus; contact fouls on drives; floaters (2026-11-17)
@@ -65,7 +65,9 @@ The two node tools need Playwright (`npm i -g playwright`).
       hair; dribble, jumper, follow-through, contest, reach and defensive arms set in code; the ball in the real hand
 - [ ] Faces and hair styles (Quaternius Universal Base Characters, CC0), jersey trim, shorts that sway
 - [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
-- [ ] Euro step and floater on drives; dunk variety
+- [x] Alley-oops to cutters (yours with Cut or Call), post-ups and hook shots for bigs, floaters (2026-11-17)
+- [x] Stamina: sprinting drains it, empty legs are slow and short (2026-11-17)
+- [ ] Euro step; dunk variety
 - [x] Vibration on releases, makes, steals and blocks (Android) (2026-11-17)
 - [x] Replays of dunks, your and-ones and shots at the buzzer (2026-11-17)
 - [ ] Out-of-bounds inbound plays (a man takes it out on the sideline or baseline)

@@ -269,3 +269,6 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 .slot{display:flex;flex-direction:column;gap:10px}.slot b{font-family:var(--display);font-size:16px}.slot span{display:block;font-size:12.5px;color:var(--mute)}
 .slot.cur{border-color:var(--acc)}.row3{display:flex;gap:8px}.row3>*{flex:1;margin:0}
 .imp{display:block;text-align:center;cursor:pointer}
+#energy{width:46px;height:8px;border-radius:4px;background:rgba(8,11,18,.8);border:1px solid rgba(255,255,255,.2);overflow:hidden}
+#energy i{display:block;height:100%;background:#3ddc84;transition:width .3s}
+#energy.low i{background:#ff5a6b}
