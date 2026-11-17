@@ -64,6 +64,7 @@ The two node tools need Playwright (`npm i -g playwright`).
       clips blended by speed; jersey, shorts, socks and shoes painted on by body region in team colors; numbers and
       hair; dribble, jumper, follow-through, contest, reach and defensive arms set in code; the ball in the real hand
 - [x] Faces, hair styles and colors, headbands, arm sleeves, shoe colors: your Look card, and variety across the league (2026-11-17)
+- [x] Endorsements: shoe companies call as your following grows, with yearly money and a signature colorway (2026-11-17)
 - [ ] Jersey trim, shorts that sway
 - [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
 - [x] Alley-oops to cutters (yours with Cut or Call), post-ups and hook shots for bigs, floaters (2026-11-17)

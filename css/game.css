@@ -135,7 +135,7 @@ input[type=range]{padding:0;height:30px;background:none;border:0;accent-color:va
 .logo .ball::before,.logo .ball::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid #2a1206}
 .logo .ball::before{inset:-2px 58px;border-radius:0;border-width:0 3px}
 .logo .ball::after{inset:58px -2px;border-radius:0;border-width:3px 0}
-.logo h1{font-size:46px;line-height:.92;font-weight:900;font-stretch:118%;letter-spacing:-.01em;text-transform:uppercase}
+.logo h1{font-size:clamp(30px,10.4vw,46px);line-height:.92;font-weight:900;font-stretch:118%;letter-spacing:-.01em;text-transform:uppercase}
 .logo p{color:var(--mute);margin:12px 0 0}
 .tb{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;padding:0 4px;border-radius:6px;font-style:normal;
   font-family:var(--display);font-weight:900;font-size:11px;letter-spacing:.03em;vertical-align:middle;box-sizing:border-box}
@@ -275,3 +275,5 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 .trow{display:flex;align-items:center;gap:10px;width:100%;padding:8px 0;border-top:1px solid var(--line);text-align:left;font-size:14px}
 .trow:first-of-type{border-top:0}
 input[type=color]{height:44px;padding:4px}
+.endorse .ghost{display:flex;align-items:center;gap:10px;justify-content:center;margin:8px 0 0;padding:11px;font-size:14px}
+.sw{display:inline-block;width:18px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.3)}

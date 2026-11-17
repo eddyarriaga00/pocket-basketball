@@ -337,6 +337,7 @@
     C.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false }));
     C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
     if (C.contract) C.earnings = (C.earnings || 0) + C.contract.salary;
+    if (C.endorse && C.endorse.pay) C.earnings = (C.earnings || 0) + C.endorse.pay;
     C.ls = {}; C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 };
     C.startOvr = C.me.ovr;
     if (C.rival) C.rival.season = zero();
@@ -468,6 +469,15 @@
         <p>${C.po && C.po.champ ? `The ${esc(tname(PB.team(C.po.champ)))} are champions.` : `Your season is over. The playoffs go on without you.`}</p>
         <button class="big" id="simpo">${C.po && C.po.champ ? 'Go to awards night' : 'Sim the rest of the playoffs'}</button></div>`;
       }
+      if (C.endorse && C.endorse.offer !== undefined && C.endorse.offer >= C.endorse.tier) {
+        const BR = [['Apex', '#e63946'], ['Stride', '#2b6cff'], ['Vanta', '#111111'], ['Hoopla', '#ffd23f']];
+        const i = C.endorse.offer, amt = [0.4, 1.2, 4, 10][i];
+        C.endorse.brands = C.endorse.brands || BR.slice().sort(() => PB.rand() - 0.5).slice(0, 2);
+        card = `<div class="next endorse"><p class="kick">Endorsement</p><h3>${fmtFans(C.fans)} followers and counting</h3>
+          <p>Two shoe companies want you in their sneakers: ${M(amt)} a year, and a signature colorway.</p>
+          ${C.endorse.brands.map((b, j) => `<button class="ghost" data-brand="${j}"><i class="sw" style="background:${b[1]}"></i>Sign with ${b[0]}</button>`).join('')}
+          <button class="ghost sm" id="nobrand">Not now</button></div>` + card;
+      }
       if (C.coachTalk) {
         const s5 = C.games.filter(x => x.done).slice(-5), avgG = s5.reduce((a, x) => a + (x.res.gscore || 6), 0) / Math.max(1, s5.length);
         const r = role(), tr = C.trust;
@@ -505,7 +515,7 @@
         ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
         <div class="card look"><h3>Look</h3>${lookEditor(me)}</div>
         <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
-        <div class="card"><h3>Business</h3><p class="fine">${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
+        <div class="card"><h3>Business</h3><p class="fine">${C.endorse && C.endorse.brand ? `Shoe deal: ${C.endorse.brand}, ${M(C.endorse.pay)} a year. ` : ''}${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
         ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>`;
     } else if (tab === 'league') {
       const conf = c => confRank(c).map((id, i) => { const x = PB.team(id), st = C.standings[id];
@@ -533,6 +543,15 @@
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
+    scr().querySelectorAll('[data-brand]').forEach(b => b.onclick = () => {
+      const br = C.endorse.brands[+b.dataset.brand], i = C.endorse.offer, amt = [0.4, 1.2, 4, 10][i];
+      C.endorse = { tier: i + 1, brand: br[0], color: br[1], pay: amt };
+      me.look = me.look || {}; me.look.shoe = br[1]; me.look.shoePick = '';
+      C.news.unshift(`${me.last} signs a shoe deal with ${br[0]}: ${M(amt)} a year`);
+      C.feed.unshift({ who: '@' + br[0].toLowerCase(), text: `Welcome to the family, ${PB.full(me)}. Your colorway drops next week.` });
+      save(); hub();
+    });
+    if ($('#nobrand')) $('#nobrand').onclick = () => { C.endorse.tier = (C.endorse.offer || 0) + 1; delete C.endorse.offer; delete C.endorse.brands; save(); hub(); };
     scr().querySelectorAll('[data-look] button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.look, v = b.dataset.v || null, tm = PB.team(C.team);
       me.look[k + 'Pick'] = v || '';
@@ -724,6 +743,10 @@
     C.news.unshift(hl);
     C.news = C.news.slice(0, 30);
     feedAfter(g, res);
+    /* endorsements: past a following, a shoe company calls */
+    const tiers = [[25e3, 0.4], [1e5, 1.2], [5e5, 4], [2e6, 10]];
+    C.endorse = C.endorse || { tier: 0 };
+    for (let i = C.endorse.tier; i < tiers.length; i++) if (C.fans >= tiers[i][0]) { C.endorse.offer = i; break; }
     /* every fifth game the coach has a word: where you stand and what he wants */
     if (!g.po && (C.gi + 1) % 5 === 0) C.coachTalk = true;
     if (!g.po) {
