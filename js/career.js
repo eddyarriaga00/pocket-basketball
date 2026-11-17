@@ -1072,11 +1072,14 @@
     C.me.sp += got.length * 3;
     C.lastGot = got; C.phase = 'offseason'; save();   // awards are handed out once, even if the page is reloaded
     const line = x => `${esc(x.name)} <small>${PB.team(x.team).ab} · ${x.ppg.toFixed(1)} / ${x.rpg.toFixed(1)} / ${x.apg.toFixed(1)}</small>`;
-    show(`<div class="page post awards"><p class="kick">Awards night · Season ${C.year}</p>
+    const in3d = got.length && !PB.noGL && PB.R.modelReady && PB.R.modelReady();
+    show(`<div class="page post awards ${in3d ? 'draft over3d' : ''}"><p class="kick">Awards night · Season ${C.year}</p>
+      ${in3d ? `<h2>${esc(got[0])}</h2><div class="spacer"></div>` : ''}
       ${aw.map(([t, w]) => `<div class="card aw ${w.me ? 'mine' : ''}"><span>${t}</span><b>${line(w)}</b></div>`).join('')}
       <div class="card"><h3>Your honors</h3>${got.length ? got.map(a => `<p class="news">🏆 ${esc(a)}</p>`).join('') : '<p class="mute">None this year. Next year.</p>'}
       ${team ? '' : `<p class="fine">You ranked ${ordinal(rank + 1)} in the league by the voters' formula; the top fifteen make an All-League team.</p>`}</div>
       <button class="big" id="go">Season review</button></div>`);
+    if (in3d) { scr().classList.add('over3d'); PB.R.showcase(C.me, PB.team(C.team)); }
     $('#go').onclick = () => seasonEnd(got);
   }
   function seasonEnd(got) {
@@ -1190,7 +1193,14 @@
       C.contract = { years: o.yrs, salary: o.sal, kind: moved ? 'Free-agent deal' : 'New deal' };
       C.news.unshift(moved ? `${C.me.last} signs with the ${tname(PB.team(o.id))}: ${o.yrs} years, ${M(o.sal * o.yrs)}` : `${C.me.last} re-signs with the ${PB.team(o.id).name}: ${o.yrs} years, ${M(o.sal * o.yrs)}`);
       if (moved) { moveTo(o.id); C.trust = 45; }
-      save(); next();
+      save();
+      if (moved && !PB.noGL && PB.R.modelReady && PB.R.modelReady()) {
+        const t = PB.team(o.id);
+        show(`<div class="draft over3d" style="--c1:${t.c1};--c2:${t.c2}"><p class="kick">Free agency</p><div class="podium"><p>Welcome to ${esc(t.city)}</p><h1>${esc(PB.full(C.me))}</h1>
+          <p class="mute">${o.yrs} year${o.yrs > 1 ? 's' : ''} · ${M(o.sal * o.yrs)} with the ${esc(t.name)}</p></div><div class="spacer"></div><button class="big" id="go">Report to camp</button></div>`);
+        scr().classList.add('over3d'); PB.R.showcase(C.me, t);
+        $('#go').onclick = () => { PB.R.showcase(null); next(); };
+      } else next();
     });
   }
   function requestTrade() {
