@@ -1994,7 +1994,7 @@
       /* the home side in its colors (now and then its black City edition), the visitors in theirs, or in white when the
          two would look alike */
       const hi = G.home, homeT = o.teams[hi], awayT = o.teams[1 - hi];
-      const kh = PB.kit ? PB.kit(homeT, o.homeKit || (!o.drill && rand() < 0.15 ? 'city' : 'icon')) : { c1: homeT.c1, c2: homeT.c2, name: homeT.name };
+      const kh = PB.kit ? PB.kit(homeT, o.homeKit || (o.drill ? 'icon' : (r => r < 0.15 ? 'city' : r < 0.27 ? 'statement' : 'icon')(rand()))) : { c1: homeT.c1, c2: homeT.c2, name: homeT.name };
       let ka = PB.kit ? PB.kit(awayT, 'icon') : { c1: awayT.c1, c2: awayT.c2, name: awayT.name };
       if (cd(kh.c1, ka.c1) < 120) ka = PB.kit ? PB.kit(awayT, 'assoc') : { c1: '#f2f2f2', c2: awayT.c1, name: awayT.name };
       const k0 = hi === 0 ? kh : ka, k1 = hi === 0 ? ka : kh;

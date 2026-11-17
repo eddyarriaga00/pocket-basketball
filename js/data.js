@@ -249,6 +249,11 @@
     let h = 0; for (const ch of String(t.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     const pat = [1, 2, 3, 4, 5, 6, 1, 3, 5, 2][h % 10], light = c => { const n = parseInt(String(c).slice(1), 16); return ((n >> 16) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11) > 200; };
     if (which === 'assoc') return { c1: '#f2f2f2', c2: light(t.c1) ? t.c2 : t.c1, alt: light(t.c1) ? t.c2 : t.c1, pat, name: t.name, kind: 'assoc' };
+    if (which === 'statement') {
+      const dk = c => { const n = parseInt(String(c).slice(1), 16), f = 0.55, h2 = x => Math.round(x * f).toString(16).padStart(2, '0'); return '#' + h2(n >> 16) + h2((n >> 8) & 255) + h2(n & 255); };
+      const base = light(t.c2) ? dk(t.c1) : t.c2;
+      return { c1: base, c2: light(t.c2) ? t.c2 : t.c1, alt: t.c1, pat: [3, 1, 5, 2][h % 4], name: t.name, kind: 'statement' };
+    }
     if (which === 'city') return { c1: '#141416', c2: t.c1 === '#000000' || !light(t.c2) && false ? t.c2 : t.c1, alt: t.c1, pat: [1, 6, 2, 5][h % 4], name: t.city.toUpperCase(), kind: 'city' };
     return { c1: t.c1, c2: t.c2, alt: t.c2, pat, name: t.name, kind: 'icon' };
   };

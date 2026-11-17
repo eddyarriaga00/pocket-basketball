@@ -870,7 +870,7 @@
           <button data-k="${k}" ${can ? '' : 'disabled'}>+1<small>${me.r[k] >= A.cap[k] ? 'max' : c + ' SP'}</small></button></div>`; }).join('')}
         <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p>
         ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
-        <div class="card locker"><h3>Locker room <small>what your team wears at home</small></h3><div class="kits">${['icon', 'assoc', 'city'].map(k => `<button class="kitpick ${(C.homeKit || 'icon') === k ? 'on' : ''}" data-k="${k}"><img alt="" data-kit="${k}"><span>${{ icon: 'Icon', assoc: 'Association', city: 'City' }[k]}</span></button>`).join('')}</div></div>
+        <div class="card locker"><h3>Locker room <small>what your team wears at home</small></h3><div class="kits">${['icon', 'assoc', 'statement', 'city'].map(k => `<button class="kitpick ${(C.homeKit || 'icon') === k ? 'on' : ''}" data-k="${k}"><img alt="" data-kit="${k}"><span>${{ icon: 'Icon', assoc: 'Assoc.', statement: 'Statement', city: 'City' }[k]}</span></button>`).join('')}</div></div>
         <div class="card look"><h3>Look</h3>${lookEditor(me)}</div>
         <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
         <div class="card"><h3>Business</h3><p class="fine">${C.endorse && C.endorse.brand ? `Shoe deal: ${C.endorse.brand}, ${M(C.endorse.pay)} a year. ` : ''}${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
@@ -1051,11 +1051,13 @@
     shoe: [[null, 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#e63946', 'Red'], ['#ffd23f', 'Gold']],
     beard: [[null, 'None'], ['stubble', 'Stubble'], ['goatee', 'Goatee'], ['full', 'Beard']],
     jumper: [[null, 'Standard'], ['quick', 'Quick'], ['high', 'High']],
+    wrist: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
+    legs: [[null, 'None'], ['one', 'Leg sleeve'], ['both', 'Both legs'], ['pads', 'Knee pads']],
   };
   function lookEditor(me) {
     me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
     const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(me.look[k + 'Pick'] ?? me.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
-    return row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('sleeve', 'Arm sleeve') + row('shoe', 'Shoes') + '<p class="fine">Your look on the floor from your next game.</p>';
+    return row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('sleeve', 'Arm sleeve') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('shoe', 'Shoes') + '<p class="fine">Your look on the floor from your next game.</p>';
   }
   function badgeList() {
     return PB.BADGES.map(b => {

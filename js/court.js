@@ -296,7 +296,7 @@
           const a = idx[t], b = idx[t + 1], c = idx[t + 2], ra = reg[a], rb = reg[b], rc = reg[c];
           const hasSkin = ra === 0 || rb === 0 || rc === 0;
           if (!hasSkin) continue;
-          for (const v of [a, b, c]) if (reg[v] === 1 || reg[v] === 2) trim[v] = 1;
+          for (const v of [a, b, c]) if (reg[v] === 1) trim[v] = 1;   // the jersey's collar and armholes (the drawn shorts have their own hem)
         }
         for (let i = 0; i < n; i++) if (trim[i]) reg[i] = 5;
       }
@@ -402,10 +402,11 @@
     if (bot && kPat > 2.5 && kPat < 3.5 && vK.y < 0.918) rc = cAlt;   // the chest band's partner: a hem band on the shorts
   }
   if (vRegion > 2.5 && vRegion < 3.5 && vK.y < 0.512) rc = vec3(0.96);                    // the sole
+  else if (vRegion > 2.5 && vRegion < 3.5 && vK.y < 0.522) rc = cTrim;                  // a midsole in the team's second color
   if (vRegion > 3.5 && vRegion < 4.5 && vK.y > 0.596 && vK.y < 0.607) rc = cAlt;           // a stripe at the top of the sock
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit4';
+    m.customProgramCacheKey = () => 'pb-kit5';
     return m;
   }
   const HEAD = 1.13;
@@ -493,7 +494,8 @@
     if (sk <= 1 && (hair === 'afro' || hair === 'twists')) hair = 'short';
     if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
     return { hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
-      beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7] };
+      beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7],
+      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10] };
   }
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
@@ -581,6 +583,17 @@
       g3.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), hand.position.clone().normalize());
       fore.add(g3);
     }
+    /* wristbands on both wrists, leg sleeves from the knee down, or knee pads */
+    const limb = (b0, b1, r0, r1, from, to, color) => {
+      const a = bones[bk(b0)], e = bones[bk(b1)]; if (!a || !e) return;
+      const len = e.position.length(), L = len * (to - from);
+      const m = new T.Mesh(new T.CylinderGeometry(r1, r0, L, 12), new T.MeshLambertMaterial({ color: new T.Color(color) }));
+      const g = new T.Group(); g.add(m); m.position.y = len * (from + to) / 2;
+      g.quaternion.setFromUnitVectors(V3(0, 1, 0), e.position.clone().normalize()); a.add(g);
+    };
+    if (look.wrist) for (const sd of ['L', 'R']) limb(`DEF-forearm.${sd}`, `DEF-hand.${sd}`, H * 0.032, H * 0.031, 0.8, 0.97, look.wrist);
+    if (look.legs === 'one' || look.legs === 'both') for (const sd of look.legs === 'one' ? ['L'] : ['L', 'R']) limb(`DEF-shin.${sd}`, `DEF-foot.${sd}`, H * 0.036, H * 0.028, 0.02, 0.72, '#111111');
+    if (look.legs === 'pads') for (const sd of ['L', 'R']) limb(`DEF-shin.${sd}`, `DEF-foot.${sd}`, H * 0.04, H * 0.037, -0.04, 0.16, '#111111');
     const shadow = new T.Mesh(new T.CircleGeometry(1.1, 16), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; root.add(shadow);
     const mixer = new T.AnimationMixer(body), act = {};

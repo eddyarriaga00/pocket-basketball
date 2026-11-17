@@ -11,7 +11,9 @@ What changed, newest first. The full list is the git log; the order of work is [
   and black City uniforms, baggy shorts with side stripes, names on the back, numbers edged to read on any color.
 - Takeover: good plays fill a meter over the buttons; full, tap it for 25 seconds of hot hands, in a column of white
   light. Two misses in a row cool you off.
-- Locker room (Player tab): pick what your team wears at home.
+- Locker room (Player tab): pick what your team wears at home: Icon, Association, Statement (the second color) or City.
+- Gear on the Look card: wristbands, a leg sleeve or both, knee pads; other players wear some too. Shoes get a midsole in
+  the team's second color.
 - Team tab: your roster with headshots, numbers, heights, ages and hometowns.
 - Names that fit together: every player comes from somewhere (about three in four from the U.S., the rest from
   Nigeria, Senegal, Serbia, Lithuania, France, Spain and Latin America, Brazil, Germany and the Nordics, Greece and
