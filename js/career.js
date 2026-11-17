@@ -1425,7 +1425,7 @@
   function potg(res) {
     if (!res.box || !res.box.length) return '';
     const w = res.score[0] >= res.score[1] ? 0 : 1, v = b => b.st.pts + b.st.reb * 0.8 + b.st.ast + (b.st.stl + b.st.blk) * 1.5 - (b.st.fga - b.st.fgm) * 0.4;
-    const b = res.box.filter(x => x.team === w).sort((a, c) => v(c) - v(a))[0]; if (!b) return '';
+    const b = res.box.filter(x => x.team === w).sort((a, c) => v(c) - v(a))[0]; if (!b || v(b) < 6) return '';   // nobody had a game: no award
     return `<div class="card earn"><b>Player of the game${b.user ? ': you' : ''}</b><span>${esc(PB.full(b.d))} · ${b.st.pts} pts, ${b.st.reb} reb, ${b.st.ast} ast · ${b.st.fgm}-${b.st.fga} FG</span></div>`;
   }
   function boxScore(res) {
