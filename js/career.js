@@ -605,6 +605,8 @@
         <div class="vs"><div>${badge(t)}<b>${t.name}</b><span>${st.w}-${st.l} · ${strength(C.team)}</span></div><em>vs</em>
         <div>${badge(o)}<b>${o.name}</b><span>${os.w}-${os.l} · ${strength(o.id)}</span></div></div>
         ${rivalGame ? `<p class="rivaltag">Rival game: ${esc(PB.full(rivalP()))} is on the other side</p>` : `<p class="fine">Their ${me.pos}: ${esc(PB.full(them))} (${them.ovr}). You guard him.</p>`}
+        ${(() => { const out = (id, who) => C.rosters[id].filter(p => p.out > 0 && p.ovr >= 72).sort((a, b) => b.ovr - a.ovr).slice(0, 2).map(p => `${esc(p.last)} (${p.ovr})`).join(', '); const a = out(nx.opp), b = out(C.team);
+          return a || b ? `<p class="fine">Injured: ${[a && `${esc(PB.team(nx.opp).name)} without ${a}`, b && `you are without ${b}`].filter(Boolean).join(' · ')}</p>` : ''; })()}
         ${(C.goals = C.goals || makeGoals()) && `<div class="goals"><b>Your goals</b>${C.goals.map(g => `<span>${esc(g.text)}</span>`).join('')}<em>+2 skill points each</em></div>`}
         <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button>
         ${C.phase === 'regular' ? '<div class="row2"><button class="ghost sm" id="sim5">Sim 5 games</button><button class="ghost sm" id="simall">Sim to the playoffs</button></div>' : ''}
