@@ -559,6 +559,10 @@
       if (u && u.slot === 0 && u.team === p.team && u !== p && p.hold > 0.6 && nearestDef(u).d > 4) { passTo(p, u); return; }
       return;
     }
+    /* the last shot: shot clock off, the quarter's clock running down: hold it, then go with about six seconds left */
+    if (G.clock < G.shotClock && G.clock > 6.5 && !(d < 5 && nd > 4)) { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 28; return; }
+    if (G.clock < G.shotClock && G.clock <= 6.5 && G.clock > 1.2 && p.drive <= 0 && lane(p) > 3) p.drive = 1.4;
+    if (G.clock < 1.6) { startShot(p); return; }
     if (G.shotClock < 2.5 || (d < 5.5 && p.hold > 0.15)) { startShot(p); return; }
     const need = (p.team === 1 ? G.diff.oppShootEV : 0.98) - (three ? 0.01 : 0);
     if (p.hold > 0.5 && ev > need && nd > 4.2 && rand() < 0.62) { startShot(p); return; }
@@ -680,6 +684,12 @@
       const gap = clamp(3.2 + (L > 28 ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400);
       p.tx = man.x + dx / L * gap; p.tz = man.z + dz / L * gap;
       p.pose = 'guard';
+      /* down by a few with the clock running out: foul to stop it */
+      const behind = G.score[1 - p.team] - G.score[p.team];
+      if (!p.isUser && G.q >= 4 && G.clock < 40 && G.clock > 2 && behind >= 3 && behind <= 9 && hyp(man.x - p.x, man.z - p.z) < 3.5 && G.phase === 'live' && !man.shoot && rand() < dt * 2) {
+        G.tf[p.team] = Math.max(G.tf[p.team], 5);   // late in a quarter every team is in the penalty
+        toast('Foul to stop the clock', ''); contactFoul(p, man); return;
+      }
       if (!p.isUser && man.drive > 0 && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * 1.05 * (1.3 - p.r.perD / 140)) { contactFoul(p, man); return; }
       /* a driver who runs into a defender set in his path: the charge */
       if (!p.isUser && man.drive > 0 && p.stun <= 0 && hyp(p.vx, p.vz) < 3 && hyp(man.x - p.x, man.z - p.z) < 2.4 && G.phase === 'live' && rand() < dt * 0.35) {

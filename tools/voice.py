@@ -178,7 +178,7 @@ def pack(calls):
                 wav = os.path.join(CLIPS, cid + '.wav')
                 if not os.path.exists(wav):
                     continue
-                subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aac', '-b', '48000', '-c', '1', wav, tmp], check=True)
+                subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aac', '-b', '32000', '-c', '1', wav, tmp], check=True)
                 data = open(tmp, 'rb').read()
                 out.write(data)
                 secs = sf.info(wav).duration
