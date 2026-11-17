@@ -372,6 +372,7 @@
       const bars = PB.ATTRS.map(([k, n]) => `<div class="bar"><span>${n}</span><i><u style="width:${r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${r[k]}</b></div>`).join('');
       show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Create your player</h2>
         <div class="field"><label>Name</label><div class="row2"><input id="fn" maxlength="14" placeholder="First" value="${esc(st.first || '')}"><input id="ln" maxlength="16" placeholder="Last" value="${esc(st.last || '')}"></div></div>
+        <div class="field"><label>Hometown <small>optional</small></label><input id="ht" maxlength="26" placeholder="Houston, TX" value="${esc(st.from || '')}"></div>
         <div class="field"><label>Position</label><div class="seg" id="pos">${PB.POS.map(p => `<button class="${p === st.pos ? 'on' : ''}" data-v="${p}">${p}</button>`).join('')}</div></div>
         <div class="field"><label>Build</label><div class="arch">${archs.map(a => `<button class="${a === st.arch ? 'on' : ''}" data-v="${a}"><b>${a}</b><span>${PB.ARCH[a].tag}</span></button>`).join('')}</div></div>
         <div class="field"><label>Height · ${PB.fmtH(st.ht)}</label><input type="range" id="ht" min="${hr[0]}" max="${hr[1]}" value="${st.ht}"></div>
@@ -379,7 +380,7 @@
         <div class="field"><label>Jersey number</label><input id="num" type="number" min="0" max="99" value="${st.num ?? 1}"></div>
         <div class="card"><h3>Starting ratings <small>overall ${PB.ovr(r, st.pos)} · the tick is how far each can grow</small></h3>${bars}</div>
         <button class="big" id="go">Enter the draft</button></div>`);
-      const keep = () => { st.first = $('#fn').value.trim(); st.last = $('#ln').value.trim(); st.num = PB.clamp(+$('#num').value || 0, 0, 99); };
+      const keep = () => { st.first = $('#fn').value.trim(); st.last = $('#ln').value.trim(); st.from = $('#ht').value.trim(); st.num = PB.clamp(+$('#num').value || 0, 0, 99); };
       $('#bk').onclick = title;
       scr().querySelectorAll('#pos button').forEach(b => b.onclick = () => { keep(); st.pos = b.dataset.v; st.ht = Math.round((PB.HEIGHT[st.pos][0] + PB.HEIGHT[st.pos][1]) / 2); draw(); });
       scr().querySelectorAll('.arch button').forEach(b => b.onclick = () => { keep(); st.arch = b.dataset.v; draw(); });
@@ -414,7 +415,7 @@
     const rosters = {};
     for (const t of PB.TEAMS) { strengths[t.id] = Math.round(PB.rr(70, 82)); rosters[t.id] = PB.makeRoster(strengths[t.id]); }
     const r = startRatings(st);
-    const me = { id: 'me', first: st.first, last: st.last, pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {} };
+    const me = { id: 'me', first: st.first, last: st.last, from: st.from || '', pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {} };
     me.ovr = PB.ovr(r, st.pos);
     /* the draft order: lottery teams (the weakest) pick first */
     const order = PB.TEAMS.slice().sort((a, b) => strengths[a.id] - strengths[b.id] + PB.gauss() * 3).map(t => t.id);
@@ -769,7 +770,7 @@
     const t = PB.team(C.team), me = C.me;
     const s = C.season, gp = s.gp || 1;
     const avg = k => (s[k] / gp).toFixed(1);
-    const tabs = ['home', 'player', 'league', 'log'];
+    const tabs = ['home', 'team', 'player', 'league', 'log'];
     let body = '';
     if (tab === 'home') {
       const nx = nextGame();
@@ -850,6 +851,16 @@
           <p class="fine">Points, rebounds, assists a game this season; the middle is your record head to head.</p></div>
         <div class="card"><h3>Feed</h3>${C.feed.slice(0, 4).map(f => `<div class="fpost"><b>${esc(f.who)}</b><span>${esc(f.text)}</span></div>`).join('') || '<p class="mute">Nothing yet. Play a game.</p>'}</div>
         <div class="card"><h3>News</h3>${C.news.slice(0, 5).map(n => `<p class="news">${esc(n)}</p>`).join('')}</div>`;
+    } else if (tab === 'team') {
+      const st = C.standings[C.team] || { w: 0, l: 0 };
+      const five = role() === 'Starter' ? liveFive() : starters(C.team);
+      const bench = myRoster().concat([me]).filter(p => !five.includes(p)).sort((a, b) => b.ovr - a.ovr);
+      const row = (p, i) => `<div class="ros ${p.me ? 'me' : ''}"><img alt="" data-head="${esc(p.id)}"><b class="no">${p.num}</b>
+        <div><b>${esc(PB.full(p))}${p.me ? ' <small>you</small>' : ''}${p.out > 0 ? ` <small class="out">out ${p.out}</small>` : ''}</b>
+        <span>${i < 5 ? PB.POS[i] : p.pos} · ${PB.fmtH(p.ht)} · ${p.age}${p.from ? ' · ' + esc(p.from) : ''}</span></div><em>${p.ovr}</em></div>`;
+      body = `<div class="card roster"><h3>${esc(t.city)} ${esc(t.name)} <small>${st.w}-${st.l} · team overall ${strength(C.team)}</small></h3>
+        <p class="kick">Starting five</p>${five.map(row).join('')}
+        <p class="kick">Bench</p>${bench.map(p => row(p, 9)).join('')}</div>`;
     } else if (tab === 'player') {
       const A = PB.ARCH[me.arch];
       body = `<div class="card"><h3>${esc(PB.full(me))} <small>${me.pos} · ${me.arch} · age ${me.age} · ${role()}</small></h3>
@@ -881,9 +892,10 @@
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}">
       <div class="hubtop"><div class="me">${portrait() ? `<img class="face" src="${portrait()}" alt="" style="background:${t.c1}">` : badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}${C.phase === 'playoffs' ? ' · Playoffs' : ''}</span></div></div>
       <button class="ic" id="menu" aria-label="Menu">⌂</button></div>
-      <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}">${{ home: 'Home', player: 'Player', league: 'League', log: 'Log' }[x]}${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav>
+      <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}">${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav>
       <div class="hubbody">${body}</div></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
+    fillHeads();
     $('#menu').onclick = title;
     if ($('#play')) $('#play').onclick = playGame;
     if ($('#sim')) $('#sim').onclick = simGame;
@@ -970,6 +982,22 @@
     });
   }
   const kitCache = {};
+  /* roster headshots: drawn a few at a time after the screen is up, then kept for the session */
+  const headCache = {};
+  function fillHeads() {
+    const imgs = [...scr().querySelectorAll('img[data-head]')];
+    if (!imgs.length || PB.noGL || !PB.R.modelReady || !PB.R.modelReady()) return;
+    const who = id => id === 'me' ? C.me : myRoster().find(p => p.id === id);
+    const step = () => {
+      const img = imgs.shift(); if (!img) return;
+      const p = who(img.dataset.head); if (!p) { step(); return; }
+      const key = C.team + p.id + (p.me ? JSON.stringify(p.look || {}) + p.skin + p.num : '');
+      if (!(key in headCache)) headCache[key] = PB.R.portrait(p, PB.team(C.team), 96, { close: true });
+      if (headCache[key]) img.src = headCache[key];
+      setTimeout(step, 0);
+    };
+    step();
+  }
   /* your portrait, kept until your team or your look changes (not saved: it is quick to draw again) */
   let portraitCache = { key: '', url: null };
   function portrait() {
@@ -1016,7 +1044,7 @@
   const LET = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];
   const LOOK = {
-    hair: [['short', 'Short'], ['high', 'High-top'], ['afro', 'Afro'], ['buzz', 'Buzz'], ['bald', 'Bald']],
+    hair: [['short', 'Short'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['buzz', 'Buzz'], ['bald', 'Bald']],
     hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver']],
     band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],

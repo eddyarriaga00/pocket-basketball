@@ -2,6 +2,21 @@
 
 What changed, newest first. The full list is the git log; the order of work is [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 2026-11-17 · the pocket look
+
+- A black-and-white look for every screen: white primary buttons, neutral dark panels, no yellow.
+- Drawn heads, pocket style: round heads with big eyes, ears, a nose and a mouth, and hair made to fit (short, buzz,
+  high-top, afro, and new twists), headbands that sit on the forehead, full beards with sideburns, goatees.
+- Jerseys: a design for every team (side panels, pinstripes, chest bands, fades, yokes, sashes), white Association
+  and black City uniforms, baggy shorts with side stripes, names on the back, numbers edged to read on any color.
+- Locker room (Player tab): pick what your team wears at home.
+- Team tab: your roster with headshots, numbers, heights, ages and hometowns.
+- Names that fit together: every player comes from somewhere (about three in four from the U.S., the rest from
+  Nigeria, Senegal, Serbia, Lithuania, France, Spain and Latin America, Brazil, Germany and the Nordics, Greece and
+  Türkiye, Australia and Canada, Japan), and his name, hometown and look come from the same place. No two players on
+  one roster share a first or last name. Your hometown when you create your player (optional).
+- Name tags under you and the ball handler (Settings › Name tags); your own name in quick games and the daily challenge.
+
 ## 2026-11-17 · the overnight build
 
 **Sound and the booth**

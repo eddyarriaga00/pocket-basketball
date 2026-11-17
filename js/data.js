@@ -69,25 +69,94 @@
   PB.applyTeamEdits();
   PB.team = id => PB.TEAMS.find(t => t.id === id);
 
-  PB.FIRST = ['Marcus', 'Jalen', 'Tyrese', 'Darius', 'Andre', 'Caleb', 'Malik', 'Jordan', 'Isaiah', 'Devin', 'Trey', 'Xavier',
-    'Elijah', 'Cameron', 'Miles', 'Jaylen', 'Kendrick', 'Luka', 'Nikola', 'Mateo', 'Theo', 'Rashad', 'Damon', 'Quentin',
-    'Brandon', 'Tobias', 'Kofi', 'Amari', 'Dominic', 'Zion', 'Omar', 'Felix', 'Victor', 'Gabriel', 'Hassan', 'Jamal',
-    'Keon', 'Lonnie', 'Nate', 'Reggie', 'Shai', 'Tariq', 'Wes', 'Yusuf', 'Aaron', 'Bryce', 'Corey', 'Desmond', 'Emeka',
-    'Grant', 'Ike', 'Javon', 'Kris', 'Lamar', 'Moses', 'Noah', 'Oscar', 'Paolo', 'Rudy', 'Sekou', 'Terrence', 'Vince'];
-  PB.LAST = ['Walker', 'Brooks', 'Hayes', 'Coleman', 'Bennett', 'Okafor', 'Reyes', 'Fontaine', 'Mitchell', 'Ward', 'Price',
-    'Sullivan', 'Grant', 'Holloway', 'Kowalski', 'Adebayo', 'Lindqvist', 'Moreau', 'Vasquez', 'Castillo', 'Pierce', 'Rhodes',
-    'Whitfield', 'Barnes', 'Ellison', 'Ford', 'Gibson', 'Harmon', 'Ivey', 'Jefferson', 'Keller', 'Lowry', 'Maddox', 'Nash',
-    'Osei', 'Petrovic', 'Quinn', 'Rowe', 'Sato', 'Tucker', 'Underwood', 'Vance', 'Whitley', 'Young', 'Zeller', 'Abara',
-    'Booker', 'Crane', 'Dunleavy', 'Easton', 'Farrow', 'Greer', 'Hollins', 'Iwundu', 'Jessup', 'Kerr', 'Larkin', 'Mensah',
-    'Novak', 'Ortega', 'Pruitt', 'Rollins', 'Sabally', 'Thornton', 'Ugwu', 'Valdez', 'Wexler', 'Yates', 'Diallo', 'Mbeki',
-    'Ashby', 'Bellamy', 'Calloway', 'Dorsey', 'Fairley', 'Hargrove', 'Kimbrough', 'Lockhart', 'Merritt', 'Nwosu', 'Oduya',
-    'Pennington', 'Radcliffe', 'Sterling', 'Upshaw', 'Vickers', 'Abernathy', 'Blackwood', 'Cortland', 'Delacroix', 'Emerson',
-    'Fenwick', 'Gaines', 'Hightower', 'Kingsley', 'Lennox', 'Montague', 'Nolan', 'Ogden', 'Prescott', 'Redmond', 'Sinclair',
-    'Talbot', 'Upton', 'Yardley', 'Zamora', 'Adeyemi', 'Baptiste', 'Okonkwo', 'Haddad', 'Lindgren', 'Moreno', 'Saldana',
-    'Takeda', 'Varga', 'Brandt', 'Duquesne', 'Ferreira', 'Galvan', 'Hollis', 'Jarrett', 'Kessler', 'Mabry', 'Pickett'];
-  /* first and last names are drawn apart; these pairs belong to real players, so they are never dealt */
-  PB.REAL = new Set(['Devin Booker', 'Lonnie Walker', 'Emeka Okafor', 'Wes Iwundu', 'Marcus Thornton', 'Trey Young', 'Isaiah Thomas',
-    'Jordan Walker', 'Grant Hill', 'Andre Miller', 'Aaron Gordon', 'Moses Brown', 'Caleb Martin', 'Javon Freeman', 'Keon Ellis']);
+  /* Names: each player comes from somewhere, and his first name, last name, hometown and look come from the same place,
+     so a roster reads like people (no "Nikola Okafor"). The real league is about three quarters American. skin: weights
+     over PB.SKIN's six tones. */
+  PB.ORIGINS = [
+    { id: 'us', w: 70, skin: [1, 1, 1.4, 2, 2.4, 2],
+      first: ['Marcus', 'Jalen', 'Tyrese', 'Darius', 'Andre', 'Caleb', 'Malik', 'Jordan', 'Isaiah', 'Devin', 'Trey', 'Xavier',
+        'Elijah', 'Cameron', 'Miles', 'Jaylen', 'Kendrick', 'Rashad', 'Damon', 'Quentin', 'Brandon', 'Tobias', 'Amari',
+        'Dominic', 'Zion', 'Omar', 'Jamal', 'Keon', 'Lonnie', 'Nate', 'Reggie', 'Tariq', 'Wes', 'Aaron', 'Bryce', 'Corey',
+        'Desmond', 'Grant', 'Javon', 'Kris', 'Lamar', 'Noah', 'Terrence', 'Vince', 'DeShawn', 'Tyler', 'Cody', 'Logan',
+        'Austin', 'Colby', 'Dalton', 'Jaxon', 'Kyrell', 'Montrez', 'Ty', 'Deandre', 'Cedric', 'Jarvis', 'Khalil', 'Darnell',
+        'Treyvon', 'Bryson', 'Ellis', 'Hunter', 'Mason', 'Dante', 'Rodney', 'Kobe', 'Jabari', 'Micah', 'Silas', 'Ronnie'],
+      last: ['Walker', 'Brooks', 'Hayes', 'Coleman', 'Bennett', 'Mitchell', 'Ward', 'Price', 'Holloway', 'Pierce', 'Rhodes',
+        'Whitfield', 'Barnes', 'Ellison', 'Ford', 'Gibson', 'Harmon', 'Jefferson', 'Maddox', 'Quinn', 'Rowe', 'Tucker',
+        'Underwood', 'Vance', 'Whitley', 'Booker', 'Crane', 'Easton', 'Farrow', 'Greer', 'Hollins', 'Jessup', 'Larkin',
+        'Pruitt', 'Rollins', 'Thornton', 'Wexler', 'Yates', 'Calloway', 'Dorsey', 'Fairley', 'Hargrove', 'Kimbrough',
+        'Lockhart', 'Merritt', 'Pennington', 'Redmond', 'Sterling', 'Upshaw', 'Vickers', 'Abernathy', 'Blackwood',
+        'Emerson', 'Gaines', 'Hightower', 'Montague', 'Prescott', 'Hollis', 'Jarrett', 'Mabry', 'Pickett', 'Sullivan',
+        'Kowalski', 'Bellamy', 'Ashby', 'Dunleavy', 'Langston', 'Mayfield', 'Odom', 'Pettaway', 'Ransom', 'Shelton',
+        'Toliver', 'Wardell', 'Battle', 'Councill', 'Dukes', 'Frierson', 'Goodwin', 'Hairston', 'Lattimore', 'McCray'],
+      from: ['Houston, TX', 'Atlanta, GA', 'Chicago, IL', 'Baltimore, MD', 'Philadelphia, PA', 'Queens, NY', 'Brooklyn, NY',
+        'Oakland, CA', 'Compton, CA', 'Seattle, WA', 'Indianapolis, IN', 'Memphis, TN', 'Dallas, TX', 'Detroit, MI',
+        'Flint, MI', 'Raleigh, NC', 'Charlotte, NC', 'New Orleans, LA', 'Akron, OH', 'Louisville, KY', 'Las Vegas, NV',
+        'Phoenix, AZ', 'Milwaukee, WI', 'St. Louis, MO', 'Newark, NJ', 'Richmond, VA', 'Birmingham, AL', 'Jackson, MS',
+        'Omaha, NE', 'Salt Lake City, UT', 'Portland, OR', 'Minneapolis, MN', 'Kansas City, MO', 'Little Rock, AR', 'Miami, FL'] },
+    { id: 'ng', w: 4, skin: [0, 0, 0, 0.3, 1.5, 3],
+      first: ['Chidi', 'Obinna', 'Tobenna', 'Ikenna', 'Uche', 'Femi', 'Tunde', 'Kelechi', 'Chinedu', 'Ifeanyi', 'Olu', 'Emeka', 'Daniel', 'Victor'],
+      last: ['Okafor', 'Nwosu', 'Ugwu', 'Okonkwo', 'Adeyemi', 'Oduya', 'Eze', 'Nnamdi', 'Okeke', 'Uzoma', 'Afolabi', 'Abara', 'Onuoha', 'Achebe'],
+      from: ['Lagos, Nigeria', 'Abuja, Nigeria', 'Enugu, Nigeria', 'Ibadan, Nigeria', 'Port Harcourt, Nigeria'] },
+    { id: 'sn', w: 3, skin: [0, 0, 0, 0, 1, 3],
+      first: ['Sekou', 'Mamadou', 'Cheikh', 'Ousmane', 'Ibrahima', 'Moussa', 'Abdoulaye', 'Pape', 'Babacar', 'Lamine'],
+      last: ['Ndiaye', 'Sow', 'Fall', 'Diop', 'Gueye', 'Faye', 'Kane', 'Seck', 'Mbaye', 'Cisse', 'Diallo'],
+      from: ['Dakar, Senegal', 'Thiès, Senegal', 'Bamako, Mali', 'Conakry, Guinea'] },
+    { id: 'rs', w: 4, skin: [3, 1, 0, 0, 0, 0],
+      first: ['Nikola', 'Marko', 'Stefan', 'Vasilije', 'Dusan', 'Filip', 'Aleksa', 'Nemanja', 'Uros', 'Mihajlo', 'Vuk', 'Lazar'],
+      last: ['Markovic', 'Radovic', 'Kostic', 'Ilic', 'Pavlovic', 'Savic', 'Stojanovic', 'Vukovic', 'Lazic', 'Tomic', 'Petrovic', 'Novak', 'Babic'],
+      from: ['Belgrade, Serbia', 'Novi Sad, Serbia', 'Niš, Serbia', 'Zagreb, Croatia', 'Split, Croatia', 'Podgorica, Montenegro', 'Ljubljana, Slovenia'] },
+    { id: 'lt', w: 2, skin: [3, 1, 0, 0, 0, 0],
+      first: ['Mindaugas', 'Tadas', 'Rokas', 'Arnas', 'Deividas', 'Lukas', 'Martynas', 'Kristaps', 'Rihards'],
+      last: ['Kazlauskas', 'Petrauskas', 'Jankauskas', 'Butkus', 'Stankevicius', 'Navickas', 'Paulauskas', 'Urbonas', 'Ozolins', 'Berzins'],
+      from: ['Kaunas, Lithuania', 'Vilnius, Lithuania', 'Klaipėda, Lithuania', 'Riga, Latvia'] },
+    { id: 'fr', w: 4, skin: [1.5, 1, 0.6, 0.6, 1, 1.4],
+      first: ['Theo', 'Mathis', 'Hugo', 'Killian', 'Bastien', 'Yann', 'Nicolas', 'Axel', 'Ludovic', 'Mathieu', 'Elie', 'Noa'],
+      last: ['Moreau', 'Fontaine', 'Delacroix', 'Duquesne', 'Lefebvre', 'Girard', 'Rousseau', 'Mercier', 'Lambert', 'Chevalier', 'Bonnet', 'Baptiste', 'Fabre'],
+      from: ['Paris, France', 'Lyon, France', 'Le Mans, France', 'Villeurbanne, France', 'Pau, France', 'Montreal, Canada', 'Brussels, Belgium'] },
+    { id: 'es', w: 4, skin: [0.6, 1.4, 1.6, 0.8, 0.2, 0],
+      first: ['Mateo', 'Diego', 'Santiago', 'Javier', 'Pablo', 'Alejandro', 'Andrés', 'Carlos', 'Tomás', 'Joaquín', 'Facundo', 'Iker', 'Gael'],
+      last: ['Reyes', 'Vasquez', 'Castillo', 'Ortega', 'Valdez', 'Zamora', 'Moreno', 'Saldaña', 'Galván', 'Navarro', 'Herrera', 'Cabrera', 'Fuentes', 'Medina'],
+      from: ['Madrid, Spain', 'Barcelona, Spain', 'Málaga, Spain', 'Buenos Aires, Argentina', 'Bahía Blanca, Argentina', 'San Juan, Puerto Rico', 'Santo Domingo, D.R.', 'Monterrey, Mexico'] },
+    { id: 'br', w: 2, skin: [0.4, 1, 1.4, 1.2, 1, 0.6],
+      first: ['Thiago', 'Bruno', 'Rafael', 'Vitor', 'Gui', 'Caio', 'Lucas', 'Matheus'],
+      last: ['Ferreira', 'Souza', 'Teixeira', 'Barros', 'Moraes', 'Carvalho', 'Ribeiro', 'Azevedo'],
+      from: ['São Paulo, Brazil', 'Rio de Janeiro, Brazil', 'Brasília, Brazil', 'Fortaleza, Brazil'] },
+    { id: 'de', w: 3, skin: [3, 1, 0.2, 0, 0, 0],
+      first: ['Niklas', 'Lukas', 'Felix', 'Lars', 'Erik', 'Anton', 'Henrik', 'Jonas', 'Mikkel', 'Oskar', 'Tobias'],
+      last: ['Brandt', 'Keller', 'Kessler', 'Lindqvist', 'Lindgren', 'Hartmann', 'Becker', 'Vogel', 'Sorensen', 'Halvorsen', 'Brenner', 'Nyberg'],
+      from: ['Berlin, Germany', 'Munich, Germany', 'Bamberg, Germany', 'Stockholm, Sweden', 'Oslo, Norway', 'Copenhagen, Denmark', 'Helsinki, Finland'] },
+    { id: 'gr', w: 2, skin: [1.4, 1.6, 0.6, 0, 0, 0],
+      first: ['Kostas', 'Nikos', 'Dimitris', 'Emre', 'Kerem', 'Cedi', 'Yannis', 'Baris'],
+      last: ['Georgiou', 'Alexiou', 'Kaya', 'Yilmaz', 'Demir', 'Aydin', 'Ozturk', 'Kallis', 'Stavrou'],
+      from: ['Athens, Greece', 'Thessaloniki, Greece', 'Istanbul, Türkiye', 'Ankara, Türkiye', 'Izmir, Türkiye'] },
+    { id: 'au', w: 4, skin: [2.4, 1, 0.3, 0.3, 0.4, 0.4],
+      first: ['Liam', 'Jack', 'Riley', 'Mitchell', 'Josh', 'Will', 'Callum', 'Declan', 'Finn', 'Ethan', 'Brodie', 'Kai'],
+      last: ['Holloway', 'Kingsley', 'Radcliffe', 'Fenwick', 'Talbot', 'Yardley', 'O’Connell', 'Gallagher', 'Brennan', 'McAllister', 'Sinclair', 'Lennox'],
+      from: ['Melbourne, Australia', 'Sydney, Australia', 'Perth, Australia', 'Auckland, New Zealand', 'Toronto, Canada', 'Vancouver, Canada', 'London, England'] },
+    { id: 'jp', w: 1, skin: [1.5, 1, 0, 0, 0, 0],
+      first: ['Kenta', 'Haruto', 'Yuki', 'Ren', 'Sota', 'Daiki', 'Ryo'],
+      last: ['Sato', 'Takeda', 'Morita', 'Kobayashi', 'Ishikawa', 'Fujimoto', 'Okada'],
+      from: ['Tokyo, Japan', 'Osaka, Japan', 'Sendai, Japan', 'Fukuoka, Japan'] },
+  ];
+  PB.FIRST = [...new Set(PB.ORIGINS.flatMap(o => o.first))];
+  PB.LAST = [...new Set(PB.ORIGINS.flatMap(o => o.last))];
+  /* pairs that belong to real players (or come too close) are never dealt */
+  PB.REAL = new Set(['Devin Booker', 'Lonnie Walker', 'Emeka Okafor', 'Marcus Thornton', 'Isaiah Thomas', 'Jordan Walker',
+    'Grant Hill', 'Andre Miller', 'Aaron Gordon', 'Moses Brown', 'Caleb Martin', 'Javon Freeman', 'Keon Ellis', 'Jalen Pickett',
+    'Aaron Brooks', 'Cheikh Diallo', 'Mamadou Ndiaye', 'Jaxon Hayes', 'Killian Hayes', 'Kris Dunn', 'Lamar Odom', 'Tyler Ward',
+    'Marcus Ford', 'Terrence Rhodes', 'Darius Miles', 'Brandon Rowe', 'Jarvis Hayes', 'Cedric Ceballos', 'Khalil Whitney',
+    'Zion Williamson', 'Jamal Crawford', 'Corey Brewer', 'Deandre Ayton', 'Jabari Walker', 'Jabari Parker', 'Andre Ward',
+    'Darnell Hollis', 'Cody Zeller', 'Tyler Zeller', 'Luka Pavlovic', 'Nikola Pekovic', 'Marko Simonovic', 'Theo Pinson',
+    'Bruno Fernando', 'Tomás Satoransky', 'Kai Sotto', 'Josh Booker', 'Ty Ellis', 'Marcus Price', 'Desmond Mason', 'Jordan Hill']);
+  const wpick = ws => { let s = ws.reduce((a, b) => a + b, 0), r = PB.rand() * s; for (let i = 0; i < ws.length; i++) { r -= ws[i]; if (r <= 0) return i; } return ws.length - 1; };
+  PB.origin = id => PB.ORIGINS.find(o => o.id === id) || PB.ORIGINS[0];
+  /* a person: {first, last, from, skin, org} drawn from one origin (weighted by how many such players the league has) */
+  PB.person = org => {
+    const o = org ? PB.origin(org) : PB.ORIGINS[wpick(PB.ORIGINS.map(x => x.w))];
+    let first = PB.pick(o.first), last = PB.pick(o.last);
+    for (let k = 0; k < 20 && PB.REAL.has(first + ' ' + last); k++) last = PB.pick(o.last);
+    return { first, last, from: PB.pick(o.from), skin: wpick(o.skin), org: o.id };
+  };
 
   /* Attributes, 25..99. */
   PB.ATTRS = [
@@ -183,13 +252,12 @@
     if (which === 'city') return { c1: '#141416', c2: t.c1 === '#000000' || !light(t.c2) && false ? t.c2 : t.c1, alt: t.c1, pat: [1, 6, 2, 5][h % 4], name: t.city.toUpperCase(), kind: 'city' };
     return { c1: t.c1, c2: t.c2, alt: t.c2, pat, name: t.name, kind: 'icon' };
   };
-  PB.randName = () => { let f = PB.pick(PB.FIRST), l = PB.pick(PB.LAST); while (PB.REAL.has(f + ' ' + l)) l = PB.pick(PB.LAST); return f + ' ' + l; };
+  PB.randName = () => { const n = PB.person(); return n.first + ' ' + n.last; };
   PB.makePlayer = (pos, target, age) => {
     const h = PB.HEIGHT[pos];
-    let first = PB.pick(PB.FIRST), last = PB.pick(PB.LAST);
-    while (PB.REAL.has(first + ' ' + last)) last = PB.pick(PB.LAST);
-    const p = { id: 'p' + (pid++) + '_' + Math.floor(PB.rand() * 1e6), first, last, pos,
-      ht: PB.ri(h[0], h[1]), age: age || PB.ri(20, 34), num: PB.ri(0, 55), r: PB.makeRatings(pos, target), skin: PB.ri(0, 5) };
+    const n = PB.person();
+    const p = { id: 'p' + (pid++) + '_' + Math.floor(PB.rand() * 1e6), first: n.first, last: n.last, from: n.from, org: n.org, pos,
+      ht: PB.ri(h[0], h[1]), age: age || PB.ri(20, 34), num: PB.ri(0, 55), r: PB.makeRatings(pos, target), skin: n.skin };
     p.ovr = PB.ovr(p.r, pos);
     return p;
   };
@@ -203,7 +271,8 @@
       const p = PB.makePlayer(pos[i], Math.round(t + PB.gauss() * 2));
       while (used.has(p.num)) p.num = PB.ri(0, 55);
       used.add(p.num);
-      for (let k = 0; k < 20 && (out.some(q => q.last === p.last) || PB.REAL.has(p.first + ' ' + p.last)); k++) p.last = PB.pick(PB.LAST);   // no two Harmons on one bench
+      for (let k = 0; k < 20 && (out.some(q => q.last === p.last) || PB.REAL.has(p.first + ' ' + p.last)); k++) p.last = PB.pick(PB.origin(p.org).last);   // no two Harmons on one bench
+      for (let k = 0; k < 20 && (out.some(q => q.first === p.first) || PB.REAL.has(p.first + ' ' + p.last)); k++) p.first = PB.pick(PB.origin(p.org).first);   // nor two Lonnies
       out.push(p);
     });
     return out;

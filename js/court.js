@@ -250,7 +250,7 @@
   };
   R.modelReady = () => !!TPL;
   R._tpl = () => TPL;
-  const V3 = () => new T.Vector3(), Q4 = () => new T.Quaternion();
+  const V3 = (x, y, z) => new T.Vector3(x, y, z), Q4 = () => new T.Quaternion();
   const bk = n => n.replace(/[.\[\]:/]/g, '');
   function template(g) {
     const scene = g.scene;
@@ -264,7 +264,8 @@
     for (const m of meshes) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); }
     const H = box.max.y - box.min.y, knee = at('DEF-shin.L').y, ankle = at('DEF-foot.L').y, hip = at('DEF-thigh.L').y;
     const shortsTo = knee + (hip - knee) * 0.22, sockTo = ankle + (knee - ankle) * 0.28;
-    /* region of every vertex, from its heaviest bone: 0 skin, 1 jersey, 2 shorts, 3 shoe, 4 sock */
+    /* region of every vertex, from its heaviest bone: 0 skin, 1 jersey, 2 shorts, 3 shoe, 4 sock, 6 head */
+    const hb = new T.Box3();
     for (const m of meshes) {
       const gm = m.geometry, si = gm.attributes.skinIndex, sw = gm.attributes.skinWeight, pos = gm.attributes.position, n = pos.count;
       const reg = new Float32Array(n), kp = new Float32Array(n * 3), v = V3();
@@ -279,7 +280,8 @@
         const y = v.applyMatrix4(m.matrixWorld).y;
         kp[i * 3] = v.x / H; kp[i * 3 + 1] = (y - box.min.y) / H; kp[i * 3 + 2] = v.z / H;   // where it sits on the body, for jersey designs
         let r = 0;
-        if (/spine|shoulder/.test(name)) r = 1;
+        if (/head/.test(name)) { r = 6; hb.expandByPoint(V3(v.x, y, v.z)); }   // the mannequin's head: hidden, a drawn head goes on the bone
+        else if (/spine|shoulder/.test(name)) r = 1;
         else if (/hips/.test(name)) r = 2;
         else if (/thigh/.test(name)) r = y > shortsTo ? 2 : 0;
         else if (/shin/.test(name)) r = y < sockTo ? 4 : 0;
@@ -317,7 +319,10 @@
       face: local(head, new T.Vector3(headP.x, H * 0.885, headP.z + H * 0.052), new T.Quaternion()),
       chest: local(spine, new T.Vector3(0, chestY + H * 0.02, torsoZ + H * 0.024), new T.Quaternion()),
     };
-    const sideR = Math.sign(at('DEF-hand.R').x - at('DEF-hips').x) || -1;
+    /* the drawn head: an ellipsoid as wide as the mannequin's, its chin a little under the old jaw (it covers the neck) */
+    const headR = (hb.max.x - hb.min.x) / 2 * 1.1, hc = hb.getCenter(V3());
+    decals.headC = local(head, V3(hc.x, hb.min.y + headR * HS.y * 0.9, hc.z + headR * 0.06), new T.Quaternion());
+        const sideR = Math.sign(at('DEF-hand.R').x - at('DEF-hips').x) || -1;
     /* real shorts: a flared shell on each thigh and a band around the hips, built in the rest pose and handed to the
        bones (so they swing with the legs). kc per vertex: 0 the shorts' color, 1 the side stripe, 2 the hem */
     const hipsC = at('DEF-hips');
@@ -367,7 +372,7 @@
     sg.computeVertexNormals();
     const shortsGeo = sg;
     const clips = {}; for (const c of g.animations) clips[c.name] = c;
-    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo };
+    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR };
   }
   /* the kit: colors by body region, and a design on the jersey and shorts. Designs (cols.pat):
      0 plain, 1 side panels (down the jersey and the shorts), 2 pinstripes, 3 a chest band, 4 a fade to dark,
@@ -383,6 +388,7 @@
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
       sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nvarying float vRegion;\nvarying vec3 vK;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
+  if (vRegion > 5.5) discard;   // the mannequin's head: a drawn one sits on the bone
   vec3 rc = vRegion < 0.5 ? cSkin : vRegion < 1.5 ? cJersey : vRegion < 2.5 ? cShorts : vRegion < 3.5 ? cShoe : vRegion < 4.5 ? cSock : cTrim;
   bool top = vRegion > 0.5 && vRegion < 1.5, bot = vRegion > 1.5 && vRegion < 2.5;
   float ax = abs(vK.x);
@@ -399,7 +405,7 @@
   if (vRegion > 3.5 && vRegion < 4.5 && vK.y > 0.596 && vK.y < 0.607) rc = cAlt;           // a stripe at the top of the sock
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit3';
+    m.customProgramCacheKey = () => 'pb-kit4';
     return m;
   }
   const HEAD = 1.13;
@@ -422,11 +428,71 @@
     const out = new T.BufferGeometry(); out.setAttribute('position', new T.BufferAttribute(pos, 3)); out.setAttribute('color', new T.BufferAttribute(col, 3));
     return out;
   }
-  const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short'];
+  /* The drawn head, pocket style: a round head a touch taller than wide, ears, a nose, and a face fitted to its surface.
+     Everything in the head's own frame (+z out of the face, +y up), in units of R, the head's half width. */
+  const HS = { x: 1, y: 1.12, z: 1.02 };
+  const surfZ = (R, x, y) => HS.z * R * Math.sqrt(Math.max(0, 1 - (x / (HS.x * R)) ** 2 - (y / (HS.y * R)) ** 2));
+  const SKIN_MATS = [];
+  const skinMat = i => SKIN_MATS[i] || (SKIN_MATS[i] = Object.assign(new T.MeshLambertMaterial({ color: new T.Color(PB.SKIN[i] || PB.SKIN[3]) }), { userData: { shared: true } }));
+  /* hair that hugs the head: a cap cut at a slant (higher at the brow than at the neck), every point pushed out onto an
+     ellipsoid k times the head, so it never dips under the scalp. Shared by everyone with the same cut. */
+  const CAPS = {};
+  function capGeo(k, theta, tilt, R) {
+    const key = [k, theta, tilt].join();
+    if (CAPS[key]) return CAPS[key];
+    const g = new T.SphereGeometry(1, 28, 16, 0, Math.PI * 2, 0, theta); g.rotateX(tilt);
+    const p = g.attributes.position, v = V3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).normalize();
+      const f = 1 / Math.sqrt((v.x / HS.x) ** 2 + (v.y / HS.y) ** 2 + (v.z / HS.z) ** 2);
+      v.multiplyScalar(f * k * R); p.setXYZ(i, v.x, v.y, v.z);
+    }
+    g.computeVertexNormals(); g.userData.shared = true;
+    return (CAPS[key] = g);
+  }
+  function headGeometries(R) {
+    const merge = (parts, colored) => {
+      let n = 0; for (const g of parts) n += g.attributes.position.count;
+      const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = colored ? new Float32Array(n * 3) : null; let o = 0;
+      for (const g of parts) { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); if (col) col.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; }
+      const out = new T.BufferGeometry(); out.setAttribute('position', new T.BufferAttribute(pos, 3)); out.setAttribute('normal', new T.BufferAttribute(nor, 3));
+      if (col) out.setAttribute('color', new T.BufferAttribute(col, 3));
+      out.userData.shared = true; return out;
+    };
+    const prep = (g, sx, sy, sz, x, y, z, rz, color) => {
+      g = g.index ? g.toNonIndexed() : g; g.scale(sx, sy, sz); if (rz) g.rotateZ(rz); g.translate(x, y, z);
+      if (color != null) { const c = new T.Color(color), n = g.attributes.position.count, col = new Float32Array(n * 3); for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; } g.setAttribute('color', new T.BufferAttribute(col, 3)); }
+      return g;
+    };
+    const skin = [
+      prep(new T.SphereGeometry(R, 28, 20), HS.x, HS.y, HS.z, 0, 0, 0),
+      /* a jaw: a little fuller at the cheeks and chin than an egg */
+      prep(new T.SphereGeometry(R * 0.78, 20, 14), 1.05, 0.9, 1.0, 0, -R * 0.42, R * 0.12),
+      prep(new T.SphereGeometry(R * 0.13, 10, 8), 0.85, 0.95, 0.9, 0, -R * 0.2, surfZ(R, 0, -R * 0.2) + R * 0.03),   // the nose
+    ];
+    for (const sx of [-1, 1]) skin.push(prep(new T.SphereGeometry(R * 0.24, 10, 8), 0.42, 1, 0.75, sx * HS.x * R * 0.98, -R * 0.08, -R * 0.04));   // ears
+    const face = [];
+    for (const sx of [-1, 1]) {
+      const ex = sx * R * 0.37, ey = R * 0.02, ez = surfZ(R, ex, ey);
+      face.push(prep(new T.SphereGeometry(R * 0.2, 12, 10), 1, 1.08, 0.55, ex, ey, ez - R * 0.02, 0, 0xf4f1ea));
+      face.push(prep(new T.SphereGeometry(R * 0.115, 10, 8), 1, 1.1, 0.5, ex + sx * -R * 0.01, ey - R * 0.015, ez + R * 0.075, 0, 0x120c08));
+      face.push(prep(new T.SphereGeometry(R * 0.035, 6, 5), 1, 1, 0.5, ex + sx * -R * 0.045, ey + R * 0.03, ez + R * 0.115, 0, 0xffffff));   // a glint
+      const by = R * 0.3; face.push(prep(new T.BoxGeometry(R * 0.38, R * 0.085, R * 0.08), 1, 1, 1, sx * R * 0.37, by, surfZ(R, sx * R * 0.37, by) + R * 0.0, -sx * 0.14, 0x120c08));
+    }
+    const my = -R * 0.5;
+    face.push(prep(new T.BoxGeometry(R * 0.34, R * 0.06, R * 0.06), 1, 1, 1, 0, my, Math.max(surfZ(R, 0, my), 0.9 * R * 0.78 * 1.0 + R * 0.12 - R * 0.06) + R * 0.0, 0, 0x4a2219));
+    return { skin: merge(skin, false), face: merge(face, true) };
+  }
+    const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short', 'twists', 'short'];
   const HAIRC = ['#17110d', '#17110d', '#2b1d12', '#17110d', '#4a3020', '#c9a46a', '#17110d', '#6b4a2b'];
   function autoLook(d) {
     let h = 0; const id = String(d.id || d.last || 'x'); for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-    return { hair: HAIRS[h % HAIRS.length], hairColor: HAIRC[(h >> 3) % HAIRC.length], band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
+    const sk = d.skin == null ? 3 : d.skin;
+    let hair = HAIRS[h % HAIRS.length], hairColor = HAIRC[(h >> 3) % HAIRC.length];
+    if (sk >= 3 && hairColor !== '#17110d' && hairColor !== '#2b1d12') hairColor = '#17110d';   /* blond and light brown on fair skin only */
+    if (sk <= 1 && (hair === 'afro' || hair === 'twists')) hair = 'short';
+    if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
+    return { hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
       beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7] };
   }
   function skinnedPlayer(p, kit) {
@@ -462,10 +528,6 @@
     const put = (bone, dcl, obj) => { obj.position.copy(dcl.pos); obj.quaternion.copy(dcl.quat); bone.add(obj); };
     put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
     put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
-    /* a face: eyes and brows on the front of the head, so nobody is a blank egg */
-    if (!TPL.faceGeo) TPL.faceGeo = faceGeometry(H);   // one mesh, one draw, shared by everyone
-    const face = new T.Mesh(TPL.faceGeo, FACE_MAT);
-    put(bones[bk('DEF-head')], TPL.decals.face, face);
     /* the team's name across the chest, over the number */
     const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', ink, edge), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     /* and his name across the back, over the number */
@@ -476,30 +538,40 @@
     const look = d.look || autoLook(d);
     const hairMat = new T.MeshLambertMaterial({ color: new T.Color(look.hairColor || '#17110d') });
     const head = bones[bk('DEF-head')];
-    if (look.hair !== 'bald') {
-      let hair;
-      if (look.hair === 'high') { hair = new T.Mesh(new T.CylinderGeometry(H * 0.062, H * 0.066, H * 0.07, 14), hairMat); hair.position.y = H * 0.022; }
-      else if (look.hair === 'afro') { hair = new T.Mesh(new T.SphereGeometry(H * 0.088, 14, 10), hairMat); hair.position.y = -H * 0.005; }
-      else if (look.hair === 'buzz') { hair = new T.Mesh(new T.SphereGeometry(H * 0.067, 14, 9, 0, Math.PI * 2, 0, Math.PI / 2.1), hairMat); hair.scale.set(1.02, 0.85, 1.06); hair.position.y = -H * 0.004; }
-      else { hair = new T.Mesh(new T.SphereGeometry(H * 0.07, 14, 9, 0, Math.PI * 2, 0, Math.PI / 1.9), hairMat); hair.scale.set(1.04, 0.98, 1.1); }
-      const holder = new T.Group(); holder.add(hair); put(head, TPL.decals.hair, holder);
+    /* the head: drawn, not the mannequin's (pocket style: round, big eyes), one skin material per tone, shared */
+    const R = TPL.headR;
+    if (!TPL.headGeo) TPL.headGeo = headGeometries(R);
+    const hg = new T.Group(); put(head, TPL.decals.headC, hg);
+    hg.add(new T.Mesh(TPL.headGeo.skin, skinMat(d.skin || 0)));
+    hg.add(new T.Mesh(TPL.headGeo.face, FACE_MAT));
+    const cap = (r, theta, tilt, y) => { const m = new T.Mesh(capGeo(r / R, theta, tilt, R), hairMat); m.position.y = y || 0; return m; };
+    if (look.hair === 'short') hg.add(cap(R * 1.06, Math.PI * 0.5, -0.32, R * 0.03));
+    else if (look.hair === 'buzz') hg.add(cap(R * 1.025, Math.PI * 0.52, -0.36, 0));
+    else if (look.hair === 'high') {
+      hg.add(cap(R * 1.05, Math.PI * 0.5, -0.3, R * 0.02));
+      const top = new T.Mesh(new T.CylinderGeometry(R * 0.9, R * 0.96, R * 0.62, 18), hairMat); top.position.set(0, R * 1.0, -R * 0.08); top.rotation.x = -0.12; hg.add(top);
+    } else if (look.hair === 'afro') {
+      const af = new T.Mesh(new T.SphereGeometry(R * 1.36, 20, 14), hairMat); af.scale.set(1.06, 0.95, 1); af.position.set(0, R * 0.42, -R * 0.32); hg.add(af);
+    } else if (look.hair === 'twists') {
+      hg.add(cap(R * 1.04, Math.PI * 0.5, -0.3, R * 0.02));
+      for (let i = 0; i < 26; i++) { const a = i * 2.39996, rr = Math.sqrt((i + 0.5) / 26), th = rr * 1.25, x = Math.sin(th) * Math.cos(a), z = Math.sin(th) * Math.sin(a), y = Math.cos(th);
+        if (z > 0.55 && y < 0.6) continue;   // not over the face
+        const t = new T.Mesh(new T.CylinderGeometry(R * 0.085, R * 0.11, R * 0.42, 6), hairMat); t.position.set(x * R * 1.04 * HS.x, y * R * 1.06 * HS.y + R * 0.06, z * R * 1.0 * HS.z - R * 0.12); t.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(x, y, z).normalize()); hg.add(t); }
     }
     if (look.band) {
-      const band = new T.Mesh(new T.TorusGeometry(H * 0.066, H * 0.011, 6, 18), new T.MeshLambertMaterial({ color: new T.Color(look.band) }));
-      band.rotation.x = Math.PI / 2; band.scale.set(1, 1.1, 1); const g2 = new T.Group(); g2.add(band); band.position.y = -H * 0.02;
-      put(head, TPL.decals.hair, g2);
+      const band = new T.Mesh(new T.TorusGeometry(R * 0.97, R * 0.1, 6, 26), new T.MeshLambertMaterial({ color: new T.Color(look.band) }));
+      band.scale.set(HS.x, HS.z, 1); band.rotation.x = Math.PI / 2 - 0.3; band.position.set(0, R * 0.42, -R * 0.02); hg.add(band);
     }
-    /* facial hair: a full beard wraps the jaw, stubble is the same but faint, a goatee sits on the chin */
+    /* facial hair: a full beard along the jaw with a mustache, stubble is the same but faint, a goatee on the chin */
     if (look.beard) {
-      const bm = new T.MeshLambertMaterial({ color: new T.Color(look.hairColor || '#17110d'), transparent: look.beard === 'stubble', opacity: look.beard === 'stubble' ? 0.45 : 1 });
-      const g4 = new T.Group();
-      /* in the face's own frame: eyes at 0, the mouth at -0.03 H, +z out of the face */
-      if (look.beard === 'goatee') { const gt = new T.Mesh(new T.SphereGeometry(H * 0.01, 10, 8), bm); gt.scale.set(1, 1.3, 0.6); gt.position.set(0, -H * 0.043, H * 0.002); g4.add(gt); }
+      const bm = new T.MeshLambertMaterial({ color: new T.Color(look.hairColor || '#17110d'), transparent: look.beard === 'stubble', opacity: look.beard === 'stubble' ? 0.5 : 1 });
+      if (look.beard === 'goatee') { const gt = new T.Mesh(new T.SphereGeometry(R * 0.17, 10, 8), bm); gt.scale.set(1, 1.25, 0.6); gt.position.set(0, -R * 0.74, R * 0.78); hg.add(gt);
+        const mu = new T.Mesh(new T.BoxGeometry(R * 0.36, R * 0.07, R * 0.08), bm); mu.position.set(0, -R * 0.39, surfZ(R, 0, -R * 0.39)); hg.add(mu); }
       else {
-        const bd = new T.Mesh(new T.SphereGeometry(H * 0.043, 16, 8, Math.PI / 2 - 1.45, 2.9, Math.PI * 0.5, Math.PI * 0.4), bm); bd.position.set(0, -H * 0.026, -H * 0.036); g4.add(bd);
-        if (look.beard === 'full') { const mu = new T.Mesh(new T.BoxGeometry(H * 0.026, H * 0.005, H * 0.004), bm); mu.position.set(0, -H * 0.023, H * 0.004); g4.add(mu); }
+        const bd = new T.Mesh(new T.SphereGeometry(R * 0.78 * 1.08, 22, 10, Math.PI / 2 - 1.55, 3.1, 1.72, Math.PI * 0.62 - 1.72 + 1.0), bm); bd.scale.set(1.05, 0.9, 1.0); bd.position.set(0, -R * 0.42, R * 0.12); hg.add(bd);
+        for (const sx of [-1, 1]) { const sb = new T.Mesh(new T.BoxGeometry(R * 0.1, R * 0.42, R * 0.22), bm); sb.position.set(sx * R * 0.93, -R * 0.2, R * 0.12); sb.rotation.z = sx * 0.12; hg.add(sb); }   // sideburns into the beard
+        const mu = new T.Mesh(new T.BoxGeometry(R * 0.4, R * 0.08, R * 0.08), bm); mu.position.set(0, -R * 0.39, surfZ(R, 0, -R * 0.39)); hg.add(mu);
       }
-      put(head, TPL.decals.face, g4);
     }
     if (look.sleeve) {
       const fore = bones[bk('DEF-forearm.R')], hand = bones[bk('DEF-hand.R')];
@@ -519,7 +591,7 @@
     act.Idle_Loop.setEffectiveWeight(1);
     const arm = s => ({ up: bones[bk(`DEF-upper_arm.${s}`)], fore: bones[bk(`DEF-forearm.${s}`)], hand: bones[bk(`DEF-hand.${s}`)] });
     const headB = bones[bk('DEF-head')]; if (headB) headB.scale.setScalar(HEAD);
-    return { kind: 'skin', root, body, mixer, act, bones, head: headB, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
+    return { kind: 'skin', root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
   }
 
   /* turn a bone so the segment from it to `tip` points along `dir` (world), by `w` of the way */
@@ -645,8 +717,9 @@
     o = o || {};
     try {
       const W = size || 192, Hh = o.body ? Math.round(W * 1.6) : W;
-      const cv = document.createElement('canvas'); cv.width = W; cv.height = Hh;
-      const rr = new T.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true, alpha: true });
+      /* one off-screen renderer for every picture (a roster of ten would run out of WebGL contexts otherwise) */
+      if (!R._pr) { const cv = document.createElement('canvas'); R._pr = new T.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true, alpha: true }); R._pr.setPixelRatio(1); }
+      const rr = R._pr, cv = rr.domElement; rr.setSize(W, Hh, false); rr.setClearColor(0x000000, 0);
       const sc = new T.Scene();
       sc.add(new T.HemisphereLight(0xffffff, 0x303034, 1.15)); const k = new T.DirectionalLight(0xffffff, 0.85); k.position.set(3, 6, o.back ? -8 : 8); sc.add(k);
       const rim = new T.DirectionalLight(0xffffff, 0.35); rim.position.set(-4, 3, o.back ? 6 : -6); sc.add(rim);
@@ -657,10 +730,10 @@
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
       if (o.body) { const z = o.back ? -1 : 1; c.position.set(0.6 * z, H * 0.55, 14.5 * z); c.lookAt(0, H * 0.5, 0); }
-      else { c.position.set(0.35, H * 0.92, 3.6); c.lookAt(0, H * 0.875, 0); }
+      else { const hp = m.hg.getWorldPosition(V3()); hp.y -= 0.22; const dz = o.close ? 2.5 : 3.6; if (o.close) hp.y += 0.12; c.position.set(hp.x + dz * 0.1, hp.y + 0.12, hp.z + dz); c.lookAt(hp); }
       rr.render(sc, c);
       const url = cv.toDataURL('image/png');
-      rr.dispose(); rr.forceContextLoss && rr.forceContextLoss();
+      freeTree(m.root);
       return url;
     } catch (e) { return null; }
   };
@@ -888,14 +961,17 @@
     });
   };
 
+  function freeTree(root) {
+    root.traverse(o => {
+      if (o.material) for (const mt of [].concat(o.material)) { if (mt.userData.shared) continue; if (mt.map && mt.map !== (TPL && TPL.sharedMap)) mt.map.dispose(); if (mt !== FACE_MAT) mt.dispose(); }
+      if (o.geometry && !o.isSkinnedMesh && !o.geometry.userData.shared && o.geometry !== (TPL && TPL.faceGeo)) o.geometry.dispose();
+    });
+  }
   R.removePlayer = p => {
     const m = meshes.get(p); if (!m) return;
     scene.remove(m.root); meshes.delete(p);
     /* free what was his alone: materials and their textures, and his own small geometries (the body and the face are shared) */
-    m.root.traverse(o => {
-      if (o.material) for (const mt of [].concat(o.material)) { if (mt.map && mt.map !== (TPL && TPL.sharedMap)) mt.map.dispose(); if (mt !== FACE_MAT) mt.dispose(); }
-      if (o.geometry && !o.isSkinnedMesh && o.geometry !== (TPL && TPL.faceGeo)) o.geometry.dispose();
-    });
+    freeTree(m.root);
   };
   R.addPlayer = (p, kit) => {
     const m = TPL ? skinnedPlayer(p, kit) : playerMesh(p, kit);
