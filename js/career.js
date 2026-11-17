@@ -867,6 +867,12 @@
     { k: 'podcast', q: 'A popular basketball podcast wants an interview.', a: [['Be humble', { fans: 3, trust: 1 }, 'Nice clip going around: team first.'], ['Talk big', { fans: 9, trust: -3 }, 'Every show is talking about you now. Your coach too.']] },
     { k: 'trainer', q: 'A private trainer offers an off-day shooting session.', a: [['Book it', { sp: 3, fans: -1 }, 'Two hundred makes. Your shot feels pure.'], ['Not now', {}, 'Maybe next week.']] },
     { k: 'charity', q: 'The team foundation asks you to visit the children\'s hospital.', a: [['Go', { fans: 5, trust: 2 }, 'A day you will remember. The fans will too.'], ['Send a signed jersey', { fans: 1 }, 'A nice gesture.']] },
+    { k: 'slump', q: 'A veteran teammate is in a shooting slump and asks you to stay after practice with him.', a: [['Stay and rebound for him', { trust: 3, sp: -1 }, 'He found his stroke. The locker room noticed who helped.'], ['Head home', { sp: 1 }, 'Rest matters too.']] },
+    { k: 'sneaker', q: 'A sneaker blog wants to feature your game-day shoes.', a: [['Do the shoot', { fans: 4 }, 'Your kicks are trending.'], ['Keep it low-key', { trust: 1 }, 'All business.']] },
+    { k: 'vet', q: 'The team\'s oldest player offers to show you his pregame routine.', a: [['Learn it', { sp: 2, trust: 2 }, 'Stretch, film, quiet. It works.'], ['Keep your own', {}, 'You know what works for you.']] },
+    { k: 'festival', q: 'The city\'s summer festival asks you to throw the first pitch at a ballgame.', a: [['Throw it', { fans: 4 }, 'A strike, somehow. Highlight of the week.'], ['Pass', {}, 'Maybe next year.']] },
+    { k: 'gaming', q: 'A streamer invites you to play online with his audience.', a: [['Stream for an hour', { fans: 7, trust: -1 }, 'Twenty thousand people watched you lose at a video game.'], ['Sleep', { sp: 1 }, 'Early night.']] },
+    { k: 'diet', q: 'The team nutritionist has a new meal plan for you.', a: [['Follow it', { sp: 2 }, 'Lighter on your feet already.'], ['Ignore it', { trust: -1 }, 'Pizza, again.']] },
   ];
   function eventCard() {
     const ev = EVENTS.find(e => e.k === C.event); if (!ev) return '';
@@ -893,6 +899,10 @@
     else if (res.gscore <= 3) posts.push([who(), `Rough one for #${me.num}. Shake it off.`]);
     if (l.ast >= 8) posts.push([who(), `${l.ast} dimes. ${me.last} sees the whole floor.`]);
     if (l.blk >= 3) posts.push([who(), `${l.blk} blocks?! Stay out of the paint when ${me.last} is home.`]);
+    if (l.tpm >= 4) posts.push([who(), `${l.tpm} threes for #${me.num}. Range for days.`]);
+    if (l.stl >= 3) posts.push([who(), `${me.last} with ${l.stl} steals. Hands everywhere.`]);
+    if (res.gscore >= 11) posts.push(['@stat_nerd', `${me.last}'s teammate grade tonight: ${res.grade}. That is winning basketball.`]);
+    if (!res.win && l.pts >= 20) posts.push([who(), `${me.last} did everything he could. Need more help.`]);
     if (res.rival) posts.push([`@${o.name.toLowerCase()}_insider`, `${me.last} vs ${rivalP().last}: ${l.pts} to ${res.rival.pts}. ${l.pts >= res.rival.pts ? 'Round to the rookie from ' + t.city + '.' : 'This one goes to ' + rivalP().last + '.'}`]);
     if (res.win) posts.push([`@${t.name.toLowerCase()}`, `FINAL: ${t.name} ${res.us}, ${o.name} ${res.them}. ${g.po ? 'Playoff basketball!' : 'Big win.'}`]);
     else posts.push([`@${t.name.toLowerCase()}`, `FINAL: ${o.name} ${res.them}, ${t.name} ${res.us}. On to the next one.`]);
@@ -914,6 +924,18 @@
       ['Great player. We push each other.', 2, 2, 'respect'],
       ['I do not think about him. I think about winning.', 1, 3, 'focused'],
       ['Ask him how it felt.', -2, 9, 'trash talk']] },
+    losing: { q: () => 'That is several losses in a row now. What is going wrong?', a: [
+      ['We have to look in the mirror. Me first.', 4, 1, 'accountable'],
+      ['It is a long season. We will be fine.', 0, 1, 'calm'],
+      ['Some guys are not bought in.', -6, 5, 'finger-pointing']] },
+    winning: { q: () => 'This team is rolling. How good can you be?', a: [
+      ['One game at a time. Stay humble.', 2, 2, 'humble'],
+      ['Nobody wants to see us in the playoffs.', 0, 5, 'confident'],
+      ['Championship. Write it down.', -2, 8, 'bold']] },
+    contract: { q: () => 'It is a contract year. Is that on your mind?', a: [
+      ['Just playing for my teammates.', 3, 1, 'team-first'],
+      ['I know what I am worth.', -1, 4, 'business'],
+      ['I want to be here long term.', 4, 2, 'loyal']] },
     playoff: { q: () => 'First taste of playoff basketball. Is it different?', a: [
       ['Every possession matters. You feel it.', 2, 2, 'measured'],
       ['This is what I came here for.', 1, 5, 'fired up'],
@@ -921,6 +943,10 @@
   };
   function pressFor(g, r) {
     if (r.sim) return null;
+    const last = C.games.filter(x => x.done).slice(-4);
+    if (!g.po && last.length === 4 && last.every(x => !x.res.win) && PB.rand() < 0.6) return ['losing', ''];
+    if (!g.po && last.length === 4 && last.every(x => x.res.win) && PB.rand() < 0.5) return ['winning', ''];
+    if (C.contract && C.contract.years === 1 && PB.rand() < 0.15) return ['contract', ''];
     if (C.rival && g.opp === C.rival.team && PB.rand() < 0.8) return ['rival', PB.full(rivalP())];
     if (g.po && C.po.games.length === 1) return ['playoff', ''];
     if (r.line.pts >= 22 || r.gscore >= 10) return ['big', r.line.pts];
