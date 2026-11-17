@@ -18,7 +18,13 @@ The players' body and its running, jumping and stance animations are the mannequ
 [Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) by
 [Quaternius](https://quaternius.com) (CC0 1.0; [OpenGameArt](https://opengameart.org/content/universal-animation-library)).
 `tools/model.mjs` trims it to the clips the game uses (`models/player.glb`, 417 kB). The kit, numbers, hair and the
-basketball arm poses are added in code.
+other basketball arm poses are added in code.
+
+## Motion capture
+
+The dribbling arm is measured from the CMU Graphics Lab Motion Capture Database (subject 06, forward dribble), by way of
+[sfd158/cmu-mocap](https://github.com/sfd158/cmu-mocap) and `tools/mocap/dribble.py`. The data used in this project was
+obtained from mocap.cs.cmu.edu. The database was created with funding from NSF EIA-0196217.
 
 ## The booth
 

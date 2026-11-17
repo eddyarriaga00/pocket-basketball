@@ -406,9 +406,21 @@
     const fx = Math.sin(face), fz = Math.cos(face), rx = -fz, rz = fx;
     return _d.set(rx * x * side + fx * z, y, rz * x * side + fz * z).normalize();
   }
+  /* one dribble, twelve steps from the hand's lowest point (the push ends): the upper arm and forearm of the ball hand.
+     The upper arm leans a little more forward than the walking subject's, for a player on the move. */
+  const DRIB = [
+    [[0, -0.97, 0.25], [0.36, -0.9, 0.23]], [[-0.03, -0.99, 0.18], [0.43, -0.89, 0.16]], [[-0.03, -1, 0.08], [0.58, -0.8, 0.18]],
+    [[-0.03, -1, -0.02], [0.72, -0.61, 0.3]], [[0, -0.99, -0.07], [0.8, -0.36, 0.38]], [[0.03, -0.99, -0.07], [0.8, -0.02, 0.5]],
+    [[0.09, -0.99, -0.04], [0.7, 0.27, 0.62]], [[0.15, -0.99, 0], [0.55, 0.33, 0.77]], [[0.17, -0.98, 0.02], [0.4, 0.15, 0.91]],
+    [[0.15, -0.98, 0.08], [0.31, -0.26, 0.91]], [[0.11, -0.97, 0.21], [0.3, -0.61, 0.74]], [[0.05, -0.97, 0.21], [0.37, -0.93, -0.02]],
+  ];
   /* each pose: right arm [upper, forearm] and left arm, in the player's frame; x is outward for each arm */
   const POSES = {
-    dribble: (k) => [[0.18, -0.82, 0.45], [0.06, -0.9 + 0.3 * k, 0.5], [0.35, -0.6, 0.55], [0.05, -0.15, 1]],
+    /* the dribbling arm from motion capture (CMU 06_02, two cycles averaged); k is where the bounce is, 0 to 1 */
+    dribble: (k) => { const u = (1 + 12 * k) % 12, i = Math.floor(u), f = u - i, a = DRIB[i], b = DRIB[(i + 1) % 12];
+      const L = (x, y) => x.map((v, j) => v + (y[j] - v) * f);
+      const up = L(a[0], b[0]); up[0] += 0.12;   // a little off the hip: this body is wider than the subject's
+      return [up, L(a[1], b[1]), [0.35, -0.6, 0.55], [0.05, -0.15, 1]]; },
     shoot: (k) => [[0.12, 0.62 + 0.3 * k, 0.7 - 0.4 * k], [0.02, 0.75 + 0.2 * k, 0.55 - 0.3 * k], [0.32, 0.6 + 0.25 * k, 0.6], [-0.35, 0.85, 0.35]],
     follow: () => [[0.08, 0.9, 0.42], [0.02, 0.35, 0.95], [0.32, 0.8, 0.4], [-0.2, 0.7, 0.6]],
     contest: () => [[0.25, 0.96, 0.15], [0.12, 0.99, 0.05], [0.25, 0.96, 0.15], [0.12, 0.99, 0.05]],
@@ -460,7 +472,7 @@
     m.poseW = Math.min(1, (m.poseW || 0) + dt * (POSES[pose] ? 9 : -6));
     if (!POSES[pose]) { m.poseW = Math.max(0, m.poseW - dt * 6); return; }
     let kk = 0;
-    if (pose === 'dribble') kk = Math.abs(Math.sin(G.t * 8.5));
+    if (pose === 'dribble') kk = (G.t * 8.5 / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
