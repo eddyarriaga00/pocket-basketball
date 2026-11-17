@@ -697,7 +697,7 @@
     if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
     return { hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
       beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7],
-      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 5 };
+      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 5, goggles: (h >> 27) % 23 === 0 ? 'black' : null };
   }
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
@@ -789,6 +789,14 @@
       for (let i = 0; i < 26; i++) { const a = i * 2.39996, rr = Math.sqrt((i + 0.5) / 26), th = rr * 1.25, x = Math.sin(th) * Math.cos(a), z = Math.sin(th) * Math.sin(a), y = Math.cos(th);
         if (z > 0.55 && y < 0.6) continue;   // not over the face
         const t = new T.Mesh(new T.CylinderGeometry(R * 0.085, R * 0.11, R * 0.42, 6), hairMat); t.position.set(x * R * 1.04 * HS.x, y * R * 1.06 * HS.y + R * 0.06, z * R * 1.0 * HS.z - R * 0.12); t.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(x, y, z).normalize()); hg.add(t); }
+    }
+    /* sports goggles: two lenses on a strap round the head */
+    if (look.goggles) {
+      const fr = new T.MeshLambertMaterial({ color: new T.Color(look.goggles === 'team' ? kit.c1 : String(look.goggles)[0] === '#' ? look.goggles : '#141416') }), ln = new T.MeshBasicMaterial({ color: 0xbfe6ff, transparent: true, opacity: 0.28, depthWrite: false });
+      for (const sx of [-1, 1]) { const ex = sx * R * 0.37, ey = R * 0.03, ez = surfZ(R, ex, ey) + R * 0.06;
+        const rim = new T.Mesh(new T.TorusGeometry(R * 0.25, R * 0.045, 6, 18), fr); rim.position.set(ex, ey, ez); rim.rotation.y = sx * 0.25; hg.add(rim);
+        const lens = new T.Mesh(new T.CircleGeometry(R * 0.24, 18), ln); lens.position.set(ex, ey, ez + R * 0.01); lens.rotation.y = sx * 0.25; hg.add(lens); }
+      const strap = new T.Mesh(new T.TorusGeometry(R * 1.03, R * 0.05, 5, 30), fr); strap.scale.set(HS.x, HS.z, 1); strap.rotation.x = Math.PI / 2; strap.position.y = R * 0.04; hg.add(strap);
     }
     if (look.band) {
       const band = new T.Mesh(new T.TorusGeometry(R * 0.97, R * 0.1, 6, 26), new T.MeshLambertMaterial({ color: new T.Color(look.band) }));
