@@ -517,6 +517,7 @@
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
     m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = vec3( position ) + normal * 0.011;'); };
     m.customProgramCacheKey = () => 'pb-outline'; m.userData.shared = true; return m; })();
+  const MOUTH_MAT = Object.assign(new T.MeshBasicMaterial({ color: 0x2a0d0a }), { userData: { shared: true } });
   const HEAD = 1.22, ABD = 0.16;
   const _ax = V3();
   const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
@@ -701,6 +702,9 @@
     const hg = new T.Group(); put(head, TPL.decals.headC, hg);
     hg.add(new T.Mesh(TPL.headGeo.skin, skinMat(d.skin || 0)));
     hg.add(new T.Mesh(TPL.headGeo.face, FACE_MAT));
+    /* an open mouth for a yell after a big play (hidden until then) */
+    if (!TPL.mouthGeo) { const yy = -R * 0.43; TPL.mouthGeo = new T.SphereGeometry(R * 0.17, 14, 10); TPL.mouthGeo.scale(1, 0.85, 0.35); TPL.mouthGeo.translate(0, yy, surfZ(R, 0, yy) * (1 + 0.1 * jawLo(yy / (HS.y * R))) - R * 0.02); TPL.mouthGeo.userData.shared = true; }
+    const yell = new T.Mesh(TPL.mouthGeo, MOUTH_MAT); yell.visible = false; hg.add(yell); hg.userData.yell = yell;
     const cap = (r, theta, tilt, y) => { const m = new T.Mesh(capGeo(r / R, theta, tilt, R), hairMat); m.position.y = y || 0; return m; };
     const hair = (k, th0, y, cut, mat) => { const m = new T.Mesh(hairGeo(k, th0, R, cut), mat || hairMat); m.position.y = y || 0; return m; };
     /* a faded side: the full hairline, faint */
@@ -890,7 +894,8 @@
     m.act.Sprint_Loop.timeScale = Math.min(1.3, Math.max(0.8, sp / (18 * scl)));
     if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
     m.mixer.update(dt);
-    if (m.head) m.head.scale.setScalar(HEAD);   // a little bigger head: more character at phone size
+    if (m.head) m.head.scale.setScalar(HEAD);
+    if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|windmill)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
     if (TPL.simpleGeo && !PB.mannequin) { const fx = Math.sin(p.face + (p.spinA || 0)), fz = Math.cos(p.face + (p.spinA || 0)); _ax.set(fx, 0, fz);
