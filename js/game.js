@@ -1880,12 +1880,30 @@
       if (!G || !list || !list.length) { if (done) done(); return; }
       const el = $('#game'), rp = $('#rp');
       /* o.record: film the canvas while it plays and hand back a video file */
-      let rec = null, chunks = [];
+      let rec = null, chunks = [], comp = null, cg = null;
       if (o && o.record && window.MediaRecorder && $('#gl').captureStream) {
         const types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
         const type = types.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
-        try { rec = new MediaRecorder($('#gl').captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 5e6 } : undefined); rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(250); } catch (e) { rec = null; }
+        /* each frame goes onto a 2D canvas with a caption (the page's own overlays are not in the picture) */
+        const gl = $('#gl'); comp = document.createElement('canvas'); comp.width = gl.width; comp.height = gl.height; cg = comp.getContext('2d');
+        try { rec = new MediaRecorder(comp.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 5e6 } : undefined); rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(250); } catch (e) { rec = null; }
       }
+      const caption = () => {
+        if (!cg) return;
+        const gl = $('#gl'), W = comp.width, H = comp.height, sc = W / 390, r = G.replay;
+        cg.drawImage(gl, 0, 0, W, H);
+        const t0 = G.teams[0], t1 = G.teams[1], lab = r ? r.label : '', sub = r ? r.sub : '';
+        cg.fillStyle = 'rgba(8,10,16,.72)'; cg.fillRect(0, H - 92 * sc, W, 92 * sc);
+        cg.fillStyle = t0.c1; cg.fillRect(0, H - 92 * sc, 6 * sc, 92 * sc);
+        cg.fillStyle = '#fff'; cg.font = `900 ${26 * sc}px Archivo, Arial`; cg.textBaseline = 'alphabetic';
+        cg.fillText(lab.toUpperCase(), 20 * sc, H - 54 * sc);
+        cg.fillStyle = '#c9d0de'; cg.font = `600 ${14 * sc}px Inter, Arial`; cg.fillText(sub, 20 * sc, H - 30 * sc);
+        cg.fillStyle = '#ffb02e'; cg.font = `800 ${12 * sc}px Archivo, Arial`; cg.textAlign = 'right';
+        cg.fillText('POCKETBASKETBALL', W - 16 * sc, H - 30 * sc); cg.textAlign = 'left';
+        cg.fillStyle = 'rgba(8,10,16,.72)'; cg.fillRect(0, 0, W, 40 * sc);
+        cg.fillStyle = '#fff'; cg.font = `800 ${16 * sc}px Archivo, Arial`;
+        cg.fillText(`${t0.ab || t0.id} ${G.score[0]}  ·  ${G.score[1]} ${t1.ab || t1.id}`, 16 * sc, 26 * sc);
+      };
       const finishRec = () => new Promise(res => { if (!rec) { res(null); return; } rec.onstop = () => res(new Blob(chunks, { type: rec.mimeType || 'video/webm' })); rec.stop(); });
       $('#screen').hidden = true; $('#pause').hidden = true; $('#intro').hidden = true; $('#tipcard').hidden = true; G.paused = false;
       el.hidden = false; el.classList.add('replaying', 'show');
@@ -1898,13 +1916,13 @@
           if (rec) finishRec().then(blob => { if (done) done(blob); }); else if (done) done(); return;
         }
         const r = ordered[i++];
-        G.replay = { frames: r.frames, i: 0, kind: r.kind, onEnd: next };
+        G.replay = { frames: r.frames, i: 0, kind: r.kind, onEnd: next, label: r.label, sub: `${['', '1st quarter', '2nd quarter', '3rd quarter', '4th quarter'][r.q] || 'Overtime'} · ${G.user ? G.user.d.first + ' ' + G.user.d.last : ''}` };
         rp.innerHTML = `<i></i>${r.label.toUpperCase()}<small>${['', '1st', '2nd', '3rd', '4th'][r.q] || 'OT'} · highlight ${i} of ${ordered.length} · tap to skip</small>`;
         rp.hidden = false; R.setReplay(true);
       };
       next();
       cancelAnimationFrame(raf); last = performance.now();
-      const loop = now => { raf = requestAnimationFrame(loop); const dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now; if (!G.replay) return; replayFrame(dt); R.update(G, dt * 0.5); R.render(); };
+      const loop = now => { raf = requestAnimationFrame(loop); const dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now; if (!G.replay) return; replayFrame(dt); R.update(G, dt * 0.5); R.render(); if (G.replay) caption(); };
       raf = requestAnimationFrame(loop);
     },
     /* test hooks */
