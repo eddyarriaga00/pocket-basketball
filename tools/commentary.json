@@ -7,6 +7,10 @@
   "ana": {
    "ref": "am_onyx",
    "role": "analyst"
+  },
+  "pa": {
+   "ref": "am_fenrir",
+   "role": "arena announcer"
   }
  },
  "note": "Lines are short on purpose: a call has to land before the next play. ex = Chatterbox exaggeration (0.35 calm .. 0.95 a huge call).",
@@ -935,6 +939,249 @@
     "who": "pbp",
     "text": "That's his sixth foul. He's done for the night.",
     "ex": 0.45
+   }
+  ],
+  "pa_home_BOS": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Boston Brahmins!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_BKN": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Brooklyn Bridges!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_NY": [
+   {
+    "who": "pa",
+    "text": "And now... here come your New York Empire!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_PHI": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Philadelphia Liberty!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_TOR": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Toronto Moose!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_CHI": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Chicago Wind!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_CLE": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Cleveland Ironmen!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_DET": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Detroit Motors!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_IND": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Indianapolis Speed!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_MIL": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Milwaukee Frost!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_ATL": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Atlanta Peaches!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_CHA": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Charlotte Monarchs!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_MIA": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Miami Flamingos!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_ORL": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Orlando Comets!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_WAS": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Washington Monuments!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_DEN": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Denver Summit!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_MIN": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Minneapolis Loons!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_OKC": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Oklahoma City Twisters!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_POR": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Portland Pines!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_SLC": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Salt Lake Peaks!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_SF": [
+   {
+    "who": "pa",
+    "text": "And now... here come your San Francisco Fog!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_LAW": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Los Angeles Waves!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_LAK": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Los Angeles Knights!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_PHX": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Phoenix Scorpions!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_SAC": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Sacramento Gold!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_DAL": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Dallas Wranglers!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_HOU": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Houston Orbit!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_MEM": [
+   {
+    "who": "pa",
+    "text": "And now... here come your Memphis Blues!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_NO": [
+   {
+    "who": "pa",
+    "text": "And now... here come your New Orleans Krewe!",
+    "ex": 0.8
+   }
+  ],
+  "pa_home_SA": [
+   {
+    "who": "pa",
+    "text": "And now... here come your San Antonio Rattlers!",
+    "ex": 0.8
+   }
+  ],
+  "pa_two": [
+   {
+    "who": "pa",
+    "text": "Two minutes remaining in the quarter.",
+    "ex": 0.4
+   }
+  ],
+  "pa_last": [
+   {
+    "who": "pa",
+    "text": "Last minute of play in the period.",
+    "ex": 0.4
+   }
+  ],
+  "pa_noise": [
+   {
+    "who": "pa",
+    "text": "Make some noise!",
+    "ex": 0.85
+   },
+   {
+    "who": "pa",
+    "text": "Let me hear you!",
+    "ex": 0.85
+   }
+  ],
+  "pa_defense": [
+   {
+    "who": "pa",
+    "text": "Let's hear it for the defense!",
+    "ex": 0.8
    }
   ]
  }

@@ -130,7 +130,23 @@ def record(jobs):
         wav = os.path.join(CLIPS, j['id'] + '.wav')
         if os.path.exists(wav) and not j.get('out'):
             continue
-        x, sr = speak(j['ref'], j['text'], j['ex'], 11 + n * 101)
+        x = None
+        for attempt in range(3):
+            try:
+                x, sr = speak(j['ref'], j['text'], j['ex'], 11 + n * 101)
+                break
+            except RuntimeError as e:   # the GPU's memory fills up now and then on a busy Mac: free it and try again
+                print(f'   {str(e)[:80]}; retrying', flush=True)
+                import gc
+                import time
+                gc.collect()
+                import torch
+                if torch.backends.mps.is_available():
+                    torch.mps.empty_cache()
+                time.sleep(20)
+        if x is None:
+            print(f'   skipped: {j["text"]}', flush=True)
+            continue
         y = finish(x, sr, j['ex'])
         sf.write(j.get('out') or wav, y, sr)
         print(f'{n + 1:4d}/{len(jobs)} {len(y) / sr:5.2f}s  {j["text"]}', flush=True)
