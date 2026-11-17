@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Your story, picked when you create your player: a Top prospect (rated higher, a top-five pick, a city that expects a
+  star and gets loud on bad nights), a Prospect (the combine and interviews decide), or Undrafted (no call on draft
+  night, three camp invites to choose from, a two-way deal at the end of the bench; you grow faster, good nights win
+  fans fast, and the coach's trust turns the two-way into a real contract). Your rival is the one they took instead.
 - Dribbling with a rhythm: quick, low pounds with a man on you and long, high pushes at a run (the ball out ahead of
   you); the ball stays on the side away from the defender, changing hands with a crossover (or through the legs when he
   is right there); the shoulder turns to shield it; the body leans over the ball and rides the bounce.
