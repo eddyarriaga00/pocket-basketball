@@ -876,7 +876,7 @@
         <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p>
         ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
         <div class="card locker"><h3>Locker room <small>what your team wears at home</small></h3><div class="kits">${['icon', 'assoc', 'statement', 'city'].map(k => `<button class="kitpick ${(C.homeKit || 'icon') === k ? 'on' : ''}" data-k="${k}"><img alt="" data-kit="${k}"><span>${{ icon: 'Icon', assoc: 'Assoc.', statement: 'Statement', city: 'City' }[k]}</span></button>`).join('')}</div></div>
-        <div class="card look"><h3>Look</h3>${lookEditor(me)}</div>
+        <div class="card look"><h3>Look</h3>${(() => { const f = bodyShot(), h = portrait(); return f || h ? `<div class="lookpv">${f ? `<img alt="" src="${f}" style="--tc:${t.c1}">` : ''}${h ? `<img class="hd" alt="" src="${h}" style="--tc:${t.c1}">` : ''}</div>` : ''; })()}${lookEditor(me)}</div>
         <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
         <div class="card"><h3>Business</h3><p class="fine">${C.endorse && C.endorse.brand ? `Shoe deal: ${C.endorse.brand}, ${M(C.endorse.pay)} a year. ` : ''}${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
         ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>
@@ -939,7 +939,9 @@
       const k = b.parentElement.dataset.look, v = b.dataset.v || null, tm = PB.team(C.team);
       me.look[k + 'Pick'] = v || '';
       me.look[k] = v === 'team' ? (k === 'shoe' ? tm.c1 : tm.c2 === '#f2f2f2' ? tm.c1 : tm.c2) : v;
-      save(); hub();
+      /* redraw in place: the preview changes, the page stays where it was */
+      const y0 = scr().scrollTop, y1 = window.scrollY;
+      save(); hub(); scr().scrollTop = y0; window.scrollTo(0, y1);
     });
     if ($('#practice')) $('#practice').onclick = () => {
       scr().hidden = true;

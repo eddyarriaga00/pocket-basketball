@@ -391,3 +391,7 @@ input[type=color]{height:44px;padding:4px}
 /* the opening is a broadcast moment: the controls step aside until the tip */
 #btns,#stickzone,#hud .sub,#radar{transition:opacity .35s}
 #game:has(#intro:not([hidden])) :is(#btns,#stickzone,#hud .sub,#radar){opacity:0;pointer-events:none}
+/* the Look card's preview: you head to toe, and up close */
+.lookpv{display:flex;gap:10px;margin:4px 0 12px}
+.lookpv img{flex:1;min-width:0;height:210px;object-fit:contain;border-radius:12px;background:linear-gradient(160deg,var(--tc) 0%,rgba(255,255,255,.04) 75%)}
+.lookpv img.hd{object-fit:cover}
