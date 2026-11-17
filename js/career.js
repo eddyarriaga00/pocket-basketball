@@ -859,6 +859,7 @@
           <button data-k="${k}" ${can ? '' : 'disabled'}>+1<small>${me.r[k] >= A.cap[k] ? 'max' : c + ' SP'}</small></button></div>`; }).join('')}
         <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p>
         ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
+        <div class="card locker"><h3>Locker room <small>what your team wears at home</small></h3><div class="kits">${['icon', 'assoc', 'city'].map(k => `<button class="kitpick ${(C.homeKit || 'icon') === k ? 'on' : ''}" data-k="${k}"><img alt="" data-kit="${k}"><span>${{ icon: 'Icon', assoc: 'Association', city: 'City' }[k]}</span></button>`).join('')}</div></div>
         <div class="card look"><h3>Look</h3>${lookEditor(me)}</div>
         <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
         <div class="card"><h3>Business</h3><p class="fine">${C.endorse && C.endorse.brand ? `Shoe deal: ${C.endorse.brand}, ${M(C.endorse.pay)} a year. ` : ''}${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
@@ -898,6 +899,9 @@
     if ($('#quiet')) $('#quiet').onclick = () => { talked(); C.trust = Math.min(100, C.trust + 1); C.clapped = false; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
     if ($('#pcard')) $('#pcard').onclick = playerCard;
+    scr().querySelectorAll('img[data-kit]').forEach(img => { const k = img.dataset.kit, key = `${C.team}|${k}|${C.me.num}|${JSON.stringify(C.me.look || {})}`;
+      kitCache[key] = kitCache[key] || (!PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(C.me, PB.team(C.team), 150, { body: true, kit: k, back: k === 'assoc' }) : null); if (kitCache[key]) img.src = kitCache[key]; });
+    scr().querySelectorAll('.kitpick').forEach(b => b.onclick = () => { C.homeKit = b.dataset.k; save(); hub(); });
     if ($('#sim5')) $('#sim5').onclick = () => simMany(5);
     if ($('#simall')) $('#simall').onclick = () => simMany(999);
     if ($('#asg')) $('#asg').onclick = () => allStarGame(true);
@@ -965,6 +969,7 @@
       me.sp -= c; me.r[k]++; me.ovr = PB.ovr(me.r, me.pos); save(); hub();
     });
   }
+  const kitCache = {};
   /* your portrait, kept until your team or your look changes (not saved: it is quick to draw again) */
   let portraitCache = { key: '', url: null };
   function portrait() {
@@ -1095,7 +1100,7 @@
     const mine5 = liveFive(), benchOf = (id, five) => C.rosters[id].filter(p => !(p.out > 0) && !five.includes(p) && p.id !== C.me.id).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
-      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, tired: !!g.b2b, callIntro: introCall(g), goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, tired: !!g.b2b, callIntro: introCall(g), homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */

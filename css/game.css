@@ -342,3 +342,8 @@ input[type=color]{height:44px;padding:4px}
 /* Settings › Button size: Large */
 #game.bigbtn .btn.a{width:112px;height:112px;font-size:18px}#game.bigbtn .btn.b{width:80px;height:80px;right:136px}
 #game.bigbtn .btn.c{width:70px;height:70px;bottom:calc(150px + var(--sb))}#game.bigbtn .btn.d{width:58px;height:58px;right:158px;bottom:calc(126px + var(--sb))}
+/* the locker room: the three uniforms */
+.kits{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kitpick{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.kitpick img{width:100%;aspect-ratio:150/240;object-fit:contain}.kitpick span{font-size:12px;font-weight:700;color:var(--mute)}
+.kitpick.on{border-color:#fff;background:#fff}.kitpick.on span{color:#000}
