@@ -283,6 +283,7 @@
         if (!G.played.includes(p.st)) G.played.push(p.st), G.playedBy.push({ d: p.d, team: t });
         R.removePlayer && R.removePlayer(p); R.addPlayer(p, G.kits[t]);
         if (t === 0 || rand() < 0.3) feed(`${t === 0 ? '' : G.teams[1].name + ': '}${p.name} in for ${out.name}`);
+        if (t === 0 && n === 0 && rand() < 0.3) B('subs_ana', { prio: 1 });
         n++;
       }
     }
@@ -630,6 +631,9 @@
       else if (s.oop) B('oop', { prio: 5 });
       else if (s.pts === 3 && p.stepT !== undefined && G.t - p.stepT < 2) B('stepback', { prio: 4 });
       else if (s.foul) B('and1', { prio: 4 });
+      else if (s.fade) B('fade', { prio: 4 });
+      else if (s.kind === 'hook') B('hookshot', { prio: 3 });
+      else if (s.kind === 'dunk' && p.showoff) B('showoff', { prio: 5 });
       else B(s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : 'jumper', { prio: s.kind === 'dunk' || s.pts === 3 ? 3 : 2, follow: s.pts === 3 ? 0.3 : s.kind === 'dunk' ? 0.35 : 0.15 });
       if (run.pts >= 8 && !run.said) { run.said = true; setTimeout(() => B('run', { prio: 1 }), 2600); }
       /* assist: a pass that set it up in the last few seconds */
@@ -1012,7 +1016,7 @@
       if (hot && (hh.hold || 0) > 0.6 && distHoop(hh.x, hh.z, offT) < 26 && (!G.dbl || G.t > G.dbl.until + 9) && G.t > (G.dblNext || 0)) {
         let near = null, nd = 1e9;
         for (const o of G.pl) if (o.team === p.team && !o.isUser && o.slot !== hh.slot) { const d = hyp(o.x - hh.x, o.z - hh.z); if (d < nd) { nd = d; near = o; } }
-        if (near && nd < 18) { G.dbl = { who: near, on: hh, until: G.t + 2.6 }; feed(`Double team on ${hh.name}`); if (!G.dblSaid) { G.dblSaid = true; toast('Double team: find the open man', 'call'); } }
+        if (near && nd < 18) { G.dbl = { who: near, on: hh, until: G.t + 2.6 }; feed(`Double team on ${hh.name}`); B('double', { prio: 3 }); if (!G.dblSaid) { G.dblSaid = true; toast('Double team: find the open man', 'call'); } }
         else G.dblNext = G.t + 2;
       }
       if (G.dbl && G.dbl.who === p && G.dbl.on === hh && G.t < G.dbl.until) {
@@ -1126,6 +1130,7 @@
   function userStep(u, dt) {
     if (G.ball.holder === u) u.hold = (u.hold || 0) + dt;   // how long you have had it (doubles, assists)
     if (u.postUp > 0) {
+      if (!u.postSaid) { u.postSaid = true; B('postup_ana', { prio: 1 }); }
       u.postUp -= dt;
       if (G.ball.holder !== u || u.shoot) u.postUp = 0;
       else {
@@ -1213,7 +1218,7 @@
       const nd = nearestDef(u), Bs = R.basis();
       const hx = 0 - u.x, hz = hoopZ(0) - u.z, hl = hyp(hx, hz) || 1;
       /* a big inside sixteen feet: down on Move posts up instead of stepping back */
-      if (kind === 'step' && ['PF', 'C'].includes(u.d.pos) && hl < 16 && !u.postUp) { u.postUp = 2.6; u.moveCd = 0.6; toast('Post up', 'call'); buzz(10); return; }
+      if (kind === 'step' && ['PF', 'C'].includes(u.d.pos) && hl < 16 && !u.postUp) { u.postSaid = false; u.postUp = 2.6; u.moveCd = 0.6; toast('Post up', 'call'); buzz(10); return; }
       let dx, dz, sp = maxSpeed(u) * 1.4, shake = 0.18, lbl = '';
       if (kind === 'step') {
         /* back, away from the man in front of you; the next jumper gets the room */
@@ -1986,6 +1991,7 @@
         for (const p of pl) { const c = toCourt(sc.poss, SPOTS[p.slot][0][0], p.team === sc.poss ? 24 : 18); p.x = c.x; p.z = c.z; }
         G.then = () => inboundOut(sc.poss, toCourt(sc.poss, 25, 30));
         setTimeout(() => toast(sc.title || 'Go', 'call'), 300);
+        if (PB.booth) { const L = PB.booth.load(); if (L) L.then(() => setTimeout(() => B('daily_intro', { prio: 3 }), 600)); }
       }
       this.active = true;
       last = performance.now();

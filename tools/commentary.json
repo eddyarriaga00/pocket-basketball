@@ -1590,6 +1590,90 @@
     "text": "That's what I'm talking about!",
     "ex": 0.8
    }
+  ],
+  "fade": [
+   {
+    "who": "pbp",
+    "text": "Fadeaway... got it!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Falling away, and it drops!",
+    "ex": 0.75
+   }
+  ],
+  "hookshot": [
+   {
+    "who": "pbp",
+    "text": "The hook shot... good!",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Turns, hooks it in.",
+    "ex": 0.6
+   }
+  ],
+  "postup_ana": [
+   {
+    "who": "ana",
+    "text": "He's backing him down. Strong.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Big man going to work on the block.",
+    "ex": 0.5
+   }
+  ],
+  "double": [
+   {
+    "who": "pbp",
+    "text": "They're sending two at him!",
+    "ex": 0.6
+   },
+   {
+    "who": "ana",
+    "text": "Here comes the double team. Find the open man.",
+    "ex": 0.5
+   }
+  ],
+  "subs_ana": [
+   {
+    "who": "ana",
+    "text": "Fresh legs off the bench.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "The coach goes to his bench here.",
+    "ex": 0.45
+   }
+  ],
+  "showoff": [
+   {
+    "who": "pbp",
+    "text": "Oh, he's showing off now!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Nobody near him, and he puts on a show!",
+    "ex": 0.9
+   }
+  ],
+  "daily_intro": [
+   {
+    "who": "pbp",
+    "text": "Crunch time. This is the moment.",
+    "ex": 0.6
+   },
+   {
+    "who": "pbp",
+    "text": "Final seconds. Everything comes down to this.",
+    "ex": 0.6
+   }
   ]
  }
 }
