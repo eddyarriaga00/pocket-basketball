@@ -771,6 +771,17 @@
   }
 
   /* ---------- the next game: the schedule, or a playoff series ---------- */
+  /* what the booth opens with tonight */
+  function introCall(g) {
+    if (g.po) {
+      const sr = mySeries(); if (!sr || sr.bo === 1) return 'po_intro';
+      const need = Math.ceil(sr.bo / 2), mine = sr.a === C.team ? sr.wa : sr.wb, theirs = sr.a === C.team ? sr.wb : sr.wa;
+      return mine + theirs === 6 ? 'g7' : theirs === need - 1 ? 'elim' : mine === need - 1 ? 'closeout' : 'po_intro';
+    }
+    if (C.year === 1 && C.gi === 0) return 'debut';
+    if (C.rival && g.opp === C.rival.team) return 'rival';
+    return null;
+  }
   function nextGame() {
     if (C.phase === 'regular') {
       const g = C.games[C.gi];
@@ -820,7 +831,7 @@
     if (C.rival && o.id === C.rival.team && rivalP()) opp5[PB.POS.indexOf(rivalP().pos)] = rivalP();
     PB.Game.start({ teams: [t, o], rosters: [liveFive(), opp5], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
-      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, tired: !!g.b2b, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, tired: !!g.b2b, callIntro: introCall(g), goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */
@@ -1173,7 +1184,7 @@
     };
     if (!play) { const ln = simLine(C.me, 'Starter', PB.rand() < 0.5); const a = 140 + Math.round(PB.gauss() * 10), b = 140 + Math.round(PB.gauss() * 10) + (a === 140 ? 1 : 0); done(a, b, ln, true); return; }
     scr().hidden = true;
-    PB.Game.start({ teams: [T(mine), T(other)], rosters: [us, them], userId: 'me', qlen: S.qlen, level: 'All-Star', floor: PB.team(C.team), strength: [90, 90],
+    PB.Game.start({ teams: [T(mine), T(other)], rosters: [us, them], userId: 'me', qlen: S.qlen, level: 'All-Star', callIntro: 'allstar', floor: PB.team(C.team), strength: [90, 90],
       onEnd: r => done(r.score[0], r.score[1], r.user, false) });
   }
   /* the 3-Point Contest: you and seven of the league's shooters, five racks, a money ball at the end of each */

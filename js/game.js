@@ -494,7 +494,7 @@
     if (G.drill.kind === 'dunk') { dunkLands(s); return; }
     const D = G.drill, b = G.ball, money = D.def.money && D.ball === D.def.balls - 1;
     D.att++;
-    if (s.made) { D.made++; D.score += money ? 2 : 1; R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); AU().crowd.react(money ? 'roar' : 'applause', money ? 0.9 : 0.5); if (money) toast('MONEY BALL', 'make'); buzz([15, 30, 15]); }
+    if (s.made) { D.made++; D.score += money ? 2 : 1; R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); AU().crowd.react(money ? 'roar' : 'applause', money ? 0.9 : 0.5); if (money) { toast('MONEY BALL', 'make'); B('moneyball', { prio: 3 }); } buzz([15, 30, 15]); }
     else { AU().play('rim', { x: b.ex, power: 0.6 }); }
     b.state = 'drop'; b.t = 0;
     D.ball++;
@@ -1654,13 +1654,13 @@
         Shoot: hold, let go at the top of the jump (the green band). Pass: to the open man, or the one your stick points at.
         Move: tap for a crossover, or swipe it: left or right to cross that way, down for a step-back (room for the jumper), up to spin to the rim. Off the ball: Call asks for it, Cut runs to the rim.<br>
         Defense: Jump to contest and block, Steal to reach. Lift your thumb and you stay in front of your man.<br>
-        Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin.</div></div>`;
+        Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</div></div>`;
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {
         /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */
         G.to[0]--; ov.hidden = true; G.paused = false; AU().muffle(false);
         for (const p of G.pl) { if (p.energy !== undefined) p.energy = Math.min(1, p.energy + 0.4); p.shoot = null; p.drive = 0; }
-        AU().play('whistle'); toast('Timeout', 'call'); if (AU().organ) setTimeout(() => AU().organ('walk'), 800);
+        AU().play('whistle'); toast('Timeout', 'call'); B('timeout', { prio: 3, follow: 0.4 }); if (AU().organ) setTimeout(() => AU().organ('walk'), 800);
         const late = G.q >= 4 && G.clock < 120;
         G.poss = null;
         dead(2.4, () => {
@@ -1716,10 +1716,12 @@
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
-      if (PB.booth && o.drill === 'dunk') { const L = PB.booth.load(); if (L) L.then(() => PB.booth.pa('dk_intro')); }
+      if (PB.booth && (o.drill === 'dunk' || o.drill === 'contest')) { const L = PB.booth.load(); if (L) L.then(() => PB.booth.pa(o.drill === 'dunk' ? 'dk_intro' : 'contest_intro')); }
       if (PB.booth && !o.drill) {
         /* the home city's own opening when it is recorded, the general one otherwise */
-        const fl = o.floor || o.teams[0], ck = PB.VO && PB.VO['city_' + fl.id] && PB.VO['city_' + fl.id].length ? 'city_' + fl.id : 'intro';
+        const fl = o.floor || o.teams[0], has = k => k && PB.VO && PB.VO[k] && PB.VO[k].length;
+        /* the night's own opening (a Game 7, a rival, a debut) when there is one, else the city's, else the general one */
+        const ck = has(o.callIntro) ? o.callIntro : has('city_' + fl.id) ? 'city_' + fl.id : 'intro';
         const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B(ck, { prio: 2 }); setTimeout(() => PB.booth.pa('pa_home_' + fl.id), 2600); }); else B(ck, { prio: 2 });
       }
       /* jump ball setup: everyone around the center circle */

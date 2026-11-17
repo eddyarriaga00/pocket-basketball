@@ -1351,6 +1351,123 @@
     "text": "That's a fifty! A perfect score!",
     "ex": 0.95
    }
+  ],
+  "po_intro": [
+   {
+    "who": "pbp",
+    "text": "Playoff basketball. Everything is on the line tonight.",
+    "ex": 0.6
+   },
+   {
+    "who": "pbp",
+    "text": "It's the postseason, and this building is electric.",
+    "ex": 0.6
+   },
+   {
+    "who": "pbp",
+    "text": "Welcome to the playoffs. Every possession matters now.",
+    "ex": 0.55
+   }
+  ],
+  "g7": [
+   {
+    "who": "pbp",
+    "text": "Game seven. Win or go home.",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "It all comes down to this. Game seven.",
+    "ex": 0.7
+   }
+  ],
+  "elim": [
+   {
+    "who": "pbp",
+    "text": "Facing elimination tonight. Their season is on the line.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Lose tonight, and the season is over.",
+    "ex": 0.55
+   }
+  ],
+  "closeout": [
+   {
+    "who": "pbp",
+    "text": "One more win, and they move on.",
+    "ex": 0.55
+   }
+  ],
+  "rival": [
+   {
+    "who": "pbp",
+    "text": "Tonight, a rivalry renewed. These two came into the league together.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Same draft class, same division, and they hate losing to each other.",
+    "ex": 0.55
+   }
+  ],
+  "debut": [
+   {
+    "who": "pbp",
+    "text": "Here's the rookie, in his first game in the league.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "A big night for the rookie. His debut.",
+    "ex": 0.55
+   }
+  ],
+  "allstar": [
+   {
+    "who": "pbp",
+    "text": "Welcome to the All-Star Game. The best in the world, all on one floor.",
+    "ex": 0.6
+   }
+  ],
+  "contest_intro": [
+   {
+    "who": "pa",
+    "text": "Ladies and gentlemen... the Three-Point Contest!",
+    "ex": 0.8
+   }
+  ],
+  "moneyball": [
+   {
+    "who": "pbp",
+    "text": "Money ball... got it!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Cash! The money ball drops.",
+    "ex": 0.75
+   }
+  ],
+  "timeout": [
+   {
+    "who": "pbp",
+    "text": "Timeout on the floor.",
+    "ex": 0.4
+   },
+   {
+    "who": "pbp",
+    "text": "They call time to settle things down.",
+    "ex": 0.4
+   }
+  ],
+  "timeout_ana": [
+   {
+    "who": "ana",
+    "text": "Good time for a breather. Regroup and go.",
+    "ex": 0.45
+   }
   ]
  }
 }
