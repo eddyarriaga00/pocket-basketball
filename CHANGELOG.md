@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- A perfect release (Excellent, the green) always goes in, free throws too. Only a block stops it.
 - New hair: fade, cornrows, locs, a bun and a mohawk (on the Look card too). Beards show again. The title screen's
   player dribbles and works his moves. Sneakers are high-tops with a swoop in the team's second color. A thin outline
   on players (off on Low graphics).

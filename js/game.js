@@ -450,6 +450,7 @@
     else if (s.kind === 'hook') cf = 1 - (1 - cf) * 0.6;   // the hook goes up over the defender
     prob = clamp(prob * cf, 0.01, 0.985);
     if (p.isUser && tkoOn()) prob = clamp(prob + (1 - prob) * 0.2, 0.01, 0.985);   // Takeover: hot hands
+    if (timing === 'Excellent') prob = 1;   // a perfect release goes in: only a block stops it
     const nd = nearestDef(p);
     /* how covered you were, next to the timing: a miss explains itself */
     if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}`; }
@@ -747,7 +748,7 @@
     if (p.isUser && !G.auto) {
       const w = (0.05 + p.r.ft * 0.0007) * timingEase(), err = meter - 0.82, ae = Math.abs(err);
       let txt;
-      if (ae <= w) { txt = 'Excellent'; prob = prob + (1 - prob) * 0.75; }
+      if (ae <= w) { txt = 'Excellent'; prob = 1; }   // a perfect free throw is good
       else if (ae <= w * 2.2) txt = err < 0 ? 'Slightly early' : 'Slightly late';
       else { txt = err < 0 ? 'Early' : 'Late'; prob *= 0.55; }
       showRelease(txt, meter, w);
