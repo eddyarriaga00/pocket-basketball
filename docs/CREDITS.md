@@ -20,4 +20,10 @@ The players' body and its running, jumping and stance animations are the mannequ
 `tools/model.mjs` trims it to the clips the game uses (`models/player.glb`, 417 kB). The kit, numbers, hair and the
 basketball arm poses are added in code.
 
+## The booth
+
+The two commentators are recorded on a Mac with [Chatterbox](https://github.com/resemble-ai/chatterbox) (Resemble AI,
+MIT license), each cloned from a reference clip spoken by [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M)
+(Apache 2.0), a synthetic voice: no real person's voice is used. `tools/voice.py` records and packs them.
+
 Libraries: [three.js](https://threejs.org) (MIT). Fonts: Archivo (SIL Open Font License), from Google Fonts.
