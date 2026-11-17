@@ -1277,8 +1277,8 @@
       /* the other team wears white when its color is too close to yours */
       const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
       const cd = (a, c) => { const x = rgb(a), y = rgb(c); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
-      const k0 = { c1: o.teams[0].c1, c2: o.teams[0].c2 };
-      const k1 = cd(o.teams[0].c1, o.teams[1].c1) < 120 ? { c1: '#f2f2f2', c2: o.teams[1].c1 } : { c1: o.teams[1].c1, c2: o.teams[1].c2 };
+      const k0 = { c1: o.teams[0].c1, c2: o.teams[0].c2, name: o.teams[0].name };
+      const k1 = cd(o.teams[0].c1, o.teams[1].c1) < 120 ? { c1: '#f2f2f2', c2: o.teams[1].c1, name: o.teams[1].name } : { c1: o.teams[1].c1, c2: o.teams[1].c2, name: o.teams[1].name };
       for (const p of pl) R.addPlayer(p, p.team === 0 ? k0 : k1);
       $('#a0').textContent = o.teams[0].id; $('#a1').textContent = o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;

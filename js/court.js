@@ -128,6 +128,14 @@
   }
 
   /* A player: legs, shorts, torso with the number, arms and a head, built at 6.1 ft and scaled to his height. */
+  function wordTex(word, color) {
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+    const g = cv.getContext('2d');
+    g.font = '900 44px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const w = g.measureText(word.toUpperCase()).width, sc = Math.min(1, 240 / Math.max(1, w));
+    g.save(); g.translate(128, 34); g.scale(sc, 1); g.fillStyle = color; g.fillText(word.toUpperCase(), 0, 0); g.restore();
+    return new T.CanvasTexture(cv);
+  }
   function numberTex(num, c1, c2) {
     const cv = document.createElement('canvas'); cv.width = cv.height = 128;
     const g = cv.getContext('2d');
@@ -238,6 +246,8 @@
       front: local(spine, new T.Vector3(0, chestY - H * 0.035, torsoZ + H * 0.022), new T.Quaternion()),
       /* the feet stand at y = 0, so the top of the head is the height (the quantized mesh's own box is centered on zero) */
       hair: local(head, new T.Vector3(headP.x, H * 0.945, headP.z - H * 0.01), new T.Quaternion()),
+      face: local(head, new T.Vector3(headP.x, H * 0.885, headP.z + H * 0.052), new T.Quaternion()),
+      chest: local(spine, new T.Vector3(0, chestY + H * 0.02, torsoZ + H * 0.024), new T.Quaternion()),
     };
     const sideR = Math.sign(at('DEF-hand.R').x - at('DEF-hips').x) || -1;
     const clips = {}; for (const c of g.animations) clips[c.name] = c;
@@ -276,6 +286,17 @@
     const put = (bone, dcl, obj) => { obj.position.copy(dcl.pos); obj.quaternion.copy(dcl.quat); bone.add(obj); };
     put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
     put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
+    /* a face: eyes and brows on the front of the head, so nobody is a blank egg */
+    const face = new T.Group(), dark = new T.MeshBasicMaterial({ color: 0x120c08 }), white = new T.MeshBasicMaterial({ color: 0xf2efe8 });
+    for (const sx of [-1, 1]) {
+      const eye = new T.Mesh(new T.SphereGeometry(H * 0.0085, 6, 4), white); eye.position.set(sx * H * 0.018, 0, 0); face.add(eye);
+      const pup = new T.Mesh(new T.SphereGeometry(H * 0.0048, 6, 4), dark); pup.position.set(sx * H * 0.018, 0, H * 0.006); face.add(pup);
+      const brow = new T.Mesh(new T.BoxGeometry(H * 0.022, H * 0.004, H * 0.004), dark); brow.position.set(sx * H * 0.019, H * 0.014, H * 0.002); brow.rotation.z = -sx * 0.12; face.add(brow);
+    }
+    put(bones[bk('DEF-head')], TPL.decals.face, face);
+    /* the team's name across the chest, over the number */
+    const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', kit.c2), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    put(bones[bk('DEF-spine.003')], TPL.decals.chest, wm);
     const hair = new T.Mesh(new T.SphereGeometry(H * 0.07, 14, 9, 0, Math.PI * 2, 0, Math.PI / 1.9), new T.MeshLambertMaterial({ color: 0x17110d }));
     hair.scale.set(1.04, 0.98, 1.1);
     put(bones[bk('DEF-head')], TPL.decals.hair, hair);
@@ -616,12 +637,24 @@
   };
 
   R.swish = s => { for (const n of nets) if (n.s === s) n.swish = 1; };
-  R.render = () => renderer.render(scene, cam);
+  /* adaptive resolution: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x, then 1x) */
+  let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2;
+  R.render = () => {
+    const now = performance.now();
+    if (ftLast) { ftAcc += Math.min(100, now - ftLast); ftN++; }
+    ftLast = now;
+    if (ftN >= 90) {
+      const avg = ftAcc / ftN; ftAcc = 0; ftN = 0;
+      if (avg > 22 && prCap > 1) { prCap = prCap > 1.5 ? 1.5 : 1; R.resize(); }
+    }
+    renderer.render(scene, cam);
+  };
+  R.pixelCap = () => prCap;
   R.resize = () => {
     const el = renderer.domElement.parentElement;
     if (!el.clientWidth) return;   // the game view is hidden (a menu is up): size it when it shows
     W = el.clientWidth; H = el.clientHeight;
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    DPR = Math.min(window.devicePixelRatio || 1, prCap);
     renderer.setPixelRatio(DPR); renderer.setSize(W, H, false);
     cam.aspect = W / H;
     /* a narrow portrait screen gets a wider lens so the court's width still fits */
