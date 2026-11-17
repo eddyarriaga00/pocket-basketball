@@ -115,6 +115,15 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Retirement from 33 and the Hall of Fame vote; your athleticism slips after 30 (2026-11-17)
 - [ ] Jersey retirement ceremony
 
+## Done overnight, not on the list above (2026-11-17)
+
+- [x] The arena announcer (team intros, the clock, the crowd), the arena organ, the M-V-P chant, iPhone sound with the silent switch on
+- [x] Timeouts, holding for the last shot, fouling to stop the clock, fouling out, the bonus on the scorebug
+- [x] The radar, pass and defense markers, release coverage text, a release flash
+- [x] Your portrait on the hub, draft night and awards night in 3D, faces with eyes, nose and mouth
+- [x] League news (big games, streaks, your rival), more life events and press questions, retired careers on the device
+- [x] Sim 5 games, Sim to the playoffs; skill points scaled by season length; every build starts near 60
+
 ## M5 · More modes and polish
 
 - [x] Whole-team control in quick games: you are the ball handler, or the man guarding it; Switch on defense (2026-11-17)
