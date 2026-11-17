@@ -28,7 +28,7 @@ const { chromium } = require('playwright');
     if (await pg.$('.tabs button[data-t="home"]')) { await pg.click('.tabs button[data-t="home"]'); continue; }
     log.push('stuck: ' + (await pg.textContent('#screen')).replace(/\s+/g, ' ').slice(0, 120)); break;
   }
-  const c = await pg.evaluate(() => { const C = PB.Career.get(); return { year: C.year, team: C.team, contract: C.contract, earnings: +C.earnings.toFixed(1), trophies: C.trophies.length, ovr: C.me.ovr, age: C.me.age, news: C.news.slice(0, 6) }; });
+  const c = await pg.evaluate(() => { const C = PB.Career.get(); return { year: C.year, team: C.team, contract: C.contract, earnings: +C.earnings.toFixed(1), trophies: C.trophies.length, ovr: C.me.ovr, age: C.me.age, news: C.news.slice(0, 6), league: C.news.filter(n => /retire|Trade:|Free agency|rookie class/.test(n)).slice(0, 8), ages: Object.values(C.rosters).flat().reduce((a, p) => Math.max(a, p.age), 0) }; });
   console.log(log.join('\n')); console.log(JSON.stringify(c, null, 0));
   await pg.evaluate(() => { const C = PB.Career.get(); C.me.age = 34; C.phase = 'awards'; PB.Career.hub(); });
   await pg.click('#go'); await pg.click('#retire'); await pg.waitForTimeout(300);

@@ -458,6 +458,47 @@
     }
     if (C.dayBest) C.news.unshift(`${C.dayBest.name} drops ${C.dayBest.pts} for the ${PB.team(C.dayBest.team).name}`);
     leagueInjuries();
+    if (C.phase === 'regular' && PB.rand() < 0.03) leagueTrade();
+  }
+  /* the league's summer: veterans retire and a rookie class takes their places, free agents change teams */
+  function leagueSummer() {
+    const rv = C.rival && C.rival.id, gone = [], moves = [];
+    for (const t of PB.TEAMS) {
+      const ro = C.rosters[t.id], nums = new Set(ro.map(p => p.num));
+      for (let i = 0; i < ro.length; i++) {
+        const p = ro[i];
+        if (p.id === rv) continue;
+        const go = p.age >= 39 || (p.age >= 35 && PB.rand() < 0.45 + (p.age - 35) * 0.2) || (p.age >= 32 && p.ovr < 60 && PB.rand() < 0.5);
+        if (!go) continue;
+        gone.push([p, t.id]);
+        const r = PB.makePlayer(p.pos, Math.round(PB.rr(60, 74)), PB.ri(19, 22)); r.rookie = true;
+        while (nums.has(r.num)) r.num = PB.ri(0, 55);
+        nums.add(r.num); ro[i] = r;
+      }
+    }
+    /* free agency around the league: good players trade places between teams (yours keeps its men) */
+    const ids = PB.TEAMS.map(t => t.id).filter(id => id !== C.team);
+    for (let k = 0; k < 8; k++) {
+      const a = PB.pick(ids), b = PB.pick(ids); if (a === b) continue;
+      const pa = PB.pick(C.rosters[a]), pb = C.rosters[b].filter(q => q.pos === pa.pos && q.id !== rv && Math.abs(q.ovr - pa.ovr) <= 4)[0];
+      if (!pb || pa.id === rv) continue;
+      C.rosters[a][C.rosters[a].indexOf(pa)] = pb; C.rosters[b][C.rosters[b].indexOf(pb)] = pa;
+      moves.push([pa, b], [pb, a]);
+    }
+    gone.sort((x, y) => y[0].ovr - x[0].ovr).slice(0, 3).forEach(([p, tid]) => C.news.unshift(`${PB.full(p)} retires at ${p.age} (${PB.team(tid).ab})`));
+    moves.filter(([p]) => p.ovr >= 78).slice(0, 3).forEach(([p, tid]) => C.news.unshift(`Free agency: ${PB.full(p)} signs with the ${PB.team(tid).name}`));
+    if (gone.length) C.news.unshift(`${gone.length} players retire this summer; a new rookie class arrives`);
+  }
+  /* a trade now and then between two other teams, a like-for-like swap at one position */
+  function leagueTrade() {
+    const ids = PB.TEAMS.map(t => t.id).filter(id => id !== C.team), rv = C.rival && C.rival.id;
+    const a = PB.pick(ids), b = PB.pick(ids); if (a === b) return;
+    const pa = C.rosters[a].filter(q => q.id !== rv && !(q.out > 0)).sort((x, y) => y.ovr - x.ovr)[PB.ri(1, 6)];
+    if (!pa) return;
+    const pb = C.rosters[b].find(q => q.pos === pa.pos && q.id !== rv && Math.abs(q.ovr - pa.ovr) <= 3);
+    if (!pb) return;
+    C.rosters[a][C.rosters[a].indexOf(pa)] = pb; C.rosters[b][C.rosters[b].indexOf(pb)] = pa;
+    C.news.unshift(`Trade: the ${PB.team(a).name} send ${PB.full(pa)} to the ${PB.team(b).name} for ${PB.full(pb)}`);
   }
   /* injuries around the league: a day off to a few weeks, scaled to the season's length; a star's is news */
   function leagueInjuries() {
@@ -1392,6 +1433,7 @@
         p.age++; p.rookie = false; for (const k in p.r) p.r[k] = PB.clamp(Math.round(p.r[k] + d + PB.gauss()), 25, 99); p.ovr = PB.ovr(p.r, p.pos);
       }
       me.sp += 6;
+      leagueSummer();
       newSeason(); save(); tab = 'home'; hub();
     }));
   }

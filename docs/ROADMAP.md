@@ -119,7 +119,9 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 - [x] Rookie deal scaled by pick, an extension offer with a year left, free agency with four offers (money, years,
       projected role, team strength), trade requests, career earnings (2026-11-17)
-- [ ] Ten-man rosters to fifteen; trades and signings across the league
+- [x] The league turns over: veterans retire, a rookie class arrives every summer, free agents move, trades now and
+      then during the season (2026-11-17)
+- [ ] Ten-man rosters to fifteen
 - [x] Retirement from 33 and the Hall of Fame vote; your athleticism slips after 30 (2026-11-17)
 - [x] Banners: your titles and your retired jersey hang in that team's arena from then on, in every mode (2026-11-17)
 
