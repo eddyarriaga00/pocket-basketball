@@ -555,6 +555,7 @@
       feed(`${p.name} ${s.oop ? 'alley-oop' : s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : s.kind === 'hook' ? 'hook shot' : s.kind === 'floater' ? 'floater' : 'jumper'}${ast ? ` (${ast.name} ast)` : ''}`);
       if (p.isUser) { grade(s.pts === 3 ? 4 : 3, s.pts === 3 ? 'Made three' : 'Scored'); buzz([20, 30, 30]); }
       if (p.isUser && (s.pts === 3 || s.kind === 'dunk')) p.celebT = 0.9;
+      if ((s.pts === 3 || s.kind === 'dunk' || s.foul || G.clock <= 0.05) && R.benchJump) R.benchJump(p.team);
       if (p.isUser || (ast && ast.isUser)) {
         const v = (s.kind === 'dunk' ? 3 : s.pts === 3 ? 2.5 : 1) + (s.foul ? 1 : 0) + (s.oop ? 1 : 0) + (G.clock <= 0.05 ? 4 : clutchTime() ? 1 : 0) + (p.isUser ? 0 : -0.8);
         const what = !p.isUser ? 'Your assist' : s.oop ? 'Alley-oop' : s.kind === 'dunk' ? 'Dunk' : s.pts === 3 ? 'Three' : s.kind === 'layup' ? 'Layup' : 'Bucket';

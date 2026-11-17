@@ -546,7 +546,7 @@
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
   R.build = (home) => {
     for (const m of meshes.values()) scene.remove(m.root);
-    meshes.clear(); refs = []; benchMesh = null;
+    meshes.clear(); refs = []; benchMesh = [];
     while (scene.children.length > 2) scene.remove(scene.children[2]);
     nets = [];
     const apron = new T.Mesh(new T.PlaneGeometry(90, 140), new T.MeshLambertMaterial({ color: 0x1c2333 }));
@@ -697,11 +697,14 @@
 
   /* the benches: five seated reserves in warmups on each side of the scorer's table, and a coach standing at the end
      of each. Simple shapes in one mesh with vertex colors: one draw for both benches. */
-  let benchMesh = null;
+  let benchMesh = [], benchJ = [0, 0], benchT = 0;
+  R.benchJump = team => { benchJ[team] = 1.4; };   // a big play: that bench is up on its feet
   R.setBenches = (kits) => {
-    if (benchMesh) { scene.remove(benchMesh); benchMesh.geometry.dispose(); benchMesh = null; }
+    for (const m of benchMesh) { scene.remove(m); m.geometry.dispose(); }
+    benchMesh = [];
     if (!kits) return;
-    const parts = [], col = new T.Color();
+    let parts = [];
+    const col = new T.Color();
     const add = (g, x, y, z, c) => {
       g.translate(x, y, z); col.set(c);
       const n = g.attributes.position.count, a = new Float32Array(n * 3);
@@ -725,9 +728,9 @@
       add(new T.BoxGeometry(0.7, 3, 1.1), cx, 1.5, cz, '#1d1f24');
       add(new T.CylinderGeometry(0.55, 0.6, 2.4, 8), cx, 4.2, cz, '#2b2e36');
       add(new T.SphereGeometry(0.42, 8, 6), cx, 5.85, cz, PB.SKIN[(t * 4 + 1) % 6]);
+      const m = new T.Mesh(mergeGeo(parts), new T.MeshLambertMaterial({ vertexColors: true }));
+      scene.add(m); benchMesh.push(m); parts = [];
     });
-    benchMesh = new T.Mesh(mergeGeo(parts), new T.MeshLambertMaterial({ vertexColors: true }));
-    scene.add(benchMesh);
   };
 
   R.addPlayer = (p, kit) => {
@@ -778,6 +781,8 @@
   /* Pose every player from the game state. */
   R.update = (G, dt) => {
     if (!G.replay) moveRefs(G, dt);
+    benchT += dt;
+    benchMesh.forEach((m, t) => { if (benchJ[t] > 0) { benchJ[t] = Math.max(0, benchJ[t] - dt); m.position.y = Math.abs(Math.sin(benchT * 11 + t)) * 0.7 * Math.min(1, benchJ[t]); } else m.position.y = 0; });
     for (const [p, m] of meshes) {
       if (m.kind === 'skin') { updateSkinned(p, m, G, dt); m.shadow.position.set(0, 0.02, 0); m.shadow.scale.setScalar(1 - Math.min(p.y / 8, 0.5)); continue; }
       m.root.position.set(p.x, 0, p.z);
