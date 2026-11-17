@@ -235,8 +235,11 @@
   R.setZoom = z => { zoom = PB.clamp(z, 0.7, 1.5); };
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
   R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
+  let snap = false; R.snap = () => { snap = true; };
   R.setCam = m => { camMode = R.CAMS[m] ? m : 'lock'; R.resize(); };
   R.getCam = () => camMode;
+  /* player lock framing: how far behind you, how high, how far ahead it looks, the lens */
+  R.lock = { back: 42, up: 32, ahead: 8, fov: 52 };   // high and wide: you, the lane and the rim, and most of the floor
   R.getZoom = () => zoom;
 
   /* Pose every player from the game state. */
@@ -292,12 +295,14 @@
       const me = G.user || b.holder || b;
       const ax = me.x + (b.x - me.x) * 0.25, az = me.z + (b.z - me.z) * 0.25;
       anchor.lerp(new T.Vector3(ax, 0, az), Math.min(1, dt * 5));
-      if (!dt) anchor.set(ax, 0, az);
+      if (!dt || snap) { anchor.set(ax, 0, az); yaw = want; snap = false; }
       const fx = Math.sin(yaw), fz = Math.cos(yaw);
-      const back = 27 * zoom, up = 17.5 * zoom;
-      cam.position.set(PB.clamp(anchor.x - fx * back, -40, 40), up, PB.clamp(anchor.z - fz * back, -62, 62));
-      cam.lookAt(anchor.x + fx * 12, 3, anchor.z + fz * 12);
-      camPos.copy(cam.position); camLook.set(anchor.x + fx * 12, 3, anchor.z + fz * 12);
+      const L = R.lock, back = L.back * zoom, up = L.up * zoom;
+      /* never behind a backboard: near your own baseline the camera stops at the baseline and rises a little instead */
+      const cz = anchor.z - fz * back, lim = 45.5, over = Math.max(0, Math.abs(cz) - lim);
+      cam.position.set(PB.clamp(anchor.x - fx * back, -40, 40), up + over * 0.5, PB.clamp(cz, -lim, lim));
+      cam.lookAt(anchor.x + fx * L.ahead, 3, anchor.z + fz * L.ahead);
+      camPos.copy(cam.position); camLook.set(anchor.x + fx * L.ahead, 3, anchor.z + fz * L.ahead);
       return;
     }
     let tPos, tLook;
@@ -316,7 +321,7 @@
       tPos = new T.Vector3(fx - D * Math.cos(pitch), D * Math.sin(pitch) + 2, fz);
       tLook = new T.Vector3(fx, 2.5, fz);
     }
-    const k = Math.min(1, dt * 3.2);
+    const k = snap ? 1 : Math.min(1, dt * 3.2); snap = false;
     camPos.lerp(tPos, k); camLook.lerp(tLook, k);
     cam.position.copy(camPos); cam.lookAt(camLook);
   };
@@ -332,7 +337,7 @@
     cam.aspect = W / H;
     /* a narrow portrait screen gets a wider lens so the court's width still fits */
     const tall = W / H < 0.6;
-    cam.fov = camMode === 'overhead' ? (tall ? 50 : 42) : camMode === 'lock' ? (tall ? 62 : 46) : (tall ? 56 : 40);
+    cam.fov = camMode === 'overhead' ? (tall ? 50 : 42) : camMode === 'lock' ? (tall ? R.lock.fov : R.lock.fov - 16) : (tall ? 56 : 40);
     cam.updateProjectionMatrix();
   };
   const v = new T.Vector3();
