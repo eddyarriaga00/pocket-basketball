@@ -2034,7 +2034,10 @@
         iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
         iv.className = ''; iv.hidden = false; clearTimeout(iv.h);
         /* then the starting lineups, the way the broadcast shows them */
-        const shot = (p, t) => { try { return R.modelReady && R.modelReady() && !PB.noGL ? R.portrait(p.d, o.teams[t], 64, { close: true, kit: t === 0 ? 'icon' : 'assoc' }) : null; } catch (e) { return null; } };
+        const shot = (p, t) => { try { if (!R.modelReady || !R.modelReady() || PB.noGL) return null;
+          const key = [p.d.id || p.name, o.teams[t].id, t, JSON.stringify(p.d.look || '')].join('|'), C = R._shots || (R._shots = new Map());
+          if (!C.has(key)) { if (C.size > 120) C.clear(); C.set(key, R.portrait(p.d, o.teams[t], 64, { close: true, kit: t === 0 ? 'icon' : 'assoc' })); }
+          return C.get(key); } catch (e) { return null; } };
         const five = t => pl.filter(p => p.team === t).sort((a, b) => a.slot - b.slot).map(p => { const im = shot(p, t); return `<li class="${p.isUser ? 'me' : ''}">${im ? `<img alt="" src="${im}">` : ''}<u>${p.num}</u>${p.name}<small>${p.d.pos || ''}</small></li>`; }).join('');
         iv.h = setTimeout(() => {
           iv.className = 'lineups';
