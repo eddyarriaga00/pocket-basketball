@@ -417,7 +417,7 @@
     C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
     if (C.contract) C.earnings = (C.earnings || 0) + C.contract.salary;
     if (C.endorse && C.endorse.pay) C.earnings = (C.earnings || 0) + C.endorse.pay;
-    C.ls = {}; C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 };
+    C.ls = {}; C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 }; C.vote = null; C.wk = null;
     C.startOvr = C.me.ovr;
     if (C.rival) C.rival.season = zero();
     C.news.unshift(`Season ${C.year} begins: ${n} games, ${PB.TEAMS.length} teams.`);
@@ -501,6 +501,37 @@
     if (C.dayBest) C.news.unshift(`${C.dayBest.name} drops ${C.dayBest.pts} for the ${PB.team(C.dayBest.team).name}`);
     leagueInjuries();
     if (C.phase === 'regular' && PB.rand() < 0.03) leagueTrade();
+  }
+  /* every seven games the league names a Player of the Week in each conference; your week can be it. About a third
+     of the way in, the first All-Star fan-voting returns come out. */
+  function weekly(res, k) {
+    const W = C.wk || (C.wk = { n: 0, pts: 0, reb: 0, ast: 0, w: 0 });
+    W.n++; W.pts += res.line.pts * k; W.reb += res.line.reb * k; W.ast += res.line.ast * k; if (res.win) W.w++;
+    if (W.n >= 7) {
+      const me = C.me, conf = PB.team(C.team).conf, sc = (W.pts + W.reb * 0.6 + W.ast * 0.8) / W.n + W.w * 1.4;
+      if (sc >= 33) {
+        C.trophies.push(`${conf} Player of the Week, season ${C.year}`); C.fans = Math.round(C.fans * 1.05);
+        C.news.unshift(`${me.last} is the ${conf} Player of the Week: ${(W.pts / W.n).toFixed(1)} points a game, ${W.w}-${W.n - W.w}`);
+        C.feed.unshift({ who: '@league', text: `${PB.full(me)} is your ${conf} Player of the Week` });
+      } else {
+        const L = leaders().filter(r => !r.me && PB.team(r.team).conf === conf).sort((a, b) => (b.ptspg + b.rebpg * 0.6 + b.astpg * 0.8) * (0.7 + PB.rand() * 0.6) - (a.ptspg + a.rebpg * 0.6 + a.astpg * 0.8) * (0.7 + PB.rand() * 0.6));
+        if (L[0]) C.news.unshift(`${L[0].name} (${PB.team(L[0].team).ab}) is the ${conf} Player of the Week`);
+      }
+      C.wk = { n: 0, pts: 0, reb: 0, ast: 0, w: 0 };
+    }
+    /* the first returns of the fan vote */
+    if (!C.vote && C.len >= 20 && C.gi >= Math.round(C.len * 0.33)) {
+      const conf = PB.team(C.team).conf, guard = ['PG', 'SG'].includes(C.me.pos), grp = guard ? ['PG', 'SG'] : ['SF', 'PF', 'C'];
+      const val = r => r.ptspg + r.rebpg * 0.5 + r.astpg * 0.7;
+      const rows = leaders().filter(r => PB.team(r.team).conf === conf);
+      const pos = id => { for (const t of PB.TEAMS) { const p = C.rosters[t.id].find(q => PB.full(q) === id); if (p) return p.pos; } return null; };
+      const mine = rows.find(r => r.me); if (!mine) return;
+      const fanBoost = Math.log10(Math.max(1000, C.fans)) - 4;
+      const others = rows.filter(r => !r.me && grp.includes(pos(r.name))).map(r => val(r));
+      const rank = 1 + others.filter(v => v > val(mine) + fanBoost * 3).length;
+      C.vote = { rank, grp: guard ? 'guards' : 'frontcourt players', conf, year: C.year };
+      C.news.unshift(`All-Star voting, first returns: ${C.me.last} is ${ordinal(rank)} among ${conf} ${C.vote.grp}`);
+    }
   }
   /* the league's summer: veterans retire and a rookie class takes their places, free agents change teams */
   function leagueSummer() {
@@ -647,7 +678,8 @@
       if (C.dunk === 'invited' && C.contest !== 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>Dunk Contest</h3><p>Two dunks in the first round, the top two go to the final for two more. Five judges, ten points each. Pick the dunk with the Style button; take off from as far out as you dare.</p>
         <button class="big" id="dunk">Take the floor</button><button class="ghost" id="nodunk">Pass this year</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
-      body = card + (C.phase === 'playoffs' ? bracketCard() : '') + `
+      const voteCard = C.vote && C.vote.year === C.year && C.phase === 'regular' && C.gi < Math.round(C.len * 0.5) ? `<div class="card"><h3>All-Star voting</h3><p>${ordinal(C.vote.rank)} among ${esc(C.vote.conf)} ${C.vote.grp} in the first returns. ${C.vote.rank <= 2 ? 'Right now you would start.' : C.vote.rank <= 6 ? 'In the mix: the coaches pick the reserves.' : 'A long way back: big games move the vote.'}</p></div>` : '';
+      body = card + voteCard + (C.phase === 'playoffs' ? bracketCard() : '') + `
         <div class="tiles">
           <div><b>${avg('pts')}</b><span>PTS</span></div><div><b>${avg('reb')}</b><span>REB</span></div><div><b>${avg('ast')}</b><span>AST</span></div>
           <div><b>${s.fga ? Math.round(s.fgm / s.fga * 100) : 0}%</b><span>FG</span></div><div><b>${s.tpa ? Math.round(s.tpm / s.tpa * 100) : 0}%</b><span>3PT</span></div><div><b>${s.gp ? gradeAvg(s.grades / s.gp) : '–'}</b><span>GRADE</span></div></div>
@@ -922,7 +954,7 @@
        leaders, the awards and your market value */
     if (!g.po) { leagueLines(g.opp, !res.win); }
     const k = res.sim ? 1 : 12 / S.qlen, A = C.adj || (C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 });
-    if (!g.po) { A.gp++; for (const x of LS.slice(1)) A[x] += (res.line[x] || 0) * k; }
+    if (!g.po) { A.gp++; for (const x of LS.slice(1)) A[x] += (res.line[x] || 0) * k; weekly(res, k); }
     /* your rival, when it is his team */
     if (C.rival && g.opp === C.rival.team) {
       const rl = rivalGame(!res.win);
