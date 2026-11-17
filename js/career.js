@@ -563,6 +563,19 @@
     if (C.dayBest) C.news.unshift(`${C.dayBest.name} drops ${C.dayBest.pts} for the ${PB.team(C.dayBest.team).name}`);
     leagueInjuries();
     if (C.phase === 'regular' && PB.rand() < 0.03) leagueTrade();
+    coachFirings();
+  }
+  /* past the midway point a team losing badly may fire its coach; yours brings in someone who has not seen you play */
+  function coachFirings() {
+    if (C.phase !== 'regular' || C.gi < (C.len || 20) * 0.4) return;
+    C.fired = C.fired || {};
+    for (const t of PB.TEAMS) {
+      const st = C.standings[t.id], gp = st.w + st.l;
+      if (gp < 6 || st.w / gp > 0.28 || C.fired[t.id] === C.year || PB.rand() > 0.06) continue;
+      C.fired[t.id] = C.year;
+      C.news.unshift(`The ${t.name} fire their coach at ${st.w}-${st.l}`);
+      if (t.id === C.team) { C.trust = 50; C.news.unshift(`New coach in ${t.city}: everybody starts over, ${C.me.last} included`); C.feed.unshift({ who: '@' + t.id.toLowerCase() + '_insider', text: `Coaching change. The new staff says every job is open.` }); }
+    }
   }
   /* every seven games the league names a Player of the Week in each conference; your week can be it. About a third
      of the way in, the first All-Star fan-voting returns come out. */
