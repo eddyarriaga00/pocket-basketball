@@ -1421,6 +1421,8 @@
       }
       if (G.poss === 1 - G.home && G.q >= 2 && close > 0.5 && G.t > (G.chantT || 25) && G.ball.state === 'held') { G.chantT = G.t + rr(35, 60); AU().crowd.react('chant', 0.8); if (R.board) R.board('DE-FENSE!', 4); if (PB.booth) PB.booth.pa(rand() < 0.5 ? 'pa_defense' : 'pa_noise'); }
       if (G.poss === 1 - G.home && G.t > G.organT && G.ball.state === 'held' && along(G.ball.z, 1 - G.home) > 40) { G.organT = G.t + rr(45, 80); if (R.board) R.board(rand() < 0.5 ? 'MAKE SOME\nNOISE!' : 'GET LOUD!', 3.5); if (AU().organ) AU().organ(rand() < 0.5 ? 'charge' : 'letsgo'); }
+      /* the clock is running down on you: say so, once a possession */
+      if (G.shotClock < 6 && G.shotClock > 0 && b.holder && b.holder.isUser && !b.holder.shoot && G.scWarn !== G.possN && !G.auto && !G.drill) { G.scWarn = G.possN; toast('Shot clock: shoot or pass', 'opp'); buzz([20, 40, 20]); }
       if (G.shotClock <= 0 && (b.state === 'held' || b.state === 'pass')) {
         const t = G.poss; toast('SHOT CLOCK', 'opp'); AU().play('buzzer'); AU().play('whistle', { delay: 0.5 }); B('shotclock', { prio: 3 });
         turnover(b.holder || b.from, 'Shot clock violation', 1 - t);
@@ -1665,7 +1667,8 @@
       for (const s of [1, -1]) if (Math.abs(b.x) < 3 && b.y > 9.5 && b.y < 13 && (b.z - s * 42.6) * s > 0 && (b.z - s * 42.6) * s < 0.6 && b.vz * s > 0) b.vz = -b.vz * 0.6;
       if (b.y < 0.39) { b.y = 0.39; b.vy = Math.abs(b.vy) > 2 ? -b.vy * 0.6 : 0; b.vx *= 0.86; b.vz *= 0.86; }
       if (b.vy === 0) { b.vx *= 1 - dt * 1.5; b.vz *= 1 - dt * 1.5; }
-      if (G.phase !== 'live') return;
+      /* play is stopped: the ball stays in the building (it dies against the boards round the floor) */
+      if (G.phase !== 'live') { if (Math.abs(b.x) > 28) { b.x = Math.sign(b.x) * 28; b.vx *= -0.3; } if (Math.abs(b.z) > 50.5) { b.z = Math.sign(b.z) * 50.5; b.vz *= -0.3; } return; }
       if (Math.abs(b.x) > 25.3 || Math.abs(b.z) > 47.3) {
         const to = 1 - (b.lastTouch === undefined ? 0 : b.lastTouch);
         toast('Out of bounds', ''); G.reb = null; AU().play('whistle'); B('turnover', { prio: 2, follow: 0.3 });
