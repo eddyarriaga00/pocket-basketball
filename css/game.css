@@ -262,3 +262,7 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 .leaders p.me{color:var(--acc)}.leaders p.rv{color:#ff8f9b}
 .coach .q{font-size:15px;font-weight:600;margin:6px 0}
 .coach .ghost{margin:8px 0 0;padding:11px;font-size:14px}
+.half{text-align:center}.half table{margin:10px 0}.half td,.half th{text-align:center}
+.chart{width:100%;height:auto;display:block}.chart .floor{fill:#2a2118}.chart .paint{fill:rgba(255,176,46,.12)}
+.chart .ln{stroke:rgba(255,255,255,.35);stroke-width:1.2}.chart .rim{fill:none;stroke:#ff6a2a;stroke-width:1.5}
+.chart .mk{fill:#3ddc84;stroke:#0a0d14;stroke-width:1}.chart .ms line{stroke:#ff5a6b;stroke-width:2;stroke-linecap:round}

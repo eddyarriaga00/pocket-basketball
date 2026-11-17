@@ -230,7 +230,7 @@
     const nd = nearestDef(p);
     p.st.fga++; if (s.three) p.st.tpa++;
     G.lastShot = { shooter: p, three: s.three, open: nd.d, prob, guard: nd.who };
-    (G.shotLog = G.shotLog || []).push({ kind: s.three ? 'three' : s.kind, prob, d: s.d });
+    (G.shotLog = G.shotLog || []).push({ kind: s.three ? 'three' : s.kind, prob, d: s.d, x: p.x, a: along(p.z, p.team), user: p.isUser, team: p.team });
     /* block: a defender in the air in front of the shot */
     for (const o of G.pl) {
       if (o.team === p.team) continue;
@@ -1052,6 +1052,7 @@
     toast(g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, '');
     AU().play('horn'); AU().crowd.react('applause', 0.7);
     setTimeout(() => B(g.q === 3 ? 'half' : g.q > 4 ? 'ot' : 'end_q', { prio: 3, follow: g.q === 3 ? 0.6 : 0 }), 900);
+    if (g.q === 3 && !g.drill) halftime();
     g.poss = null;
     const t = g.q === 2 || g.q === 3 ? 1 - g.tipWinner : g.tipWinner;
     for (const p of g.pl) { p.shoot = null; p.drive = 0; p.pose = ''; }
@@ -1063,6 +1064,22 @@
     });
   }
 
+  /* halftime: the score and how each side is shooting, your line; it waits for a tap */
+  function halftime() {
+    const tot = t => { const r = { pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, reb: 0, tov: 0 }; for (const p of G.pl) if (p.team === t) for (const k in r) r[k] += p.st[k]; return r; };
+    const a = tot(0), c = tot(1), pc = (m, n) => n ? Math.round(m / n * 100) + '%' : '–', u = G.user && G.user.st;
+    G.paused = true; AU().muffle(true);
+    const ov = $('#pause'); ov.hidden = false;
+    ov.innerHTML = `<div class="card half"><p class="kick">Halftime</p>
+      <div class="pscore"><span>${G.teams[0].id}</span><b>${G.score[0]} – ${G.score[1]}</b><span>${G.teams[1].id}</span></div>
+      <table class="std"><tr><th></th><th>${G.teams[0].id}</th><th>${G.teams[1].id}</th></tr>
+      <tr><td>Field goals</td><td>${a.fgm}-${a.fga} (${pc(a.fgm, a.fga)})</td><td>${c.fgm}-${c.fga} (${pc(c.fgm, c.fga)})</td></tr>
+      <tr><td>Threes</td><td>${a.tpm}-${a.tpa}</td><td>${c.tpm}-${c.tpa}</td></tr>
+      <tr><td>Rebounds</td><td>${a.reb}</td><td>${c.reb}</td></tr><tr><td>Turnovers</td><td>${a.tov}</td><td>${c.tov}</td></tr></table>
+      ${u && !G.switching ? `<p class="mute">You: ${u.pts} pts, ${u.reb} reb, ${u.ast} ast · grade ${gradeLetter(G.grade)}</p>` : ''}
+      <button class="big" id="h2">Second half</button></div>`;
+    $('#h2').onclick = () => { ov.hidden = true; G.paused = false; AU().muffle(false); };
+  }
   function finish() {
     G.phase = 'end';
     cancelAnimationFrame(raf);
@@ -1070,7 +1087,8 @@
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
     const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att } : null, score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
-      gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q };
+      gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q,
+      shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
     PB.Game.active = false;
     $('#game').hidden = true;
     if (opts.onEnd) opts.onEnd(res);

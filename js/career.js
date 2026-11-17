@@ -650,6 +650,8 @@
       ${r.newBadges && r.newBadges.length ? `<div class="card earn"><b>Badge earned</b><span>${r.newBadges.map(esc).join(' · ')}</span></div>` : ''}
       ${P ? `<div class="card press" id="press"><h3>Press conference</h3><p class="q">“${esc(P.q(pr[1]))}”</p>${P.a.map((a, i) => `<button class="ans" data-i="${i}">${esc(a[0])}</button>`).join('')}</div>` : ''}
       ${r.log && r.log.length ? `<div class="card"><h3>What moved your grade</h3>${summarize(r.log)}</div>` : ''}
+      ${r.shots && r.shots.length ? shotChart(r.shots) : ''}
+      ${r.boxHtml || ''}
       <div class="card earn"><b>+${r.sp} skill points</b><span>${C.me.sp} to spend on the Player tab · coach trust ${Math.round(C.trust)}</span></div>
       <button class="big" id="go">Continue</button></div>`);
     if (P) scr().querySelectorAll('#press .ans').forEach(b => b.onclick = () => {
@@ -660,7 +662,21 @@
       $('#press').innerHTML = `<h3>Press conference</h3><p class="q">“${esc(a[0])}”</p><p class="fine">Coach trust ${a[1] >= 0 ? '+' : ''}${a[1]} · followers ${a[2] >= 0 ? '+' : ''}${a[2]}% · the ${a[3]} answer</p>`;
       save();
     });
-    $('#go').onclick = () => { tab = 'home'; hub(); };
+    $('#go').onclick = () => { delete r.boxHtml; tab = 'home'; hub(); };
+  }
+  /* your shots on a half court: green made, red missed */
+  function shotChart(shots) {
+    const X = x => 150 + x * 5.6, Y = a => 20 + a * 5.6;   // 50 ft across, the rim near the top
+    const arc = []; for (let t = -1.18; t <= 1.18; t += 0.04) arc.push(`${X(Math.sin(t) * 23.75).toFixed(1)},${Y(Math.cos(t) * 23.75).toFixed(1)}`);
+    const made = shots.filter(s => s[2]).length;
+    return `<div class="card"><h3>Shot chart <small>${made} of ${shots.length}</small></h3><svg viewBox="0 0 300 200" class="chart">
+      <rect x="10" y="0" width="280" height="200" rx="6" class="floor"/>
+      <rect x="${X(-8)}" y="0" width="${16 * 5.6}" height="${Y(13.75) + 0}" class="paint"/>
+      <line x1="${X(-22)}" y1="0" x2="${X(-22)}" y2="${Y(8.95)}" class="ln"/><line x1="${X(22)}" y1="0" x2="${X(22)}" y2="${Y(8.95)}" class="ln"/>
+      <polyline points="${arc.join(' ')}" class="ln" fill="none"/>
+      <circle cx="${X(0)}" cy="${Y(0)}" r="4.5" class="rim"/>
+      ${shots.map(s => s[2] ? `<circle cx="${X(s[0]).toFixed(1)}" cy="${Y(Math.max(-3, s[1])).toFixed(1)}" r="5" class="mk"/>` : `<g class="ms" transform="translate(${X(s[0]).toFixed(1)},${Y(Math.max(-3, s[1])).toFixed(1)})"><line x1="-4" y1="-4" x2="4" y2="4"/><line x1="4" y1="-4" x2="-4" y2="4"/></g>`).join('')}
+    </svg></div>`;
   }
   function summarize(log) {
     const m = new Map();
@@ -687,7 +703,8 @@
     const u = res.user || {};
     const line = Object.assign({ pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0 }, u);
     const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0 };
-    record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct });
+    record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots });
+    g.res.boxHtml = boxScore(res);
     after(g, false);
   }
   function boxScore(res) {
