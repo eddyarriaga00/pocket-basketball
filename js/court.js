@@ -506,7 +506,8 @@
     else if (kPat > 2.5 && kPat < 3.5 && top && vK.y > 1.195 && vK.y < 1.222) rc = cAlt;
     else if (kPat > 3.5 && kPat < 4.5) rc = rc * mix(0.55, 1.0, smoothstep(0.9, 1.28, vK.y));
     else if (kPat > 4.5 && kPat < 5.5 && top && vK.y > 1.262) rc = cAlt;
-    else if (kPat > 5.5 && top && abs(vK.x + (vK.y - 1.18) * 0.85) < 0.016) rc = cAlt;
+    else if (kPat > 6.5 && top) { if (fract(vK.x * 26.0 + 0.25) < 0.5) rc = cAlt; }   // a referee's stripes
+    else if (kPat > 5.5 && kPat < 6.5 && top && abs(vK.x + (vK.y - 1.18) * 0.85) < 0.016) rc = cAlt;
     if (bot && kPat > 2.5 && kPat < 3.5 && vK.y < 0.918) rc = cAlt;   // the chest band's partner: a hem band on the shorts
   }
   /* tattoos (kTat: 1 a band on the right arm, 2 a sleeve on the left, 3 both, 4 a forearm piece): in the rest pose the
@@ -536,7 +537,7 @@
   if (bot) rc *= mix(0.84, 1.0, smoothstep(0.86, 0.98, vK.y));
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit9';
+    m.customProgramCacheKey = () => 'pb-kit10';
     return m;
   }
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
@@ -1176,7 +1177,7 @@
     for (let i = 0; i < 2; i++) {
       const p = { id: 'ref' + i, x: 26.5, z: i ? 30 : -10, y: 0, vx: 0, vz: 0, face: -Math.PI / 2, pose: '', ht: 75, num: [14, 37][i], pos: 'SG', skin: [1, 4][i],
         look: { hair: i ? 'buzz' : 'bald', hairColor: '#2a2a2a', shoe: '#111111' } };
-      const m = skinnedPlayer(p, { c1: '#a3a8ad', c2: '#16181b', name: '', shorts: '#15171a', sock: '#15171a', shoe: '#111111' });
+      const m = skinnedPlayer(p, { c1: '#f2f2f2', c2: '#16181b', alt: '#16181b', pat: 7, name: '', shorts: '#15171a', sock: '#15171a', shoe: '#111111' });
       if (shadowIM) { m.shadow.visible = false; m.inst = true; }
       scene.add(m.root); meshes.set(p, m); refs.push(p);
     }
