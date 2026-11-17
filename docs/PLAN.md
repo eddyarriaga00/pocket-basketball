@@ -180,14 +180,23 @@ The arc, PocketFootball's shape with basketball's beats:
 
 ## 8. Technology
 
-- Classic `<script>` files, one global (`window.PB`), no build step; three.js r159 from cdnjs.
-- `js/data.js` league, names, ratings · `js/court.js` the 3D arena and camera · `js/game.js` the game on the
-  floor (state, AI, physics, controls, HUD) · `js/career.js` menus and the career.
-- One random source (`PB.rand`, seedable) so tests repeat.
-- `PB.Game.dbg` hooks: autopilot for your player, fast-forward without drawing, the live state.
-- GitHub Pages for hosting; a network-first service worker for offline play; a web manifest for home-screen install.
-- Performance budget: 60 fps on a mid phone; ten low-poly players, no real-time shadows (blob shadows), pixel
-  ratio capped at 2.
+- three.js r159 loads as an ES module (an import map points at jsDelivr) with its glTF loader; the game's own files
+  stay classic `<script>`s on one global (`window.PB`), added in order once the library is in. No build step.
+- `js/data.js` league, names, ratings, badges · `js/court.js` the arena, the players' bodies, the cameras ·
+  `js/game.js` the game on the floor (state, AI, physics, controls, HUD, replays, drills) · `js/audio.js` the mix ·
+  `js/booth.js` the commentators · `js/career.js` menus and the career.
+- Assets and the tools that make them (each runs on a Mac; the sources live in git-ignored folders):
+  - `models/player.glb` (417 kB) from Quaternius's CC0 mannequin and animations by `tools/model.mjs`
+    (glTF-Transform: keep 14 clips, drop finger/scale/position tracks, thin keyframes, quantize).
+  - `audio/sfx.m4a` (106 kB) from six CC0 Freesound recordings by `tools/sfx.py` (cut, trim, level, pack).
+  - `audio/vo.pack` from `tools/commentary.json` by `tools/voice.py` (Chatterbox, two original voices cloned from
+    Kokoro reference clips; the take length is capped by its word count).
+- One random source (`PB.rand`, seedable). `PB.Game.dbg`: autopilot, fast-forward, replays, the live state.
+- Tests (Playwright, served over a local server like the real site): `tools/smoke.js`, `tools/balance.js`,
+  `tools/drill.js`, `tools/career.js`.
+- GitHub Pages hosting; a network-first service worker for offline play; a web manifest for home-screen install.
+- Performance: about 125 draw calls and 140k triangles a frame; ten skinned players; blob shadows; the resolution
+  steps down by itself (2x, 1.5x, 1x) when a phone cannot hold about 45 frames a second.
 
 ## 9. Monetisation
 
