@@ -444,6 +444,8 @@
             p.setXYZ(i, q.x * f, q.y * f, q.z * f * (q.y > 0 && q.z > 0 ? 1 - 0.25 * q.y : 1)); } }
         sb.scale(sw * 2, 0.13, 0.3); sb.translate(an.x, 0.062, (an.z + to.z) / 2 - 0.015);
         add(sb, () => 3, (x, y, z) => z > to.z - 0.03 ? [[bi(`DEF-toe.${sd}`), 1]] : [[bi(`DEF-foot.${sd}`), 1]]);
+        /* the high-top collar round the ankle */
+        add(capsule(V(an.x, 0.07, an.z - 0.02), V(an.x, 0.15, an.z - 0.025), 0.066, 0.06, 16), () => 3, one(`DEF-foot.${sd}`));
       }
       const g = new T.BufferGeometry();
       g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(N, 3));
@@ -496,12 +498,20 @@
     else if (kPat > 5.5 && top && abs(vK.x + (vK.y - 1.18) * 0.85) < 0.016) rc = cAlt;
     if (bot && kPat > 2.5 && kPat < 3.5 && vK.y < 0.918) rc = cAlt;   // the chest band's partner: a hem band on the shorts
   }
+  if (vRegion > 2.5 && vRegion < 3.5) {
+    /* a sneaker: a swoop down each side in the team's second color, a dark heel tab, a toe cap line */
+    float side = abs(abs(vK.x) - 0.0473), yy = vK.y - 0.5, zz = vK.z;
+    if (side > 0.026 && abs(yy - 0.036 + zz * 0.22) < 0.0085 && zz > -0.04 && zz < 0.075 && yy < 0.055) rc = cTrim;
+    if (yy > 0.074) rc = mix(rc, cTrim, 0.85);   // the collar's top edge
+    if (zz < -0.042 && yy > 0.03) rc = vec3(0.08);
+    if (zz > 0.068 && zz < 0.073 && yy > 0.018) rc = rc * 0.72;
+  }
   if (vRegion > 2.5 && vRegion < 3.5 && vK.y < 0.512) rc = vec3(0.96);                    // the sole
   else if (vRegion > 2.5 && vRegion < 3.5 && vK.y < 0.522) rc = cTrim;                  // a midsole in the team's second color
   if (vRegion > 3.5 && vRegion < 4.5 && vK.y > 0.596 && vK.y < 0.607) rc = cAlt;           // a stripe at the top of the sock
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit6';
+    m.customProgramCacheKey = () => 'pb-kit7';
     return m;
   }
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
