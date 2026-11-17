@@ -545,6 +545,31 @@
   R.setZoom = z => { zoom = PB.clamp(z, 0.7, 1.5); };
   let replay = false, replayA = 0;
   let intro = 0;   // seconds left of the opening flyover
+  /* the showcase: you alone at center court in your team's uniform, the camera circling slowly; draft night and
+     awards night draw it behind their cards */
+  let show = null;
+  R.showcase = (player, team) => {
+    const el = document.getElementById('game');
+    if (!player) { if (show) { cancelAnimationFrame(show.raf); show = null; el.classList.remove('show'); if (!PB.Game.active) el.hidden = true; } return; }
+    el.hidden = false; el.classList.add('show'); R.resize();
+    R.build(team);
+    const p = { d: player, team: 0, slot: 0, r: player.r, ht: player.ht, num: player.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: Math.PI, pose: '' };
+    R.addPlayer(p, { c1: team.c1, c2: team.c2, name: team.name });
+    let a = Math.PI;   // start in front of him
+    const g = { t: 0, ball: { x: 0, y: -5, z: 0, state: 'show', holder: null }, user: null, pl: [p], teams: [team, team], score: [0, 0], q: 1, clock: 0, shotClock: 0, poss: null, show: true };
+    let last = performance.now();
+    show = { p, g };
+    const loop = now => {
+      show.raf = requestAnimationFrame(loop);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now; g.t += dt; a += dt * 0.25;
+      if (Math.sin(g.t * 0.5) > 0.98 && p.pose !== 'celebrate') { p.pose = 'celebrate'; setTimeout(() => { p.pose = ''; }, 1600); }
+      R.update(g, dt);
+      cam.position.set(Math.sin(a) * 17, 4.6 + Math.sin(a * 0.7) * 0.8, Math.cos(a) * 17);
+      cam.lookAt(0, 3.3, 0);
+      R.render();
+    };
+    show.raf = requestAnimationFrame(loop);
+  };
   R.setIntro = sec => { intro = sec; };
   R.setReplay = on => { replay = on; replayA = PB.rand() * Math.PI * 2; };
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
@@ -631,6 +656,7 @@
       n.mesh.scale.set(1 - n.swish * 0.25, 1 + n.swish * 0.35, 1 - n.swish * 0.25);
       n.mesh.position.y = 9.25 - n.swish * 0.26;
     }
+    if (G.show) return;
     if (intro > 0) {
       /* the opening: high over the arena, sweeping down toward center court */
       intro = Math.max(0, intro - dt);

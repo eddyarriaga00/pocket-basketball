@@ -280,3 +280,7 @@ input[type=color]{height:44px;padding:4px}
 .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;box-sizing:border-box}
 .spin{width:44px;height:44px;border-radius:50%;border:4px solid var(--panel3);border-top-color:var(--acc);animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+#game.show #hud,#game.show #btns,#game.show #stickzone,#game.show #meter,#game.show #toast,#game.show #rel{display:none}
+#screen.over3d{background:transparent}
+.draft.over3d{background:linear-gradient(180deg,rgba(10,13,20,.92) 0%,rgba(10,13,20,.35) 22%,rgba(10,13,20,0) 40%,rgba(10,13,20,0) 55%,rgba(10,13,20,.9) 72%,var(--bg) 88%)}
+.draft.over3d .podium{margin:8px 0 0}.draft.over3d .spacer{height:40vh}

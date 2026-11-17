@@ -35,7 +35,7 @@
     store('pbb.career.' + id, C); store(IDX, list);
   }
 
-  function show(html) { const s = scr(); s.innerHTML = html; s.hidden = false; s.scrollTop = 0; }
+  function show(html) { const s = scr(); s.classList.remove('over3d'); if (PB.R && PB.R.showcase) PB.R.showcase(null); s.innerHTML = html; s.hidden = false; s.scrollTop = 0; }
   const badge = t => `<i class="tb" style="background:${t.c1};color:${t.c2}">${esc(t.ab || t.id)}</i>`;
   const tname = t => `${t.city} ${t.name}`;
 
@@ -347,15 +347,17 @@
   function draft() {
     const t = PB.team(C.team), me = C.me, rv = rivalP(), rt = PB.team(C.rival.team);
     const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
-    show(`<div class="draft" style="--c1:${t.c1};--c2:${t.c2}">
+    const in3d = !PB.noGL && PB.R.modelReady && PB.R.modelReady();
+    show(`<div class="draft ${in3d ? 'over3d' : ''}" style="--c1:${t.c1};--c2:${t.c2}">
       <p class="kick">Draft night</p>
-      <div class="podium"><p>With the ${ord(C.pick)} pick, the</p><h2>${esc(tname(t))}</h2><p>select</p>
+      <div class="podium"><p>With the ${ord(C.pick)} pick, the ${esc(tname(t))} select</p>
       <h1>${esc(PB.full(me))}</h1><p class="mute">${PB.POS_NAME[me.pos]} · ${me.arch} · ${PB.fmtH(me.ht)} · overall ${me.ovr}</p></div>
-      <div class="cap" style="background:${t.c1};color:${t.c2}">${esc(t.ab)}<b>#${me.num}</b></div>
+      ${in3d ? '<div class="spacer"></div>' : `<div class="cap" style="background:${t.c1};color:${t.c2}">${esc(t.ab)}<b>#${me.num}</b></div>`}
       <p class="fine">A four-year rookie deal. ${roleLine()}</p>
       <div class="card rival"><h3>Your rival</h3><p>${badge(rt)} <b>${esc(PB.full(rv))}</b>, ${PB.POS_NAME[rv.pos].toLowerCase()}, went ${ord(C.rival.pick)} to the ${esc(rt.name)}, in your division. Overall ${rv.ovr}. The league will compare you all career.</p></div>
       <button class="big" id="go">Go to the team</button></div>`);
-    $('#go').onclick = hub;
+    if (in3d) { scr().classList.add('over3d'); PB.R.showcase(me, t); }
+    $('#go').onclick = () => { PB.R.showcase(null); scr().classList.remove('over3d'); hub(); };
   }
 
   /* ---------- team helpers ---------- */
