@@ -276,6 +276,22 @@
     return m;
   }
   const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
+  /* the face as one geometry with vertex colors: two eyes, two pupils, two brows */
+  const FACE_MAT = new T.MeshBasicMaterial({ vertexColors: true });
+  function faceGeometry(H) {
+    const parts = [];
+    const add = (g, color, x, y, z, rz) => { g.rotateZ(rz || 0); g.translate(x, y, z); const c = new T.Color(color), n = g.attributes.position.count, col = new Float32Array(n * 3); for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; } g.setAttribute('color', new T.BufferAttribute(col, 3)); parts.push(g.index ? g.toNonIndexed() : g); };
+    for (const sx of [-1, 1]) {
+      add(new T.SphereGeometry(H * 0.0085, 6, 4), 0xf2efe8, sx * H * 0.018, 0, 0);
+      add(new T.SphereGeometry(H * 0.0048, 6, 4), 0x120c08, sx * H * 0.018, 0, H * 0.006);
+      add(new T.BoxGeometry(H * 0.022, H * 0.004, H * 0.004), 0x120c08, sx * H * 0.019, H * 0.014, H * 0.002, -sx * 0.12);
+    }
+    let n = 0; for (const g of parts) n += g.attributes.position.count;
+    const pos = new Float32Array(n * 3), col = new Float32Array(n * 3); let o = 0;
+    for (const g of parts) { pos.set(g.attributes.position.array, o * 3); col.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; }
+    const out = new T.BufferGeometry(); out.setAttribute('position', new T.BufferAttribute(pos, 3)); out.setAttribute('color', new T.BufferAttribute(col, 3));
+    return out;
+  }
   const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short'];
   const HAIRC = ['#17110d', '#17110d', '#2b1d12', '#17110d', '#4a3020', '#c9a46a', '#17110d', '#6b4a2b'];
   function autoLook(d) {
@@ -304,12 +320,8 @@
     put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
     put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
     /* a face: eyes and brows on the front of the head, so nobody is a blank egg */
-    const face = new T.Group(), dark = new T.MeshBasicMaterial({ color: 0x120c08 }), white = new T.MeshBasicMaterial({ color: 0xf2efe8 });
-    for (const sx of [-1, 1]) {
-      const eye = new T.Mesh(new T.SphereGeometry(H * 0.0085, 6, 4), white); eye.position.set(sx * H * 0.018, 0, 0); face.add(eye);
-      const pup = new T.Mesh(new T.SphereGeometry(H * 0.0048, 6, 4), dark); pup.position.set(sx * H * 0.018, 0, H * 0.006); face.add(pup);
-      const brow = new T.Mesh(new T.BoxGeometry(H * 0.022, H * 0.004, H * 0.004), dark); brow.position.set(sx * H * 0.019, H * 0.014, H * 0.002); brow.rotation.z = -sx * 0.12; face.add(brow);
-    }
+    if (!TPL.faceGeo) TPL.faceGeo = faceGeometry(H);   // one mesh, one draw, shared by everyone
+    const face = new T.Mesh(TPL.faceGeo, FACE_MAT);
     put(bones[bk('DEF-head')], TPL.decals.face, face);
     /* the team's name across the chest, over the number */
     const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', kit.c2), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
@@ -761,6 +773,7 @@
     renderer.render(scene, cam);
   };
   R.pixelCap = () => prCap;
+  R.info = () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, tex: renderer.info.memory.textures });
   R.resize = () => {
     const el = renderer.domElement.parentElement;
     if (!el.clientWidth) return;   // the game view is hidden (a menu is up): size it when it shows
