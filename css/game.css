@@ -25,10 +25,10 @@ input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--panel
 #hud{position:absolute;left:0;right:0;top:0;padding:8px 10px 0;pointer-events:none}
 .bug{position:relative;display:flex;align-items:stretch;justify-content:center;gap:0;font-family:var(--display);
   background:rgba(8,11,18,.86);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;height:40px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
-.bug .side{display:flex;align-items:center;gap:8px;padding:0 10px;flex:1}
+.bug .side{display:flex;align-items:center;gap:6px;padding:0 8px;flex:1;min-width:0}
 .bug .side.r{justify-content:flex-end}
 .bug .side i{width:6px;align-self:stretch;margin:-0px 0}
-.bug .side b{font-weight:800;font-size:13px;letter-spacing:.04em;color:#c9d2e3}
+.bug .side b{font-weight:800;font-size:13px;letter-spacing:.04em;color:#c9d2e3;white-space:nowrap}
 .bug .side u{text-decoration:none;font-weight:900;font-size:22px;font-variant-numeric:tabular-nums;min-width:28px;text-align:center}
 .bug .side.poss b::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
 .bug .side.r.poss b::after{display:none}.bug .side.r.poss b::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc);margin-right:6px;vertical-align:middle}

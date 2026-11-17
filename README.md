@@ -57,7 +57,7 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
   players talking on the floor.
 - Referees, benches and coaches, fans in the home colors, starting lineups before the tip.
 
-Also: Season (one team, the whole team under your thumbs, to a title), Quick game (any two teams, one player or the
+Also: a Daily challenge (a new late-game situation every day, with a streak), Season (one team, the whole team under your thumbs, to a title), Quick game (any two teams, one player or the
 whole team), Practice (the 3-point and dunk contests, the drill, a shoot-around), Edit teams.
 
 ## Controls

@@ -88,7 +88,7 @@
       <button class="${live ? 'ghost' : 'big'}" id="newc">New career</button>
       ${list.length > 1 || (list.length && !live) ? `<button class="ghost" id="careers">Careers <small>${list.length} on this device</small></button>` : ''}
       <div class="row2"><button class="ghost" id="qg">Quick game</button><button class="ghost" id="seas">Season</button></div>
-      <button class="ghost sm" id="prac">Practice: 3-point and dunk contests, the drill</button>
+      <div class="row2"><button class="ghost sm" id="prac">Practice</button><button class="ghost sm" id="daily">Daily challenge${dailyDone() ? ' ✓' : ''}</button></div>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
@@ -99,6 +99,7 @@
     if ($('#careers')) $('#careers').onclick = careers;
     $('#qg').onclick = quick;
     $('#prac').onclick = practice;
+    $('#daily').onclick = daily;
     $('#seas').onclick = () => PB.Season.start();
     $('#how').onclick = how;
     if ($('#hall')) $('#hall').onclick = () => {
@@ -166,6 +167,53 @@
         if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one first.'); return; }
         setCur(''); C = c; save(); careers();
       });
+    };
+  }
+  /* the daily challenge: today's late-game situation, the same for everyone on this date; a streak on the device */
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+  const dailyDone = () => { const D = load('pbb.daily') || {}; return D.last === today() && D.won; };
+  function dailySpec() {
+    let h = 0; for (const ch of today()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const R = n => { h = (h * 1103515245 + 12345) >>> 0; return h % n; };
+    const kinds = [
+      { k: 'win', title: 'Down two, your ball', text: 'Down 2 with 14 seconds left. Win it, in regulation or in overtime.', clock: 14, diff: -2, poss: 0 },
+      { k: 'win', title: 'Down three, your ball', text: 'Down 3 with 18 seconds left. Win it: a three ties, a stop and a score wins.', clock: 18, diff: -3, poss: 0 },
+      { k: 'hold', title: 'Hold the lead', text: 'Up 2 with 20 seconds left, their ball. Get the stop and close it out.', clock: 20, diff: 2, poss: 1 },
+      { k: 'win', title: 'The comeback', text: 'Down 8 with 2:00 left, your ball. Pull it off.', clock: 120, diff: -8, poss: 0 },
+      { k: 'win', title: 'Tied, last shot', text: 'Tied with 9 seconds left, your ball. Win it.', clock: 9, diff: 0, poss: 0 },
+      { k: 'score', title: 'Twelve in two', text: 'Score 12 points yourself in the last two minutes (down 4, your ball), and win.', clock: 120, diff: -4, poss: 0, pts: 12 },
+    ];
+    const sp = kinds[R(kinds.length)], ids = PB.TEAMS.map(t => t.id), a = ids[R(ids.length)];
+    let b = ids[R(ids.length)]; if (b === a) b = ids[(ids.indexOf(a) + 7) % ids.length];
+    return { ...sp, a, b, pos: ['PG', 'SG', 'SF', 'PF', 'C'][R(5)], base: 98 + R(14) };
+  }
+  function daily() {
+    const sp = dailySpec(), D = load('pbb.daily') || {}, A = PB.team(sp.a), B = PB.team(sp.b);
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Daily challenge</h2><p class="mute">${today()} · a new one every day${D.streak ? ` · streak ${D.streak}` : ''}${D.best ? ` · best ${D.best}` : ''}</p>
+      <div class="card"><h3>${esc(sp.title)}</h3><p>${esc(sp.text)}</p><p class="fine">You: the ${PB.POS_NAME[sp.pos].toLowerCase()} of the ${esc(tname(A))} (85 overall), against the ${esc(tname(B))}. Fourth quarter, ${sp.clock >= 60 ? Math.floor(sp.clock / 60) + ':' + String(sp.clock % 60).padStart(2, '0') : sp.clock + ' seconds'} left.</p></div>
+      ${dailyDone() ? '<p class="mute">Done for today. Come back tomorrow, or play it again.</p>' : ''}
+      <button class="big" id="go">Play it</button></div>`);
+    $('#bk').onclick = title;
+    $('#go').onclick = () => {
+      const fa = PB.makeRoster(80), fb = PB.makeRoster(80), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
+      const me = ra[PB.POS.indexOf(sp.pos)]; me.r = PB.makeRatings(sp.pos, 85); me.ovr = PB.ovr(me.r, sp.pos); me.first = 'You'; me.last = 'You';
+      const score = [sp.base + Math.max(0, sp.diff), sp.base + Math.max(0, -sp.diff)];
+      scr().hidden = true;
+      PB.Game.start({ teams: [A, B], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: me.id, qlen: S.qlen, level: 'All-Star', floor: A,
+        scenario: { q: 4, clock: sp.clock, score, poss: sp.poss, title: sp.title },
+        onEnd: r => {
+          const won = r.score[0] > r.score[1], ok = won && (!sp.pts || (r.user && r.user.pts >= sp.pts));
+          const D2 = load('pbb.daily') || {};
+          if (D2.last !== today() || !D2.won) {
+            const yest = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; })();
+            if (ok) { D2.streak = D2.lastWin === yest ? (D2.streak || 0) + 1 : 1; D2.best = Math.max(D2.best || 0, D2.streak); D2.lastWin = today(); }
+            D2.last = today(); D2.won = ok; store('pbb.daily', D2);
+          }
+          show(`<div class="page post"><p class="kick">Daily challenge</p><div class="final"><div>${badge(A)}<b>${r.score[0]}</b></div><em>${ok ? 'DONE' : 'NOT TODAY'}</em><div><b>${r.score[1]}</b>${badge(B)}</div></div>
+            <p class="mute">${ok ? `Challenge complete. Streak: ${(load('pbb.daily') || {}).streak || 1}.` : sp.pts && won ? `You won, but you needed ${sp.pts} points yourself (you had ${(r.user || {}).pts || 0}).` : 'So close. Try it again.'}</p>
+            ${potg(r)}<button class="big" id="again">Try again</button><button class="ghost" id="done">Main menu</button></div>`);
+          $('#again').onclick = daily; $('#done').onclick = title;
+        } });
     };
   }
   /* practice: the contests on your own, with your career player if you have one */

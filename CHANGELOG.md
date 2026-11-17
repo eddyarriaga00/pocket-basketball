@@ -68,6 +68,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - Up to six careers, backups to a file, Auto-upgrade, Sim 5 games, Sim to the playoffs, Edit teams.
 
 **Other modes**
+- Daily challenge: a new late-game situation every day (down two with the ball, hold the lead, an eight-point comeback...), with a streak.
 - Season: one team, the whole team under your thumbs, to a title; playoff series (best of 1 to 7 by the season's
   length), points, rebounds and assists leaders, a Finals MVP, and next seasons with the same team (players age,
   rookies arrive, your titles count). Quick game with whole-team control.

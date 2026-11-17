@@ -1913,7 +1913,7 @@
       }
       G.ball.state = 'tip';
       /* the opening: a sweep over the arena with the matchup on screen; a tap skips it */
-      if (!o.drill && !o.enterAt) {
+      if (!o.drill && !o.enterAt && !o.scenario) {
         G.tipT = 6.2; R.setIntro(5.8);
         const iv = $('#intro');
         iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
@@ -1974,6 +1974,14 @@
         for (const p of pl) { const c = toCourt(p.team, SPOTS[p.slot][0][0] * 0.8, p.team === 0 ? 40 : 55); p.x = c.x; p.z = c.z; }
         setTimeout(() => toast(o.enterAt < 0.2 ? 'You check in' : 'Off the bench: you check in', 'call'), 300);
         feed(`You start on the bench · ${G.q === 1 ? '1st' : '2nd'} quarter, ${Math.floor(G.clock / 60)}:${String(Math.floor(G.clock % 60)).padStart(2, '0')}`);
+      }
+      /* a scenario: a set score, quarter and clock, one side with the ball out of bounds in its frontcourt */
+      if (o.scenario) {
+        const sc = o.scenario; G.q = sc.q || 4; G.clock = sc.clock; G.score = sc.score.slice(); G.tf = sc.tf || [3, 3]; G.to = sc.to || [1, 1];
+        G.phase = 'dead'; G.deadT = 1.4; G.tipWinner = 0;
+        for (const p of pl) { const c = toCourt(sc.poss, SPOTS[p.slot][0][0], p.team === sc.poss ? 24 : 18); p.x = c.x; p.z = c.z; }
+        G.then = () => inboundOut(sc.poss, toCourt(sc.poss, 25, 30));
+        setTimeout(() => toast(sc.title || 'Go', 'call'), 300);
       }
       this.active = true;
       last = performance.now();
