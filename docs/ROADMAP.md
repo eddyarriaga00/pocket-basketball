@@ -110,5 +110,6 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [ ] Season mode (one team, switching), training camp, standalone contests
 - [ ] Edit teams on your device; several careers; save export and import
 - [ ] Commentary recorded on a local speech model
-- [ ] Controller support; landscape and desktop layouts
+- [x] Game controllers (2026-11-17)
+- [ ] Landscape and desktop layouts
 - [ ] Online head to head by code

@@ -12,6 +12,9 @@
   const anchor = new T.Vector3();
   const meshes = new Map();
   let board = null, ribbons = [];
+  let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
+  /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
+  R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk) shake = Math.max(shake, shk); };
   let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [];
 
   const PX = 20;  // court texture pixels per foot
@@ -427,14 +430,15 @@
     scene.add(hoop(1)); scene.add(hoop(-1));
     /* stands: tiers on all four sides */
     const crowd = crowdTexture();
+    crowdMaps = [];
     for (let i = 0; i < 11; i++) {
       const h = 3 + i * 3.2, d = 8 + i * 5;
       for (const side of [-1, 1]) {
         const m = new T.Mesh(new T.BoxGeometry(5, 3.2, 150), new T.MeshLambertMaterial({ map: crowd.clone() }));
-        m.material.map.needsUpdate = true; m.material.map.repeat.set(6, 1);
+        m.material.map.needsUpdate = true; m.material.map.repeat.set(6, 1); crowdMaps.push(m.material.map);
         m.position.set(side * (25 + d), h - 1.6, 0); scene.add(m);
         const e = new T.Mesh(new T.BoxGeometry(80 + d * 2, 3.2, 5), new T.MeshLambertMaterial({ map: crowd.clone() }));
-        e.material.map.needsUpdate = true; e.material.map.repeat.set(3, 1);
+        e.material.map.needsUpdate = true; e.material.map.repeat.set(3, 1); crowdMaps.push(e.material.map);
         e.position.set(0, h - 1.6, side * (47 + 10 + d)); scene.add(e);
       }
     }
@@ -569,6 +573,17 @@
       }
     }
     for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
+    if (hype > 0) { hype = Math.max(0, hype - dt); const j = Math.abs(Math.sin(G.t * 14)) * 0.035 * Math.min(1, hype); for (const m of crowdMaps) m.offset.y = j; }
+    /* a glowing trail behind the ball on your shots */
+    if (!trail) {
+      trail = new T.Line(new T.BufferGeometry().setFromPoints(Array.from({ length: 24 }, () => new T.Vector3())), new T.LineBasicMaterial({ color: 0xffb02e, transparent: true, opacity: 0.75 }));
+      trail.frustumCulled = false; scene.add(trail);
+    }
+    const mine = b.state === 'shot' && b.shot && b.shot.shooter === G.user;
+    if (mine) { trailPts.push(new T.Vector3(b.x, b.y, b.z)); if (trailPts.length > 24) trailPts.shift(); }
+    else if (trailPts.length) trailPts.shift();
+    trail.visible = trailPts.length > 1;
+    if (trail.visible) { const pos = trail.geometry.attributes.position; for (let i = 0; i < 24; i++) { const q = trailPts[Math.min(i, trailPts.length - 1)]; pos.setXYZ(i, q.x, q.y, q.z); } pos.needsUpdate = true; trail.geometry.computeBoundingSphere(); }
     for (const n of nets) {
       n.swish = Math.max(0, n.swish - dt * 2.2);
       n.mesh.scale.set(1 - n.swish * 0.25, 1 + n.swish * 0.35, 1 - n.swish * 0.25);
@@ -613,6 +628,7 @@
       cam.position.set(PB.clamp(anchor.x - fx * back, -40, 40), up + over * 0.5, PB.clamp(cz, -lim, lim));
       cam.lookAt(anchor.x + fx * L.ahead, 3, anchor.z + fz * L.ahead);
       camPos.copy(cam.position); camLook.set(anchor.x + fx * L.ahead, 3, anchor.z + fz * L.ahead);
+      applyShake(dt);
       return;
     }
     let tPos, tLook;
@@ -634,7 +650,13 @@
     const k = snap ? 1 : Math.min(1, dt * 3.2); snap = false;
     camPos.lerp(tPos, k); camLook.lerp(tLook, k);
     cam.position.copy(camPos); cam.lookAt(camLook);
+    applyShake(dt);
   };
+  function applyShake(dt) {
+    if (shake <= 0) return;
+    shake = Math.max(0, shake - dt * 2.5);
+    cam.position.x += (Math.random() - 0.5) * shake; cam.position.y += (Math.random() - 0.5) * shake * 0.6;
+  }
 
   R.swish = s => { for (const n of nets) if (n.s === s) n.swish = 1; };
   /* adaptive resolution: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x, then 1x) */

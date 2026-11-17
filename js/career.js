@@ -46,6 +46,7 @@
       <div class="card"><h3>Without the ball</h3><p><b>Call</b> asks the ball handler for it. <b>Cut</b> runs you to the rim and calls for it.</p></div>
       <div class="card"><h3>Defense</h3><p>Lift your thumb and you stay in front of your man by yourself. <b>Jump</b> to contest, block and rebound. <b>Steal</b> to reach (too many reaches is a foul).</p></div>
       <div class="card"><h3>Your grade</h3><p>Every play moves your teammate grade: buckets, assists, boards, stops, and also bad shots, turnovers and your man scoring. The grade earns skill points after the game.</p></div>
+      <div class="card"><h3>Controller</h3><p>Left stick or d-pad to move, A to shoot or jump, B to pass, call or steal, X for a crossover or a cut, Y for a step-back, the right bumper for a spin, Start to pause.</p></div>
       <div class="card"><h3>Keyboard</h3><p>WASD or arrows to move, J or Space to shoot or jump, K to pass, call or steal, L for a crossover or a cut, U for a step-back, I for a spin, P to pause.</p></div></div>`);
     $('#bk').onclick = title;
   }

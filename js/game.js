@@ -241,7 +241,7 @@
         o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); }
         if (p.isUser) grade(-1, 'Got blocked');
         toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
-        AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); B('block', { prio: 4, follow: 0.4 });
+        AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
         b.state = 'loose'; b.holder = null; b.lastTouch = o.team;
         b.x = hp.x; b.y = hp.y + 0.6; b.z = hp.z;
         const ang = rand() * 6.28;
@@ -320,7 +320,8 @@
       if (clutchTime()) p.st.clutch += s.pts;
       R.swish(p.team === 0 ? 1 : -1);
       AU().play(s.kind === 'dunk' ? 'dunk' : s.prob > 0.55 || rand() < 0.62 ? 'swish' : 'rimin', { x: b.x });
-      if (home(p.team)) AU().crowd.react('roar', s.kind === 'dunk' ? 1.2 : s.pts === 3 ? 1 : 0.65); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.pts === 3 ? 0.8 : 0.5);
+      if (home(p.team)) AU().crowd.react('roar', s.kind === 'dunk' ? 1.2 : s.pts === 3 ? 1 : 0.65);
+      if (home(p.team) || s.kind === 'dunk') R.hype(s.kind === 'dunk' ? 1.4 : s.pts === 3 ? 1 : 0.6, s.kind === 'dunk' ? 0.9 : 0); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.pts === 3 ? 0.8 : 0.5);
       if (s.foul) { AU().crowd.react('roar', 1.1); }
       /* the call: a buzzer-beater, a hot hand, an and-one, or the shot itself */
       if (p.isUser) G.streak = (G.streak || 0) + 1;
@@ -1113,8 +1114,27 @@
     G.ball.state = f.ball[3] === 'held' ? 'replay' : f.ball[3]; G.ball.holder = f.ball[4] >= 0 ? G.pl[f.ball[4]] : null;
   }
 
+  /* ---------- game controllers (the Gamepad API: Xbox, PlayStation, most Bluetooth pads) ----------
+     Left stick moves (the d-pad too); A shoots or jumps, B passes, calls or steals, X is the crossover or a cut, Y a
+     step-back, the right bumper a spin, Start pauses. */
+  const padPrev = {};
+  function pollPad() {
+    const gp = navigator.getGamepads ? [...navigator.getGamepads()].find(g => g && g.connected) : null;
+    if (!gp) return;
+    const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0, bt = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
+    let sx = Math.abs(ax) > 0.15 ? ax : 0, sy = Math.abs(ay) > 0.15 ? ay : 0;
+    if (bt(14)) sx = -1; if (bt(15)) sx = 1; if (bt(12)) sy = -1; if (bt(13)) sy = 1;
+    if (sx || sy || padPrev.moving) { input.sx = sx; input.sy = sy; padPrev.moving = !!(sx || sy); }
+    const edge = (i, f, up) => { const now = bt(i); if (now && !padPrev[i]) f(); else if (!now && padPrev[i] && up) up(); padPrev[i] = now; };
+    if (G.paused) { edge(9, () => pause(false)); return; }
+    edge(0, () => pressA(true), () => pressA(false));
+    edge(1, () => pressB()); edge(2, () => pressC()); edge(3, () => pressC('step')); edge(5, () => pressC('spin'));
+    edge(9, () => pause(!G.paused));
+  }
+
   /* ---------- frame ---------- */
   function frame(now) {
+    pollPad();
     raf = requestAnimationFrame(frame);
     let dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now;
     if (G.replay) {
