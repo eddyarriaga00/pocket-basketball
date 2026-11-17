@@ -619,7 +619,7 @@
   function hairGeo(k, th0, R, cut) {
     const key = 'h' + [k, th0, cut || ''].join();
     if (CAPS[key]) return CAPS[key];
-    const NU = 64, NV = 14, pos = [], idx = [];
+    const NU = 48, NV = 10, pos = [], idx = [];
     const L = cut ? HAIRLINES[cut](th0) : [[0, th0], [0.5, th0 + 0.04], [0.72, th0 + 0.3], [0.95, 1.3], [1.25, 1.34], [1.6, 1.55], [2.2, 1.95], [Math.PI, 2.05]];
     const tmax = a => { a = Math.abs(a); for (let i = 1; i < L.length; i++) if (a <= L[i][0]) { const [a0, t0] = L[i - 1], [a1, t1] = L[i], f = (a - a0) / (a1 - a0), e = f * f * (3 - 2 * f); return t0 + (t1 - t0) * e; } return L[L.length - 1][1]; };
     for (let i = 0; i <= NU; i++) {
@@ -661,7 +661,7 @@
     };
     const skin = [
       /* one smooth head, a little fuller at the cheeks and jaw than an egg (no second sphere, so no seam) */
-      (() => { const g = new T.SphereGeometry(R, 32, 24); g.scale(HS.x, HS.y, HS.z); const p = g.attributes.position;
+      (() => { const g = new T.SphereGeometry(R, 28, 20); g.scale(HS.x, HS.y, HS.z); const p = g.attributes.position;
         for (let i = 0; i < p.count; i++) { const y = p.getY(i) / (HS.y * R), z = p.getZ(i), lo = jawLo(y);
           p.setX(i, p.getX(i) * (1 + 0.1 * lo)); p.setZ(i, z * (1 + (z > 0 ? 0.1 : 0) * lo)); }
         g.computeVertexNormals(); return prep(g, 1, 1, 1, 0, 0, 0); })(),
