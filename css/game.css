@@ -417,3 +417,6 @@ input[type=color]{height:44px;padding:4px}
 .teamban small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
 .teamban b{display:block;font-family:var(--display);font-weight:900;font-size:28px;text-transform:uppercase;line-height:1}
 .teamban span{font-size:12px;opacity:.75}
+.card.aw.withimg{display:flex;flex-direction:row;align-items:center;gap:12px}
+.card.aw img{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:none;background:linear-gradient(160deg,var(--tc),rgba(255,255,255,.05) 80%)}
+.awards .aw>div{display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left;align-items:flex-start}

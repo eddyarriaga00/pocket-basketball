@@ -1812,7 +1812,8 @@
     const in3d = got.length && !PB.noGL && PB.R.modelReady && PB.R.modelReady();
     show(`<div class="page post awards ${in3d ? 'draft over3d' : ''}"><p class="kick">Awards night · Season ${C.year}</p>
       ${in3d ? `<h2>${esc(got[0])}</h2><div class="spacer"></div>` : ''}
-      ${aw.map(([t, w]) => `<div class="card aw ${w.me ? 'mine' : ''}"><span>${t}</span><b>${line(w)}</b></div>`).join('')}
+      ${aw.map(([t, w]) => { const pl = w.me ? null : (C.rosters[w.team] || []).find(p => PB.full(p) === w.name), im = w.me ? portrait() : pl ? matchShot(pl, PB.team(w.team)) : null;
+        return `<div class="card aw ${w.me ? 'mine' : ''} ${im ? 'withimg' : ''}">${im ? `<img alt="" src="${im}" style="--tc:${PB.team(w.team).c1}">` : ''}<div><span>${t}</span><b>${line(w)}</b></div></div>`; }).join('')}
       <div class="card"><h3>Your honors</h3>${got.length ? got.map(a => `<p class="news">🏆 ${esc(a)}</p>`).join('') : '<p class="mute">None this year. Next year.</p>'}
       ${team ? '' : `<p class="fine">You ranked ${ordinal(rank + 1)} in the league by the voters' formula; the top fifteen make an All-League team.</p>`}</div>
       <button class="big" id="go">Season review</button></div>`);
