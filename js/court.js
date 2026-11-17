@@ -734,7 +734,15 @@
     });
   };
 
-  R.removePlayer = p => { const m = meshes.get(p); if (m) { scene.remove(m.root); meshes.delete(p); } };
+  R.removePlayer = p => {
+    const m = meshes.get(p); if (!m) return;
+    scene.remove(m.root); meshes.delete(p);
+    /* free what was his alone: materials and their textures, and his own small geometries (the body and the face are shared) */
+    m.root.traverse(o => {
+      if (o.material) for (const mt of [].concat(o.material)) { if (mt.map && mt.map !== (TPL && TPL.sharedMap)) mt.map.dispose(); if (mt !== FACE_MAT) mt.dispose(); }
+      if (o.geometry && !o.isSkinnedMesh && o.geometry !== (TPL && TPL.faceGeo)) o.geometry.dispose();
+    });
+  };
   R.addPlayer = (p, kit) => {
     const m = TPL ? skinnedPlayer(p, kit) : playerMesh(p, kit);
     scene.add(m.root);
