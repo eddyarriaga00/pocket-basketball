@@ -1335,7 +1335,7 @@
     const u = res.user || {};
     const line = Object.assign({ pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0 }, u);
     if (res.winner) (C.flags = C.flags || {}).winner = true;
-    const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0 };
+    const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0, fade: u.fade || 0, hookm: u.hookm || 0 };
     record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots });
     g.res.boxHtml = potg(res) + boxScore(res);
     after(g, false);

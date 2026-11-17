@@ -218,6 +218,8 @@
     { k: 'rim', name: 'Rim Protector', stat: 'blk', desc: 'Blocks', tiers: [15, 60, 150], eff: 'Blocks more shots' },
     { k: 'lock', name: 'Lockdown', stat: 'cmiss', desc: 'Contested misses forced', tiers: [20, 80, 200], eff: 'Your contests take more off a shot' },
     { k: 'clutch', name: 'Clutch', stat: 'clutch', desc: 'Points in the last two minutes of a 4th', tiers: [15, 60, 150], eff: 'Better shooting late in close games' },
+    { k: 'fade', name: 'Fadeaway Artist', stat: 'fade', desc: 'Fadeaways made', tiers: [10, 40, 100], eff: 'Fadeaways go in more' },
+    { k: 'post', name: 'Post Scorer', stat: 'hookm', desc: 'Hooks made', tiers: [10, 40, 100], eff: 'Hooks go in more' },
   ];
   PB.TIER = ['', 'Bronze', 'Silver', 'Gold'];
   PB.SKIN = ['#f1d1b5', '#e0b48f', '#c68e63', '#a26a42', '#7a4a2a', '#4f2f1c'];

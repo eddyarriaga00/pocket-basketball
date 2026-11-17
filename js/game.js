@@ -87,7 +87,7 @@
     return { d, team, slot, r: d.r, ht: d.ht, name: d.last, num: d.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, jg: GRAV,
       face: team === 0 ? 0 : Math.PI, pose: '', stun: 0, think: rr(0, 0.3), hold: 0, tx: 0, tz: 0, cut: rr(3, 8), cutT: 0,
       spot: 0, drive: 0, move: 0, moveCd: 0, shoot: null, isUser: false,
-      st: { pts: 0, reb: 0, oreb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, pf: 0, cs3: 0, mid: 0, lay: 0, dunk: 0, shake: 0, cmiss: 0, clutch: 0 } };
+      st: { pts: 0, reb: 0, oreb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, pf: 0, cs3: 0, mid: 0, lay: 0, dunk: 0, shake: 0, cmiss: 0, clutch: 0, fade: 0, hookm: 0 } };
   }
   const maxSpeed = p => (11.5 + p.r.speed * 0.075) * (G.ball.holder === p ? 0.9 : 1) * (p.energy !== undefined ? 0.82 + 0.18 * Math.min(1, p.energy * 2) : 1);
   const teamOf = t => G.pl.filter(p => p.team === t);
@@ -390,7 +390,7 @@
     G.possN = (G.possN || 0) + 1;   // a shot ends team control: a long rebound may be taken in the backcourt
     const b = G.ball;
     const hp = handPos(p);
-    let prob = baseProb(p, p.x, p.z, s.kind) * (s.fade ? 0.9 : 1);
+    let prob = baseProb(p, p.x, p.z, s.kind) * (s.fade ? 0.9 + 0.025 * bt(p, 'fade') : 1) * (s.kind === 'hook' ? 1 + 0.025 * bt(p, 'post') : 1);
     let timing = '';
     if (s.user) {
       const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase();
@@ -445,7 +445,7 @@
     b.dur = s.kind === 'dunk' ? 0.22 : 0.42 + d * 0.026;
     b.apex = s.kind === 'dunk' ? 0.2 : s.kind === 'layup' ? 2 : s.kind === 'floater' || s.kind === 'hook' ? 5.5 : 3.5 + d * 0.2;
     G.shotLog[G.shotLog.length - 1].made = made;
-    b.shot = { oop: !!s.oop, shooter: p, made, pts, foul, kind: s.kind, timing, prob, d: s.d, style: s.style, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
+    b.shot = { oop: !!s.oop, shooter: p, made, pts, foul, kind: s.kind, timing, prob, d: s.d, style: s.style, fade: !!s.fade, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
     if (foul) { foul.st.pf++; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); checkFoulOut(foul); }
   }
 
@@ -601,6 +601,7 @@
       p.st.pts += s.pts; p.st.fgm++; if (s.pts === 3) p.st.tpm++;
       if (s.kind === 'dunk') p.st.dunk++; else if (s.kind === 'layup' || s.kind === 'floater' || s.kind === 'hook') p.st.lay++; else if (s.pts === 2) p.st.mid++;
       if (s.pts === 3 && s.caught) p.st.cs3++;
+      if (s.fade) p.st.fade++; if (s.kind === 'hook') p.st.hookm++;
       if (clutchTime()) p.st.clutch += s.pts;
       R.swish(p.team === 0 ? 1 : -1);
       AU().play(s.kind === 'dunk' ? 'dunk' : s.prob > 0.55 || rand() < 0.62 ? 'swish' : 'rimin', { x: b.x });

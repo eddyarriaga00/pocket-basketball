@@ -50,7 +50,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - The pre-draft combine (shooting and measurements; it moves your pick), team interviews, draft night in 3D, a rival from your draft class you guard in rival
   games, coach trust and your role (off the bench you check in later), a word from the coach, game goals, team
   practice, life between games, press conferences, a feed, followers and shoe endorsements.
-- Twelve badges, career highs and milestones, injuries now and then.
+- Fourteen badges (Fadeaway Artist and Post Scorer new tonight), career highs and milestones, injuries now and then.
 - The league turns over: veterans retire, rookies arrive, free agents and trades move players between teams.
 - A real schedule (your division most often), back-to-backs with heavy legs, injuries around the league.
 - League leaders, All-Star picks, the All-Star Game, the 3-Point Contest and the Dunk Contest (a 360, a windmill,
