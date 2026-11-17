@@ -1470,7 +1470,12 @@
     if (!res.box || !res.box.length) return '';
     const w = res.score[0] >= res.score[1] ? 0 : 1, v = b => b.st.pts + b.st.reb * 0.8 + b.st.ast + (b.st.stl + b.st.blk) * 1.5 - (b.st.fga - b.st.fgm) * 0.4;
     const b = res.box.filter(x => x.team === w).sort((a, c) => v(c) - v(a))[0]; if (!b || v(b) < 6) return '';   // nobody had a game: no award
-    return `<div class="card earn"><b>Player of the game${b.user ? ': you' : ''}</b><span>${esc(PB.full(b.d))} · ${b.st.pts} pts, ${b.st.reb} reb, ${b.st.ast} ast · ${b.st.fgm}-${b.st.fga} FG</span></div>`;
+    /* a card the way the console games do it: the player in his uniform, his line in big numbers */
+    const tm = res.teams[w], img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(b.d, tm, 150, { body: true, kit: w === 0 ? 'icon' : 'assoc' }) : null;
+    return `<div class="card potg" style="--tc:${tm.c1}">${img ? `<img alt="" src="${img}">` : ''}<div class="pi"><p class="kick">Player of the game${b.user ? ' · you' : ''}</p>
+      <b class="nm">${esc(b.d.first || '')}<br>${esc(b.d.last || '')}</b><span class="tm">${esc(tm.name)} · #${b.d.num ?? ''}</span>
+      <div class="ln"><div><b>${b.st.pts}</b><span>PTS</span></div><div><b>${b.st.reb}</b><span>REB</span></div><div><b>${b.st.ast}</b><span>AST</span></div></div>
+      <span class="fg">${b.st.fgm}-${b.st.fga} FG${b.st.tpa ? ` · ${b.st.tpm}-${b.st.tpa} 3PT` : ''}</span></div></div>`;
   }
   function boxScore(res) {
     const rows = t => res.box.filter(b => b.team === t).map(b => `<tr class="${b.user ? 'me' : ''}"><td>${esc(b.d.last)}</td><td>${b.st.pts}</td><td>${b.st.reb}</td><td>${b.st.ast}</td><td>${b.st.fgm}-${b.st.fga}</td><td>${b.st.tpm}-${b.st.tpa}</td></tr>`).join('');
