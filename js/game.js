@@ -933,6 +933,7 @@
       if (def && rand() < clamp(0.12 + (p.r.handle - def.r.perD) * 0.006, 0.03, 0.4)) {
         def.stun = 0.6; p.drive = 1.2;
         if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); AU().crowd.react('ooh', 0.8); }
+        if (rand() < 0.15) ankles(def);
       }
     }
   }
@@ -1299,7 +1300,7 @@
       u.vx = dx / L * sp; u.vz = dz / L * sp;
       if (nd.who && nd.d < 6) {
         const ch = clamp(shake + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.62) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0);
-        if (rand() < ch) { nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; toast(kind === 'step' ? 'Created space' : 'Shook him', 'make'); grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+        if (rand() < ch) { nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else toast(kind === 'step' ? 'Created space' : 'Shook him', 'make'); grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
@@ -1314,6 +1315,8 @@
   }
   /* a dribble move the body and ball act out: the ball's path from hand to hand (court.js poses the arms from p.mv) */
   const MV_T = { cross: 0.32, btb: 0.4, legs: 0.38, hesi: 0.5, spin: 0.5 };
+  /* an ankle-breaker: the beaten defender goes down and needs a moment to get up */
+  function ankles(d) { d.fallT = G.t; d.stun = 1.5; d.vx *= 0.3; d.vz *= 0.3; }
   function startMv(p, k, a, b, side) { p.mv = { k, t0: G.t, T: MV_T[k], a, b, side: side || 1, bn: false }; }
   function feedMove(lbl) { const r = $('#rel'); r.textContent = lbl; r.className = 'on y'; relT = 0.6; }
 

@@ -677,6 +677,9 @@
     /* a fadeaway leans back in the air */
     const lean = p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     m.lean = (m.lean || 0) + (lean - (m.lean || 0)) * Math.min(1, dt * 10); m.body.rotation.x = m.lean;
+    /* ankles broken: down on the seat of his shorts, then back up */
+    const ft = p.fallT !== undefined ? G.t - p.fallT : 9, fall = ft < 1.5 ? smooth(0, 0.22, ft) * (1 - smooth(1.05, 1.5, ft)) : 0;
+    if (fall > 0) { m.body.rotation.x = m.lean - 1.25 * fall; m.body.position.y = p.y - 0.25 * fall; }
     const sp = Math.hypot(p.vx, p.vz), air = p.y > 0.3;
     /* legs: idle, walk, jog and sprint blended by speed; the stance on defense; the jump in the air */
     const ws = {};
@@ -686,6 +689,7 @@
     }
     let crouch = p.pose === 'guard' ? 0.5 : 0;
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
+    if (fall > 0) crouch = 1;
     if (ms < 1 && (mv.k === 'legs' || mv.k === 'cross' || mv.k === 'btb')) crouch = Math.max(crouch, mv.k === 'legs' ? 0.55 : 0.35);   // low on a move   // the gather: down into the legs before the jump
     const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;
     const shooting = p.shoot || p.pose === 'shoot';
