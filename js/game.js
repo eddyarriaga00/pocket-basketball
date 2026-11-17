@@ -185,7 +185,7 @@
     const changed = G.poss !== p.team;
     b.state = 'held'; b.holder = p; p.hold = 0; p.think = 0.2 + rand() * 0.2; delete p.post;
     b.lastTouch = p.team;
-    if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; }
+    if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; G.possN = (G.possN || 0) + 1; }
     if (why === 'oreb') G.shotClock = Math.max(G.shotClock, 14);
   }
   function inboundTo(team, at) {
@@ -238,9 +238,42 @@
   }
 
   /* Release: timing grade for you, then a block, a foul, then make or miss. */
+  /* violations: eight seconds to get it over half court, never back over once there, and (you) three seconds in the lane */
+  const tally = k => { const T = G.tally || (G.tally = {}); T[k] = (T[k] || 0) + 1; };   // for tools/balance.js
+  const HALF = RIM;   // along() at the half-court line
+  function violations(dt) {
+    const b = G.ball, t = G.poss;
+    if (G.drill || t === null || t === undefined || (b.state !== 'held' && b.state !== 'pass')) { if (G.user) G.user.lane = 0; return false; }
+    const V = G.vio && G.vio.n === G.possN ? G.vio : (G.vio = { n: G.possN, crossed: false, start: G.shotClock });
+    const h = b.state === 'held' ? b.holder : null;
+    const a = h ? along(h.z, t) : along(b.z, t);   // the holder, not the ball: the ball is still where it was the moment he gets it
+    if (!V.crossed && a < HALF - 0.5 && (!h || h.team === t)) V.crossed = true;
+    if (!V.crossed && V.start - G.shotClock > 8) {
+      toast('8 SECONDS', t === 0 ? 'opp' : ''); AU().play('whistle'); feed('Eight-second violation'); tally('8 sec');
+      turnover(h || b.from, '8-second violation', 1 - t, { x: b.x, z: 0 }); return true;
+    }
+    if (V.crossed && h && h.team === t && along(h.z, t) > HALF + 0.5 && b.lastTouch === t) {
+      toast('BACKCOURT', t === 0 ? 'opp' : ''); AU().play('whistle'); feed('Backcourt violation'); tally('backcourt');
+      turnover(h, 'Backcourt violation', 1 - t, { x: h.x, z: 0 }); return true;
+    }
+    const u = G.user;
+    if (u && !G.auto && u.team === t && !u.shoot && !(h === u && u.drive > 0)) {
+      const al = along(u.z, t);
+      u.lane = Math.abs(u.x) < 8 && al < 13.75 && al > -5 ? (u.lane || 0) + dt : 0;
+      if (u.lane > 2 && !u.laneWarn) { u.laneWarn = true; toast('Out of the lane', ''); buzz(8); }
+      if (u.lane < 1) u.laneWarn = false;
+      if (u.lane > 3.2) {
+        u.lane = 0; toast('3 SECONDS', 'opp'); AU().play('whistle'); feed('Three seconds in the lane'); tally('3 sec');
+        turnover(u, '3 seconds in the lane', 1 - t, { x: 25 * Math.sign(u.x || 1), z: u.z }); return true;
+      }
+    } else if (u) u.lane = 0;
+    return false;
+  }
+
   function release(p, meter) {
     const s = p.shoot; if (!s) return;
     p.shoot = null;
+    G.possN = (G.possN || 0) + 1;   // a shot ends team control: a long rebound may be taken in the backcourt
     const b = G.ball;
     const hp = handPos(p);
     let prob = baseProb(p, p.x, p.z, s.kind);
@@ -277,18 +310,7 @@
       const d = hyp(o.x - p.x, o.z - p.z);
       if (d > 4.5 || (o.y < 0.4 && o.pose !== 'contest')) continue;
       const ch = (o.r.block / 99) * (s.kind === 'jumper' ? 0.04 : s.kind === 'dunk' ? 0.06 : 0.24) * (1 - d / 4.5) * (o.ht >= p.ht ? 1.15 : 0.8) * (o.isUser ? 1.3 : 1) * (1 + 0.2 * bt(o, 'rim'));
-      if (rand() < ch) {
-        o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); }
-        if (p.isUser) grade(-1, 'Got blocked');
-        toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
-        AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
-        b.state = 'loose'; b.holder = null; b.lastTouch = o.team;
-        b.x = hp.x; b.y = hp.y + 0.6; b.z = hp.z;
-        const ang = rand() * 6.28;
-        b.vx = Math.sin(ang) * 10; b.vz = -dirOf(p.team) * rr(6, 14); b.vy = rr(2, 7);
-        G.shotClockStop = false;
-        return;
-      }
+      if (rand() < ch) { blockShot(o, p, { x: hp.x, y: hp.y + 0.6, z: hp.z }); return; }
     }
     /* foul on the shot */
     let foul = null;
@@ -310,6 +332,46 @@
     G.shotLog[G.shotLog.length - 1].made = made;
     b.shot = { oop: !!s.oop, shooter: p, made, pts, foul, kind: s.kind, timing, prob, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
     if (foul) { foul.st.pf++; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); checkFoulOut(foul); }
+  }
+
+  function blockShot(o, p, at) {
+    const b = G.ball;
+    o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); }
+    if (p.isUser) grade(-1, 'Got blocked');
+    toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
+    AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
+    b.state = 'loose'; b.holder = null; b.lastTouch = o.team; b.shot = null;
+    b.x = at.x; b.y = at.y; b.z = at.z;
+    const ang = rand() * 6.28;
+    b.vx = Math.sin(ang) * 10; b.vz = -dirOf(p.team) * rr(6, 14); b.vy = rr(2, 7);
+    G.shotClockStop = false;
+  }
+  /* a hand on the ball in flight: your jump timed on the way up is a block; any hand on it on the way down, over the
+     rim, is goaltending and the basket counts. Computer defenders mostly pull their hands away in time. */
+  function inFlight(u) {
+    const b = G.ball, s = b.shot, p = s.shooter;
+    if (s.kind === 'dunk' || s.ft) return;
+    for (const o of G.pl) {
+      if (o.team === p.team || o.y < 0.3) continue;
+      const reach = o.ht / 12 * 1.33 + o.y + 0.7;
+      if (hyp(o.x - b.x, o.z - b.z) > 2 || b.y > reach) continue;
+      const seen = s.seen || (s.seen = []);
+      if (seen.includes(o)) continue;
+      seen.push(o);
+      if (u > 0.55 && b.y > 10 && hyp(b.x, b.z - hoopZ(p.team)) < 5) {
+        if (!o.isUser && rand() > 0.2) continue;
+        s.made = true; s.gt = true;
+        if (G.shotLog && G.shotLog.length) G.shotLog[G.shotLog.length - 1].made = true;
+        if (o.isUser) grade(-2, 'Goaltending');
+        AU().play('whistle'); shotLands(); toast('GOALTENDING', o.team === 0 ? 'opp' : 'make'); feed(`Goaltending · ${o.name}`); tally('goaltend');
+        return;
+      }
+      if (u < 0.4 && o.isUser && rand() < 0.15 + o.r.block / 300) {
+        if (G.shotLog && G.shotLog.length) G.shotLog[G.shotLog.length - 1].made = false;
+        blockShot(o, p, { x: b.x, y: b.y, z: b.z }); tally('air block');
+        return;
+      }
+    }
   }
 
   let relT = 0;
@@ -529,8 +591,9 @@
   }
   function bestPass(p, dirx, dirz) {
     let best = null, bs = -1e9;
+    const over = along(p.z, p.team) < RIM;   // over half court: never back to a trailer behind it
     for (const r of teamOf(p.team)) {
-      if (r === p) continue;
+      if (r === p || (over && along(r.z, r.team) > RIM - 1.5)) continue;
       const dx = r.x - p.x, dz = r.z - p.z, L = hyp(dx, dz) || 1;
       const open = Math.min(nearestDef(r).d, 9);
       let s = open * 0.8 - L * 0.03 + (distHoop(r.x, r.z, p.team) < 12 ? 1.5 : 0) + (r.cutUser > 0 ? 2.5 : 0);
@@ -987,6 +1050,7 @@
         const t = G.poss; toast('SHOT CLOCK', 'opp'); AU().play('buzzer'); AU().play('whistle', { delay: 0.5 }); B('shotclock', { prio: 3 });
         turnover(b.holder || b.from, 'Shot clock violation', 1 - t);
       }
+      if (violations(dt)) return;
       if (G.clock <= 0 && b.state !== 'shot') { endPeriod(); return; }
     }
     /* players */
@@ -1121,6 +1185,7 @@
       b.t += dt;
       const u = Math.min(1, b.t / b.dur);
       b.x = b.sx + (b.ex - b.sx) * u; b.z = b.sz + (b.ez - b.sz) * u; b.y = b.sy + (b.ey - b.sy) * u + 4 * b.apex * u * (1 - u);
+      if (G.phase === 'live' && !G.drill && u < 1) { inFlight(u); if (b.state !== 'shot') return; }
       if (u >= 1) { if (b.shot.ft) ftLands(); else shotLands(); }
       return;
     }

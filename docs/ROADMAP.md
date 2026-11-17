@@ -68,6 +68,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Builds (bigs wider, guards leaner), a gather before the jumper, misses that rattle on the rim (2026-11-17)
 - [x] Jersey trim at the neckline, armholes and the shorts' hem, in the team's second color (2026-11-17)
 - [ ] Shorts that sway
+- [x] The dribbling arm from motion capture (CMU subject 06), in step with the ball (2026-11-17)
 - [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
 - [x] Alley-oops to cutters (yours with Cut or Call), post-ups and hook shots for bigs, floaters (2026-11-17)
 - [x] Stamina: sprinting drains it, empty legs are slow and short (2026-11-17)
@@ -75,7 +76,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Vibration on releases, makes, steals and blocks (Android) (2026-11-17)
 - [x] Replays of dunks, your and-ones and shots at the buzzer (2026-11-17)
 - [ ] Out-of-bounds inbound plays (a man takes it out on the sideline or baseline)
-- [ ] Backcourt and three-second violations, goaltending
+- [x] Eight seconds, backcourt, three seconds in the lane (yours, with a warning), goaltending; a jump timed on a
+      shot's way up blocks it in the air (2026-11-17)
 
 ## M2 · Career depth
 

@@ -14,7 +14,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 **Players and the arena**
 - Real bodies: a rigged mannequin (Quaternius, CC0) in team kits with numbers, chest wordmarks, trim, faces and
-  hair; builds (bigs wider); running, jumping and stances blended by speed; basketball arms set in code.
+  hair; builds (bigs wider); running, jumping and stances blended by speed; a dribble from motion capture; the other basketball arms set in code.
 - Your Look card: hair, hair color, headband, arm sleeve, shoes. Everyone else gets his own hair.
 - A lit arena: a polished hardwood floor, a center-hung scoreboard with the live score, LED ribbons, darker stands.
 - Cameras: player lock (the default, high and wide behind you), broadcast, overhead.
@@ -25,6 +25,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 - The pick-and-roll, help defense, closeouts, switches, post-ups and hooks, alley-oops, floaters, one- and
   two-handed dunks, misses that rattle on the rim, charges, strips, team fouls and the bonus, fouling out,
   holding for the last shot, fouling to stop the clock, timeouts, stamina, a jump ball.
+- The rules: eight seconds, backcourt, three seconds in the lane (with a warning), goaltending. Jump at a shot on
+  its way up and you can block it in the air.
 - Markers: the arrow over your pass target, the ring under your man, a release flash; the coverage on every shot.
 - Replays of dunks and buzzer-beaters, an opening flyover, halftime stats, a shot chart and box score.
 - Controllers, a left-handed layout, shot timing (easy, normal, hard), vibration on Android.
