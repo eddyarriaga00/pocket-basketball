@@ -5,4 +5,4 @@ __pycache__/
 .sfx/
 .voice/
 .models/
-node_modules/
+node_modules
