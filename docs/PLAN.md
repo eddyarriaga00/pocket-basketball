@@ -78,9 +78,11 @@ cdnjs, a network-first service worker, GitHub Pages) is proven on phones. Pocket
 **Court.** Feet: x across (-25..25), z along (-47..47), rims at z = ±41.75, ten feet up. Real markings: the
 23.75-foot arc, 22 feet in the corners, the 16-foot lane, the restricted area.
 
-**Camera.** High behind your team's direction of attack, steep enough that a half court reads top to bottom on a
-tall screen, sliding with the ball and stopping short of the baselines. Your team always attacks up the screen;
-on defense the play comes toward you. Pinch or +/− to zoom. Later: a "player lock" camera that keeps you centred.
+**Camera.** Broadcast by default: low on the scorer's-table sideline, the way the big console games show the game,
+panning along the court with the ball and leading toward the rim it is heading for, stopping short of the
+baselines so the rim stays in the picture. Your team attacks left to right in the first build. Overhead (high
+behind your direction of attack, the half court top to bottom) is the other option, in Settings and on the pause
+screen. +/− to zoom. Later: a "player lock" camera that keeps you centred, and the far basket after halftime.
 
 **Controls (portrait, two thumbs).**
 

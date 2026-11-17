@@ -8,7 +8,7 @@
   const R = PB.R = {};
   let renderer, scene, cam, W = 1, H = 1, DPR = 1;
   const camPos = new T.Vector3(0, 60, -50), camLook = new T.Vector3(0, 0, 0);
-  let zoom = 1;
+  let zoom = 1, camMode = 'broadcast';
   const meshes = new Map();
   let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [];
 
@@ -68,15 +68,14 @@
       /* lane hash marks */
       for (const d of [7, 8, 11, 14]) for (const sx of [-1, 1]) line([[sx * 8, bz - s * d], [sx * 8.7, bz - s * d]]);
     }
-    /* center logo */
-    g.save(); g.translate(X(0), Z(0)); g.rotate(Math.PI);
+    /* center logo and the names on the far sideline, readable from the broadcast camera at the scorer's table */
+    g.save(); g.translate(X(0), Z(0)); g.rotate(Math.PI / 2);
     g.fillStyle = home.c2; g.font = `900 ${3 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(home.id, 0, 0); g.restore();
-    /* baseline names, readable from the camera side */
-    g.save(); g.fillStyle = 'rgba(255,255,255,.85)'; g.font = `800 ${2.2 * PX}px Archivo, Arial`; g.textAlign = 'center';
-    g.translate(X(0), Z(45.3)); g.rotate(Math.PI); g.fillText(home.name.toUpperCase(), 0, 0); g.restore();
-    g.save(); g.fillStyle = 'rgba(255,255,255,.85)'; g.font = `800 ${2.2 * PX}px Archivo, Arial`; g.textAlign = 'center';
-    g.translate(X(0), Z(-45.3)); g.rotate(Math.PI); g.fillText(home.city.toUpperCase(), 0, PX * 0.8); g.restore();
+    for (const [z, txt] of [[-21, home.city], [21, home.name]]) {
+      g.save(); g.fillStyle = 'rgba(255,255,255,.8)'; g.font = `800 ${2.4 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.translate(X(21.2), Z(z)); g.rotate(Math.PI / 2); g.fillText(txt.toUpperCase(), 0, 0); g.restore();
+    }
     const tex = new T.CanvasTexture(cv);
     tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     return tex;
@@ -196,7 +195,7 @@
     scene.add(hoop(1)); scene.add(hoop(-1));
     /* stands: tiers on all four sides */
     const crowd = crowdTexture();
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 11; i++) {
       const h = 3 + i * 3.2, d = 8 + i * 5;
       for (const side of [-1, 1]) {
         const m = new T.Mesh(new T.BoxGeometry(5, 3.2, 150), new T.MeshLambertMaterial({ map: crowd.clone() }));
@@ -233,6 +232,8 @@
   };
 
   R.setZoom = z => { zoom = PB.clamp(z, 0.7, 1.5); };
+  R.setCam = m => { camMode = m === 'overhead' ? 'overhead' : 'broadcast'; R.resize(); };
+  R.getCam = () => camMode;
   R.getZoom = () => zoom;
 
   /* Pose every player from the game state. */
@@ -277,12 +278,22 @@
       n.mesh.scale.set(1 - n.swish * 0.25, 1 + n.swish * 0.35, 1 - n.swish * 0.25);
       n.mesh.position.y = 9.25 - n.swish * 0.26;
     }
-    /* camera: behind the +z direction, following the ball */
-    /* high and behind, steep enough that the half court reads top to bottom on a tall screen; it slides across with
-       the ball and stops short of the baselines so the rim never leaves the picture */
-    const fx = PB.clamp(b.x * 0.7, -11, 11), fz = PB.clamp(b.z + 5, -30, 33);
-    const tPos = new T.Vector3(fx * 0.9, 60 * zoom, fz - 34 * zoom);
-    const tLook = new T.Vector3(fx, 0, fz + 2);
+    let tPos, tLook;
+    if (camMode === 'overhead') {
+      /* high behind the +z direction: the half court reads top to bottom on a tall screen */
+      const fx = PB.clamp(b.x * 0.7, -11, 11), fz = PB.clamp(b.z + 5, -30, 33);
+      tPos = new T.Vector3(fx * 0.9, 60 * zoom, fz - 34 * zoom);
+      tLook = new T.Vector3(fx, 0, fz + 2);
+    } else {
+      /* broadcast: low on the scorer's-table side (-x), panning along the court with the ball and leading toward
+         the rim the ball is going to; it stops short of the baselines so the rim stays in the picture */
+      const dir = G.poss === 0 ? 1 : G.poss === 1 ? -1 : 0;
+      const fz = PB.clamp(b.z + dir * 10, -35, 35);
+      const fx = PB.clamp(b.x * 0.35, -6, 7) + 4;
+      const D = 60 * zoom, pitch = 0.4;
+      tPos = new T.Vector3(fx - D * Math.cos(pitch), D * Math.sin(pitch) + 2, fz);
+      tLook = new T.Vector3(fx, 2.5, fz);
+    }
     const k = Math.min(1, dt * 3.2);
     camPos.lerp(tPos, k); camLook.lerp(tLook, k);
     cam.position.copy(camPos); cam.lookAt(camLook);
@@ -298,7 +309,7 @@
     renderer.setPixelRatio(DPR); renderer.setSize(W, H, false);
     cam.aspect = W / H;
     /* a narrow portrait screen gets a wider lens so the court's width still fits */
-    cam.fov = W / H < 0.6 ? 50 : 42;
+    cam.fov = camMode === 'overhead' ? (W / H < 0.6 ? 50 : 42) : (W / H < 0.6 ? 56 : 40);
     cam.updateProjectionMatrix();
   };
   const v = new T.Vector3();

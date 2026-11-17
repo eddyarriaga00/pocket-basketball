@@ -28,6 +28,7 @@ plays offline too)
 - **Teammate grade**: every bucket, assist, board, stop, forced shot and turnover moves it, live on the screen.
   After the game you see what moved it.
 - **Quick game**: any two teams, any position.
+- **Two cameras**: Broadcast (low from the sideline, the default) and Overhead, in Settings or on the pause screen.
 
 ## Controls
 
