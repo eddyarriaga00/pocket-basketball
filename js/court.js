@@ -703,7 +703,7 @@
     hg.add(new T.Mesh(TPL.headGeo.skin, skinMat(d.skin || 0)));
     hg.add(new T.Mesh(TPL.headGeo.face, FACE_MAT));
     /* an open mouth for a yell after a big play (hidden until then) */
-    if (!TPL.mouthGeo) { const yy = -R * 0.43; TPL.mouthGeo = new T.SphereGeometry(R * 0.17, 14, 10); TPL.mouthGeo.scale(1, 0.85, 0.35); TPL.mouthGeo.translate(0, yy, surfZ(R, 0, yy) * (1 + 0.1 * jawLo(yy / (HS.y * R))) - R * 0.02); TPL.mouthGeo.userData.shared = true; }
+    if (!TPL.mouthGeo) { const yy = -R * 0.5; TPL.mouthGeo = new T.SphereGeometry(R * 0.21, 14, 10); TPL.mouthGeo.scale(1.05, 1, 0.4); TPL.mouthGeo.translate(0, yy, surfZ(R, 0, yy) * (1 + 0.1 * jawLo(yy / (HS.y * R))) - R * 0.03); TPL.mouthGeo.userData.shared = true; }
     const yell = new T.Mesh(TPL.mouthGeo, MOUTH_MAT); yell.visible = false; hg.add(yell); hg.userData.yell = yell;
     const cap = (r, theta, tilt, y) => { const m = new T.Mesh(capGeo(r / R, theta, tilt, R), hairMat); m.position.y = y || 0; return m; };
     const hair = (k, th0, y, cut, mat) => { const m = new T.Mesh(hairGeo(k, th0, R, cut), mat || hairMat); m.position.y = y || 0; return m; };
@@ -960,7 +960,7 @@
       const rim = new T.DirectionalLight(0xffffff, 0.35); rim.position.set(-4, 3, o.back ? 6 : -6); sc.add(rim);
       const p = { d: player, team: 0, slot: 0, r: player.r, ht: player.ht, num: player.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: 0, pose: '' };
       const m = skinnedPlayer(p, PB.kit ? PB.kit(team, o.kit || 'icon') : { c1: team.c1, c2: team.c2, name: team.name });
-      sc.add(m.root); m.shadow.visible = false;
+      sc.add(m.root); m.shadow.visible = false; if (o.yell && m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = true;
       m.mixer.update(0.3); m.body.updateMatrixWorld(true);
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
