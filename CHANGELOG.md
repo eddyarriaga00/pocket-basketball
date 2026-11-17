@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- New hair: fade, cornrows, locs, a bun and a mohawk (on the Look card too). Beards show again. The title screen's
+  player dribbles and works his moves. Sneakers are high-tops with a swoop in the team's second color. A thin outline
+  on players (off on Low graphics).
 - A simpler body, pocket style: smooth rounded shapes instead of the muscled mannequin (a rounded torso, tapered
   arms and legs, mitten hands, chunky rounded shoes), on the same skeleton so every animation still plays. Heads a
   little bigger.

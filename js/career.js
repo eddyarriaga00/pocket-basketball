@@ -1044,7 +1044,7 @@
   const LET = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];
   const LOOK = {
-    hair: [['short', 'Short'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['buzz', 'Buzz'], ['bald', 'Bald']],
+    hair: [['short', 'Short'], ['fade', 'Fade'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['cornrows', 'Cornrows'], ['locs', 'Locs'], ['bun', 'Bun'], ['mohawk', 'Mohawk'], ['buzz', 'Buzz'], ['bald', 'Bald']],
     hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver']],
     band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],

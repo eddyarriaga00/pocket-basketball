@@ -563,11 +563,16 @@
   /* hair with a real hairline: a shell over the head whose edge follows the line a barber cuts (straight across the
      forehead, square at the temples, up and over the ears, down to the nape). th0 is how far down from the crown the
      front edge sits, in radians; deeper cuts come lower. Shared per style. */
-  function hairGeo(k, th0, R) {
-    const key = 'h' + [k, th0].join();
+  /* other cuts: a fade (high and tight on the sides), long (down to the jaw at the sides and the neck at the back) */
+  const HAIRLINES = {
+    fade: th0 => [[0, th0], [0.5, th0 + 0.04], [0.72, th0 + 0.12], [1.0, 1.08], [1.6, 1.12], [2.4, 1.3], [Math.PI, 1.35]],
+    long: th0 => [[0, th0], [0.45, th0 + 0.05], [0.7, 1.35], [1.0, 1.95], [1.6, 2.3], [2.4, 2.55], [Math.PI, 2.6]],
+  };
+  function hairGeo(k, th0, R, cut) {
+    const key = 'h' + [k, th0, cut || ''].join();
     if (CAPS[key]) return CAPS[key];
     const NU = 64, NV = 14, pos = [], idx = [];
-    const L = [[0, th0], [0.5, th0 + 0.04], [0.72, th0 + 0.3], [0.95, 1.3], [1.25, 1.34], [1.6, 1.55], [2.2, 1.95], [Math.PI, 2.05]];
+    const L = cut ? HAIRLINES[cut](th0) : [[0, th0], [0.5, th0 + 0.04], [0.72, th0 + 0.3], [0.95, 1.3], [1.25, 1.34], [1.6, 1.55], [2.2, 1.95], [Math.PI, 2.05]];
     const tmax = a => { a = Math.abs(a); for (let i = 1; i < L.length; i++) if (a <= L[i][0]) { const [a0, t0] = L[i - 1], [a1, t1] = L[i], f = (a - a0) / (a1 - a0), e = f * f * (3 - 2 * f); return t0 + (t1 - t0) * e; } return L[L.length - 1][1]; };
     for (let i = 0; i <= NU; i++) {
       const ph = i / NU * Math.PI * 2 - Math.PI, tm = tmax(ph);
@@ -624,14 +629,14 @@
     { const yy = my + R * 0.16; face.push(prep(sm, 1, 0.55, 1, 0, yy, surfZ(R, 0, yy) * (1 + 0.1 * jawLo(yy / (HS.y * R))) - R * 0.005, 0, 0x4a2219)); }
     return { skin: merge(skin, false), face: merge(face, true) };
   }
-    const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short', 'twists', 'short'];
+    const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short', 'twists', 'short', 'fade', 'fade', 'cornrows', 'bun', 'locs', 'fade', 'mohawk'];
   const HAIRC = ['#17110d', '#17110d', '#2b1d12', '#17110d', '#4a3020', '#c9a46a', '#17110d', '#6b4a2b'];
   function autoLook(d) {
     let h = 0; const id = String(d.id || d.last || 'x'); for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
     const sk = d.skin == null ? 3 : d.skin;
     let hair = HAIRS[h % HAIRS.length], hairColor = HAIRC[(h >> 3) % HAIRC.length];
     if (sk >= 3 && hairColor !== '#17110d' && hairColor !== '#2b1d12') hairColor = '#17110d';   /* blond and light brown on fair skin only */
-    if (sk <= 1 && (hair === 'afro' || hair === 'twists')) hair = 'short';
+    if (sk <= 1 && (hair === 'afro' || hair === 'twists' || hair === 'cornrows' || hair === 'locs')) hair = 'short';
     if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
     return { hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
       beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7],
@@ -697,9 +702,21 @@
     hg.add(new T.Mesh(TPL.headGeo.skin, skinMat(d.skin || 0)));
     hg.add(new T.Mesh(TPL.headGeo.face, FACE_MAT));
     const cap = (r, theta, tilt, y) => { const m = new T.Mesh(capGeo(r / R, theta, tilt, R), hairMat); m.position.y = y || 0; return m; };
-    const hair = (k, th0, y) => { const m = new T.Mesh(hairGeo(k, th0, R), hairMat); m.position.y = y || 0; return m; };
+    const hair = (k, th0, y, cut, mat) => { const m = new T.Mesh(hairGeo(k, th0, R, cut), mat || hairMat); m.position.y = y || 0; return m; };
+    /* a faded side: the full hairline, faint */
+    const fadeMat = () => new T.MeshLambertMaterial({ color: hairMat.color, transparent: true, opacity: 0.45, depthWrite: false });
+    /* a raised row over the head from the hairline to the nape, x across (in R) */
+    const row = (x, r, mat) => { const pts = []; for (let i = 0; i <= 14; i++) { const u = 0.95 - i / 14 * 2.95, q = Math.sqrt(Math.max(0.05, 1 - x * x));
+      const v = V3(x, Math.cos(u) * q, Math.sin(u) * q), f = 1 / Math.sqrt((v.x / HS.x) ** 2 + (v.y / HS.y) ** 2 + (v.z / HS.z) ** 2) * 1.035 * R; pts.push(v.multiplyScalar(f)); }
+      return new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 24, r, 6, false), mat || hairMat); };
     if (look.hair === 'short') hg.add(hair(1.07, 0.95, R * 0.02));
     else if (look.hair === 'buzz') hg.add(hair(1.03, 1.0, 0));
+    else if (look.hair === 'fade') { hg.add(hair(1.075, 0.92, R * 0.03, 'fade')); hg.add(hair(1.02, 1.0, 0, null, fadeMat())); }
+    else if (look.hair === 'cornrows') { hg.add(hair(1.02, 0.98, 0)); for (const x of [-0.6, -0.3, 0, 0.3, 0.6]) hg.add(row(x, R * 0.075)); }
+    else if (look.hair === 'bun') { hg.add(hair(1.05, 0.95, R * 0.02)); const bn = new T.Mesh(new T.SphereGeometry(R * 0.34, 14, 10), hairMat); bn.position.set(0, R * 0.85, -R * 0.62); hg.add(bn); }
+    else if (look.hair === 'mohawk') { hg.add(hair(1.02, 1.0, 0, 'fade', fadeMat())); const mh = new T.Mesh(new T.SphereGeometry(R, 20, 14), hairMat); mh.scale.set(0.2, 0.42, 1.0); mh.position.set(0, R * 0.92, -R * 0.12); hg.add(mh); }
+    else if (look.hair === 'locs') { hg.add(hair(1.08, 0.95, R * 0.03, 'long')); for (let i = 0; i < 15; i++) { const a = -1.75 + i / 14 * 3.5, x = Math.sin(a) * R * 1.02, z = -Math.cos(a) * R * 0.98;
+        const t = new T.Mesh(new T.CylinderGeometry(R * 0.085, R * 0.07, R * 0.9, 6), hairMat); t.position.set(x * 1.02, -R * 0.55, z * 1.02 - R * 0.05); t.rotation.z = -x / R * 0.12; hg.add(t); } }
     else if (look.hair === 'high') {
       hg.add(hair(1.05, 0.95, R * 0.02));
       const top = new T.Mesh(new T.LatheGeometry([[0, R * 0.32], [R * 0.72, R * 0.32], [R * 0.86, R * 0.26], [R * 0.93, R * 0.12], [R * 0.95, -R * 0.31]].map(([x, y]) => new T.Vector2(x, y)), 24), hairMat); top.position.set(0, R * 1.0, -R * 0.08); top.rotation.x = -0.12; hg.add(top);
@@ -726,7 +743,7 @@
           for (let j = 0; j <= NV; j++) { const yn = t + (bot - t) * j / NV, r = Math.sqrt(Math.max(0, 1 - yn * yn)), lo = jawLo(yn);
             const z = Math.cos(a) * r * HS.z * R;
             pos.push(Math.sin(a) * r * HS.x * R * (1 + 0.1 * lo) * k, yn * HS.y * R * k, z * (1 + (z > 0 ? 0.1 : 0) * lo) * k); } }
-        for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) { const a = i * (NV + 1) + j, b = a + NV + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+        for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) { const a = i * (NV + 1) + j, b = a + NV + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
         const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
         return new T.Mesh(g, bm);
       };
@@ -943,7 +960,7 @@
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
       if (o.body) { const z = o.back ? -1 : 1; c.position.set(0.6 * z, H * 0.55, 14.5 * z); c.lookAt(0, H * 0.5, 0); }
-      else { const hp = m.hg.getWorldPosition(V3()); hp.y -= 0.22; const dz = o.close ? 2.5 : 3.6; if (o.close) hp.y += 0.12; c.position.set(hp.x + dz * 0.1, hp.y + 0.12, hp.z + dz); c.lookAt(hp); }
+      else { const hp = m.hg.getWorldPosition(V3()); hp.y -= 0.22; const dz = o.close ? 2.85 : 3.9; if (o.close) hp.y += 0.2; c.position.set(hp.x + dz * 0.1, hp.y + 0.12, hp.z + dz); c.lookAt(hp); }
       rr.render(sc, c);
       const url = cv.toDataURL('image/png');
       freeTree(m.root);
