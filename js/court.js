@@ -615,7 +615,16 @@
     return (CAPS[key] = g);
   }
   const jawLo = yn => Math.max(0, -yn) * Math.max(0, 1 + yn * 0.3);   // how much fuller the jaw is at this height (y over the head's half height)
-  function headGeometries(R) {
+  /* faces: eye size, how far the lids come down, brow weight and angle, nose size; one geometry each, shared */
+  const FACES = [
+    { eye: 1, lid: 0.8, brow: 0.085, tilt: 0.05, nose: 1 },
+    { eye: 0.88, lid: 0.95, brow: 0.11, tilt: 0.16, nose: 1.15 },    // focused, heavy brows
+    { eye: 1.08, lid: 0.62, brow: 0.07, tilt: 0.03, nose: 0.9 },    // bright-eyed
+    { eye: 0.95, lid: 1.05, brow: 0.095, tilt: 0.0, nose: 1.25 },    // calm, a bigger nose
+    { eye: 1.0, lid: 0.75, brow: 0.12, tilt: 0.1, nose: 0.95 },      // thick brows
+  ];
+  function headGeometries(R, F) {
+    F = F || FACES[0];
     const merge = (parts, colored) => {
       let n = 0; for (const g of parts) n += g.attributes.position.count;
       const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = colored ? new Float32Array(n * 3) : null; let o = 0;
@@ -635,20 +644,20 @@
         for (let i = 0; i < p.count; i++) { const y = p.getY(i) / (HS.y * R), z = p.getZ(i), lo = jawLo(y);
           p.setX(i, p.getX(i) * (1 + 0.1 * lo)); p.setZ(i, z * (1 + (z > 0 ? 0.1 : 0) * lo)); }
         g.computeVertexNormals(); return prep(g, 1, 1, 1, 0, 0, 0); })(),
-      prep(new T.SphereGeometry(R * 0.13, 10, 8), 0.85, 0.95, 0.9, 0, -R * 0.2, surfZ(R, 0, -R * 0.2) + R * 0.03),   // the nose
+      prep(new T.SphereGeometry(R * 0.13 * F.nose, 10, 8), 0.85, 0.95, 0.9, 0, -R * 0.2, surfZ(R, 0, -R * 0.2) + R * 0.03 * F.nose),   // the nose
     ];
     for (const sx of [-1, 1]) skin.push(prep(new T.SphereGeometry(R * 0.24, 10, 8), 0.42, 1, 0.75, sx * HS.x * R * 0.98, -R * 0.08, -R * 0.04));   // ears
     /* upper lids over the top of each eye: a calmer, cooler look than a full round eye */
     for (const sx of [-1, 1]) { const ex = sx * R * 0.37, ey = R * 0.02, ez = surfZ(R, ex, ey);
-      const lid = new T.SphereGeometry(R * 0.215, 14, 8, 0, Math.PI * 2, 0, 0.8); lid.rotateX(0.2); lid.rotateZ(-sx * 0.12);
+      const lid = new T.SphereGeometry(R * 0.215 * F.eye, 14, 8, 0, Math.PI * 2, 0, F.lid); lid.rotateX(0.2); lid.rotateZ(-sx * 0.12);
       skin.push(prep(lid, 1, 1.08, 0.62, ex, ey + R * 0.005, ez - R * 0.02)); }
     const face = [];
     for (const sx of [-1, 1]) {
       const ex = sx * R * 0.37, ey = R * 0.02, ez = surfZ(R, ex, ey);
-      face.push(prep(new T.SphereGeometry(R * 0.2, 12, 10), 1, 1.08, 0.55, ex, ey, ez - R * 0.02, 0, 0xf4f1ea));
-      face.push(prep(new T.SphereGeometry(R * 0.115, 10, 8), 1, 1.1, 0.5, ex + sx * -R * 0.01, ey - R * 0.015, ez + R * 0.075, 0, 0x120c08));
+      face.push(prep(new T.SphereGeometry(R * 0.2 * F.eye, 12, 10), 1, 1.08, 0.55, ex, ey, ez - R * 0.02, 0, 0xf4f1ea));
+      face.push(prep(new T.SphereGeometry(R * 0.115 * F.eye, 10, 8), 1, 1.1, 0.5, ex + sx * -R * 0.01, ey - R * 0.015, ez + R * 0.075, 0, 0x120c08));
       face.push(prep(new T.SphereGeometry(R * 0.035, 6, 5), 1, 1, 0.5, ex + sx * -R * 0.045, ey + R * 0.03, ez + R * 0.115, 0, 0xffffff));   // a glint
-      const by = R * 0.3; face.push(prep(new T.BoxGeometry(R * 0.38, R * 0.085, R * 0.08), 1, 1, 1, sx * R * 0.37, by, surfZ(R, sx * R * 0.37, by) + R * 0.0, sx * 0.05, 0x120c08));
+      const by = R * (0.27 + 0.03 * F.eye); face.push(prep(new T.BoxGeometry(R * 0.38, R * F.brow, R * 0.08), 1, 1, 1, sx * R * 0.37, by, surfZ(R, sx * R * 0.37, by) + R * 0.0, sx * F.tilt, 0x120c08));
     }
     const my = -R * 0.5;
     /* a slight smile: a short arc, lower in the middle */
@@ -667,7 +676,7 @@
     if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
     return { hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
       beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7],
-      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11] };
+      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 5 };
   }
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
@@ -724,10 +733,11 @@
     const head = bones[bk('DEF-head')];
     /* the head: drawn, not the mannequin's (pocket style: round, big eyes), one skin material per tone, shared */
     const R = TPL.headR;
-    if (!TPL.headGeo) TPL.headGeo = headGeometries(R);
+    const fi = (d.look && d.look.face != null ? +d.look.face : look.face || 0) % FACES.length; TPL.headGeos = TPL.headGeos || [];
+    const HG = TPL.headGeos[fi] || (TPL.headGeos[fi] = headGeometries(R, FACES[fi]));
     const hg = new T.Group(); put(head, TPL.decals.headC, hg);
-    hg.add(new T.Mesh(TPL.headGeo.skin, skinMat(d.skin || 0)));
-    hg.add(new T.Mesh(TPL.headGeo.face, FACE_MAT));
+    hg.add(new T.Mesh(HG.skin, skinMat(d.skin || 0)));
+    hg.add(new T.Mesh(HG.face, FACE_MAT));
     /* an open mouth for a yell after a big play (hidden until then) */
     if (!TPL.mouthGeo) { const yy = -R * 0.5; TPL.mouthGeo = new T.SphereGeometry(R * 0.21, 14, 10); TPL.mouthGeo.scale(1.05, 1, 0.4); TPL.mouthGeo.translate(0, yy, surfZ(R, 0, yy) * (1 + 0.1 * jawLo(yy / (HS.y * R))) - R * 0.03); TPL.mouthGeo.userData.shared = true; }
     const yell = new T.Mesh(TPL.mouthGeo, MOUTH_MAT); yell.visible = false; hg.add(yell); hg.userData.yell = yell;

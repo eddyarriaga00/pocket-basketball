@@ -381,7 +381,7 @@
         <div class="field"><label>Build</label><div class="arch">${archs.map(a => `<button class="${a === st.arch ? 'on' : ''}" data-v="${a}"><b>${a}</b><span>${PB.ARCH[a].tag}</span></button>`).join('')}</div></div>
         <div class="field"><label>Height · ${PB.fmtH(st.ht)}</label><input type="range" id="hgt" min="${hr[0]}" max="${hr[1]}" value="${st.ht}"></div>
         <div class="field"><label>Skin tone</label><div class="skins">${PB.SKIN.map((c, i) => `<button class="${i === st.skin ? 'on' : ''}" data-v="${i}" style="background:${c}"></button>`).join('')}</div></div>
-        ${['hair', 'hairColor', 'beard'].map(k => `<div class="field"><label>${{ hair: 'Hair', hairColor: 'Hair color', beard: 'Facial hair' }[k]}</label><div class="seg" data-cl="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(st.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`).join('')}
+        ${['face', 'hair', 'hairColor', 'beard'].map(k => `<div class="field"><label>${{ face: 'Face', hair: 'Hair', hairColor: 'Hair color', beard: 'Facial hair' }[k]}</label><div class="seg" data-cl="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(st.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`).join('')}
         <div class="field"><label>Jersey number</label><input id="num" type="number" min="0" max="99" value="${st.num ?? 1}"></div>
         <div class="card"><h3>Starting ratings <small>overall ${PB.ovr(r, st.pos)} · the tick is how far each can grow</small></h3>${bars}</div>
         <button class="big" id="go">Enter the draft</button></div>`);
@@ -1067,6 +1067,7 @@
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];
   const LOOK = {
     hair: [['short', 'Short'], ['fade', 'Fade'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['cornrows', 'Cornrows'], ['locs', 'Locs'], ['bun', 'Bun'], ['mohawk', 'Mohawk'], ['buzz', 'Buzz'], ['bald', 'Bald']],
+    face: [[null, 'Classic'], ['1', 'Focused'], ['2', 'Bright'], ['3', 'Calm'], ['4', 'Bold']],
     hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver']],
     band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],
@@ -1082,7 +1083,7 @@
   function lookEditor(me) {
     me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
     const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(me.look[k + 'Pick'] ?? me.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
-    return row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('sleeve', 'Arm sleeve') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + row('celeb', 'Signature celebration') + row('drib', 'Dribble style') + '<p class="fine">Your look on the floor from your next game.</p>';
+    return row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('sleeve', 'Arm sleeve') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + row('celeb', 'Signature celebration') + row('drib', 'Dribble style') + '<p class="fine">Your look on the floor from your next game.</p>';
   }
   function badgeList() {
     return PB.BADGES.map(b => {
