@@ -19,8 +19,8 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
 
 ## Career (the main mode)
 
-- **Your player**: position, one of six builds, height, skin tone, number, and a Look card (hair, headband, arm
-  sleeve, shoes). Every rating shows its ceiling from day one.
+- **Your player**: position, one of six builds, height, skin tone, number, and a Look card (your jump shot,
+  hair, facial hair, headband, arm sleeve, shoes). Every rating shows its ceiling from day one.
 - **The road in**: a pre-draft combine (fifteen spot-up shots in 45 seconds, and your measurements) and team
   interviews that move your draft stock, draft night, and a rival from your draft class in your division.
 - **The season**: play or sim each game. Three goals a game by position; team practice between games; a teammate
@@ -28,13 +28,15 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
   role (starters start, a sixth man checks in mid-first quarter, the bench in the second); a word from the coach
   every five games; press conferences; a social feed and followers; shoe endorsements.
 - **The league around you**: a real schedule with back-to-backs, injuries, trades and a rookie class every summer,
-  Player of the Week, the All-Star fan vote, standings, league leaders, All-Star picks, the 3-Point Contest and the Dunk Contest, a play-in and
+  Player of the Week, the All-Star fan vote, standings, league leaders, All-Star picks, the Rising Stars game, the
+  3-Point Contest and the Dunk Contest, a play-in and
   playoff series, awards night (MVP, ROY, DPOY, Sixth Man, Most Improved, All-League, Finals MVP).
 - **The business**: a rookie deal by pick, an extension offer, free agency with four offers, trade requests,
   career earnings; past thirty the legs slow, from 33 you can retire and the Hall of Fame votes.
 - **Every summer**: training camp (one focus, with a drill for shooting and finishing).
 - **Your legacy**: a record book of the device's best games and seasons, banners in the rafters for your titles and
-  your retired jersey, a player card image to share, and your highlights after every game, saved as a video.
+  your retired jersey, a player card image to share, twenty-two achievements, and your highlights after every game,
+  saved as a vertical video with sound.
 - **Saves**: up to six careers on a device, backups to a file you can open on another device.
 
 ## On the floor
@@ -47,7 +49,8 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
   strips, rebounds, the shot clock and overtime. Computer games average about 114 points a team on 47% shooting,
   like the real league.
 - The rules: eight seconds, backcourt, three seconds, goaltending, inbound plays, foul trouble.
-- Call a pick, call a play (get me the ball, pick-and-roll, feed the post); get hot and they double you.
+- Call a pick, call a play (get me the ball, pick-and-roll, feed the post); post up as a big; hooks and fadeaways;
+  get hot and they double you. The bench plays: computer players tire and sub at dead balls; fast breaks.
 - Dribble moves on the Move button (swipe for a crossover either way, a step-back, a spin), stamina, replays of
   dunks and buzzer-beaters, an opening flyover, halftime stats, a shot chart and box score after the game.
 - Three cameras: Player lock (the default: high behind your player, facing the rim in play), Broadcast (the
