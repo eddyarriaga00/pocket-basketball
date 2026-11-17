@@ -74,7 +74,8 @@
     if (p.stepT !== undefined && G.t - p.stepT < 1.1) best = 1 - (1 - best) * 0.55;   // the step-back bought room
     if (p.euroT !== undefined && G.t - p.euroT < 1.2) best = 1 - (1 - best) * 0.5;   // the euro step went around the shot-blocker
     if (p.fadeT !== undefined && G.t - p.fadeT < 1.2) best = 1 - (1 - best) * 0.6;   // the fadeaway leans away from the hand
-    if (p.postHookT !== undefined && G.t - p.postHookT < 1.2) best = 1 - (1 - best) * 0.7;   // backed him down first: the hook goes over him
+    if (p.postHookT !== undefined && G.t - p.postHookT < 1.2) best = 1 - (1 - best) * 0.7;
+    if (p.highT !== undefined && G.t - p.highT < 1.2) best = 1 - (1 - best) * 0.85;   // a high release goes up over the hand   // backed him down first: the hook goes over him
     return clamp(best, 0.5, 1);
   }
   const nearestDef = p => {
@@ -321,11 +322,13 @@
       if (p.postUp > 0) { p.postUp = 0; p.postHookT = G.t; }
       else if (kind === 'jumper' && d > 8 && d < 22) { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, L = hyp(hx, hz) || 1; if ((p.vx * hx + p.vz * hz) / L < -3.5) fade = true; }
     }
-    const T = kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.5 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55;
+    const js = kind === 'jumper' && p.d.look ? p.d.look.jumper : null;   // your jump shot: quick or high
+    const T = (kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.5 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55) * (js === 'quick' ? 0.84 : js === 'high' ? 1.1 : 1);
     const peak = kind === 'jumper' ? 1.4 + p.r.vert * 0.014 : kind === 'dunk' ? 2.6 + p.r.vert * 0.02 : 1.8 + p.r.vert * 0.012;
     const tp = T * 0.82;
     p.jg = 2 * peak / (tp * tp); p.vy = p.jg * tp;
-    p.shoot = { t: 0, T, kind, user: !!forUser, three: isThree(p.x, p.z, p.team), d, fade,
+    if (js === 'high') p.highT = G.t;
+    p.shoot = { t: 0, T, kind, user: !!forUser, three: isThree(p.x, p.z, p.team), d, fade, js,
       /* AI: when it lets go (near the top, a little early or late) */
       aiRel: clamp(0.82 + PB.gauss() * (0.09 - p.r.mid * 0.0006), 0.55, 1.1) };
     p.pose = kind === 'dunk' ? (rand() < 0.55 ? 'dunk1' : 'celebrate') : 'shoot';
@@ -392,7 +395,7 @@
     G.possN = (G.possN || 0) + 1;   // a shot ends team control: a long rebound may be taken in the backcourt
     const b = G.ball;
     const hp = handPos(p);
-    let prob = baseProb(p, p.x, p.z, s.kind) * (s.fade ? 0.9 + 0.025 * bt(p, 'fade') : 1) * (s.kind === 'hook' ? 1 + 0.025 * bt(p, 'post') : 1);
+    let prob = baseProb(p, p.x, p.z, s.kind) * (s.js === 'quick' ? 0.97 : 1) * (s.fade ? 0.9 + 0.025 * bt(p, 'fade') : 1) * (s.kind === 'hook' ? 1 + 0.025 * bt(p, 'post') : 1);
     let timing = '';
     if (s.user) {
       const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase();

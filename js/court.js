@@ -500,11 +500,12 @@
     if (pose === 'dribble') kk = (G.t * 8.5 / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
+    const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
     const P = POSES[pose](kk), w = m.poseW, s = TPL.sideR < 0 ? 1 : -1;
-    aim(m.R.up, m.R.fore, dirOf(p.face, P[0][0], P[0][1], P[0][2], s), w);
-    aim(m.R.fore, m.R.hand, dirOf(p.face, P[1][0], P[1][1], P[1][2], s), w);
+    aim(m.R.up, m.R.fore, dirOf(p.face, P[0][0], P[0][1] + hi, P[0][2] - hi, s), w);
+    aim(m.R.fore, m.R.hand, dirOf(p.face, P[1][0], P[1][1] + hi, P[1][2] - hi, s), w);
     aim(m.L.up, m.L.fore, dirOf(p.face, P[2][0], P[2][1], P[2][2], -s), w);
     aim(m.L.fore, m.L.hand, dirOf(p.face, P[3][0], P[3][1], P[3][2], -s), w);
   }

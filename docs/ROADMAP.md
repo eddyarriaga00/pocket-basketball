@@ -167,6 +167,5 @@ The two node tools need Playwright (`npm i -g playwright`).
 - A zone defense for computer teams (tried 2026-11-17: the simple 2-3 gave up 120 shots a game; it needs real
   closeouts and rotations before it can ship)
 - Fifteen-man rosters, two-way contracts, trades you propose
-- Shot styles to pick (release height and speed) on the Look card
 - Draw calls: one atlas for each player's number and wordmark, one instanced mesh for all the shadows
 - Online head to head by code
