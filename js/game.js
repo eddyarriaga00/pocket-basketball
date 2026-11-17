@@ -1107,8 +1107,8 @@
     G.paused = true; AU().muffle(true);
     const ov = $('#pause'); ov.hidden = false;
     ov.innerHTML = `<div class="card half"><p class="kick">Halftime</p>
-      <div class="pscore"><span>${G.teams[0].id}</span><b>${G.score[0]} – ${G.score[1]}</b><span>${G.teams[1].id}</span></div>
-      <table class="std"><tr><th></th><th>${G.teams[0].id}</th><th>${G.teams[1].id}</th></tr>
+      <div class="pscore"><span>${G.teams[0].ab || G.teams[0].id}</span><b>${G.score[0]} – ${G.score[1]}</b><span>${G.teams[1].ab || G.teams[1].id}</span></div>
+      <table class="std"><tr><th></th><th>${G.teams[0].ab || G.teams[0].id}</th><th>${G.teams[1].ab || G.teams[1].id}</th></tr>
       <tr><td>Field goals</td><td>${a.fgm}-${a.fga} (${pc(a.fgm, a.fga)})</td><td>${c.fgm}-${c.fga} (${pc(c.fgm, c.fga)})</td></tr>
       <tr><td>Threes</td><td>${a.tpm}-${a.tpa}</td><td>${c.tpm}-${c.tpa}</td></tr>
       <tr><td>Rebounds</td><td>${a.reb}</td><td>${c.reb}</td></tr><tr><td>Turnovers</td><td>${a.tov}</td><td>${c.tov}</td></tr></table>
@@ -1324,7 +1324,7 @@
     ov.hidden = !on;
     if (on) {
       ov.innerHTML = `<div class="card"><h2>Paused</h2>
-        <div class="pscore"><span>${G.teams[0].id}</span><b>${G.score[0]} – ${G.score[1]}</b><span>${G.teams[1].id}</span></div>
+        <div class="pscore"><span>${G.teams[0].ab || G.teams[0].id}</span><b>${G.score[0]} – ${G.score[1]}</b><span>${G.teams[1].ab || G.teams[1].id}</span></div>
         <p class="mute">${$('#qt').textContent} · ${$('#clk').textContent} · your grade ${G.user ? gradeLetter(G.grade) : '–'}</p>
         ${opts.goals && G.user ? `<div class="pgoals"><b>Your goals</b>${opts.goals.map(g => { const v = g.k === 'grade' ? null : G.user.st[g.k] || 0; const ok = g.k === 'grade' ? LETTERS.indexOf(gradeLetter(G.grade)) >= g.n : g.k === 'tov' ? v <= g.n : v >= g.n;
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
@@ -1402,7 +1402,7 @@
       const k0 = { c1: o.teams[0].c1, c2: o.teams[0].c2, name: o.teams[0].name };
       const k1 = cd(o.teams[0].c1, o.teams[1].c1) < 120 ? { c1: '#f2f2f2', c2: o.teams[1].c1, name: o.teams[1].name } : { c1: o.teams[1].c1, c2: o.teams[1].c2, name: o.teams[1].name };
       for (const p of pl) R.addPlayer(p, p.team === 0 ? k0 : k1);
-      $('#a0').textContent = o.teams[0].id; $('#a1').textContent = o.teams[1].id;
+      $('#a0').textContent = o.teams[0].ab || o.teams[0].id; $('#a1').textContent = o.teams[1].ab || o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
       $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Teammate grade</span>' : '';
       $('#grade').hidden = !G.user || !!o.switching; $('#ftmsg').hidden = true; $('#pause').hidden = true;

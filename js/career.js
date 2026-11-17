@@ -36,7 +36,7 @@
   }
 
   function show(html) { const s = scr(); s.innerHTML = html; s.hidden = false; s.scrollTop = 0; }
-  const badge = t => `<i class="tb" style="background:${t.c1};color:${t.c2}">${t.id}</i>`;
+  const badge = t => `<i class="tb" style="background:${t.c1};color:${t.c2}">${esc(t.ab || t.id)}</i>`;
   const tname = t => `${t.city} ${t.name}`;
 
   /* ---------- title ---------- */
@@ -140,14 +140,45 @@
       ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
       ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
       ${opt('season', [10, 20, 41, 82], 'Games in a career season (next season on)')}
+      <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name and colors</small></button>
       <p class="fine">Settings are kept on this device.</p></div>`);
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
+    $('#edteams').onclick = () => editTeams();
     scr().querySelectorAll('.seg button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.k, v = b.dataset.v;
       S[k] = isNaN(+v) ? v : +v;
       S.sound = S.soundOn !== 'Off'; S.music = S.musicOn !== 'Off'; S.commentary = S.commentaryOn !== 'Off'; S.replays = S.replaysOn !== 'Off'; S.vibrate = S.vibrateOn !== 'Off';
       saveSettings(); if (PB.audio) PB.audio.music(true); settings();
     });
+  }
+
+  /* ---------- edit teams: renames and colors, on this device only ---------- */
+  function editTeams(sel) {
+    if (!sel) {
+      show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Edit teams</h2>
+        <p class="fine">Rename any team or change its colors. The changes stay on this device. Every team and player is fictional.</p>
+        ${['East', 'West'].map(c => `<div class="card"><h3>${c}</h3>${PB.TEAMS.filter(t => t.conf === c).map(t => `<button class="trow" data-id="${t.id}">${badge(t)}<span>${esc(t.city)} ${esc(t.name)}</span></button>`).join('')}</div>`).join('')}
+        <button class="ghost sm" id="reset">Put every team back the way it was</button></div>`);
+      $('#bk').onclick = settings;
+      scr().querySelectorAll('.trow').forEach(b => b.onclick = () => editTeams(b.dataset.id));
+      $('#reset').onclick = () => { if (!confirm('Undo every team edit?')) return; try { localStorage.removeItem('pbb.teams'); } catch (e) { /* fine */ } PB.applyTeamEdits(); editTeams(); };
+      return;
+    }
+    const t = PB.team(sel);
+    show(`<div class="page"><button class="back" id="bk">‹ All teams</button><h2>${badge(t)} ${esc(t.city)} ${esc(t.name)}</h2>
+      <div class="field"><label>City</label><input id="ec" maxlength="18" value="${esc(t.city)}"></div>
+      <div class="field"><label>Nickname</label><input id="en" maxlength="16" value="${esc(t.name)}"></div>
+      <div class="field"><label>Short name (2 to 4 letters)</label><input id="ea" maxlength="4" value="${esc(t.ab)}"></div>
+      <div class="row2"><div class="field"><label>Main color</label><input id="e1" type="color" value="${t.c1}"></div><div class="field"><label>Second color</label><input id="e2" type="color" value="${t.c2}"></div></div>
+      <button class="big" id="sv">Save</button></div>`);
+    $('#bk').onclick = () => editTeams();
+    $('#sv').onclick = () => {
+      let ed = {}; try { ed = JSON.parse(localStorage.getItem('pbb.teams') || '{}'); } catch (e) { ed = {}; }
+      const v = id => $(id).value.trim();
+      ed[t.id] = { city: v('#ec') || t.city, name: v('#en') || t.name, ab: (v('#ea') || t.ab).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || t.ab, c1: v('#e1'), c2: v('#e2') };
+      try { localStorage.setItem('pbb.teams', JSON.stringify(ed)); } catch (e) { /* fine */ }
+      PB.applyTeamEdits(); editTeams();
+    };
   }
 
   /* ---------- quick game ---------- */
@@ -319,7 +350,7 @@
       <p class="kick">Draft night</p>
       <div class="podium"><p>With the ${ord(C.pick)} pick, the</p><h2>${esc(tname(t))}</h2><p>select</p>
       <h1>${esc(PB.full(me))}</h1><p class="mute">${PB.POS_NAME[me.pos]} · ${me.arch} · ${PB.fmtH(me.ht)} · overall ${me.ovr}</p></div>
-      <div class="cap" style="background:${t.c1};color:${t.c2}">${t.id}<b>#${me.num}</b></div>
+      <div class="cap" style="background:${t.c1};color:${t.c2}">${esc(t.ab)}<b>#${me.num}</b></div>
       <p class="fine">A four-year rookie deal. ${roleLine()}</p>
       <div class="card rival"><h3>Your rival</h3><p>${badge(rt)} <b>${esc(PB.full(rv))}</b>, ${PB.POS_NAME[rv.pos].toLowerCase()}, went ${ord(C.rival.pick)} to the ${esc(rt.name)}, in your division. Overall ${rv.ovr}. The league will compare you all career.</p></div>
       <button class="big" id="go">Go to the team</button></div>`);
@@ -825,7 +856,7 @@
     else C.news.unshift(`${field[0].name} wins the 3-Point Contest; ${C.me.last} finishes ${ordinal(field.indexOf(field.find(x => x.me)) + 1)} with ${score}`);
     save();
     show(`<div class="page post awards"><p class="kick">All-Star weekend · 3-Point Contest</p>
-      ${field.map((x, i) => `<div class="card aw ${x.me ? 'mine' : ''}"><span>${ordinal(i + 1)}</span><b>${esc(x.name)} <small>${PB.team(x.team).id} · ${x.score} pts</small></b></div>`).join('')}
+      ${field.map((x, i) => `<div class="card aw ${x.me ? 'mine' : ''}"><span>${ordinal(i + 1)}</span><b>${esc(x.name)} <small>${PB.team(x.team).ab} · ${x.score} pts</small></b></div>`).join('')}
       <button class="big" id="go">Back to the season</button></div>`);
     $('#go').onclick = hub;
   }
@@ -945,7 +976,7 @@
     if (!rows.length) return '';
     const cat = (k, lbl) => { const top = rows.slice().sort((a, b) => b[k] - a[k]).slice(0, 5);
       const mine = rows.filter(r => r.me)[0], rank = mine ? rows.slice().sort((a, b) => b[k] - a[k]).indexOf(mine) + 1 : 0;
-      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}"><span>${i + 1}</span>${esc(r.name)} <small>${PB.team(r.team).id}</small><em>${r[k].toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span>You<em>${mine[k].toFixed(1)}</em></p>` : ''}</div>`; };
+      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}"><span>${i + 1}</span>${esc(r.name)} <small>${PB.team(r.team).ab}</small><em>${r[k].toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span>You<em>${mine[k].toFixed(1)}</em></p>` : ''}</div>`; };
     return `<div class="card leaders"><h3>League leaders <small>a game, full-length</small></h3>${cat('ptspg', 'Points')}${cat('rebpg', 'Rebounds')}${cat('astpg', 'Assists')}${cat('stlpg', 'Steals')}${cat('blkpg', 'Blocks')}</div>`;
   }
   function awardsNight() {
@@ -981,7 +1012,7 @@
     for (const g of got) if (!/Champion|All-Star/.test(g)) C.trophies.push(`${g}, season ${C.year}`);
     C.me.sp += got.length * 3;
     C.lastGot = got; C.phase = 'offseason'; save();   // awards are handed out once, even if the page is reloaded
-    const line = x => `${esc(x.name)} <small>${PB.team(x.team).id} · ${x.ppg.toFixed(1)} / ${x.rpg.toFixed(1)} / ${x.apg.toFixed(1)}</small>`;
+    const line = x => `${esc(x.name)} <small>${PB.team(x.team).ab} · ${x.ppg.toFixed(1)} / ${x.rpg.toFixed(1)} / ${x.apg.toFixed(1)}</small>`;
     show(`<div class="page post awards"><p class="kick">Awards night · Season ${C.year}</p>
       ${aw.map(([t, w]) => `<div class="card aw ${w.me ? 'mine' : ''}"><span>${t}</span><b>${line(w)}</b></div>`).join('')}
       <div class="card"><h3>Your honors</h3>${got.length ? got.map(a => `<p class="news">🏆 ${esc(a)}</p>`).join('') : '<p class="mute">None this year. Next year.</p>'}
@@ -1047,7 +1078,7 @@
       const to = opts[Math.floor(PB.rand() * opts.length)];
       C.news.unshift(`Trade: ${C.me.last} heads to the ${tname(to)}`);
       C.tradeReq = false; moveTo(to.id); C.trust = 50;
-      show(`<div class="page post"><p class="kick">Trade</p><h2>You've been traded</h2><div class="cap" style="background:${to.c1};color:${to.c2};width:120px;height:120px;border-radius:24px;display:flex;align-items:center;justify-content:center;margin:16px auto;font-family:var(--display);font-weight:900;font-size:22px">${to.id}</div>
+      show(`<div class="page post"><p class="kick">Trade</p><h2>You've been traded</h2><div class="cap" style="background:${to.c1};color:${to.c2};width:120px;height:120px;border-radius:24px;display:flex;align-items:center;justify-content:center;margin:16px auto;font-family:var(--display);font-weight:900;font-size:22px">${esc(to.ab)}</div>
         <p>The ${esc(tname(to))} take on your contract: ${c.years} season${c.years === 1 ? '' : 's'} at ${M(c.salary)}.</p><button class="big" id="go">Report to camp</button></div>`);
       $('#go').onclick = () => offseasonContract(next);
       return;

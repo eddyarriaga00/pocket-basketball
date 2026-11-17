@@ -60,6 +60,13 @@
     { id: 'NO', city: 'New Orleans', name: 'Krewe', c1: '#4b2a7b', c2: '#2e9b5f', conf: 'West', div: 'Southwest' },
     { id: 'SA', city: 'San Antonio', name: 'Rattlers', c1: '#6b6b6b', c2: '#e04e39', conf: 'West', div: 'Southwest' },
   ];
+  /* Edit teams: renames and colors kept on this device (the id never changes, so saves keep working) */
+  PB.TEAM_DEFAULTS = PB.TEAMS.map(t => ({ ...t }));
+  PB.applyTeamEdits = () => {
+    let ed = {}; try { ed = JSON.parse(localStorage.getItem('pbb.teams') || '{}'); } catch (e) { ed = {}; }
+    PB.TEAMS.forEach((t, i) => { Object.assign(t, PB.TEAM_DEFAULTS[i], ed[t.id] || {}); t.ab = (t.ab || t.id).toUpperCase().slice(0, 4); });
+  };
+  PB.applyTeamEdits();
   PB.team = id => PB.TEAMS.find(t => t.id === id);
 
   PB.FIRST = ['Marcus', 'Jalen', 'Tyrese', 'Darius', 'Andre', 'Caleb', 'Malik', 'Jordan', 'Isaiah', 'Devin', 'Trey', 'Xavier',

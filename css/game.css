@@ -272,3 +272,6 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 #energy{width:46px;height:8px;border-radius:4px;background:rgba(8,11,18,.8);border:1px solid rgba(255,255,255,.2);overflow:hidden}
 #energy i{display:block;height:100%;background:#3ddc84;transition:width .3s}
 #energy.low i{background:#ff5a6b}
+.trow{display:flex;align-items:center;gap:10px;width:100%;padding:8px 0;border-top:1px solid var(--line);text-align:left;font-size:14px}
+.trow:first-of-type{border-top:0}
+input[type=color]{height:44px;padding:4px}

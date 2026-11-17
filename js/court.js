@@ -77,7 +77,7 @@
        each read the right way up as you attack toward them */
     g.save(); g.translate(X(0), Z(0)); g.rotate(Math.PI);
     g.fillStyle = home.c2; g.font = `900 ${3 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText(home.id, 0, 0); g.restore();
+    g.fillText(home.ab || home.id, 0, 0); g.restore();
     for (const [z, rot, txt] of [[44.9, Math.PI, home.name], [-44.9, 0, home.city]]) {
       g.save(); g.fillStyle = 'rgba(255,255,255,.85)'; g.font = `800 ${2.2 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.translate(X(0), Z(z)); g.rotate(rot); g.fillText(txt.toUpperCase(), 0, 0); g.restore();
@@ -563,7 +563,7 @@
         for (const [i, t] of [[0, G.teams[0]], [1, G.teams[1]]]) {
           const x = i ? 384 : 128;
           g.fillStyle = t.c1; g.fillRect(x - 118, 18, 236, 44);
-          g.fillStyle = '#fff'; g.font = '900 34px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t.id, x, 41);
+          g.fillStyle = '#fff'; g.font = '900 34px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t.ab || t.id, x, 41);
           g.fillStyle = '#ffb02e'; g.font = '900 96px Archivo, Arial'; g.fillText(String(G.score[i]), x, 132);
         }
         g.fillStyle = '#fff'; g.font = '800 40px Archivo, Arial'; g.fillText(fmt(G.clock), 256, 212);
