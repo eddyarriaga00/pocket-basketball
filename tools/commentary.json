@@ -690,6 +690,252 @@
     "text": "Free basketball, folks! Overtime!",
     "ex": 0.7
    }
+  ],
+  "city_BOS": [
+   {
+    "who": "pbp",
+    "text": "Live from Boston, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_BKN": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Brooklyn, where the Bridges are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_NY": [
+   {
+    "who": "pbp",
+    "text": "Welcome to New York! The Empire faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_PHI": [
+   {
+    "who": "pbp",
+    "text": "Live from Philadelphia, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_TOR": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Toronto, where the Moose are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_CHI": [
+   {
+    "who": "pbp",
+    "text": "Welcome to Chicago! The Wind faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_CLE": [
+   {
+    "who": "pbp",
+    "text": "Live from Cleveland, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_DET": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Detroit, where the Motors are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_IND": [
+   {
+    "who": "pbp",
+    "text": "Welcome to Indianapolis! The Speed faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_MIL": [
+   {
+    "who": "pbp",
+    "text": "Live from Milwaukee, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_ATL": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Atlanta, where the Peaches are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_CHA": [
+   {
+    "who": "pbp",
+    "text": "Welcome to Charlotte! The Monarchs faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_MIA": [
+   {
+    "who": "pbp",
+    "text": "Live from Miami, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_ORL": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Orlando, where the Comets are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_WAS": [
+   {
+    "who": "pbp",
+    "text": "Welcome to Washington! The Monuments faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_DEN": [
+   {
+    "who": "pbp",
+    "text": "Live from Denver, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_MIN": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Minneapolis, where the Loons are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_OKC": [
+   {
+    "who": "pbp",
+    "text": "Welcome to Oklahoma City! The Twisters faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_POR": [
+   {
+    "who": "pbp",
+    "text": "Live from Portland, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_SLC": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Salt Lake, where the Peaks are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_SF": [
+   {
+    "who": "pbp",
+    "text": "Welcome to San Francisco! The Fog faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_LAW": [
+   {
+    "who": "pbp",
+    "text": "Live from Los Angeles, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_LAK": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Los Angeles, where the Knights are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_PHX": [
+   {
+    "who": "pbp",
+    "text": "Welcome to Phoenix! The Scorpions faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_SAC": [
+   {
+    "who": "pbp",
+    "text": "Live from Sacramento, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_DAL": [
+   {
+    "who": "pbp",
+    "text": "Good evening from Dallas, where the Wranglers are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_HOU": [
+   {
+    "who": "pbp",
+    "text": "Welcome to Houston! The Orbit faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "city_MEM": [
+   {
+    "who": "pbp",
+    "text": "Live from Memphis, it's game night!",
+    "ex": 0.55
+   }
+  ],
+  "city_NO": [
+   {
+    "who": "pbp",
+    "text": "Good evening from New Orleans, where the Krewe are home tonight.",
+    "ex": 0.55
+   }
+  ],
+  "city_SA": [
+   {
+    "who": "pbp",
+    "text": "Welcome to San Antonio! The Rattlers faithful are on their feet.",
+    "ex": 0.55
+   }
+  ],
+  "oop": [
+   {
+    "who": "pbp",
+    "text": "Alley-oop!",
+    "ex": 0.92
+   },
+   {
+    "who": "pbp",
+    "text": "Off the lob, throws it down!",
+    "ex": 0.92
+   },
+   {
+    "who": "pbp",
+    "text": "Up top... and slams it home!",
+    "ex": 0.92
+   }
+  ],
+  "stepback": [
+   {
+    "who": "pbp",
+    "text": "Step-back three... money!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Steps back... and buries it!",
+    "ex": 0.85
+   }
+  ],
+  "fouledout": [
+   {
+    "who": "pbp",
+    "text": "That's his sixth foul. He's done for the night.",
+    "ex": 0.45
+   }
   ]
  }
 }

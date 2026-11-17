@@ -337,6 +337,8 @@
       if (s.oop && p.isUser) grade(1, 'Alley-oop');
       if (G.clock <= 0.05) B('buzzer', { prio: 6 });
       else if (p.isUser && G.streak === 3) B('hot', { prio: 5, follow: 0.6 });
+      else if (s.oop) B('oop', { prio: 5 });
+      else if (s.pts === 3 && p.stepT !== undefined && G.t - p.stepT < 2) B('stepback', { prio: 4 });
       else if (s.foul) B('and1', { prio: 4 });
       else B(s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : 'jumper', { prio: s.kind === 'dunk' || s.pts === 3 ? 3 : 2, follow: s.pts === 3 ? 0.3 : s.kind === 'dunk' ? 0.35 : 0.15 });
       if (run.pts >= 8 && !run.said) { run.said = true; setTimeout(() => B('run', { prio: 1 }), 2600); }
@@ -618,7 +620,7 @@
   /* six fouls and you are done for the night: the rest of the game is played out */
   function checkFoulOut(p) {
     if (!p || !p.isUser || G.switching || p.st.pf < 6 || G.fouledOut) return;
-    G.fouledOut = true; toast('Fouled out', 'opp'); feed('You fouled out'); grade(-2, 'Fouled out');
+    G.fouledOut = true; toast('Fouled out', 'opp'); feed('You fouled out'); grade(-2, 'Fouled out'); B('fouledout', { prio: 6 });
     setTimeout(() => { if (PB.Game.active && G && !G.replay) simRest(); }, 2200);
   }
   function contactFoul(def, off) {
@@ -1428,7 +1430,11 @@
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
-      if (PB.booth && !o.drill) { const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B('intro', { prio: 2, follow: 0.6 }); }); else B('intro', { prio: 2, follow: 0.6 }); }
+      if (PB.booth && !o.drill) {
+        /* the home city's own opening when it is recorded, the general one otherwise */
+        const fl = o.floor || o.teams[0], ck = PB.VO && PB.VO['city_' + fl.id] && PB.VO['city_' + fl.id].length ? 'city_' + fl.id : 'intro';
+        const L = PB.booth.load(); if (L) L.then(() => { PB.booth.warm(); B(ck, { prio: 2 }); }); else B(ck, { prio: 2 });
+      }
       /* jump ball setup: everyone around the center circle */
       for (const p of pl) {
         const d = dirOf(p.team);
