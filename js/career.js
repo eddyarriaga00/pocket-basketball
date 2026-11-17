@@ -281,7 +281,7 @@
       const fa = PB.makeRoster(78), fb = PB.makeRoster(78), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
       const team = slot === 'team'; if (!team) { ra[slot].first = 'You'; ra[slot].last = 'You'; }
       scr().hidden = true;
-      PB.Game.start({ teams: [a, b], rosters: [ra, rb], userId: ra[team ? 0 : slot].id, switching: team, qlen: S.qlen, level: S.level,
+      PB.Game.start({ teams: [a, b], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: ra[team ? 0 : slot].id, switching: team, qlen: S.qlen, level: S.level,
         strength: [PB.teamOvr(fa), PB.teamOvr(fb)], onEnd: r => result(r, null) });
     };
   }
@@ -988,7 +988,8 @@
     /* in a rival game he starts, at his position (yours): you guard each other */
     const opp5 = starters(o.id);
     if (C.rival && o.id === C.rival.team && rivalP()) opp5[PB.POS.indexOf(rivalP().pos)] = rivalP();
-    PB.Game.start({ teams: [t, o], rosters: [liveFive(), opp5], userId: 'me', qlen: S.qlen, level: S.level,
+    const mine5 = liveFive(), benchOf = (id, five) => C.rosters[id].filter(p => !(p.out > 0) && !five.includes(p) && p.id !== C.me.id).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
+    PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
       enterAt: { Starter: 0, 'Sixth man': 0.125, Bench: 0.25 }[role()] || 0, tired: !!g.b2b, callIntro: introCall(g), goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }

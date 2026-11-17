@@ -734,6 +734,7 @@
     });
   };
 
+  R.removePlayer = p => { const m = meshes.get(p); if (m) { scene.remove(m.root); meshes.delete(p); } };
   R.addPlayer = (p, kit) => {
     const m = TPL ? skinnedPlayer(p, kit) : playerMesh(p, kit);
     scene.add(m.root);

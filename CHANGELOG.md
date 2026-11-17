@@ -34,6 +34,7 @@ What changed, newest first. The full list is the git log; the order of work is [
   holding for the last shot, fouling to stop the clock, timeouts, stamina, a jump ball.
 - Foul trouble: too many fouls too early and the coach sits you for the rest of the quarter.
 - Inbound plays from the baseline and the sideline; if you take it out, Pass throws it in.
+- The bench: computer players tire and sub out at dead balls, rested starters come back, reserves get minutes.
 - The rules: eight seconds, backcourt, three seconds in the lane (with a warning), goaltending. Jump at a shot on
   its way up and you can block it in the air.
 - Markers: the arrow over your pass target, the ring under your man, a release flash; the coverage on every shot.

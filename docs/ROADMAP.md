@@ -95,7 +95,9 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 - [x] Off the bench: a sixth man checks in mid-first quarter, a bench player in the second (2026-11-17)
 - [x] Foul trouble: two fouls in the first quarter, three in the second, four in the third and you sit the rest of it (2026-11-17)
-- [ ] Substitutions and fatigue during a game
+- [x] Substitutions and fatigue: computer players tire and the bench checks in at dead balls; rested starters go back
+      in; reserves show up in the box score. You never come out (2026-11-17). Balance with the bench (6 games): 116.6
+      pts, 87.7 FGA at 49%, 33.8 threes at 38%, 22.2 FTA, 13.3 TOV, 42.3 REB
 - [x] A word from the coach every five games; ask for more minutes (it works when you've earned it) (2026-11-17)
 - [x] Game goals: three a game by position, +2 skill points each (2026-11-17)
 - [x] Life between games: small choices (a camp, film, a party, a podcast, a trainer, a hospital visit) (2026-11-17)

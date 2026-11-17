@@ -249,7 +249,45 @@
     const spot = at || { x: G.ball.x, z: G.ball.z };
     dead(0.9, () => inboundOut(giveTo, { x: clamp(spot.x, -24, 24), z: clamp(spot.z, -46, 46) }));
   }
-  function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; }
+  function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; subs(); }
+  /* ---------- the bench: computer players tire as they play and rest on the bench; at a dead ball a tired man comes
+     out for a fresh one, and a rested starter goes back in for his reserve. You never come out. ---------- */
+  const IDENT = ['d', 'r', 'ht', 'name', 'num', 'st', 'energy'];
+  function subs() {
+    if (!G.bench || G.drill || G.phase === 'end') return;
+    const Q = (G.qlen || 3) * 60;
+    for (const t of [0, 1]) {
+      let n = 0;
+      for (const p of G.pl) {
+        if (p.team !== t || p.isUser || (G.user && p.d.id === G.user.d.id) || n >= 2) continue;
+        if (G.ftq && G.ftq.shooter === p) continue;
+        const bench = G.bench[t], st = G.starters[t][p.slot];
+        let inn = null;
+        if (p.d !== st.d && st.energy > 0.88 && bench.includes(st)) inn = st;                 // the starter, rested, back in
+        else if ((p.energy ?? 1) < 0.45) {                                                      // tired: the freshest man who fits
+          const c = bench.filter(b => b.energy > 0.7).sort((a, b) => (b.d.pos === p.d.pos) - (a.d.pos === p.d.pos) || b.energy - a.energy || b.d.ovr - a.d.ovr)[0];
+          inn = c || null;
+        }
+        if (!inn) continue;
+        const out = {}; for (const k of IDENT) out[k] = p[k];
+        bench.splice(bench.indexOf(inn), 1); bench.push(out);
+        for (const k of IDENT) p[k] = inn[k];
+        p.shoot = null; p.drive = 0; p.pose = ''; delete p.post;
+        if (G.starters[t][p.slot].d === out.d) G.starters[t][p.slot] = out; else if (G.starters[t][p.slot].d === p.d) G.starters[t][p.slot] = inn;
+        if (!G.played.includes(p.st)) G.played.push(p.st), G.playedBy.push({ d: p.d, team: t });
+        R.removePlayer && R.removePlayer(p); R.addPlayer(p, G.kits[t]);
+        if (t === 0 || rand() < 0.3) feed(`${t === 0 ? '' : G.teams[1].name + ': '}${p.name} in for ${out.name}`);
+        n++;
+      }
+    }
+  }
+  /* tiring and resting, on the floor and on the bench */
+  function fatigue(dt) {
+    if (!G.bench) return;
+    const Q = (G.qlen || 3) * 60, drain = 0.55 / (0.75 * Q), rest = 0.45 / (0.3 * Q);   // a starter's stint: most of a quarter
+    for (const p of G.pl) if (!p.isUser && !(G.user && p.d.id === G.user.d.id)) { const sp = hyp(p.vx, p.vz); p.energy = Math.max(0, (p.energy ?? 1) - dt * drain * (sp > 12 ? 1.4 : sp > 4 ? 1 : 0.6)); }
+    for (const t of [0, 1]) for (const b of G.bench[t]) b.energy = Math.min(1, (b.energy ?? 1) + dt * rest);
+  }
 
   function handPos(p) {
     /* the model's real hand when there is one: the ball leaves from where it is */
@@ -1229,6 +1267,7 @@
     /* clocks */
     if (G.drill) drillStep(dt);
     else if (G.phase === 'live') {
+      fatigue(dt);
       if (G.sitQ === G.q && G.inb && !G.auto) { sitOut(); return; }
       if (G.inb) inboundStep(dt);
       if (!G.inb || !G.inb.stop) G.clock -= dt;
@@ -1499,7 +1538,7 @@
     cancelAnimationFrame(raf);
     AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1);
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
-    const box = G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
+    const box = G.played ? G.playedBy.map((x, i) => ({ d: x.d, team: x.team, st: G.played[i], user: !!(G.user && x.d === G.user.d) })) : G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
     const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner,
       shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
@@ -1856,6 +1895,15 @@
       const k0 = { c1: o.teams[0].c1, c2: o.teams[0].c2, name: o.teams[0].name };
       const k1 = cd(o.teams[0].c1, o.teams[1].c1) < 120 ? { c1: '#f2f2f2', c2: o.teams[1].c1, name: o.teams[1].name } : { c1: o.teams[1].c1, c2: o.teams[1].c2, name: o.teams[1].name };
       for (const p of pl) R.addPlayer(p, p.team === 0 ? k0 : k1);
+      G.kits = [k0, k1];
+      /* the bench: identities that can trade places with the men on the floor */
+      if (o.bench && !o.drill) {
+        const ident = d => ({ d, r: d.r, ht: d.ht, name: d.last, num: d.num, st: mkOnCourt(d, 0, 0).st, energy: 1 });
+        G.bench = [0, 1].map(t => (o.bench[t] || []).filter(d => d && !pl.some(p => p.d === d)).slice(0, 5).map(ident));
+        G.starters = [0, 1].map(t => pl.filter(p => p.team === t).sort((a, b) => a.slot - b.slot).map(p => ({ d: p.d, r: p.r, ht: p.ht, name: p.name, num: p.num, st: p.st, energy: 1 })));
+        for (const p of pl) p.energy = p.energy ?? 1;
+        G.played = pl.map(p => p.st); G.playedBy = pl.map(p => ({ d: p.d, team: p.team }));
+      }
       if (!o.drill && R.addRefs) R.addRefs();
       if (R.setBenches) R.setBenches(o.drill ? null : [k0, k1]);
       R.tag(o.rivalId ? pl.find(p => p.d.id === o.rivalId) || null : null, 'RIVAL');

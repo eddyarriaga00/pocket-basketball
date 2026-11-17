@@ -21,10 +21,10 @@ const REAL = { blk: 5, pf: 19, pts: 114, fga: 89, 'FG%': 47.5, tpa: 35, '3P%': 3
       PB.Game.dbg.auto(true);
       const G = PB.Game.dbg.state(); G.qlen = 12; G.clock = 720;
       PB.Game.dbg.run(30000);
-      const s = {}; for (const p of G.pl) for (const k in p.st) s[k] = (s[k] || 0) + p.st[k];
-      return { score: G.score, s, shots: G.shotLog || [], tally: G.tally || {} };
+      const s = {}; for (const st of (G.played || G.pl.map(p => p.st))) for (const k in st) s[k] = (s[k] || 0) + st[k];
+      return { score: G.score, s, shots: G.shotLog || [], tally: G.tally || {}, played: (G.played || []).length };
     });
-    scores.push(r.score.join('-'));
+    scores.push(r.score.join('-') + (r.played ? ` (${r.played} played)` : ''));
     for (const k in r.tally) tally[k] = (tally[k] || 0) + r.tally[k] / N;
     for (const k in r.s) all[k] = (all[k] || 0) + r.s[k] / N / 2;
     for (const x of r.shots) { const z = kinds[x.kind] || (kinds[x.kind] = { a: 0, m: 0, p: 0 }); z.a++; z.m += x.made ? 1 : 0; z.p += x.prob; }

@@ -80,7 +80,8 @@
   function play(nx) {
     const t = PB.team(Z.team), o = PB.team(nx.opp), me = five(Z.team);
     $('#screen').hidden = true;
-    PB.Game.start({ teams: [t, o], rosters: [me, five(o.id)], userId: me[0].id, switching: true, qlen: S().qlen, level: S().level,
+    const of5 = five(o.id), rest = (id, f) => Z.rosters[id].filter(p => !f.includes(p)).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
+    PB.Game.start({ teams: [t, o], rosters: [me, of5], bench: [rest(Z.team, me), rest(o.id, of5)], userId: me[0].id, switching: true, qlen: S().qlen, level: S().level,
       floor: nx.home ? t : o, strength: [strength(t.id), strength(o.id)], playoff: !!nx.m,
       onEnd: r => result(nx, r.score[0] > r.score[1], r) });
   }
