@@ -207,6 +207,7 @@
     b.state = 'held'; b.holder = p; p.hold = 0; p.think = 0.2 + rand() * 0.2; delete p.post;
     b.lastTouch = p.team;
     if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; G.possN = (G.possN || 0) + 1;
+      if (G.phase === 'live' && !p.inb) G.transT = G.t;   // a live-ball change of hands (a steal, a board): the break is on
       if (G.play && p.team === 0) { G.play.left--; G.play.done = false; if (G.play.left < 0) { G.play = null; } } }
     if (why === 'oreb') G.shotClock = Math.max(G.shotClock, 14);
   }
@@ -834,6 +835,14 @@
       }
     }
     if (p.postNext && p.post === undefined) { p.postNext = false; p.post = 1.8 + rand(); }
+    /* the break: right after a steal or a board, with the defense not back, push it at the rim */
+    if (G.transT !== undefined && G.t - G.transT < 3.5 && p.drive <= 0 && G.phase === 'live' && !p.inb) {
+      const a = along(p.z, p.team);
+      if (a > 26) {
+        const back = G.pl.filter(o => o.team !== p.team && along(o.z, p.team) < a - 3).length;
+        if (back <= 1 && lane(p) > 4) { p.drive = 1.6; G.transT = -99; tally('break'); if (rand() < 0.4) feed('On the break'); }
+      }
+    }
     /* pressure: a man in his face now and then makes him travel or lose it off his foot */
     if (G.phase === 'live' && !G.drill && !p.inb) {
       const nd = nearestDef(p);
@@ -1535,6 +1544,7 @@
           feed(`${off ? 'Offensive rebound' : 'Rebound'} · ${got.name}`);
           G.reb = null;
           give(got, off ? 'oreb' : ''); AU().play('catch', { x: got.x, vol: 0.6 });
+          if (!off) G.transT = G.t;   // a defensive board: a chance to run
           if (off && home(got.team)) AU().crowd.react('roar', 0.5);
           if (off && rand() < 0.4) B('oreb', { prio: 2 });
         } else give(got);
