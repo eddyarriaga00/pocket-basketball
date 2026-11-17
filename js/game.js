@@ -897,6 +897,23 @@
     const H = { x: 0, z: hoopZ(offT) };
     const b = G.ball;
     const bx = b.x, bz = b.z;
+    /* the double team: when you are hot (three straight, or a big night), a second defender comes at you once you
+       have held it a moment in the half court; the man he left is open */
+    const hh = b.holder;
+    if (!p.isUser && hh && hh.isUser && hh.team === offT && man !== hh && G.phase === 'live' && !hh.shoot && !G.switching) {
+      const hot = (G.streak || 0) >= 3 || hh.st.pts * 12 / (G.qlen || 3) >= 26;
+      if (hot && (hh.hold || 0) > 0.6 && distHoop(hh.x, hh.z, offT) < 26 && (!G.dbl || G.t > G.dbl.until + 9) && G.t > (G.dblNext || 0)) {
+        let near = null, nd = 1e9;
+        for (const o of G.pl) if (o.team === p.team && !o.isUser && o.slot !== hh.slot) { const d = hyp(o.x - hh.x, o.z - hh.z); if (d < nd) { nd = d; near = o; } }
+        if (near && nd < 18) { G.dbl = { who: near, on: hh, until: G.t + 2.6 }; feed(`Double team on ${hh.name}`); if (!G.dblSaid) { G.dblSaid = true; toast('Double team: find the open man', 'call'); } }
+        else G.dblNext = G.t + 2;
+      }
+      if (G.dbl && G.dbl.who === p && G.dbl.on === hh && G.t < G.dbl.until) {
+        const dx = H.x - hh.x, dz = H.z - hh.z, L = hyp(dx, dz) || 1, sd = hh.x > 0 ? -1 : 1;
+        p.tx = hh.x + dx / L * 2.2 + sd * 1.6; p.tz = hh.z + dz / L * 2.2; p.pose = 'guard';
+        return;
+      }
+    }
     if (man === b.holder) {
       const dx = H.x - man.x, dz = H.z - man.z, L = hyp(dx, dz) || 1;
       const gap = clamp(3.2 + (L > 28 ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400);
@@ -1000,6 +1017,7 @@
     return { x: B.rx * sx + B.fx * -sy, z: B.rz * sx + B.fz * -sy, m: Math.min(1, m) };
   }
   function userStep(u, dt) {
+    if (G.ball.holder === u) u.hold = (u.hold || 0) + dt;   // how long you have had it (doubles, assists)
     const w = stickWorld();
     const off = G.ball.holder ? G.ball.holder.team === 0 : G.poss === 0;
     if (w) {
