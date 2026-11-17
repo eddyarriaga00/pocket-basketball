@@ -725,7 +725,7 @@
   /* ---------- free throws ---------- */
   function startFT() {
     const q = G.ftq, p = q.shooter, t = p.team;
-    G.phase = 'ft'; G.ftWait = p.isUser && !G.auto ? 0 : 1.1;
+    G.phase = 'ft'; G.ftWait = p.isUser && !G.auto ? 0 : 1.1; G.ftT0 = G.t;
     G.poss = t;
     /* line everyone up: shooter at the line, two from each side on the lane, the rest behind the arc */
     const lane = [[-8.7, 7], [8.7, 7], [-8.7, 11], [8.7, 11], [-8.7, 14], [8.7, 14]];
@@ -1350,6 +1350,8 @@
     if (G.switching && G.phase === 'live') autoSwitch();
     const b = G.ball;
     if (relT > 0) { relT -= dt; if (relT <= 0) $('#rel').className = ''; }
+    /* the routine at the line: a few bounces, then the ball comes up to shoot */
+    if (G.phase === 'ft' && G.ftq && G.ftq.shooter && G.ball.holder === G.ftq.shooter && !G.ftMeter) G.ftq.shooter.pose = G.t - (G.ftT0 || 0) < 0.95 ? 'dribble' : '';
     if (G.phase === 'tip') {
       G.tipT -= dt;
       /* the two centers go up for it */
