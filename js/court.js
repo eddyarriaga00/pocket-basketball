@@ -282,7 +282,9 @@
     const A = window.THREE_ADDONS;
     const root = new T.Group(), body = A.SkeletonUtils.clone(TPL.scene);
     const sc = (p.ht || 78) / 12 / TPL.H;
-    body.scale.setScalar(sc);
+    /* builds: bigs carry more width, guards less */
+    const wide = { PG: 0.95, SG: 0.97, SF: 1.0, PF: 1.06, C: 1.11 }[(p.d || p).pos] || 1;
+    body.scale.set(sc * wide, sc, sc * wide);
     root.add(body);
     const d = p.d || p;
     const shorts = new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
@@ -389,6 +391,7 @@
       ws[n] = sp <= v ? (i ? smooth(lo, v, sp) : 1 - smooth(v, hi, sp)) : (i < LOCO.length - 1 ? 1 - smooth(v, hi, sp) : 1);
     }
     let crouch = p.pose === 'guard' ? 0.5 : 0;
+    if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;   // the gather: down into the legs before the jump
     const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;
     const jump = air ? 1 : 0;
     const rest = Math.max(0, 1 - jump - dance);

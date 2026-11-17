@@ -480,6 +480,7 @@
           ${C.endorse.brands.map((b, j) => `<button class="ghost" data-brand="${j}"><i class="sw" style="background:${b[1]}"></i>Sign with ${b[0]}</button>`).join('')}
           <button class="ghost sm" id="nobrand">Not now</button></div>` + card;
       }
+      if (C.event) card = eventCard() + card;
       if (C.coachTalk) {
         const s5 = C.games.filter(x => x.done).slice(-5), avgG = s5.reduce((a, x) => a + (x.res.gscore || 6), 0) / Math.max(1, s5.length);
         const r = role(), tr = C.trust;
@@ -545,6 +546,7 @@
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
+    scr().querySelectorAll('[data-ev]').forEach(b => b.onclick = () => eventPick(+b.dataset.ev));
     scr().querySelectorAll('[data-brand]').forEach(b => b.onclick = () => {
       const br = C.endorse.brands[+b.dataset.brand], i = C.endorse.offer, amt = [0.4, 1.2, 4, 10][i];
       C.endorse = { tier: i + 1, brand: br[0], color: br[1], pay: amt };
@@ -749,6 +751,8 @@
     const tiers = [[25e3, 0.4], [1e5, 1.2], [5e5, 4], [2e6, 10]];
     C.endorse = C.endorse || { tier: 0 };
     for (let i = C.endorse.tier; i < tiers.length; i++) if (C.fans >= tiers[i][0]) { C.endorse.offer = i; break; }
+    /* between games, now and then, life happens: a choice with a cost and a payoff */
+    if (!g.po && !C.event && PB.rand() < 0.28) C.event = EVENTS[Math.floor(PB.rand() * EVENTS.length)].k;
     /* every fifth game the coach has a word: where you stand and what he wants */
     if (!g.po && (C.gi + 1) % 5 === 0) C.coachTalk = true;
     if (!g.po) {
@@ -757,6 +761,29 @@
       if (!C.allstar && C.gi === Math.floor(C.games.length / 2)) allStarPick();
     }
     save();
+  }
+
+  /* ---------- life between games: small choices ---------- */
+  const EVENTS = [
+    { k: 'camp', q: 'A youth league asks you to run a free camp on your day off.', a: [['Run the camp', { fans: 6, sp: -1, trust: 1 }, 'The kids loved it. So did the local news.'], ['Rest instead', { sp: 1 }, 'Fresh legs for the next one.']] },
+    { k: 'film', q: 'The assistant coach offers extra film sessions this week.', a: [['Watch film', { sp: 2, trust: 3 }, 'You see things you were missing. The staff noticed you showed up.'], ['Skip it', { trust: -2 }, 'Nobody said anything. Somebody noticed.']] },
+    { k: 'party', q: 'A teammate is throwing a birthday party the night before a game.', a: [['Go, leave early', { trust: 1, fans: 1 }, 'Team chemistry is real. You were home by eleven.'], ['Go, stay late', { trust: -4, fans: 3 }, 'Great photos. Rough morning.'], ['Stay in', { sp: 1 }, 'Sleep is a skill.']] },
+    { k: 'podcast', q: 'A popular basketball podcast wants an interview.', a: [['Be humble', { fans: 3, trust: 1 }, 'Nice clip going around: team first.'], ['Talk big', { fans: 9, trust: -3 }, 'Every show is talking about you now. Your coach too.']] },
+    { k: 'trainer', q: 'A private trainer offers an off-day shooting session.', a: [['Book it', { sp: 3, fans: -1 }, 'Two hundred makes. Your shot feels pure.'], ['Not now', {}, 'Maybe next week.']] },
+    { k: 'charity', q: 'The team foundation asks you to visit the children\'s hospital.', a: [['Go', { fans: 5, trust: 2 }, 'A day you will remember. The fans will too.'], ['Send a signed jersey', { fans: 1 }, 'A nice gesture.']] },
+  ];
+  function eventCard() {
+    const ev = EVENTS.find(e => e.k === C.event); if (!ev) return '';
+    return `<div class="next event"><p class="kick">Between games</p><p class="q">${esc(ev.q)}</p>${ev.a.map((a, i) => `<button class="ghost" data-ev="${i}">${esc(a[0])}</button>`).join('')}</div>`;
+  }
+  function eventPick(i) {
+    const ev = EVENTS.find(e => e.k === C.event); if (!ev) return;
+    const [lbl, fx, txt] = ev.a[i];
+    if (fx.fans) C.fans = Math.round(C.fans * (1 + fx.fans / 100));
+    if (fx.sp) C.me.sp = Math.max(0, C.me.sp + fx.sp);
+    if (fx.trust) C.trust = PB.clamp(C.trust + fx.trust, 0, 100);
+    C.news.unshift(`${C.me.last}: ${txt}`);
+    C.event = null; save(); hub();
   }
 
   /* ---------- the social feed ---------- */

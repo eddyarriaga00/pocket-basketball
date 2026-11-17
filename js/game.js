@@ -372,6 +372,8 @@
       if (p.isUser) G.streak = 0;
       if (rand() < 0.22) B('miss', { prio: 1, follow: 0.3 });
       if (home(p.team) && G.lastShot.prob > 0.4) AU().crowd.react('aww', 0.6); else if (!home(p.team) && rand() < 0.4) AU().crowd.react('roar', 0.35);
+      /* close misses rattle: a hop or two on the rim before it falls off */
+      if (rand() < 0.35 && s.kind !== 'dunk') { b.state = 'rattle'; b.t = 0; b.rim = { cx: 0, cz: hoopZ(p.team), hops: 1 + Math.floor(rand() * 2), team: p.team }; G.reb = { team: p.team, t: G.t }; return; }
       b.state = 'loose'; b.x = b.ex; b.y = b.ey; b.z = b.ez;
       const out = hyp(b.ex, b.ez - hoopZ(p.team)) || 1;
       const dx = b.ex / out, dz = (b.ez - hoopZ(p.team)) / out;
@@ -1057,6 +1059,20 @@
       const u = Math.min(1, b.t / b.dur);
       b.x = b.sx + (b.ex - b.sx) * u; b.z = b.sz + (b.ez - b.sz) * u; b.y = b.sy + (b.ey - b.sy) * u + 4 * b.apex * u * (1 - u);
       if (u >= 1) { if (b.shot.ft) ftLands(); else shotLands(); }
+      return;
+    }
+    if (b.state === 'rattle') {
+      /* around the rim: small hops along the iron, a clank on each, then off */
+      const R0 = b.rim; b.t += dt;
+      const hopT = 0.32, k = Math.floor(b.t / hopT), u = (b.t % hopT) / hopT;
+      const ang = (b.ang = b.ang ?? rand() * 6.28) + b.t * 2.2;
+      b.x = R0.cx + Math.sin(ang) * 0.7; b.z = R0.cz + Math.cos(ang) * 0.7; b.y = 10.35 + Math.sin(u * Math.PI) * 1.1;
+      if (k !== b.lastHop) { b.lastHop = k; if (k <= R0.hops) AU().play('rim', { x: b.x, power: 0.35 }); }
+      if (k > R0.hops) {
+        b.state = 'loose'; delete b.ang; delete b.lastHop;
+        const dx = Math.sin(ang), dz = Math.cos(ang);
+        b.vx = dx * rr(4, 9); b.vz = dz * rr(4, 9) - dirOf(R0.team) * rr(1, 4); b.vy = rr(3, 6);
+      }
       return;
     }
     if (b.state === 'drop') {

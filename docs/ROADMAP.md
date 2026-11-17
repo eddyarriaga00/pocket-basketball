@@ -65,6 +65,7 @@ The two node tools need Playwright (`npm i -g playwright`).
       hair; dribble, jumper, follow-through, contest, reach and defensive arms set in code; the ball in the real hand
 - [x] Faces, hair styles and colors, headbands, arm sleeves, shoe colors: your Look card, and variety across the league (2026-11-17)
 - [x] Endorsements: shoe companies call as your following grows, with yearly money and a signature colorway (2026-11-17)
+- [x] Builds (bigs wider, guards leaner), a gather before the jumper, misses that rattle on the rim (2026-11-17)
 - [ ] Jersey trim, shorts that sway
 - [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
 - [x] Alley-oops to cutters (yours with Cut or Call), post-ups and hook shots for bigs, floaters (2026-11-17)
@@ -85,6 +86,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [ ] Substitutions, fatigue and foul trouble during a game
 - [x] A word from the coach every five games; ask for more minutes (it works when you've earned it) (2026-11-17)
 - [x] Game goals: three a game by position, +2 skill points each (2026-11-17)
+- [x] Life between games: small choices (a camp, film, a party, a podcast, a trainer, a hospital visit) (2026-11-17)
 - [x] Team practice between games: the spot-up drill for up to 5 skill points (2026-11-17)
 - [x] League leaders; your games count at full length for leaders, awards and value (2026-11-17)
 - [x] Pre-draft combine: fifteen spot-up shots in 45 seconds that move your draft stock (2026-11-17)
