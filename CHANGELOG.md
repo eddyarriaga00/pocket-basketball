@@ -56,7 +56,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - Fourteen badges (Fadeaway Artist and Post Scorer new tonight), career highs and milestones, injuries now and then.
 - The league turns over: veterans retire, rookies arrive, free agents and trades move players between teams.
 - A real schedule (your division most often), back-to-backs with heavy legs, injuries around the league.
-- League leaders, All-Star picks, the All-Star Game, the 3-Point Contest and the Dunk Contest (a 360, a windmill,
+- League leaders, All-Star picks, the Rising Stars game (rookies against sophomores) in your first two seasons, the All-Star Game, the 3-Point Contest and the Dunk Contest (a 360, a windmill,
   a reverse, from as far as the free-throw line; five judges), a play-in, playoff series, awards night.
 - Banners in the rafters: win a title or have your jersey retired and it hangs in that arena for good.
 - Your rival posts about you before your games: clap back or let the game talk.

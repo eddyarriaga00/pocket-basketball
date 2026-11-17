@@ -548,7 +548,7 @@
     C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
     if (C.contract) C.earnings = (C.earnings || 0) + C.contract.salary;
     if (C.endorse && C.endorse.pay) C.earnings = (C.earnings || 0) + C.endorse.pay;
-    C.ls = {}; C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 }; C.vote = null; C.wk = null;
+    C.ls = {}; C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 }; C.vote = null; C.wk = null; C.rising = null; if (C.contest === 'invited') C.contest = 'done'; if (C.dunk === 'invited') C.dunk = 'done';   // last year's All-Star invitations do not carry over
     C.startOvr = C.me.ovr;
     if (C.rival) C.rival.season = zero();
     C.news.unshift(`Season ${C.year} begins: ${n} games, ${PB.TEAMS.length} teams.`);
@@ -829,6 +829,8 @@
         card = `<div class="next talk"><p class="kick">Rival on social</p><p class="q">@${esc(rvx.first.toLowerCase())}${esc(rvx.last.toLowerCase())}: “${esc(said)}”</p>
           <button class="ghost" id="clap">Clap back<small>more followers; the coach would rather you didn't</small></button><button class="ghost" id="quiet">Let the game talk<small>the coach likes it</small></button></div>` + card;
       }
+      if (C.rising === 'invited' && C.contest !== 'invited' && C.dunk !== 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>Rising Stars</h3><p>The league's rookies against its second-year players. You are on the ${C.year === 1 ? 'rookies' : 'sophomores'}.</p>
+        <button class="big" id="rise">Play the Rising Stars game</button><button class="ghost" id="risesim">Sim it</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
       const voteCard = C.vote && C.vote.year === C.year && C.phase === 'regular' && C.gi < Math.round(C.len * 0.5) ? `<div class="card"><h3>All-Star voting</h3><p>${ordinal(C.vote.rank)} among ${esc(C.vote.conf)} ${C.vote.grp} in the first returns. ${C.vote.rank <= 2 ? 'Right now you would start.' : C.vote.rank <= 6 ? 'In the mix: the coaches pick the reserves.' : 'A long way back: big games move the vote.'}</p></div>` : '';
       body = card + voteCard + (C.phase === 'playoffs' ? bracketCard() : '') + `
@@ -897,6 +899,8 @@
     if ($('#simall')) $('#simall').onclick = () => simMany(999);
     if ($('#asg')) $('#asg').onclick = () => allStarGame(true);
     if ($('#asgsim')) $('#asgsim').onclick = () => allStarGame(false);
+    if ($('#rise')) $('#rise').onclick = () => risingStars(true);
+    if ($('#risesim')) $('#risesim').onclick = () => risingStars(false);
     scr().querySelectorAll('[data-ev]').forEach(b => b.onclick = () => eventPick(+b.dataset.ev));
     scr().querySelectorAll('[data-brand]').forEach(b => b.onclick = () => {
       const br = C.endorse.brands[+b.dataset.brand], i = C.endorse.offer, amt = [0.4, 1.2, 4, 10][i];
@@ -1098,7 +1102,7 @@
       const nx = nextGame(); if (!nx || C.phase !== 'regular') break;
       simOne(nx);
       out.push(nx.g);
-      if (C.contest === 'invited' || C.dunk === 'invited' || (C.season.allstar && !C.asg) || C.gi >= C.games.length) break;   // the rest (talks, life, offers) waits on the hub
+      if (C.contest === 'invited' || C.dunk === 'invited' || C.rising === 'invited' || (C.season.allstar && !C.asg) || C.gi >= C.games.length) break;   // the rest (talks, life, offers) waits on the hub
     }
     const w = out.filter(g => g.res.win).length;
     show(`<div class="page post"><p class="kick">Simulated ${out.length} game${out.length === 1 ? '' : 's'}</p><h2>${w}-${out.length - w}</h2>
@@ -1438,6 +1442,7 @@
   /* ---------- All-Star ---------- */
   function allStarPick() {
     C.allstar = true;
+    if (C.year <= 2) { C.rising = 'invited'; C.news.unshift(`${C.me.last} is in the Rising Stars game`); }
     const s = C.season, gp = s.gp || 1, A = C.adj && C.adj.gp ? C.adj : null, ppg = A ? A.pts / A.gp : s.pts / gp, score = ppg + (A ? (A.reb + A.ast) / A.gp : (s.reb + s.ast) / gp) * 0.5 + (s.grades / gp - 6);
     if (score >= 21 || (ppg >= 17 && C.trust > 70)) {
       C.trophies.push(`All-Star, season ${C.year}`); C.me.sp += 5; C.fans = Math.round(C.fans * 1.15);
@@ -1475,6 +1480,30 @@
     if (!play) { const ln = simLine(C.me, 'Starter', PB.rand() < 0.5); const a = 140 + Math.round(PB.gauss() * 10), b = 140 + Math.round(PB.gauss() * 10) + (a === 140 ? 1 : 0); done(a, b, ln, true); return; }
     scr().hidden = true;
     PB.Game.start({ teams: [T(mine), T(other)], rosters: [us, them], userId: 'me', qlen: S.qlen, level: 'All-Star', callIntro: 'allstar', floor: PB.team(C.team), strength: [90, 90],
+      onEnd: r => { lastReels = r.reels || []; done(r.score[0], r.score[1], r.user, false); } });
+  }
+  /* Rising Stars: the rookies against the sophomores, the best at every position on each side, you on yours */
+  function risingStars(play) {
+    const all = []; for (const t of PB.TEAMS) for (const p of C.rosters[t.id]) if (p.id !== C.me.id) all.push(p);
+    const roo = all.filter(p => p.rookie || p.age <= 20), soph = all.filter(p => !p.rookie && p.age >= 21 && p.age <= 23);
+    const best = pool => PB.POS.map(pos => pool.filter(p => p.pos === pos).sort((a, b) => b.ovr - a.ovr)[0] || pool.sort((a, b) => b.ovr - a.ovr)[0]);
+    const mineRook = C.year === 1, us = best(mineRook ? roo : soph), them = best(mineRook ? soph : roo);
+    us[PB.POS.indexOf(C.me.pos)] = C.me;
+    const T = rook => ({ id: rook ? 'ROO' : 'SOP', ab: rook ? 'ROOK' : 'SOPH', city: rook ? 'Team' : 'Team', name: rook ? 'Rookies' : 'Sophomores', c1: rook ? '#ff7a1a' : '#2f8f6b', c2: '#ffffff', conf: 'East' });
+    const done = (a, b, line, sim) => {
+      C.rising = 'done';
+      const win = a > b, big = line && line.pts * (sim ? 1 : 12 / S.qlen) >= 20 && win;
+      if (big) { C.trophies.push(`Rising Stars MVP, season ${C.year}`); C.fans = Math.round(C.fans * 1.08); }
+      C.news.unshift(`Rising Stars: the ${win === mineRook ? 'rookies' : 'sophomores'} win ${Math.max(a, b)}-${Math.min(a, b)}${big ? `; ${C.me.last} is the MVP` : ''}`);
+      save();
+      show(`<div class="page post"><p class="kick">Rising Stars</p><div class="final"><div><b>${a}</b><span>${mineRook ? 'Rookies' : 'Sophomores'}</span></div><em>${win ? 'WIN' : 'LOSS'}</em><div><b>${b}</b><span>${mineRook ? 'Sophomores' : 'Rookies'}</span></div></div>
+        ${line ? `<div class="tiles"><div><b>${line.pts}</b><span>PTS</span></div><div><b>${line.reb}</b><span>REB</span></div><div><b>${line.ast}</b><span>AST</span></div></div>` : ''}
+        ${big ? '<div class="card earn"><b>Rising Stars MVP</b><span>The league noticed.</span></div>' : ''}${sim ? '' : reelBtn()}<button class="big" id="go">Back to the season</button></div>`);
+      $('#go').onclick = () => { lastReels = []; hub(); }; if (!sim) reelWire();
+    };
+    if (!play) { const ln = simLine(C.me, 'Starter', PB.rand() < 0.5); const a = 135 + Math.round(PB.gauss() * 10), b = 135 + Math.round(PB.gauss() * 10) + (a === 135 ? 1 : 0); done(a, b, ln, true); return; }
+    scr().hidden = true;
+    PB.Game.start({ teams: [T(mineRook), T(!mineRook)], rosters: [us, them], userId: 'me', qlen: S.qlen, level: 'Pro', floor: PB.team(C.team), strength: [75, 75],
       onEnd: r => { lastReels = r.reels || []; done(r.score[0], r.score[1], r.user, false); } });
   }
   /* the 3-Point Contest: you and seven of the league's shooters, five racks, a money ball at the end of each */
