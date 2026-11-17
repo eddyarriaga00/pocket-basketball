@@ -183,6 +183,7 @@
   function give(p, why) {
     const b = G.ball;
     const changed = G.poss !== p.team;
+    if (G.inb) { G.inb.p.inb = false; G.inb = null; }
     b.state = 'held'; b.holder = p; p.hold = 0; p.think = 0.2 + rand() * 0.2; delete p.post;
     b.lastTouch = p.team;
     if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; G.possN = (G.possN || 0) + 1; }
@@ -195,13 +196,43 @@
     give(best);
     G.ball.passer = null;
   }
+  /* a dead ball taken out of bounds: a teammate steps out on the line (the baseline after a basket, else the nearest
+     sideline) and passes it in. Neither clock runs until the pass; the computer looks for the open man after a beat,
+     and if you are the one out there, Pass throws it (it goes on its own after four seconds). */
+  function inboundOut(team, at, baseline) {
+    const mates = teamOf(team), pool = mates.filter(o => !o.isUser || G.switching);
+    let best = null, bd = 1e9;
+    for (const p of (pool.length ? pool : mates)) { const d = hyp(p.x - at.x, p.z - at.z); if (d < bd) { bd = d; best = p; } }
+    const sz = Math.sign(at.z) || 1;
+    if (baseline || Math.abs(at.z) > 43) { best.x = clamp(at.x, -12, 12) || (rand() < 0.5 ? -5 : 5); best.z = sz * 48.2; best.face = sz > 0 ? Math.PI : 0; }
+    else { const sx = Math.sign(at.x) || (rand() < 0.5 ? -1 : 1); best.x = sx * 26.4; best.z = clamp(at.z, -42, 42); best.face = sx > 0 ? -Math.PI / 2 : Math.PI / 2; }
+    best.vx = best.vz = 0; best.shoot = null; best.drive = 0;
+    give(best);
+    G.ball.passer = null;
+    /* after a basket the game clock keeps running, except in the last two minutes of the fourth and overtime */
+    const stop = !baseline || (G.q >= 4 && G.clock < 120);
+    best.inb = true; G.inb = { p: best, t: 0, wait: rr(0.9, 1.6) * (stop ? 1 : 0.7), stop };
+    G.ball.x = best.x; G.ball.z = best.z;
+  }
+  function inboundStep(dt) {
+    const I = G.inb, p = I.p;
+    if (G.ball.holder !== p) { p.inb = false; G.inb = null; return; }
+    I.t += dt; p.vx = p.vz = 0; p.pose = 'hold';
+    p.face = Math.atan2(0 - p.x, 0 - p.z * 0.4);   // toward the floor
+    const manual = p.isUser && !G.auto;
+    if ((!manual && I.t > I.wait) || I.t > 4) {
+      let r = bestPass(p);
+      if (!r || hyp(r.x - p.x, r.z - p.z) > 50) r = teamOf(p.team).filter(o => o !== p).sort((a, c) => hyp(a.x - p.x, a.z - p.z) - hyp(c.x - p.x, c.z - p.z))[0];
+      if (r) { p.inb = false; G.inb = null; passTo(p, r); }
+    }
+  }
   function turnover(p, why, giveTo, at) {
     for (const o of G.pl) { o.shoot = null; o.drive = 0; }
     if (p) { p.st.tov++; if (p === G.user) grade(-3, why); }
     feed(`${why}${p ? ' · ' + p.name : ''}`);
     G.poss = null;
     const spot = at || { x: G.ball.x, z: G.ball.z };
-    dead(0.9, () => inboundTo(giveTo, { x: clamp(spot.x, -24, 24), z: clamp(spot.z, -46, 46) }));
+    dead(0.9, () => inboundOut(giveTo, { x: clamp(spot.x, -24, 24), z: clamp(spot.z, -46, 46) }));
   }
   function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; }
 
@@ -454,7 +485,7 @@
       if (G.user && p.team === 1 && G.user.slot === p.slot && hyp(G.user.x - p.x, G.user.z - p.z) < 9) grade(-2, 'Your man scored');
       b.state = 'drop'; b.t = 0;
       if (s.foul) { G.ftq = { shooter: p, n: 1, total: 1, and1: true }; dead(1.3, startFT); }
-      else { G.poss = null; dead(1.1, () => inboundTo(1 - p.team, { x: 0, z: hoopZ(p.team) })); }
+      else { G.poss = null; dead(1.1, () => inboundOut(1 - p.team, { x: 0, z: hoopZ(p.team) }, true)); }
     } else {
       /* off the rim */
       if (p.isUser) {
@@ -540,7 +571,7 @@
     if (q.n > 0) { b.state = 'drop'; b.t = 0; dead(0.9, startFT); return; }
     $('#ftmsg').hidden = true;
     G.ftq = null;
-    if (s.made) { b.state = 'drop'; b.t = 0; G.poss = null; dead(1.0, () => { G.phase = 'live'; inboundTo(1 - p.team, { x: 0, z: hoopZ(p.team) }); }); }
+    if (s.made) { b.state = 'drop'; b.t = 0; G.poss = null; dead(1.0, () => { G.phase = 'live'; inboundOut(1 - p.team, { x: 0, z: hoopZ(p.team) }, true); }); }
     else {
       G.phase = 'live';
       b.state = 'loose'; b.x = b.ex; b.y = b.ey; b.z = b.ez;
@@ -890,7 +921,7 @@
     }
     if (G.phase !== 'live') return;
     if (down) {
-      if (G.ball.holder === u && !u.shoot) startShot(u, true);
+      if (G.ball.holder === u && !u.shoot && !u.inb) startShot(u, true);
       else if (G.ball.holder !== u && u.y === 0) {
         /* jump: contest, block, rebound */
         u.jg = GRAV * 1.6; u.vy = Math.sqrt(2 * u.jg * (1.6 + u.r.vert * 0.022)); u.pose = 'contest';
@@ -906,7 +937,7 @@
       if (u.shoot) return;
       const w = stickWorld();
       const r = bestPass(u, w ? w.x : undefined, w ? w.z : undefined);
-      if (r) passTo(u, r);
+      if (r) { if (u.inb) { u.inb = false; G.inb = null; } passTo(u, r); }
       return;
     }
     const off = b.holder ? b.holder.team === 0 : G.poss === 0;
@@ -930,7 +961,7 @@
   /* The Move button: tap for a crossover; swipe it for the move you want. kind: 'cross' (dir -1 left, 1 right on
      screen, 0 any), 'step' (step-back: room for the jumper), 'spin' (spin toward the rim). */
   function pressC(kind, dir) {
-    const u = G.user; if (!u || G.phase !== 'live') return;
+    const u = G.user; if (!u || G.phase !== 'live' || u.inb) return;
     const b = G.ball;
     if (b.holder === u) {
       if (u.moveCd > 0 || u.shoot) return;
@@ -1031,8 +1062,9 @@
     /* clocks */
     if (G.drill) drillStep(dt);
     else if (G.phase === 'live') {
-      G.clock -= dt;
-      if (G.poss !== null && (b.state === 'held' || b.state === 'pass')) G.shotClock -= dt;
+      if (G.inb) inboundStep(dt);
+      if (!G.inb || !G.inb.stop) G.clock -= dt;
+      if (G.poss !== null && !G.inb && (b.state === 'held' || b.state === 'pass')) G.shotClock -= dt;
       if (G.callT > 0) G.callT -= dt;
       /* the building: louder late in a close game, hushed at the line, and the home crowd chants on defense */
       const late = G.q >= 4 ? clamp(1 - G.clock / (G.qlen * 60), 0, 1) : 0, close = clamp(1 - Math.abs(G.score[0] - G.score[1]) / 12, 0, 1);
@@ -1084,6 +1116,7 @@
         else if (!s.user && s.t / s.T >= s.aiRel) release(p, s.aiRel);
       }
       if (!live) { if (G.phase === 'dead' || G.phase === 'ftflight') { p.vx *= 0.9; p.vz *= 0.9; } }
+      else if (p.inb) { /* out of bounds with the ball: inboundStep has him */ }
       else if (p.isUser && G.drill) { /* the drill moves you */ }
       else if (p.isUser && !G.auto) {
         userStep(p, dt);
@@ -1134,7 +1167,7 @@
         a.x -= ux * push; a.z -= uz * push; c.x += ux * push; c.z += uz * push;
       }
     }
-    for (const p of G.pl) { p.x = clamp(p.x, -24.6, 24.6); p.z = clamp(p.z, -46.6, 46.6); }
+    for (const p of G.pl) if (!p.inb) { p.x = clamp(p.x, -24.6, 24.6); p.z = clamp(p.z, -46.6, 46.6); }
     ballStep(dt);
   }
 
@@ -1144,7 +1177,7 @@
       const p = b.holder, hp = handPos(p);
       const H = R.hands && R.hands(p);
       if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : H ? 0 : 0.2); }
-      else if (H && G.phase === 'ft' && p.pose !== 'dribble') { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
+      else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb)) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
         /* the dribble: from the hand to the floor and back, under the hand */
         b.x = hp.x; b.z = hp.z;

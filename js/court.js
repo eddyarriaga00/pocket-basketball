@@ -467,7 +467,7 @@
     const has = G.ball.holder === p;
     let pose = p.pose;
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
-    if (has && !p.shoot && pose !== 'dribble') pose = G.phase === 'ft' ? 'hold' : 'dribble';
+    if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
     if (pose !== m.pose) { m.pose = pose; }
     m.poseW = Math.min(1, (m.poseW || 0) + dt * (POSES[pose] ? 9 : -6));
     if (!POSES[pose]) { m.poseW = Math.max(0, m.poseW - dt * 6); return; }

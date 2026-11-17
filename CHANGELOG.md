@@ -25,6 +25,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - The pick-and-roll, help defense, closeouts, switches, post-ups and hooks, alley-oops, floaters, one- and
   two-handed dunks, misses that rattle on the rim, charges, strips, team fouls and the bonus, fouling out,
   holding for the last shot, fouling to stop the clock, timeouts, stamina, a jump ball.
+- Inbound plays from the baseline and the sideline; if you take it out, Pass throws it in.
 - The rules: eight seconds, backcourt, three seconds in the lane (with a warning), goaltending. Jump at a shot on
   its way up and you can block it in the air.
 - Markers: the arrow over your pass target, the ring under your man, a release flash; the coverage on every shot.
