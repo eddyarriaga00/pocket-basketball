@@ -178,7 +178,12 @@ def pack(calls):
                 wav = os.path.join(CLIPS, cid + '.wav')
                 if not os.path.exists(wav):
                     continue
-                subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aac', '-b', '32000', '-c', '1', wav, tmp], check=True)
+                for tries in range(3):   # afconvert now and then dies on a clip for no reason; it works the next time
+                    r = subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aac', '-b', '32000', '-c', '1', wav, tmp])
+                    if r.returncode == 0:
+                        break
+                else:
+                    raise RuntimeError(f'afconvert failed on {wav}')
                 data = open(tmp, 'rb').read()
                 out.write(data)
                 secs = sf.info(wav).duration
