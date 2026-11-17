@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Create your player shows him as you build him (height, skin, hair, facial hair); the height slider works again.
+- Signature picks on the Look card: your celebration and your dribble (low and quick, or high and loose). Tattoos.
+- Bounce passes, a white shockwave after a slam or an ankle-breaker, a few bounces at the free-throw line, referees in
+  stripes, stanchion pads in the home colors, benches in the pocket style.
 - Made dunks: most of the time the dunker hangs on the rim for a moment (with a yell) before he drops. Chest passes
   push out with both arms; a man about to catch puts his hands up. Starting lineups have headshots, Home opens on your
   player card, the Look card shows you as you change, and the player of the game gets a card.
