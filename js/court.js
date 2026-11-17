@@ -571,6 +571,10 @@
     for (const m of meshes.values()) scene.remove(m.root);
     meshes.clear(); refs = []; benchMesh = [];
     while (scene.children.length > 2) scene.remove(scene.children[2]);
+    /* every player's shadow, one instanced mesh */
+    const sg = new T.CircleGeometry(1.1, 16); sg.rotateX(-Math.PI / 2);
+    shadowIM = new T.InstancedMesh(sg, new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }), 32);
+    shadowIM.count = 0; shadowIM.frustumCulled = false; scene.add(shadowIM);
     nets = [];
     const apron = new T.Mesh(new T.PlaneGeometry(90, 140), new T.MeshLambertMaterial({ color: 0x1c2333 }));
     apron.rotation.x = -Math.PI / 2; apron.position.y = -0.02; scene.add(apron);
@@ -691,7 +695,8 @@
 
   /* the officials: two of them, gray shirts and black slacks. The lead works the baseline at the ball's end, the
      trail the far sideline a step behind the play. They are not players: nothing in the game touches them. */
-  let refs = [];
+  let refs = [], shadowIM = null;
+  const _sm = new T.Matrix4();
   R.addRefs = () => {
     refs = [];
     if (!TPL || (PB.settings && PB.settings.gfx === 'Low')) return;
@@ -699,6 +704,7 @@
       const p = { id: 'ref' + i, x: 26.5, z: i ? 30 : -10, y: 0, vx: 0, vz: 0, face: -Math.PI / 2, pose: '', ht: 75, num: [14, 37][i], pos: 'SG', skin: [1, 4][i],
         look: { hair: i ? 'buzz' : 'bald', hairColor: '#2a2a2a', shoe: '#111111' } };
       const m = skinnedPlayer(p, { c1: '#a3a8ad', c2: '#16181b', name: '', shorts: '#15171a', sock: '#15171a', shoe: '#111111' });
+      if (shadowIM) { m.shadow.visible = false; m.inst = true; }
       scene.add(m.root); meshes.set(p, m); refs.push(p);
     }
   };
@@ -768,6 +774,7 @@
   };
   R.addPlayer = (p, kit) => {
     const m = TPL ? skinnedPlayer(p, kit) : playerMesh(p, kit);
+    if (m.kind === 'skin' && shadowIM) { m.shadow.visible = false; m.inst = true; }   // drawn with everyone else's, in one go
     scene.add(m.root);
     meshes.set(p, m);
   };
@@ -817,8 +824,15 @@
     if (!G.replay) moveRefs(G, dt);
     benchT += dt;
     benchMesh.forEach((m, t) => { if (benchJ[t] > 0) { benchJ[t] = Math.max(0, benchJ[t] - dt); m.position.y = Math.abs(Math.sin(benchT * 11 + t)) * 0.7 * Math.min(1, benchJ[t]); } else m.position.y = 0; });
+    let si = 0;
     for (const [p, m] of meshes) {
-      if (m.kind === 'skin') { updateSkinned(p, m, G, dt); m.shadow.position.set(0, 0.02, 0); m.shadow.scale.setScalar(1 - Math.min(p.y / 8, 0.5)); continue; }
+      if (m.kind === 'skin') {
+        updateSkinned(p, m, G, dt);
+        const k = 1 - Math.min(p.y / 8, 0.5);
+        if (m.inst && shadowIM && si < shadowIM.instanceMatrix.count) { _sm.makeScale(k, 1, k).setPosition(p.x, 0.02, p.z); shadowIM.setMatrixAt(si++, _sm); }
+        else { m.shadow.position.set(0, 0.02, 0); m.shadow.scale.setScalar(k); }
+        continue;
+      }
       m.root.position.set(p.x, 0, p.z);
       const sp = Math.hypot(p.vx, p.vz);
       m.body.position.y = p.y;
@@ -853,6 +867,7 @@
     const h = b.state === 'held' && b.holder !== u ? b.holder : null;
     handRing.visible = !!h;
     if (h) { handRing.position.x = h.x; handRing.position.z = h.z; handRing.material.color.set(h.team === 0 ? 0xffffff : 0xff6a6a); }
+    if (shadowIM) { shadowIM.count = si; shadowIM.instanceMatrix.needsUpdate = true; }
     if (board && G.teams) {
       const fmt = c => c >= 60 ? `${Math.floor(c / 60)}:${String(Math.floor(c % 60)).padStart(2, '0')}` : Math.max(0, c).toFixed(1);
       const q = G.q <= 4 ? ['1ST', '2ND', '3RD', '4TH'][G.q - 1] : 'OT';
