@@ -559,7 +559,7 @@
         ${C.trophies.length ? `<div class="card"><h3>Trophy case</h3>${C.trophies.map(x => `<p class="news">🏆 ${esc(x)}</p>`).join('')}</div>` : ''}`;
     }
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}">
-      <div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}${C.phase === 'playoffs' ? ' · Playoffs' : ''}</span></div></div>
+      <div class="hubtop"><div class="me">${portrait() ? `<img class="face" src="${portrait()}" alt="" style="background:${t.c1}">` : badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}${C.phase === 'playoffs' ? ' · Playoffs' : ''}</span></div></div>
       <button class="ic" id="menu" aria-label="Menu">⌂</button></div>
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}">${{ home: 'Home', player: 'Player', league: 'League', log: 'Log' }[x]}${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav>
       <div class="hubbody">${body}</div></div>`);
@@ -637,6 +637,14 @@
       if (me.sp < c) return;
       me.sp -= c; me.r[k]++; me.ovr = PB.ovr(me.r, me.pos); save(); hub();
     });
+  }
+  /* your portrait, kept until your team or your look changes (not saved: it is quick to draw again) */
+  let portraitCache = { key: '', url: null };
+  function portrait() {
+    if (PB.noGL || !PB.R.modelReady || !PB.R.modelReady()) return null;
+    const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num;
+    if (portraitCache.key !== key) portraitCache = { key, url: PB.R.portrait(C.me, PB.team(C.team)) };
+    return portraitCache.url;
   }
   const glog = (x, n) => `<div class="glog"><span>${n}</span>${badge(PB.team(x.opp))}
         <b class="${x.res.win ? 'w' : 'l'}">${x.res.win ? 'W' : 'L'} ${x.res.us}-${x.res.them}</b><em>${x.res.line.pts} pts · ${x.res.line.reb} reb · ${x.res.line.ast} ast</em><i>${x.res.grade}${x.res.sim ? ' · sim' : ''}</i></div>`;

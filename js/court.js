@@ -479,6 +479,26 @@
     return { r, l };
   };
 
+  /* a portrait: head and shoulders in the team's jersey, rendered once off screen to an image for the hub */
+  R.portrait = (player, team) => {
+    if (!TPL) return null;
+    try {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 192;
+      const rr = new T.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true, alpha: true });
+      const sc = new T.Scene();
+      sc.add(new T.HemisphereLight(0xfff6e8, 0x3a3028, 1.1)); const k = new T.DirectionalLight(0xffffff, 0.8); k.position.set(3, 6, 8); sc.add(k);
+      const p = { d: player, team: 0, slot: 0, r: player.r, ht: player.ht, num: player.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: 0, pose: '' };
+      const m = skinnedPlayer(p, { c1: team.c1, c2: team.c2, name: team.name });
+      sc.add(m.root); m.shadow.visible = false;
+      m.mixer.update(0.3); m.body.updateMatrixWorld(true);
+      const H = (player.ht || 78) / 12;
+      const c = new T.PerspectiveCamera(28, 1, 0.1, 50); c.position.set(0.35, H * 0.9, 3.1); c.lookAt(0, H * 0.86, 0);
+      rr.render(sc, c);
+      const url = cv.toDataURL('image/png');
+      rr.dispose(); rr.forceContextLoss && rr.forceContextLoss();
+      return url;
+    } catch (e) { return null; }
+  };
   R.init = (canvas) => {
     renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     renderer.setClearColor(0x0b0f17);
