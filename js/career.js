@@ -457,7 +457,8 @@
         <div>${badge(o)}<b>${o.name}</b><span>${os.w}-${os.l} · ${strength(o.id)}</span></div></div>
         ${rivalGame ? `<p class="rivaltag">Rival game: ${esc(PB.full(rivalP()))} is on the other side</p>` : `<p class="fine">Their ${me.pos}: ${esc(PB.full(them))} (${them.ovr}). You guard him.</p>`}
         ${(C.goals = C.goals || makeGoals()) && `<div class="goals"><b>Your goals</b>${C.goals.map(g => `<span>${esc(g.text)}</span>`).join('')}<em>+2 skill points each</em></div>`}
-        <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button></div>`;
+        <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button>
+        ${C.practiced !== C.gi + (C.phase === 'playoffs' ? 1000 : 0) ? '<button class="ghost sm" id="practice">Team practice first: spot-up drill, up to +5 skill points</button>' : ''}</div>`;
       } else if (C.phase === 'playoffs' && !C.po.champ && alive()) {
         card = C.po.round < 2 ? `<div class="next"><p class="kick">Playoffs</p><p>You're the ${ordinal(C.po.seeds[PB.team(C.team).conf].indexOf(C.team) + 1)} seed, waiting on the play-in.</p>
         <button class="big" id="simpi">Sim the play-in</button></div>` : `<div class="next"><p class="kick">Playoffs</p><p>You're through. The rest of the round is still being played.</p>
@@ -531,6 +532,20 @@
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
+    if ($('#practice')) $('#practice').onclick = () => {
+      scr().hidden = true;
+      const tm = PB.team(C.team);
+      PB.Game.start({ teams: [tm, tm], rosters: [[C.me], []], userId: 'me', drill: 'combine', qlen: 1, level: S.level, floor: tm, onEnd: r => {
+        const sc = r.drill ? r.drill.score : 0, sp = Math.min(5, Math.floor(sc / 3));
+        C.practiced = C.gi + (C.phase === 'playoffs' ? 1000 : 0); C.me.sp += sp;
+        if (sc >= 8) C.trust = Math.min(100, C.trust + 1);
+        save();
+        show(`<div class="page post"><p class="kick">Team practice</p><div class="gradebig"><b>${sc}/15</b><span>spot-up shooting</span></div>
+          <div class="card earn"><b>+${sp} skill points</b><span>${sc >= 8 ? 'The coach noticed. Trust +1.' : 'Get to eight makes and the coach takes notice.'}</span></div>
+          <button class="big" id="go">Back to the team</button></div>`);
+        $('#go').onclick = hub;
+      } });
+    };
     if ($('#coachok')) $('#coachok').onclick = () => { C.coachTalk = false; C.trust = Math.min(100, C.trust + 1); save(); hub(); };
     if ($('#coachmore')) $('#coachmore').onclick = () => {
       /* asking works when you've earned it, and costs you when you haven't */

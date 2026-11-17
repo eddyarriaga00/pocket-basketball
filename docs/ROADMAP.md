@@ -83,6 +83,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [ ] Substitutions, fatigue and foul trouble during a game
 - [x] A word from the coach every five games; ask for more minutes (it works when you've earned it) (2026-11-17)
 - [x] Game goals: three a game by position, +2 skill points each (2026-11-17)
+- [x] Team practice between games: the spot-up drill for up to 5 skill points (2026-11-17)
 - [x] League leaders; your games count at full length for leaders, awards and value (2026-11-17)
 - [x] Pre-draft combine: fifteen spot-up shots in 45 seconds that move your draft stock (2026-11-17)
 - [ ] Combine agility and vertical drills; team interviews
