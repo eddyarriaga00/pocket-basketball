@@ -41,13 +41,16 @@
     const g = cv.getContext('2d');
     const X = x => (x + 25) * PX, Z = z => (z + 47) * PX;
     /* hardwood: planks run the length of the court */
-    g.fillStyle = '#c99561'; g.fillRect(0, 0, cv.width, cv.height);
+    /* every building's own wood: pale maple, honey, a darker stain, a reddish one */
+    let hh = 0; for (const ch of String(home.id)) hh = (hh * 31 + ch.charCodeAt(0)) >>> 0;
+    const tone = [[1, 1, 1], [1.08, 1.08, 1.12], [0.82, 0.8, 0.78], [1.02, 0.9, 0.82], [1.05, 1.02, 0.95]][hh % 5];
+    g.fillStyle = `rgb(${Math.round(201 * tone[0])},${Math.round(149 * tone[1])},${Math.round(97 * tone[2])})`; g.fillRect(0, 0, cv.width, cv.height);
     for (let i = 0; i < 50 * 3; i++) {
       const x = i * PX / 3;
       for (let z = 0; z < cv.height;) {
         const len = 80 + PB.rand() * 260;
         const l = 0.86 + PB.rand() * 0.2;
-        g.fillStyle = `rgb(${Math.round(201 * l)},${Math.round(149 * l)},${Math.round(97 * l)})`;
+        g.fillStyle = `rgb(${Math.min(255, Math.round(201 * l * tone[0]))},${Math.min(255, Math.round(149 * l * tone[1]))},${Math.min(255, Math.round(97 * l * tone[2]))})`;
         g.fillRect(x, z, PX / 3 - 1, len - 1);
         z += len;
       }
@@ -323,7 +326,8 @@
   const HAIRC = ['#17110d', '#17110d', '#2b1d12', '#17110d', '#4a3020', '#c9a46a', '#17110d', '#6b4a2b'];
   function autoLook(d) {
     let h = 0; const id = String(d.id || d.last || 'x'); for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-    return { hair: HAIRS[h % HAIRS.length], hairColor: HAIRC[(h >> 3) % HAIRC.length], band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null };
+    return { hair: HAIRS[h % HAIRS.length], hairColor: HAIRC[(h >> 3) % HAIRC.length], band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
+      beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7] };
   }
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
@@ -370,6 +374,18 @@
       const band = new T.Mesh(new T.TorusGeometry(H * 0.066, H * 0.011, 6, 18), new T.MeshLambertMaterial({ color: new T.Color(look.band) }));
       band.rotation.x = Math.PI / 2; band.scale.set(1, 1.1, 1); const g2 = new T.Group(); g2.add(band); band.position.y = -H * 0.02;
       put(head, TPL.decals.hair, g2);
+    }
+    /* facial hair: a full beard wraps the jaw, stubble is the same but faint, a goatee sits on the chin */
+    if (look.beard) {
+      const bm = new T.MeshLambertMaterial({ color: new T.Color(look.hairColor || '#17110d'), transparent: look.beard === 'stubble', opacity: look.beard === 'stubble' ? 0.45 : 1 });
+      const g4 = new T.Group();
+      /* in the face's own frame: eyes at 0, the mouth at -0.03 H, +z out of the face */
+      if (look.beard === 'goatee') { const gt = new T.Mesh(new T.SphereGeometry(H * 0.01, 10, 8), bm); gt.scale.set(1, 1.3, 0.6); gt.position.set(0, -H * 0.043, H * 0.002); g4.add(gt); }
+      else {
+        const bd = new T.Mesh(new T.SphereGeometry(H * 0.043, 16, 8, Math.PI / 2 - 1.45, 2.9, Math.PI * 0.5, Math.PI * 0.4), bm); bd.position.set(0, -H * 0.026, -H * 0.036); g4.add(bd);
+        if (look.beard === 'full') { const mu = new T.Mesh(new T.BoxGeometry(H * 0.026, H * 0.005, H * 0.004), bm); mu.position.set(0, -H * 0.023, H * 0.004); g4.add(mu); }
+      }
+      put(head, TPL.decals.face, g4);
     }
     if (look.sleeve) {
       const fore = bones[bk('DEF-forearm.R')], hand = bones[bk('DEF-hand.R')];

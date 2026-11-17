@@ -16,7 +16,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 **Players and the arena**
 - Real bodies: a rigged mannequin (Quaternius, CC0) in team kits with numbers, chest wordmarks, trim, faces and
   hair; builds (bigs wider); running, jumping and stances blended by speed; a dribble from motion capture; the other basketball arms set in code.
-- Your Look card: hair, hair color, headband, arm sleeve, shoes. Everyone else gets his own hair.
+- Your Look card: hair, hair color, facial hair (stubble, goatee, beard), headband, arm sleeve, shoes. Everyone else gets his own hair.
 - Team benches in warmups and the coaches, across from the broadcast camera with the scorer's table.
 - Two referees in gray and black: the lead on the baseline, the trail on the far sideline, trading places on a
   change of ends.
