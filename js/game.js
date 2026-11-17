@@ -275,7 +275,7 @@
     b.apex = s.kind === 'dunk' ? 0.2 : s.kind === 'layup' ? 2 : s.kind === 'floater' || s.kind === 'hook' ? 5.5 : 3.5 + d * 0.2;
     G.shotLog[G.shotLog.length - 1].made = made;
     b.shot = { oop: !!s.oop, shooter: p, made, pts, foul, kind: s.kind, timing, prob, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
-    if (foul) { foul.st.pf++; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); }
+    if (foul) { foul.st.pf++; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); checkFoulOut(foul); }
   }
 
   let relT = 0;
@@ -613,9 +613,16 @@
   }
   /* a hand on a driver, a bump in the lane: a non-shooting foul. The fifth team foul of a quarter puts the other
      side in the bonus: every foul after it is two free throws. */
+  /* six fouls and you are done for the night: the rest of the game is played out */
+  function checkFoulOut(p) {
+    if (!p || !p.isUser || G.switching || p.st.pf < 6 || G.fouledOut) return;
+    G.fouledOut = true; toast('Fouled out', 'opp'); feed('You fouled out'); grade(-2, 'Fouled out');
+    setTimeout(() => { if (PB.Game.active && G && !G.replay) simRest(); }, 2200);
+  }
   function contactFoul(def, off) {
     def.st.pf++;
     G.tf[def.team]++;
+    checkFoulOut(def);
     AU().play('whistle'); B('foul', { prio: 2 });
     feed(`Foul · ${def.name}${G.tf[def.team] >= 5 ? ' (bonus)' : ''}`);
     if (def.isUser) grade(-1, 'Foul');
@@ -1374,6 +1381,13 @@
     active: false,
     /* o: { teams:[userTeam, oppTeam], rosters:[[5],[5]], userId, qlen, floor, strength:[a,b], diff, onEnd } */
     start(o) {
+      /* the players' model may still be on its way on a slow connection: wait for it (up to eight seconds) */
+      if (!PB.noGL && R.modelReady && !R.modelReady() && !o._waited) {
+        const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '<div class="page post loading"><div class="spin"></div><p class="mute">Loading the arena…</p></div>';
+        let done = false; const go = () => { if (done) return; done = true; sc.hidden = true; this.start(Object.assign(o, { _waited: true })); };
+        R.loadModel().then(go); setTimeout(go, 8000);
+        return;
+      }
       if (PB.noGL) { alert('This browser cannot draw the 3D court (WebGL is off or unavailable). Try another browser, or turn on hardware acceleration.'); if (o.onEnd) setTimeout(() => PB.Career.title(), 0); return; }
       opts = o;
       $('#game').hidden = false;
