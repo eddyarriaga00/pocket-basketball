@@ -119,14 +119,16 @@
   }
   function how() {
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>How to play</h2>
-      <div class="card"><h3>Moving</h3><p>Put your left thumb anywhere on the lower left and drag: the stick appears under it. Push to the edge to sprint.</p></div>
-      <div class="card"><h3>With the ball</h3><p><b>Shoot</b>: hold, then let go at the top of your jump, when the meter crosses the green band. Close to the rim it is a layup or a dunk.<br>
-      <b>Pass</b>: goes to the open man, or the one your stick points at.<br><b>Move</b>: tap for a crossover, or swipe the button: left or right to cross that way, down for a step-back (your next jumper is harder to contest), up for a spin to the rim (riskier against a good defender).</p></div>
-      <div class="card"><h3>Without the ball</h3><p><b>Call</b> asks the ball handler for it. <b>Cut</b> runs you to the rim and calls for it.</p></div>
-      <div class="card"><h3>Defense</h3><p>Lift your thumb and you stay in front of your man by yourself. <b>Jump</b> to contest, block and rebound. <b>Steal</b> to reach (too many reaches is a foul).</p></div>
-      <div class="card"><h3>Your grade</h3><p>Every play moves your teammate grade: buckets, assists, boards, stops, and also bad shots, turnovers and your man scoring. The grade earns skill points after the game.</p></div>
+      <div class="card"><h3>Moving</h3><p>Put your left thumb anywhere on the lower left and drag: the stick appears under it. Push to the edge to sprint (it drains your stamina bar; walking brings it back).</p></div>
+      <div class="card"><h3>Shooting</h3><p>Hold <b>Shoot</b> and let go at the top of your jump, when the meter crosses the green band. The text after tells you how the release was and how covered you were. Close to the rim it is a layup, a dunk or a floater on the run. Settings › Shot timing makes the band wider or narrower.</p></div>
+      <div class="card"><h3>Passing and moves</h3><p><b>Pass</b> goes to the teammate under the green arrow: the open man, or the one your stick points at.<br>
+      <b>Move</b>: tap for a crossover, or swipe the button: left or right to cross that way, down for a step-back (room for the jumper), up for a spin to the rim. Near the rim, a sideways swipe is a euro step.</p></div>
+      <div class="card"><h3>Without the ball</h3><p><b>Call</b> asks for it. <b>Cut</b> runs you to the rim and calls for it; a big enough leaper gets the alley-oop thrown up for him.</p></div>
+      <div class="card"><h3>Defense</h3><p>Lift your thumb and you stay in front of your man by yourself (the red ring). <b>Jump</b> to contest, block and rebound. <b>Steal</b> to reach (too many reaches is a foul; six fouls and you are out).</p></div>
+      <div class="card"><h3>Your grade and growth</h3><p>Every play moves your teammate grade. The grade, your goals, practice and badges earn skill points; the Player tab spends them (Auto-upgrade does it for you). The coach's trust decides whether you start.</p></div>
       <div class="card"><h3>Controller</h3><p>Left stick or d-pad to move, A to shoot or jump, B to pass, call or steal, X for a crossover or a cut, Y for a step-back, the right bumper for a spin, Start to pause.</p></div>
-      <div class="card"><h3>Keyboard</h3><p>WASD or arrows to move, J or Space to shoot or jump, K to pass, call or steal, L for a crossover or a cut, U for a step-back, I for a spin, P to pause.</p></div></div>`);
+      <div class="card"><h3>Keyboard</h3><p>WASD or arrows to move, J or Space to shoot or jump, K to pass, call or steal, L for a crossover or a cut, U for a step-back, I for a spin, P to pause.</p></div>
+      <p class="fine">Left-handed? Settings › Buttons puts them on the left.</p></div>`);
     $('#bk').onclick = title;
   }
 
