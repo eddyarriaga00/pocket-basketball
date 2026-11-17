@@ -1108,6 +1108,7 @@
       <div class="gradebig"><b>${r.grade}</b><span>Teammate grade</span></div>
       <div class="tiles"><div><b>${l.pts}</b><span>PTS</span></div><div><b>${l.reb}</b><span>REB</span></div><div><b>${l.ast}</b><span>AST</span></div>
       <div><b>${l.fgm}/${l.fga}</b><span>FG</span></div><div><b>${l.tpm}/${l.tpa}</b><span>3PT</span></div><div><b>${l.stl}/${l.blk}</b><span>STL/BLK</span></div></div>
+      ${sim ? '' : reelBtn()}
       ${r.rival ? `<div class="card rival"><h3>Rival</h3><p>${esc(rivalP().last)}: ${r.rival.pts} pts, ${r.rival.reb} reb, ${r.rival.ast} ast. Head to head, you're ${C.rival.h2h[0]}-${C.rival.h2h[1]}.</p></div>` : ''}
       ${r.goals ? `<div class="card goalsdone"><h3>Goals <small>${r.goals.filter(g => g.met).length} of ${r.goals.length} · +${r.goals.filter(g => g.met).length * 2} SP</small></h3>${r.goals.map(g => `<p class="${g.met ? 'w' : 'l'}">${g.met ? '✓' : '✗'} ${esc(g.text)}</p>`).join('')}</div>` : ''}
       ${r.records && r.records.length ? `<div class="card earn"><b>Record book</b><span>A new best on this device: ${r.records.map(esc).join(' · ')}</span></div>` : ''}
@@ -1127,7 +1128,8 @@
       $('#press').innerHTML = `<h3>Press conference</h3><p class="q">“${esc(a[0])}”</p><p class="fine">Coach trust ${a[1] >= 0 ? '+' : ''}${a[1]} · followers ${a[2] >= 0 ? '+' : ''}${a[2]}% · the ${a[3]} answer</p>`;
       save();
     });
-    $('#go').onclick = () => { delete r.boxHtml; tab = 'home'; hub(); };
+    $('#go').onclick = () => { delete r.boxHtml; lastReels = []; tab = 'home'; hub(); };
+    if (!sim) reelWire();
   }
   /* your shots on a half court: green made, red missed */
   function shotChart(shots) {
@@ -1151,7 +1153,11 @@
   }
 
   /* a played game comes back here */
+  let lastReels = [];   // the tape of your best plays in the game just played (not saved)
+  const reelBtn = () => lastReels.length ? `<button class="ghost" id="reel">▶ Your highlights <small>${lastReels.length} play${lastReels.length > 1 ? 's' : ''} from tonight</small></button>` : '';
+  const reelWire = () => { if ($('#reel')) $('#reel').onclick = () => PB.Game.reel(lastReels, () => { $('#screen').hidden = false; }); };
   function result(res, g) {
+    lastReels = res.reels || [];
     if (!g) {   // quick game
       const u = res.user || {};
       show(`<div class="page post"><p class="kick">Final</p>
@@ -1159,9 +1165,10 @@
         <div class="gradebig"><b>${res.grade || '–'}</b><span>Teammate grade</span></div>
         <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div>
         <div><b>${u.fgm || 0}/${u.fga || 0}</b><span>FG</span></div><div><b>${u.tpm || 0}/${u.tpa || 0}</b><span>3PT</span></div><div><b>${u.stl || 0}/${u.blk || 0}</b><span>STL/BLK</span></div></div>
+        ${reelBtn()}
         ${boxScore(res)}
         <button class="big" id="go">Main menu</button></div>`);
-      $('#go').onclick = title;
+      $('#go').onclick = title; reelWire();
       return;
     }
     const gi = LET.indexOf(res.grade);

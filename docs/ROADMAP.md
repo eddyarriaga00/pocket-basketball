@@ -78,6 +78,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Euro step on drives (a sideways swipe near the rim), one- and two-handed dunks, computer crossovers that can leave you stumbling (2026-11-17)
 - [x] Vibration on releases, makes, steals and blocks (Android) (2026-11-17)
 - [x] Replays of dunks, your and-ones and shots at the buzzer (2026-11-17)
+- [x] Your highlights after the game: the top five plays of the night replayed in 3D (2026-11-17)
 - [x] Inbound plays: a man takes it out on the baseline after a basket or the nearest sideline after a dead ball;
       the clocks wait for the pass (the game clock runs after baskets until the last two minutes) (2026-11-17)
 - [x] Eight seconds, backcourt, three seconds in the lane (yours, with a warning), goaltending; a jump timed on a

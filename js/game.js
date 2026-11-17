@@ -392,6 +392,7 @@
 
   function blockShot(o, p, at) {
     const b = G.ball;
+    if (o.isUser) reelMark('block', 2.6, 'Block');
     o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); }
     if (p.isUser) grade(-1, 'Got blocked');
     toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
@@ -553,6 +554,11 @@
       feed(`${p.name} ${s.oop ? 'alley-oop' : s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : s.kind === 'hook' ? 'hook shot' : s.kind === 'floater' ? 'floater' : 'jumper'}${ast ? ` (${ast.name} ast)` : ''}`);
       if (p.isUser) { grade(s.pts === 3 ? 4 : 3, s.pts === 3 ? 'Made three' : 'Scored'); buzz([20, 30, 30]); }
       if (p.isUser && (s.pts === 3 || s.kind === 'dunk')) p.celebT = 0.9;
+      if (p.isUser || (ast && ast.isUser)) {
+        const v = (s.kind === 'dunk' ? 3 : s.pts === 3 ? 2.5 : 1) + (s.foul ? 1 : 0) + (s.oop ? 1 : 0) + (G.clock <= 0.05 ? 4 : clutchTime() ? 1 : 0) + (p.isUser ? 0 : -0.8);
+        const what = !p.isUser ? 'Your assist' : s.oop ? 'Alley-oop' : s.kind === 'dunk' ? 'Dunk' : s.pts === 3 ? 'Three' : s.kind === 'layup' ? 'Layup' : 'Bucket';
+        if (v >= 2) reelMark(s.kind, v, what + (s.foul ? ' and one' : '') + (G.clock <= 0.05 ? ' at the buzzer' : ''));
+      }
       if (ast && ast.isUser) grade(3, 'Assist');
       /* the man you guard scored */
       if (G.user && p.team === 1 && G.user.slot === p.slot && hyp(G.user.x - p.x, G.user.z - p.z) < 9) grade(-2, 'Your man scored');
@@ -1431,7 +1437,7 @@
     AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1);
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
-    const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
+    const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner,
       shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
     PB.Game.active = false;
@@ -1468,6 +1474,17 @@
       ball: [G.ball.x, G.ball.y, G.ball.z, G.ball.state, G.ball.holder ? G.pl.indexOf(G.ball.holder) : -1] });
     if (tape.length > 150) tape.shift();
   }
+  /* your highlights: a few seconds of tape kept after your best plays, the top five shown after the game */
+  function reelMark(kind, val, label) {
+    if (G.drill || (G.auto && !G.reelTest) || !G.user) return;   // (reelTest: tools/ can film the autopilot)
+    G.reelPend = { kind, val, label, at: G.t + 0.8, q: G.q, clock: G.clock };
+  }
+  function reelTake() {
+    const P = G.reelPend; G.reelPend = null;
+    const R5 = G.reels || (G.reels = []);
+    R5.push({ kind: P.kind, val: P.val, label: P.label, q: P.q, clock: P.clock, frames: tape.slice(-95) });
+    if (R5.length > 5) R5.splice(R5.indexOf(R5.reduce((a, b) => (b.val < a.val ? b : a))), 1);
+  }
   function wantReplay(kind) {
     if (PB.settings && PB.settings.replays === false) return;
     if (G.t < replayCd || G.replay || tape.length < 40) return;
@@ -1482,6 +1499,7 @@
   }
   function endReplay() {
     const r = G.replay; if (!r) return;
+    if (r.onEnd) { G.replay = null; r.onEnd(); return; }
     G.pl.forEach((p, i) => Object.assign(p, r.live.pl[i]));
     Object.assign(G.ball, r.live.ball);
     G.replay = null; $('#rp').hidden = true; $('#game').classList.remove('replaying'); R.setReplay(false);
@@ -1534,6 +1552,7 @@
       for (let i = 0; i < n && G.phase !== 'end'; i++) step(dt / n);
       if (G.phase === 'end') return;
       record(dt);
+      if (G.reelPend && G.t >= G.reelPend.at) reelTake();
       if (G.replayAt && G.t >= G.replayAt) { G.replayAt = 0; startReplay(); }
     }
     /* what the screen marks for you: who your pass goes to, the man you guard */
@@ -1791,8 +1810,31 @@
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(frame);
     },
+    /* after the game: your highlights, one after another at half speed from the replay camera; a tap skips one */
+    reel(list, done) {
+      if (!G || !list || !list.length) { if (done) done(); return; }
+      const el = $('#game'), rp = $('#rp');
+      $('#screen').hidden = true; $('#pause').hidden = true; $('#intro').hidden = true; $('#tipcard').hidden = true; G.paused = false;
+      el.hidden = false; el.classList.add('replaying', 'show');
+      const ordered = list.slice().sort((a, b) => a.q - b.q || b.clock - a.clock);
+      let i = 0;
+      const next = () => {
+        if (i >= ordered.length) {
+          cancelAnimationFrame(raf); G.replay = null; R.setReplay(false); el.classList.remove('replaying', 'show'); el.hidden = true; rp.hidden = true;
+          rp.innerHTML = '<i></i>REPLAY<small>tap to skip</small>'; if (done) done(); return;
+        }
+        const r = ordered[i++];
+        G.replay = { frames: r.frames, i: 0, kind: r.kind, onEnd: next };
+        rp.innerHTML = `<i></i>${r.label.toUpperCase()}<small>${['', '1st', '2nd', '3rd', '4th'][r.q] || 'OT'} · highlight ${i} of ${ordered.length} · tap to skip</small>`;
+        rp.hidden = false; R.setReplay(true);
+      };
+      next();
+      cancelAnimationFrame(raf); last = performance.now();
+      const loop = now => { raf = requestAnimationFrame(loop); const dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now; if (!G.replay) return; replayFrame(dt); R.update(G, dt * 0.5); R.render(); };
+      raf = requestAnimationFrame(loop);
+    },
     /* test hooks */
-    dbg: { state: () => G,
+    dbg: { state: () => G, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
       auto: on => { G.auto = on; },
       replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },
       /* run the simulation ahead without drawing: sec seconds of game time */
