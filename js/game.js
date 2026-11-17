@@ -1266,6 +1266,14 @@
         p.face = p.team === 0 ? 0 : Math.PI;
       }
       G.ball.state = 'tip';
+      /* the opening: a sweep over the arena with the matchup on screen; a tap skips it */
+      if (!o.drill && !o.enterAt) {
+        G.tipT = 3.6; R.setIntro(3.2);
+        const iv = $('#intro');
+        iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
+        iv.hidden = false; clearTimeout(iv.h); iv.h = setTimeout(() => { iv.hidden = true; }, 3300);
+        iv.onclick = () => { iv.hidden = true; R.setIntro(0); G.tipT = Math.min(G.tipT, 1.0); };
+      }
       /* the other team wears white when its color is too close to yours */
       const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
       const cd = (a, c) => { const x = rgb(a), y = rgb(c); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };

@@ -247,3 +247,12 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 .goalsdone p{margin:5px 0;font-size:13.5px}
 .pgoals{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--panel2);border-radius:12px;padding:10px 12px;margin:10px 0;font-size:13px}
 .pgoals b{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}.pgoals small{color:var(--mute)}
+#intro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:3;
+  background:linear-gradient(180deg,rgba(5,7,12,.1),rgba(5,7,12,.55) 50%,rgba(5,7,12,.1));animation:introIn .5s ease-out}
+#intro>div{display:flex;flex-direction:column;align-items:center}
+#intro i{width:60px;height:6px;border-radius:3px;margin-bottom:6px}
+#intro b{font-family:var(--display);font-weight:900;font-size:30px;font-stretch:112%;text-transform:uppercase;line-height:1}
+#intro span{font-family:var(--display);font-weight:700;font-size:18px;color:#d6dbe6;text-transform:uppercase;letter-spacing:.06em}
+#intro em{font-style:normal;font-family:var(--display);font-weight:900;color:var(--acc);font-size:16px;letter-spacing:.2em}
+#intro p{margin:16px 0 0;font-size:12px;color:var(--mute);letter-spacing:.12em;text-transform:uppercase}
+@keyframes introIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
