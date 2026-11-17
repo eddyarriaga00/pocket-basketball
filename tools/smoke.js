@@ -63,7 +63,8 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   }
   await pg.screenshot({ path: OUT + '/c9-awards.png' });
   await pg.click('#go'); await pg.waitForTimeout(200);       // awards night -> season review
-  await pg.click('#go'); await pg.waitForTimeout(200);       // season review -> next season
+  await pg.click('#go'); await pg.waitForTimeout(200);       // season review -> training camp
+  await pg.click('.camp[data-k="play"]'); await pg.waitForTimeout(200); await pg.click('#go'); await pg.waitForTimeout(200);   // camp -> next season
   const yr = await pg.evaluate(() => PB.Career.get().year);
   if (yr !== 2) errs.push('did not reach season 2 (year ' + yr + ')');
   await pg.click('.tabs button[data-t="league"]'); await pg.waitForTimeout(200);

@@ -100,7 +100,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Pre-draft combine: fifteen spot-up shots in 45 seconds that move your draft stock (2026-11-17)
 - [ ] Combine agility and vertical drills; team interviews
 - [x] Career highs and twelve milestones (2026-11-17)
-- [ ] The record book; career highs called on the broadcast
+- [x] The record book (best single games and seasons by any career on the device); career highs called by the booth (2026-11-17)
 
 ## M3 · The season around you
 

@@ -53,7 +53,7 @@
       <div class="row2"><button class="ghost" id="qg">Quick game</button><button class="ghost" id="seas">Season</button></div>
       <button class="ghost sm" id="prac">Practice: 3-point and dunk contests, the drill</button>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
-      ${(load('pbb.hall') || []).length ? '<button class="ghost sm" id="hall">Retired careers and the Hall of Fame</button>' : ''}
+      ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
     if (live) $('#cont').onclick = hub;
     $('#newc').onclick = () => { if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one under Careers first.'); return; } setCur(''); C = null; create(); };
@@ -63,8 +63,12 @@
     $('#seas').onclick = () => PB.Season.start();
     $('#how').onclick = how;
     if ($('#hall')) $('#hall').onclick = () => {
-      const hall = load('pbb.hall') || [];
-      show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Retired careers</h2>
+      const hall = load('pbb.hall') || [], RB = load('pbb.records') || {};
+      const rec = (o, list) => list.filter(([k]) => o && o[k]).map(([k, l]) => `<div class="card rec"><span>${l}</span><b>${o[k].v}</b><small>${esc(o[k].name)} · ${esc(PB.team(o[k].team).ab)} · season ${o[k].year}</small></div>`).join('');
+      show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Record book</h2><p class="mute">The best by any career on this device.</p>
+        ${RB.game ? `<h3>One game</h3>${rec(RB.game, [['pts', 'Points'], ['reb', 'Rebounds'], ['ast', 'Assists'], ['tpm', 'Threes'], ['stl', 'Steals'], ['blk', 'Blocks']])}` : ''}
+        ${RB.season ? `<h3>One season</h3>${rec(RB.season, [['ppg', 'Points a game'], ['rpg', 'Rebounds a game'], ['apg', 'Assists a game']])}` : ''}
+        ${hall.length ? '<h3>Retired careers</h3>' : ''}
         ${hall.map(h => `<div class="card slot"><div><b>${h.hof ? '🏛 ' : ''}${esc(h.name)}</b><span>${h.pos} · ${h.seasons} seasons · ${h.pts} points (${h.ppg} a game) · ${h.trophies} trophies · last with the ${esc(PB.team(h.team).name)}</span>
           <span>${h.hof ? 'Hall of Fame' : 'Hall score ' + h.score + ' of 22'}</span></div></div>`).join('')}</div>`);
       $('#bk').onclick = title;
@@ -842,6 +846,13 @@
         const v = res.line[k] || 0;
         if (v > 0 && v > (C.highs[k] || 0)) { if (C.highs[k] !== undefined) res.highs.push(`${v} ${n}`); C.highs[k] = v; }
       }
+      /* the device's record book: the best single games by any career here */
+      const RB = load('pbb.records') || {}; RB.game = RB.game || {}; res.records = [];
+      for (const [k, n] of [['pts', 'points'], ['reb', 'rebounds'], ['ast', 'assists'], ['stl', 'steals'], ['blk', 'blocks'], ['tpm', 'threes']]) {
+        const v = res.line[k] || 0;
+        if (v > 0 && v > ((RB.game[k] || {}).v || 0)) { if (RB.game[k]) res.records.push(`${v} ${n}`); RB.game[k] = { v, name: PB.full(C.me), team: C.team, opp: res.opp || null, year: C.year }; }
+      }
+      store('pbb.records', RB);
     }
     C.miles = C.miles || {}; res.miles = [];
     const L2 = res.line, dd = ['pts', 'reb', 'ast', 'stl', 'blk'].filter(k => (L2[k] || 0) >= 10).length;
@@ -1005,6 +1016,7 @@
       <div><b>${l.fgm}/${l.fga}</b><span>FG</span></div><div><b>${l.tpm}/${l.tpa}</b><span>3PT</span></div><div><b>${l.stl}/${l.blk}</b><span>STL/BLK</span></div></div>
       ${r.rival ? `<div class="card rival"><h3>Rival</h3><p>${esc(rivalP().last)}: ${r.rival.pts} pts, ${r.rival.reb} reb, ${r.rival.ast} ast. Head to head, you're ${C.rival.h2h[0]}-${C.rival.h2h[1]}.</p></div>` : ''}
       ${r.goals ? `<div class="card goalsdone"><h3>Goals <small>${r.goals.filter(g => g.met).length} of ${r.goals.length} · +${r.goals.filter(g => g.met).length * 2} SP</small></h3>${r.goals.map(g => `<p class="${g.met ? 'w' : 'l'}">${g.met ? '✓' : '✗'} ${esc(g.text)}</p>`).join('')}</div>` : ''}
+      ${r.records && r.records.length ? `<div class="card earn"><b>Record book</b><span>A new best on this device: ${r.records.map(esc).join(' · ')}</span></div>` : ''}
       ${(r.highs && r.highs.length) || (r.miles && r.miles.length) ? `<div class="card earn"><b>${r.highs && r.highs.length ? 'New career high' + (r.highs.length > 1 ? 's' : '') : 'Milestone'}</b><span>${[...(r.highs || []), ...(r.miles || [])].map(esc).join(' · ')}</span></div>` : ''}
       ${r.newBadges && r.newBadges.length ? `<div class="card earn"><b>Badge earned</b><span>${r.newBadges.map(esc).join(' · ')}</span></div>` : ''}
       ${P ? `<div class="card press" id="press"><h3>Press conference</h3><p class="q">“${esc(P.q(pr[1]))}”</p>${P.a.map((a, i) => `<button class="ans" data-i="${i}">${esc(a[0])}</button>`).join('')}</div>` : ''}
@@ -1356,6 +1368,11 @@
     const aw = (got || []).slice();
     const how = C.po && C.po.champ === C.team ? 'Champions' : C.po && C.po.games.length ? `Playoffs: ${C.poStats.w}-${C.poStats.l}` : 'No playoffs';
     if (!C.seasons.find(z => z.year === C.year)) C.seasons.push({ year: C.year, team: C.team, w: st.w, l: st.l, ppg: ppg.toFixed(1), rpg: rpg.toFixed(1), apg: apg.toFixed(1), awards: aw });
+    if (s.gp >= Math.min(10, C.len || 10)) {   // a full season's line, for the record book
+      const RB = load('pbb.records') || {}; RB.season = RB.season || {};
+      for (const [k, v] of [['ppg', ppg], ['rpg', rpg], ['apg', apg]]) if (v > ((RB.season[k] || {}).v || 0)) RB.season[k] = { v: +v.toFixed(1), name: PB.full(me), team: C.team, year: C.year };
+      store('pbb.records', RB);
+    }
     C.phase = 'offseason'; save();
     show(`<div class="page post"><p class="kick">Season ${C.year} is over</p>
       <h2>${st.w}-${st.l} · ${ordinal(rank)} in the ${PB.team(C.team).conf}</h2><p class="mute">${how}</p>
