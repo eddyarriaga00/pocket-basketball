@@ -250,6 +250,26 @@
     if (kind === 'letsgo') for (const at of [1.25, 2.85]) for (const k of [0, 0.25]) setTimeout(() => A.crowd.react('applause', 0.5), (at + k) * 1000);
   }
 
+  /* the pulse of a close finish: a low double thump under the crowd, about seventy a minute, while it lasts */
+  let pulseT = 0, pulseOn = false;
+  function pulse(on) {
+    pulseOn = !!on && !!ctx && S().sound !== false;
+    if (!pulseOn) return;
+    const tick = () => {
+      if (!pulseOn || !ctx) return;
+      const t = Math.max(ctx.currentTime + 0.02, pulseT);
+      for (const [dt, v] of [[0, 0.5], [0.22, 0.32]]) {
+        const o = ctx.createOscillator(), g = gain(ctx, 0); o.type = 'sine';
+        o.frequency.setValueAtTime(62, t + dt); o.frequency.exponentialRampToValueAtTime(38, t + dt + 0.18);
+        g.gain.setValueAtTime(0, t + dt); g.gain.linearRampToValueAtTime(v, t + dt + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dt + 0.24);
+        chain(o, g, bus.sfx); o.start(t + dt); o.stop(t + dt + 0.3);
+      }
+      pulseT = t + 0.86;
+      setTimeout(tick, 700);
+    };
+    tick();
+  }
+
   /* ---------- music: a short loop for the menus ---------- */
   /* Kick, snare, hats, a bass line and chord stabs in A minor, 92 bpm, scheduled a little ahead. */
   const BAR = [
@@ -328,6 +348,7 @@
       },
     },
     organ,
+    pulse: on => { if (!!on !== pulseOn) pulse(on); },
     music(on) {
       musicOn = on && S().music !== false;
       if (!ctx) return;

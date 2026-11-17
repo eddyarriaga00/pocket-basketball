@@ -840,7 +840,7 @@
       const a = along(p.z, p.team);
       if (a > 26) {
         const back = G.pl.filter(o => o.team !== p.team && along(o.z, p.team) < a - 3).length;
-        if (back <= 1 && lane(p) > 4) { p.drive = 1.6; G.transT = -99; tally('break'); if (rand() < 0.4) feed('On the break'); }
+        if (back <= 1 && lane(p) > 4) { p.drive = 1.6; G.transT = -99; G.breakUntil = G.t + 2.2; tally('break'); if (rand() < 0.4) feed('On the break'); }
       }
     }
     /* pressure: a man in his face now and then makes him travel or lose it off his foot */
@@ -960,6 +960,9 @@
     const s = spotOf(p);
     p.tx = s.x; p.tz = s.z;
     const b = G.ball;
+    /* on the break the wings fill the lanes: wide and ahead of the ball, toward the corners */
+    const h = b.holder;
+    if (h && h.team === p.team && h.drive > 0 && G.t < (G.breakUntil || 0) && along(h.z, p.team) > 10 && p.slot !== 4) { const c = toCourt(p.team, (p.slot % 2 ? 1 : -1) * 20, Math.max(4, along(h.z, p.team) - 12)); p.tx = c.x; p.tz = c.z; }
     if (b.state === 'pass' && b.to === p) { p.tx = b.ex; p.tz = b.ez; }
   }
   /* a hand on a driver, a bump in the lane: a non-shooting foul. The fifth team foul of a quarter puts the other
@@ -1335,6 +1338,7 @@
       const late = G.q >= 4 ? clamp(1 - G.clock / (G.qlen * 60), 0, 1) : 0, close = clamp(1 - Math.abs(G.score[0] - G.score[1]) / 12, 0, 1);
       AU().crowd.level(0.3 + 0.15 * (G.q - 1) / 3 + 0.5 * late * close);
       if (G.q >= 4 && G.clock < 60 && Math.abs(G.score[0] - G.score[1]) <= 5 && !G.clutchSaid) { G.clutchSaid = true; B('clutch', { prio: 2, follow: 0.5 }); }
+      if (AU().pulse) AU().pulse(G.q >= 4 && G.clock < 30 && Math.abs(G.score[0] - G.score[1]) <= 3 && !G.drill);
       /* the arena announcer and the clock */
       if (PB.booth && G.qlen >= 3) {
         const qk = 'q' + G.q;
@@ -1596,6 +1600,7 @@
     G.phase = 'end';
     cancelAnimationFrame(raf);
     AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1);
+    if (AU().pulse) AU().pulse(false);
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.played ? G.playedBy.map((x, i) => ({ d: x.d, team: x.team, st: G.played[i], user: !!(G.user && x.d === G.user.d) })) : G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
     const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,

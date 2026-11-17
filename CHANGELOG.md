@@ -11,6 +11,7 @@ What changed, newest first. The full list is the git log; the order of work is [
   alley-oops, step-backs, blocks, steals, runs, crunch time, the final, and an opening for every city.
 - An arena announcer through the building's speakers: the home team's intro, two minutes left, the last minute.
 - Players talk on the floor: "Screen!", "Switch!", "Shot!", "Box out!", "Help!", "Get back!", from where they stand.
+- A heartbeat under the crowd in the last thirty seconds of a close game.
 - Sound on iPhones with the silent switch on.
 
 **Players and the arena**
