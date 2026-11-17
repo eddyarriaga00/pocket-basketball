@@ -73,6 +73,7 @@
     }
     if (p.stepT !== undefined && G.t - p.stepT < 1.1) best = 1 - (1 - best) * 0.55;   // the step-back bought room
     if (p.euroT !== undefined && G.t - p.euroT < 1.2) best = 1 - (1 - best) * 0.5;   // the euro step went around the shot-blocker
+    if (p.fadeT !== undefined && G.t - p.fadeT < 1.2) best = 1 - (1 - best) * 0.6;   // the fadeaway leans away from the hand
     return clamp(best, 0.5, 1);
   }
   const nearestDef = p => {
@@ -312,11 +313,17 @@
       kind = dunkOk ? 'dunk' : 'layup';
     } else if (d < 13 && sp > 7 && !isThree(p.x, p.z, p.team)) kind = 'floater';   // a runner on the move: lofted over the bigs
     if (force) kind = force;
+    /* yours: a big who goes up contested in the paint shoots a hook; a jumper drifting away from the rim is a fadeaway */
+    let fade = false;
+    if (forUser && !force) {
+      if (kind !== 'dunk' && ['PF', 'C'].includes(p.d.pos) && d > 5 && d < 15 && nearestDef(p).d < 4) kind = 'hook';
+      else if (kind === 'jumper' && d > 8 && d < 22) { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, L = hyp(hx, hz) || 1; if ((p.vx * hx + p.vz * hz) / L < -3.5) fade = true; }
+    }
     const T = kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.5 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55;
     const peak = kind === 'jumper' ? 1.4 + p.r.vert * 0.014 : kind === 'dunk' ? 2.6 + p.r.vert * 0.02 : 1.8 + p.r.vert * 0.012;
     const tp = T * 0.82;
     p.jg = 2 * peak / (tp * tp); p.vy = p.jg * tp;
-    p.shoot = { t: 0, T, kind, user: !!forUser, three: isThree(p.x, p.z, p.team), d,
+    p.shoot = { t: 0, T, kind, user: !!forUser, three: isThree(p.x, p.z, p.team), d, fade,
       /* AI: when it lets go (near the top, a little early or late) */
       aiRel: clamp(0.82 + PB.gauss() * (0.09 - p.r.mid * 0.0006), 0.55, 1.1) };
     p.pose = kind === 'dunk' ? (rand() < 0.55 ? 'dunk1' : 'celebrate') : 'shoot';
@@ -326,7 +333,8 @@
       const st = STYLES[1 + Math.floor(rand() * 4)];
       p.pose = st[1]; p.spin = { total: st[4], t: 0, T: 2 * T * 0.82 }; p.spinA = 0; p.showoff = st[0];
     }
-    if (kind === 'jumper') { p.vx *= 0.2; p.vz *= 0.2; }
+    if (kind === 'jumper') { const k = fade ? 0.45 : 0.2; p.vx *= k; p.vz *= k; }   // a fadeaway keeps drifting back
+    if (fade) p.fadeT = G.t;
     /* a defender close by goes up with him */
     for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25);
     if (kind === 'jumper' && rand() < 0.3) { const o = nearestDef(p).who; if (o && !o.isUser) CH('ch_shot', o); }
@@ -382,7 +390,7 @@
     G.possN = (G.possN || 0) + 1;   // a shot ends team control: a long rebound may be taken in the backcourt
     const b = G.ball;
     const hp = handPos(p);
-    let prob = baseProb(p, p.x, p.z, s.kind);
+    let prob = baseProb(p, p.x, p.z, s.kind) * (s.fade ? 0.9 : 1);
     let timing = '';
     if (s.user) {
       const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase();
@@ -407,7 +415,7 @@
     prob = clamp(prob * cf, 0.01, 0.985);
     const nd = nearestDef(p);
     /* how covered you were, next to the timing: a miss explains itself */
-    if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing} · ${cov}`; }
+    if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}`; }
     p.st.fga++; if (s.three) p.st.tpa++;
     G.lastShot = { shooter: p, three: s.three, open: nd.d, prob, guard: nd.who };
     (G.shotLog = G.shotLog || []).push({ kind: s.three ? 'three' : s.oop ? 'oop' : s.kind, prob, d: s.d, x: p.x, a: along(p.z, p.team), user: p.isUser, team: p.team });

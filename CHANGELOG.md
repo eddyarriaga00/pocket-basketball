@@ -25,6 +25,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 **On the floor**
 - Balanced against the real league: about 114 points a team on 47% shooting, 35 threes, 22 free throws.
+- Your shots: a big going up contested in the paint shoots a hook; a jumper drifting away from the rim is a fadeaway.
 - Fliers show off on open breakaways: windmills, reverses and 360s in real games.
 - Get hot (three straight, or a big night) and the defense sends a double team: find the open man.
 - Call a play from the pause menu for three trips: Get me the ball (the others clear out), Pick-and-roll, Feed the post.
