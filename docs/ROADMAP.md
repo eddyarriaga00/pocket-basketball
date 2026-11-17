@@ -151,7 +151,22 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Up to six careers on a device; back one up to a file and bring it in on another device (2026-11-17)
 - [x] Practice: the 3-point contest and the spot-up drill from the menu, with a best score (2026-11-17)
 - [x] Edit teams on your device: city, nickname, short name, colors (2026-11-17)
-- [x] Commentary recorded on a local speech model: 240 clips, three voices (play-by-play, analyst, arena announcer) (2026-11-17)
+- [x] Commentary recorded on a local speech model: 260 clips, four voices (play-by-play, analyst, arena announcer,
+      players on the floor) (2026-11-17)
 - [x] Game controllers (2026-11-17)
 - [x] A phone turned sideways gets a turn-upright screen and the game pauses; desktops keep the centered column (2026-11-17)
 - [ ] Online head to head by code
+- [x] Daily challenge: a late-game situation a day, the same for everyone, with a streak (2026-11-17)
+- [x] Season mode keeps going: next season with the same team, aging, rookies, a title count (2026-11-17)
+- [x] Achievements across careers; a 3D title screen; a Graphics setting for older phones (2026-11-17)
+- [x] Highlights: replayed after games with the crowd and the booth, saved as a 1080x1920 video with sound; a player
+      card image to share (2026-11-17)
+
+## Later: ideas not started
+
+- A zone defense for computer teams (tried 2026-11-17: the simple 2-3 gave up 120 shots a game; it needs real
+  closeouts and rotations before it can ship)
+- Fifteen-man rosters, two-way contracts, trades you propose
+- Shot styles to pick (release height and speed) on the Look card
+- Draw calls: one atlas for each player's number and wordmark, one instanced mesh for all the shadows
+- Online head to head by code
