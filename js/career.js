@@ -784,7 +784,7 @@
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];
   const LOOK = {
     hair: [['short', 'Short'], ['high', 'High-top'], ['afro', 'Afro'], ['buzz', 'Buzz'], ['bald', 'Bald']],
-    hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Bleached']],
+    hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver']],
     band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],
     shoe: [[null, 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#e63946', 'Red'], ['#ffd23f', 'Gold']],
