@@ -982,13 +982,13 @@
       g.textAlign = 'left'; g.fillStyle = '#fff';
       g.font = '900 92px Archivo, Arial'; g.fillText(me.first.toUpperCase(), 80, 800); g.fillText(me.last.toUpperCase(), 80, 892);
       g.font = '600 38px Inter, Arial'; g.fillStyle = '#c9d0de'; g.fillText(`#${me.num} · ${PB.POS_NAME[me.pos]} · ${t.city} ${t.name}`, 80, 952);
-      g.textAlign = 'center'; g.fillStyle = '#ffb02e'; g.beginPath(); g.arc(920, 820, 92, 0, 7); g.fill();
-      g.fillStyle = '#1b0d03'; g.font = '900 90px Archivo, Arial'; g.fillText(String(me.ovr), 920, 850); g.font = '800 24px Archivo, Arial'; g.fillText('OVERALL', 920, 884);
+      g.textAlign = 'center'; g.fillStyle = '#ffffff'; g.beginPath(); g.arc(920, 820, 92, 0, 7); g.fill();
+      g.fillStyle = '#000000'; g.font = '900 90px Archivo, Arial'; g.fillText(String(me.ovr), 920, 850); g.font = '800 24px Archivo, Arial'; g.fillText('OVERALL', 920, 884);
       const tile = (x, v, l) => { g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(x, 1010, 290, 150); g.fillStyle = '#fff'; g.font = '900 70px Archivo, Arial'; g.fillText(v, x + 145, 1092); g.fillStyle = '#c9d0de'; g.font = '700 26px Inter, Arial'; g.fillText(l, x + 145, 1136); };
       tile(80, gp ? (A.pts / gp).toFixed(1) : '–', 'POINTS'); tile(395, gp ? (A.reb / gp).toFixed(1) : '–', 'REBOUNDS'); tile(710, gp ? (A.ast / gp).toFixed(1) : '–', 'ASSISTS');
       g.fillStyle = '#c9d0de'; g.font = '600 30px Inter, Arial';
       g.fillText(`Season ${C.year} · ${C.trophies.length} trophies · ${T.pts || 0} career points · ${(C.fans || 0).toLocaleString()} followers`, 540, 1225);
-      g.fillStyle = '#ffb02e'; g.font = '900 34px Archivo, Arial'; g.fillText('POCKETBASKETBALL', 540, 1300);
+      g.fillStyle = '#ffffff'; g.font = '900 34px Archivo, Arial'; g.fillText('POCKETBASKETBALL', 540, 1300);
       cv.toBlob(b => shareFile(b, 'my-player-card.png', 'My player'), 'image/png');
     };
     const url = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(me, t, 600) : null;

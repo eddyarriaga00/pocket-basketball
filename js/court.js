@@ -892,7 +892,7 @@
           const x = i ? 384 : 128;
           g.fillStyle = t.c1; g.fillRect(x - 118, 18, 236, 44);
           g.fillStyle = '#fff'; g.font = '900 34px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t.ab || t.id, x, 41);
-          g.fillStyle = '#ffb02e'; g.font = '900 96px Archivo, Arial'; g.fillText(String(G.score[i]), x, 132);
+          g.fillStyle = '#ffffff'; g.font = '900 96px Archivo, Arial'; g.fillText(String(G.score[i]), x, 132);
         }
         g.fillStyle = '#fff'; g.font = '800 40px Archivo, Arial'; g.fillText(fmt(G.clock), 256, 212);
         g.fillStyle = '#8d99b0'; g.font = '800 26px Archivo, Arial'; g.fillText(q, 256, 176);
@@ -913,7 +913,7 @@
     if (hype > 0) { hype = Math.max(0, hype - dt); const j = Math.abs(Math.sin(G.t * 14)) * 0.035 * Math.min(1, hype); for (const m of crowdMaps) m.offset.y = j; }
     /* a glowing trail behind the ball on your shots */
     if (!trail) {
-      trail = new T.Line(new T.BufferGeometry().setFromPoints(Array.from({ length: 24 }, () => new T.Vector3())), new T.LineBasicMaterial({ color: 0xffb02e, transparent: true, opacity: 0.75 }));
+      trail = new T.Line(new T.BufferGeometry().setFromPoints(Array.from({ length: 24 }, () => new T.Vector3())), new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }));
       trail.frustumCulled = false; scene.add(trail);
     }
     const mine = b.state === 'shot' && b.shot && b.shot.shooter === G.user;

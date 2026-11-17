@@ -2046,7 +2046,7 @@
         cg.fillStyle = '#fff'; cg.font = `900 ${26 * sc}px Archivo, Arial`; cg.textBaseline = 'alphabetic';
         cg.fillText(lab.toUpperCase(), 20 * sc, H - 54 * sc);
         cg.fillStyle = '#c9d0de'; cg.font = `600 ${14 * sc}px Inter, Arial`; cg.fillText(sub, 20 * sc, H - 30 * sc);
-        cg.fillStyle = '#ffb02e'; cg.font = `800 ${12 * sc}px Archivo, Arial`; cg.textAlign = 'right';
+        cg.fillStyle = '#ffffff'; cg.font = `800 ${12 * sc}px Archivo, Arial`; cg.textAlign = 'right';
         cg.fillText('POCKETBASKETBALL', W - 16 * sc, H - 30 * sc); cg.textAlign = 'left';
         cg.fillStyle = 'rgba(8,10,16,.72)'; cg.fillRect(0, 0, W, 40 * sc);
         cg.fillStyle = '#fff'; cg.font = `800 ${16 * sc}px Archivo, Arial`;
