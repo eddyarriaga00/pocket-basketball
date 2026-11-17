@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
   };
   await pg.click('#go');
   console.log('combine shots', await shootLoop('d1'));
-  await pg.waitForSelector('#go'); console.log('combine result:', (await pg.textContent('#screen')).replace(/\s+/g, ' ').slice(0, 120));
+  await pg.waitForSelector('#go'); console.log('combine result:', (await pg.textContent('#screen')).replace(/\s+/g, ' ').slice(0, 420));
   await pg.click('#go'); await pg.click('#go');   // draft night -> hub
   await pg.evaluate(() => { const C = PB.Career.get(); C.contest = 'invited'; PB.Career.hub(); });
   await pg.click('#contest');

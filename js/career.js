@@ -309,7 +309,12 @@
   function finishDraft(score) {
     const me = C.me;
     const avg = 6.5;   // an ordinary day: about 43% from these spots
-    const moved = score === null ? 0 : Math.round((score - avg) * 1.6);
+    /* the measurements: what your body and your build say, a little noise on the day */
+    const ath = (me.r.vert + me.r.speed) / 2, g = () => PB.gauss();
+    const M8 = { ht: me.ht + 1.25, wing: me.ht + PB.clamp(Math.round(3 + g() * 2), -1, 8), vert: +(27 + me.r.vert * 0.12 + g() * 1.2).toFixed(1),
+      lane: +(12.3 - me.r.speed * 0.016 + g() * 0.15).toFixed(2), sprint: +(3.6 - me.r.speed * 0.0045 + g() * 0.03).toFixed(2) };
+    C.measure = M8;
+    const moved = score === null ? 0 : Math.round((score - avg) * 1.6) + (ath >= 80 ? 1 : ath <= 55 ? -1 : 0);
     const pick = PB.clamp(projected() - moved + Math.round(PB.gauss() * 2), 1, 30);
     C.pick = pick; C.team = C.order[pick - 1]; C.combine = score; C.phase = 'regular';
     C.contract = { years: 4, salary: rookieScale(pick), kind: 'Rookie deal' }; C.earnings = 0;
@@ -322,6 +327,10 @@
       show(`<div class="page post"><p class="kick">Combine results</p><div class="gradebig"><b>${score}/15</b><span>spot-up shooting</span></div>
         <div class="card"><p>${moved > 1 ? 'Scouts loved it. You are moving up.' : moved < -1 ? 'Not your day. Some teams cooled on you.' : 'About what they expected.'}</p>
         <p class="fine">Projected before: pick ${projected()} · now heading to draft night.</p></div>
+        <div class="card"><h3>Measurements</h3><table class="std">
+          <tr><td>Height in shoes</td><td>${PB.fmtH(Math.round(M8.ht))}</td></tr><tr><td>Wingspan</td><td>${PB.fmtH(M8.wing)}</td></tr>
+          <tr><td>Max vertical</td><td>${M8.vert}"</td></tr><tr><td>Lane agility</td><td>${M8.lane} s</td></tr><tr><td>Three-quarter sprint</td><td>${M8.sprint} s</td></tr></table>
+          <p class="fine">${ath >= 80 ? 'The athletic testing turned heads.' : ath <= 55 ? 'The athletic testing was a concern for some teams.' : 'Athletic testing about average for the class.'}</p></div>
         <button class="big" id="go">Draft night</button></div>`);
       $('#go').onclick = draft;
     } else draft();
