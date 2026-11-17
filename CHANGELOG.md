@@ -26,6 +26,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 **On the floor**
 - Balanced against the real league: about 114 points a team on 47% shooting, 35 threes, 22 free throws.
 - Get hot (three straight, or a big night) and the defense sends a double team: find the open man.
+- Call a play from the pause menu for three trips: Get me the ball (the others clear out), Pick-and-roll, Feed the post.
 - Call a pick: the Pick button brings your big to screen your man, then he rolls.
 - Dribble moves on the Move button (swipe: crossover either way, step-back, spin; euro step near the rim).
 - The pick-and-roll, help defense, closeouts, switches, post-ups and hooks, alley-oops, floaters, one- and

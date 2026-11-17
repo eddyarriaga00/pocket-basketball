@@ -199,7 +199,8 @@
     if (G.inb) { G.inb.p.inb = false; G.inb = null; }
     b.state = 'held'; b.holder = p; p.hold = 0; p.think = 0.2 + rand() * 0.2; delete p.post;
     b.lastTouch = p.team;
-    if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; G.possN = (G.possN || 0) + 1; }
+    if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; G.possN = (G.possN || 0) + 1;
+      if (G.play && p.team === 0) { G.play.left--; G.play.done = false; if (G.play.left < 0) { G.play = null; } } }
     if (why === 'oreb') G.shotClock = Math.max(G.shotClock, 14);
   }
   function inboundTo(team, at) {
@@ -736,6 +737,17 @@
     const b = G.ball;
     p.hold += dt;
     p.think -= dt;
+    /* the play you called */
+    const P = p.team === 0 && G.play && G.phase === 'live' && !p.inb ? G.play : null;
+    if (P && along(p.z, p.team) < RIM - 2) {
+      const u = G.user;
+      if (P.kind === 'iso' && u && u !== p && p.hold > 0.35 && nearestDef(u).d > 2.4) { passTo(p, u); return; }
+      if (P.kind === 'post' && p.slot < 3 && p.hold > 0.5) {
+        const big = teamOf(0).filter(o => o.slot >= 3 && !o.isUser).sort((a, c) => c.r.close - a.r.close)[0];
+        if (big && distHoop(big.x, big.z, 0) < 17 && nearestDef(big).d > 1.8) { big.postNext = true; passTo(p, big); return; }
+      }
+    }
+    if (p.postNext && p.post === undefined) { p.postNext = false; p.post = 1.8 + rand(); }
     /* pressure: a man in his face now and then makes him travel or lose it off his foot */
     if (G.phase === 'live' && !G.drill && !p.inb) {
       const nd = nearestDef(p);
@@ -803,6 +815,8 @@
     if (p.cutT > 0) { x = p.slot === 4 ? -s[0] * 0.5 : Math.sign(s[0] || 1) * 3; d = 4; }
     const bh = G.ball.holder;
     if (bh && bh.team === p.team && bh !== p) x += clamp(bh.x * 0.15, -3, 3);
+    /* the play called for you: everyone else clears out to the corners and the wings */
+    if (G.play && G.play.kind === 'iso' && p.team === 0 && bh && bh.isUser && !p.isUser) { const k = [[-22, 3], [22, 3], [-17, 21], [17, 21], [0, 26]][p.slot]; x = k[0]; d = k[1]; }
     /* in transition, run with the play */
     const c = toCourt(p.team, x, d);
     return c;
@@ -813,6 +827,11 @@
     const h = G.ball.holder;
     if (!h || h.team !== p.team || h === p) return false;
     if (p.screen === undefined) p.screen = 0;
+    /* the pick-and-roll you called: the best big comes up to set it once each trip */
+    if (p.team === 0 && G.play && G.play.kind === 'pnr' && !G.play.done && p.slot >= 3 && along(h.z, 0) < 32) {
+      const big = teamOf(0).filter(o => o.slot >= 3 && o !== h && !o.isUser).sort((a, c) => hyp(a.x - h.x, a.z - h.z) - hyp(c.x - h.x, c.z - h.z))[0];
+      if (big === p) { p.screen = 3.2; G.play.done = true; }
+    }
     p.screen -= dt;
     if (p.screen <= 0) {
       if (p.slot === 4 && along(h.z, p.team) > 18 && along(h.z, p.team) < 34 && G.shotClock > 6 && rand() < dt * 0.25) p.screen = 3.2;
@@ -1696,6 +1715,8 @@
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
         <button class="big" id="pr">Resume</button>
         ${G.user && !G.drill && (G.poss === 0 || G.phase === 'dead') && G.to[0] > 0 ? `<button class="ghost" id="pto">Timeout <small>${G.to[0]} left this half</small></button>` : ''}
+        ${G.user && !G.drill && !G.switching ? `<div class="plays"><b>Call a play <small>${G.play ? `${({ iso: 'Get me the ball', pnr: 'Pick-and-roll', post: 'Feed the post' })[G.play.kind]} · ${G.play.left + 1} more trip${G.play.left ? 's' : ''}` : 'for the next three trips'}</small></b>
+          <div class="row3"><button class="ghost sm" data-play="iso">Get me the ball</button><button class="ghost sm" data-play="pnr">Pick-and-roll</button><button class="ghost sm" data-play="post">Feed the post</button></div></div>` : ''}
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="row2"><button class="ghost sm" id="psnd">Sound: ${PB.settings.sound === false ? 'off' : 'on'}</button><button class="ghost sm" id="pcom">Commentary: ${PB.settings.commentary === false ? 'off' : 'on'}</button></div>` : ''}
         <button class="ghost" id="ps">Sim to the end</button>
@@ -1718,6 +1739,10 @@
           give(h); G.shotClock = Math.max(G.shotClock, late ? 14 : G.shotClock);
         });
       };
+      ov.querySelectorAll('[data-play]').forEach(bt => bt.onclick = () => {
+        G.play = { kind: bt.dataset.play, left: G.poss === 0 ? 2 : 3, done: false };
+        pause(false); toast(`Play: ${bt.textContent}`, 'call');
+      });
       /* sound and the booth, without leaving the game */
       if ($('#psnd')) $('#psnd').onclick = () => {
         const S = PB.settings, on = S.sound === false; S.sound = on; S.soundOn = on ? 'On' : 'Off'; PB.saveSettings();

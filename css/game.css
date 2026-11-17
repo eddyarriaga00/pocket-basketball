@@ -321,3 +321,6 @@ input[type=color]{height:44px;padding:4px}
   #rotate p{margin:0;font-family:var(--display);font-weight:900;font-size:20px;text-transform:uppercase}
   #rotate small{color:var(--mute)}
 }
+/* play calls in the pause menu */
+.plays{margin:4px 0 8px;text-align:left}.plays b{display:block;font-size:12px;margin-bottom:6px}.plays b small{color:var(--mute);font-weight:500;margin-left:6px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.row3 button{margin:0;padding:10px 4px;font-size:12px}
