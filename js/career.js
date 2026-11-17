@@ -1018,7 +1018,7 @@
   function portrait() {
     if (PB.noGL || !PB.R.modelReady || !PB.R.modelReady()) return null;
     const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num;
-    if (portraitCache.key !== key) portraitCache = { key, url: PB.R.portrait(C.me, PB.team(C.team)) };
+    if (portraitCache.key !== key) portraitCache = { key, url: PB.R.portrait(C.me, PB.team(C.team), 160, { close: true }) };
     return portraitCache.url;
   }
   let bodyCache = { key: '', url: null };
