@@ -285,3 +285,4 @@ input[type=color]{height:44px;padding:4px}
 .draft.over3d{background:linear-gradient(180deg,rgba(10,13,20,.92) 0%,rgba(10,13,20,.35) 22%,rgba(10,13,20,0) 40%,rgba(10,13,20,0) 55%,rgba(10,13,20,.9) 72%,var(--bg) 88%)}
 .draft.over3d .podium{margin:8px 0 0}.draft.over3d .spacer{height:40vh}
 .event .q{font-size:15px;font-weight:600;margin:6px 0 4px}.event .ghost{margin:8px 0 0;padding:11px;font-size:14px}
+.mile{margin:5px 0;font-size:13.5px;color:var(--mute)}.mile.got{color:var(--ink)}.mile.got::first-letter{color:var(--acc)}.mile small{color:var(--mute)}

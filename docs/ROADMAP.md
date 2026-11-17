@@ -91,7 +91,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] League leaders; your games count at full length for leaders, awards and value (2026-11-17)
 - [x] Pre-draft combine: fifteen spot-up shots in 45 seconds that move your draft stock (2026-11-17)
 - [ ] Combine agility and vertical drills; team interviews
-- [ ] Career highs on the broadcast; the record book
+- [x] Career highs and twelve milestones (2026-11-17)
+- [ ] The record book; career highs called on the broadcast
 
 ## M3 · The season around you
 

@@ -338,6 +338,7 @@
       run.pts += s.pts;
       if (s.kind === 'dunk' || G.clock <= 0.05 || (p.isUser && s.foul)) wantReplay(s.kind);
       if (s.oop && p.isUser) grade(1, 'Alley-oop');
+      if (p.isUser && G.q >= 4 && G.clock < 5 && G.score[p.team] > G.score[1 - p.team] && G.score[p.team] - s.pts <= G.score[1 - p.team]) G.userWinner = true;
       if (G.clock <= 0.05) B('buzzer', { prio: 6 });
       else if (p.isUser && G.streak === 3) B('hot', { prio: 5, follow: 0.6 });
       else if (s.oop) B('oop', { prio: 5 });
@@ -1172,7 +1173,7 @@
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
     const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att } : null, score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
-      gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q,
+      gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner,
       shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
     PB.Game.active = false;
     $('#game').hidden = true;

@@ -531,6 +531,8 @@
       body = `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => glog(x, i + 1)).join('') || '<p class="mute">No games yet.</p>'}</div>
         ${C.po && C.po.games.length ? `<div class="card"><h3>Playoffs</h3>${C.po.games.map((x, i) => glog(x, 'P' + (i + 1))).join('')}</div>` : ''}
         ${C.seasons.length ? `<div class="card"><h3>Career</h3>${C.seasons.map(z => `<div class="glog"><span>Y${z.year}</span>${badge(PB.team(z.team))}<b>${z.w}-${z.l}</b><em>${z.ppg} / ${z.rpg} / ${z.apg}</em><i>${z.awards.join(', ') || '–'}</i></div>`).join('')}</div>` : ''}
+        <div class="card"><h3>Career highs</h3><div class="tiles">${[['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST'], ['stl', 'STL'], ['blk', 'BLK'], ['tpm', '3PM']].map(([k, l]) => `<div><b>${(C.highs || {})[k] || 0}</b><span>${l}</span></div>`).join('')}</div>
+          <h3>Milestones <small>${Object.keys(C.miles || {}).length} of 12</small></h3>${['First points', 'First dunk', 'First three', '20-point game', '30-point game', 'Double-double', 'Triple-double', '10 assists', '5 blocks', 'A game-winner', 'A playoff win', 'A championship'].map((n, i) => { const k = ['firstpts', 'firstdunk', 'firstthree', 'twenty', 'thirty', 'dd', 'td', 'ten_ast', 'five_blk', 'winner', 'playoffwin', 'title'][i]; const y = (C.miles || {})[k]; return `<p class="mile ${y ? 'got' : ''}">${y ? '★' : '☆'} ${n}${y ? ` <small>season ${y}</small>` : ''}</p>`; }).join('')}</div>
         ${C.trophies.length ? `<div class="card"><h3>Trophy case</h3>${C.trophies.map(x => `<p class="news">🏆 ${esc(x)}</p>`).join('')}</div>` : ''}`;
     }
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}">
@@ -727,6 +729,21 @@
       me.sp += met * 2; C.trust = PB.clamp((C.trust ?? 45) + met * 1.5, 0, 100);
       C.goals = null;
     }
+    /* career highs (games you play) and milestones */
+    if (!res.sim) {
+      C.highs = C.highs || {}; res.highs = [];
+      for (const [k, n] of [['pts', 'points'], ['reb', 'rebounds'], ['ast', 'assists'], ['stl', 'steals'], ['blk', 'blocks'], ['tpm', 'threes']]) {
+        const v = res.line[k] || 0;
+        if (v > 0 && v > (C.highs[k] || 0)) { if (C.highs[k] !== undefined) res.highs.push(`${v} ${n}`); C.highs[k] = v; }
+      }
+    }
+    C.miles = C.miles || {}; res.miles = [];
+    const L2 = res.line, dd = ['pts', 'reb', 'ast', 'stl', 'blk'].filter(k => (L2[k] || 0) >= 10).length;
+    const MS = [['firstpts', 'First points', L2.pts > 0], ['firstdunk', 'First dunk', ((res.ct || {}).dunk || 0) > 0], ['firstthree', 'First three', (L2.tpm || 0) > 0],
+      ['twenty', '20-point game', L2.pts >= 20], ['thirty', '30-point game', L2.pts >= 30], ['dd', 'Double-double', dd >= 2], ['td', 'Triple-double', dd >= 3],
+      ['ten_ast', '10 assists', L2.ast >= 10], ['five_blk', '5 blocks', L2.blk >= 5], ['winner', 'A game-winner', !!(C.flags && C.flags.winner)],
+      ['playoffwin', 'A playoff win', g.po && res.win], ['title', 'A championship', C.po && C.po.champ === C.team]];
+    for (const [k, name, ok] of MS) if (ok && !C.miles[k]) { C.miles[k] = C.year; res.miles.push(name); C.news.unshift(`Milestone: ${name}`); }
     /* trust, skill points, followers */
     C.trust = PB.clamp((C.trust ?? 45) + (res.gscore - 6) * 1.3 + (res.win ? 1 : -0.5), 0, 100);
     const sp = Math.max(1, Math.round(res.gscore * 0.9 + (res.win ? 2 : 0) + (g.po ? 2 : 0)));
@@ -844,6 +861,7 @@
       <div><b>${l.fgm}/${l.fga}</b><span>FG</span></div><div><b>${l.tpm}/${l.tpa}</b><span>3PT</span></div><div><b>${l.stl}/${l.blk}</b><span>STL/BLK</span></div></div>
       ${r.rival ? `<div class="card rival"><h3>Rival</h3><p>${esc(rivalP().last)}: ${r.rival.pts} pts, ${r.rival.reb} reb, ${r.rival.ast} ast. Head to head, you're ${C.rival.h2h[0]}-${C.rival.h2h[1]}.</p></div>` : ''}
       ${r.goals ? `<div class="card goalsdone"><h3>Goals <small>${r.goals.filter(g => g.met).length} of ${r.goals.length} · +${r.goals.filter(g => g.met).length * 2} SP</small></h3>${r.goals.map(g => `<p class="${g.met ? 'w' : 'l'}">${g.met ? '✓' : '✗'} ${esc(g.text)}</p>`).join('')}</div>` : ''}
+      ${(r.highs && r.highs.length) || (r.miles && r.miles.length) ? `<div class="card earn"><b>${r.highs && r.highs.length ? 'New career high' + (r.highs.length > 1 ? 's' : '') : 'Milestone'}</b><span>${[...(r.highs || []), ...(r.miles || [])].map(esc).join(' · ')}</span></div>` : ''}
       ${r.newBadges && r.newBadges.length ? `<div class="card earn"><b>Badge earned</b><span>${r.newBadges.map(esc).join(' · ')}</span></div>` : ''}
       ${P ? `<div class="card press" id="press"><h3>Press conference</h3><p class="q">“${esc(P.q(pr[1]))}”</p>${P.a.map((a, i) => `<button class="ans" data-i="${i}">${esc(a[0])}</button>`).join('')}</div>` : ''}
       ${r.log && r.log.length ? `<div class="card"><h3>What moved your grade</h3>${summarize(r.log)}</div>` : ''}
@@ -899,6 +917,7 @@
     const gi = LET.indexOf(res.grade);
     const u = res.user || {};
     const line = Object.assign({ pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0 }, u);
+    if (res.winner) (C.flags = C.flags || {}).winner = true;
     const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0 };
     record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots });
     g.res.boxHtml = boxScore(res);
