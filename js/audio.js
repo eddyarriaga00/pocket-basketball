@@ -276,6 +276,14 @@
     ready: () => !!ctx,
     unlock() {
       if (!AC) return;
+      /* iPhones mute web audio with the ring/silent switch unless the page says it plays media */
+      try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) { /* older Safari */ }
+      if (!navigator.audioSession && !A._silent && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        /* older iOS: a silent media element playing in a loop puts the page in the media category */
+        try { const el = document.createElement('audio'); el.setAttribute('playsinline', ''); el.loop = true;
+          el.src = 'data:audio/mp4;base64,AAAAHGZ0eXBNNEEgAAACAE00QSBpc29taXNvMgAAAAhmcmVlAAAAGm1kYXQBQAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+          el.volume = 0.01; el.play().catch(() => {}); A._silent = el; } catch (e) { /* fine */ }
+      }
       if (!ctx) {
         try { ctx = new AC({ latencyHint: 'interactive' }); } catch (e) { ctx = new AC(); }
         bus = graph(ctx);
