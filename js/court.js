@@ -53,6 +53,24 @@
   };
   R._marks = () => ({ pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
   R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
+  /* ball racks for the shooting drills: a stand at each spot, a row of balls that empties as you shoot; the last
+     ball of a rack (the money ball, when there is one) in white and black */
+  let racks = [];
+  R.setRacks = (spots, n, money) => {
+    for (const r of racks) scene.remove(r.g); racks = [];
+    if (!spots || !scene || !ballMesh) return;
+    const stand = new T.MeshLambertMaterial({ color: 0x1b1d22 }), mon = new T.MeshLambertMaterial({ color: 0xf2f2f2 });
+    for (const sp of spots) {
+      const g = new T.Group(), out = Math.atan2(sp.x, sp.z - sp.hz);   // away from the rim
+      g.position.set(sp.x + Math.sin(out) * 0.8 + Math.cos(out) * 3.4, 0, sp.z + Math.cos(out) * 0.8 - Math.sin(out) * 3.4); g.rotation.y = out;
+      const top = new T.Mesh(new T.BoxGeometry(3.2, 0.12, 0.8), stand); top.position.y = 2.2; g.add(top);
+      for (const sx of [-1.4, 1.4]) { const leg = new T.Mesh(new T.BoxGeometry(0.12, 2.2, 0.7), stand); leg.position.set(sx, 1.1, 0); g.add(leg); }
+      const balls = [];
+      for (let i = 0; i < n; i++) { const b = new T.Mesh(ballMesh.geometry, money && i === n - 1 ? mon : ballMesh.material); b.position.set(-1.25 + i * (2.5 / Math.max(1, n - 1)), 2.65, 0); g.add(b); balls.push(b); }
+      scene.add(g); racks.push({ g, balls });
+    }
+  };
+  R.rackLeft = (rack, used) => racks.forEach((r, i) => r.balls.forEach((b, j) => { b.visible = i > rack || (i === rack && j >= used); }));
   /* a shockwave: a white ring racing out across the floor (a slam, an ankle-breaker); a few at a time */
   const shocks = [];
   R.shock = (x, z, size) => {

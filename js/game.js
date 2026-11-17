@@ -629,6 +629,7 @@
     if (D.next > 0) { D.next -= dt; if (D.next <= 0 && !D.over) { D.next = 0; give(u); u.hold = 0; } }
     const left = D.rack < D.def.spots.length ? `Rack ${D.rack + 1} · ball ${D.ball + 1}${D.def.money && D.ball === D.def.balls - 1 ? ' (money)' : ''}` : 'Done';
     $('#ftmsg').hidden = false; $('#ftmsg').textContent = `${left} · ${D.score} pts`;
+    if (R.rackLeft) R.rackLeft(D.rack, D.ball + (G.ball.holder === u || G.ball.state === 'shot' ? 1 : 0));
     if (D.over && G.ball.state !== 'shot') { D.endT = (D.endT || 0) + dt; if (D.endT > 1.2) finish(); }
   }
 
@@ -2084,6 +2085,7 @@
       if (o.drill) {
         const def = DRILLS[o.drill];
         G.drill = { kind: o.drill, def: o.drill === 'dunk' ? { ...def, dunks: o.dunks || def.dunks } : def, rack: 0, ball: 0, score: 0, made: 0, att: 0, t: def.secs, next: 0, over: false, n: 0, scores: [], style: 0 };
+        if (R.setRacks) R.setRacks(def.balls ? def.spots.map(sp => Object.assign(toCourt(0, sp[0], sp[1]), { hz: hoopZ(0) })) : null, def.balls || 0, def.money);
         G.phase = 'live'; G.poss = 0; G.clock = def.secs;
         if (o.drill === 'dunk') { G.drill.next = 0.4; const sp = dunkSpot(); G.user.x = sp.x; G.user.z = sp.z; G.user.face = Math.atan2(-sp.x, hoopZ(0) - sp.z); }
         else if (o.drill === 'free') { const sp = toCourt(0, 0, 18); G.user.x = sp.x; G.user.z = sp.z; G.user.face = 0; give(G.user); }
