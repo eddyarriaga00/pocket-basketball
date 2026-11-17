@@ -13,6 +13,9 @@ The order of work. [PLAN.md](PLAN.md) is the design. Update this file after ever
 
 (newest first)
 
+- `79c453b`, before the 240-clip booth pack (if the booth misbehaves, roll back `audio/vo.pack` and `js/vo.js` only) (2026-11-17).
+- `9f22d5c`, before the record book's styling, league turnover, lineups and highlights (2026-11-17).
+- `5ad04d5`, before the second half of the night: mocap dribble, violations, inbounds, the Dunk Contest, training camp (2026-11-17).
 - `c70b508`, before career depth (trust, rival, feed, press, badges), the playoffs and awards night, the booth, team fouls and the pick-and-roll (2026-11-17).
 
 ## How to test
