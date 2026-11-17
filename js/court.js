@@ -546,7 +546,7 @@
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
   R.build = (home) => {
     for (const m of meshes.values()) scene.remove(m.root);
-    meshes.clear(); refs = [];
+    meshes.clear(); refs = []; benchMesh = null;
     while (scene.children.length > 2) scene.remove(scene.children[2]);
     nets = [];
     const apron = new T.Mesh(new T.PlaneGeometry(90, 140), new T.MeshLambertMaterial({ color: 0x1c2333 }));
@@ -640,7 +640,7 @@
     }
     /* scorer's table */
     const table = new T.Mesh(new T.BoxGeometry(2.5, 3, 24), new T.MeshLambertMaterial({ color: new T.Color(home.c1) }));
-    table.position.set(-29, 1.5, 0); scene.add(table);
+    table.position.set(29, 1.5, 0); scene.add(table);   // across from the broadcast camera, between the benches
     /* the ball and the rings under you and the ball handler */
     const bc = document.createElement('canvas'); bc.width = 128; bc.height = 64;
     const bg = bc.getContext('2d'); bg.fillStyle = '#d4682a'; bg.fillRect(0, 0, 128, 64);
@@ -694,6 +694,41 @@
       const want = Math.atan2(b.x - r.x, b.z - r.z); let da = want - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.face += da * Math.min(1, dt * 5);
     });
   }
+
+  /* the benches: five seated reserves in warmups on each side of the scorer's table, and a coach standing at the end
+     of each. Simple shapes in one mesh with vertex colors: one draw for both benches. */
+  let benchMesh = null;
+  R.setBenches = (kits) => {
+    if (benchMesh) { scene.remove(benchMesh); benchMesh.geometry.dispose(); benchMesh = null; }
+    if (!kits) return;
+    const parts = [], col = new T.Color();
+    const add = (g, x, y, z, c) => {
+      g.translate(x, y, z); col.set(c);
+      const n = g.attributes.position.count, a = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { a[i * 3] = col.r; a[i * 3 + 1] = col.g; a[i * 3 + 2] = col.b; }
+      g.setAttribute('color', new T.BufferAttribute(a, 3)); g.deleteAttribute('uv'); parts.push(g);
+    };
+    kits.forEach((k, t) => {
+      const side = t === 0 ? -1 : 1, warm = new T.Color(k.c1).multiplyScalar(0.85).getStyle();
+      for (let i = 0; i < 5; i++) {
+        const z = side * (15 + i * 2.1), x = 28.4, skin = PB.SKIN[(i * 3 + t * 2) % 6];
+        add(new T.BoxGeometry(1.6, 1.5, 1.7), x + 0.5, 0.75, z, '#202530');                      // the chair
+        add(new T.BoxGeometry(1.5, 0.5, 1.8), x + 0.6, 2.2, z, '#202530');
+        add(new T.CylinderGeometry(0.5, 0.58, 2.3, 8), x + 0.45, 2.7, z, warm);                // in warmups
+        add(new T.SphereGeometry(0.4, 8, 6), x + 0.4, 4.25, z, skin);
+        add(new T.BoxGeometry(1.8, 0.55, 1.05), x - 0.35, 1.75, z, warm);                    // thighs toward the floor
+        add(new T.BoxGeometry(0.45, 1.6, 0.9), x - 1.15, 0.85, z, '#f2f2f2');                 // shins
+        add(new T.BoxGeometry(0.9, 0.3, 0.9), x - 1.3, 0.15, z, '#e9e9e9');                   // shoes
+      }
+      /* the coach, standing at the end of the bench nearest half court */
+      const cz = side * 12.6, cx = 27.6;
+      add(new T.BoxGeometry(0.7, 3, 1.1), cx, 1.5, cz, '#1d1f24');
+      add(new T.CylinderGeometry(0.55, 0.6, 2.4, 8), cx, 4.2, cz, '#2b2e36');
+      add(new T.SphereGeometry(0.42, 8, 6), cx, 5.85, cz, PB.SKIN[(t * 4 + 1) % 6]);
+    });
+    benchMesh = new T.Mesh(mergeGeo(parts), new T.MeshLambertMaterial({ vertexColors: true }));
+    scene.add(benchMesh);
+  };
 
   R.addPlayer = (p, kit) => {
     const m = TPL ? skinnedPlayer(p, kit) : playerMesh(p, kit);
