@@ -68,7 +68,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Dribble moves on the Move button: swipe for a crossover either way, a step-back, a spin (2026-11-17)
 - [x] Alley-oops to cutters (yours with Cut or Call), post-ups and hook shots for bigs, floaters (2026-11-17)
 - [x] Stamina: sprinting drains it, empty legs are slow and short (2026-11-17)
-- [ ] Euro step; dunk variety
+- [x] Euro step on drives (a sideways swipe near the rim), one- and two-handed dunks, computer crossovers that can leave you stumbling (2026-11-17)
 - [x] Vibration on releases, makes, steals and blocks (Android) (2026-11-17)
 - [x] Replays of dunks, your and-ones and shots at the buzzer (2026-11-17)
 - [ ] Out-of-bounds inbound plays (a man takes it out on the sideline or baseline)

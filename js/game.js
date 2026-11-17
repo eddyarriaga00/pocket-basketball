@@ -69,6 +69,7 @@
       best = Math.min(best, f);
     }
     if (p.stepT !== undefined && G.t - p.stepT < 1.1) best = 1 - (1 - best) * 0.55;   // the step-back bought room
+    if (p.euroT !== undefined && G.t - p.euroT < 1.2) best = 1 - (1 - best) * 0.5;   // the euro step went around the shot-blocker
     return clamp(best, 0.5, 1);
   }
   const nearestDef = p => {
@@ -199,7 +200,7 @@
     p.shoot = { t: 0, T, kind, user: !!forUser, three: isThree(p.x, p.z, p.team), d,
       /* AI: when it lets go (near the top, a little early or late) */
       aiRel: clamp(0.82 + PB.gauss() * (0.09 - p.r.mid * 0.0006), 0.55, 1.1) };
-    p.pose = kind === 'dunk' ? 'celebrate' : 'shoot';
+    p.pose = kind === 'dunk' ? (rand() < 0.55 ? 'dunk1' : 'celebrate') : 'shoot';
     if (kind === 'jumper') { p.vx *= 0.2; p.vz *= 0.2; }
     /* a defender close by goes up with him */
     for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25);
@@ -549,6 +550,16 @@
       if (r && (!r.isUser || nearestDef(r).d > 5)) { passTo(p, r); return; }
     }
     if (G.shotClock < 6 && rand() < 0.3) startShot(p);
+    /* the computer has moves too: a crossover at a defender in his face, which can leave him (or you) stumbling */
+    if (p.moveCd <= 0 && p.hold > 0.6 && nd < 4 && rand() < 0.1 + p.r.handle / 1000) {
+      const def = nearestDef(p).who, Bs = R.basis(), side = rand() < 0.5 ? 1 : -1;
+      p.move = 0.35; p.moveCd = 1.6;
+      const sp = maxSpeed(p) * 1.3; p.vx = (Bs.rx * side) * sp; p.vz = (Bs.rz * side) * sp;
+      if (def && rand() < clamp(0.12 + (p.r.handle - def.r.perD) * 0.006, 0.03, 0.4)) {
+        def.stun = 0.6; p.drive = 1.2;
+        if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); AU().crowd.react('ooh', 0.8); }
+      }
+    }
   }
   function spotOf(p) {
     const s = SPOTS[p.slot][p.spot % SPOTS[p.slot].length];
@@ -818,6 +829,9 @@
         else if (w) { dx = w.x; dz = w.z; }
         else { const side = rand() < 0.5 ? 1 : -1; dx = Bs.rx * side + Bs.fx * 0.4; dz = Bs.rz * side + Bs.fz * 0.4; }
         u.move = 0.38; u.moveCd = 1.1; lbl = 'Crossover';
+        /* on a drive near the rim a sideways swipe is a euro step: one step across, one toward the rim */
+        const toRim = (hx * u.vx + hz * u.vz) / hl;
+        if (hl < 15 && toRim > 6) { dx = dx * 0.7 + hx / hl * 0.7; dz = dz * 0.7 + hz / hl * 0.7; u.euroT = G.t; lbl = 'Euro step'; shake = 0.3; }
       }
       const L = hyp(dx, dz) || 1;
       u.vx = dx / L * sp; u.vz = dz / L * sp;
@@ -950,7 +964,7 @@
       /* jump */
       if (p.vy !== 0 || p.y > 0) {
         p.y += p.vy * dt; p.vy -= p.jg * dt;
-        if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate') p.pose = ''; }
+        if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1') p.pose = ''; }
       }
       p.x += p.vx * dt; p.z += p.vz * dt;
       /* a hard cut squeaks the sneakers */
