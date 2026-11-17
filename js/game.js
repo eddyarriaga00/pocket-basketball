@@ -177,6 +177,7 @@
     $('#bB').textContent = has ? 'Pass' : off ? 'Call' : 'Steal';
     $('#bB').classList.toggle('lit', !has && off && G.callT > 0);
     $('#bC').textContent = has ? 'Move' : off ? 'Cut' : G.switching ? 'Switch' : 'Help';
+    if (G.drill && G.drill.kind === 'dunk') { $('#bA').textContent = 'Dunk'; $('#bC').textContent = 'Style'; }
   }
 
   /* ---------- ball helpers ---------- */
@@ -250,6 +251,7 @@
     const d = distHoop(p.x, p.z, p.team);
     const sp = hyp(p.vx, p.vz);
     let kind = 'jumper';
+    if (G.drill && G.drill.kind === 'dunk') return dunkJump(p, d);
     if (d < 9) {
       const dunkOk = p.r.dunk >= 55 && d < 7.5 && (sp > 5 || p.ht >= 82) && rand() < 0.35 + (p.r.dunk - 55) / 60 + 0.12 * bt(p, 'poster');
       kind = dunkOk ? 'dunk' : 'layup';
@@ -266,6 +268,17 @@
     if (kind === 'jumper') { p.vx *= 0.2; p.vz *= 0.2; }
     /* a defender close by goes up with him */
     for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25);
+  }
+
+  /* the contest dunk: up from wherever you are inside the free-throw line, carried to the rim, the dunk you picked */
+  function dunkJump(p, d) {
+    if (d > 16) { toast('Closer: inside the free-throw line', ''); return; }
+    const st = STYLES[G.drill.style], T = 0.62, tp = T * 0.82, peak = 2.8 + (p.r.vert || 70) * 0.02 + Math.max(0, d - 8) * 0.06;
+    p.jg = 2 * peak / (tp * tp); p.vy = p.jg * tp;
+    const hx = 0 - p.x, hz = hoopZ(p.team) - dirOf(p.team) * 1.1 - p.z, L = hyp(hx, hz) || 1, v = Math.max(0, L - 0.4) / tp;
+    p.vx = hx / L * v; p.vz = hz / L * v; p.face = Math.atan2(hx, hz);
+    p.shoot = { t: 0, T, kind: 'dunk', user: true, three: false, d, style: G.drill.style, aiRel: 0.82 };
+    p.pose = st[1]; p.spin = { total: st[4], t: 0, T: 2 * tp }; p.spinA = 0;
   }
 
   /* Release: timing grade for you, then a block, a foul, then make or miss. */
@@ -325,6 +338,7 @@
       prob *= p.team === 1 ? G.diff.oppShot : G.diff.mateShot;
     }
     if (p.energy !== undefined && p.energy < 0.35) prob *= 0.88 + p.energy * 0.34;   // tired legs, short shots
+    if (G.drill && G.drill.kind === 'dunk') prob = clamp(0.97 * STYLES[s.style || 0][3] * (0.82 + ((p.r.dunk || 70) - 60) / 220) - Math.max(0, s.d - 9) * 0.035, 0.2, 0.99) * (timing === 'Excellent' ? 1.06 : /Slightly/.test(timing) ? 1 : /Very/.test(timing) ? 0.55 : 0.8);
     let cf = contest(p);
     if (s.kind === 'dunk') cf = 1 - (1 - cf) * 0.3;   // a hand in the face barely matters above the rim
     else if (s.kind === 'hook') cf = 1 - (1 - cf) * 0.6;   // the hook goes up over the defender
@@ -361,7 +375,7 @@
     b.dur = s.kind === 'dunk' ? 0.22 : 0.42 + d * 0.026;
     b.apex = s.kind === 'dunk' ? 0.2 : s.kind === 'layup' ? 2 : s.kind === 'floater' || s.kind === 'hook' ? 5.5 : 3.5 + d * 0.2;
     G.shotLog[G.shotLog.length - 1].made = made;
-    b.shot = { oop: !!s.oop, shooter: p, made, pts, foul, kind: s.kind, timing, prob, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
+    b.shot = { oop: !!s.oop, shooter: p, made, pts, foul, kind: s.kind, timing, prob, d: s.d, style: s.style, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
     if (foul) { foul.st.pf++; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); checkFoulOut(foul); }
   }
 
@@ -417,9 +431,55 @@
   const DRILLS = {
     contest: { secs: 60, spots: [[-22, 3], [-15.5, 18], [0, 25], [15.5, 18], [22, 3]], balls: 5, money: true, title: '3-Point Contest' },
     combine: { secs: 45, spots: [[-22, 3], [-9, 14], [0, 25], [9, 14], [22, 3]], balls: 3, money: false, title: 'Combine · spot-up shooting' },
+    dunk: { secs: 0, spots: [[17, 24], [0, 32], [-17, 24], [23, 5]], dunks: 2, title: 'Dunk Contest' },
   };
+  /* the dunk contest: [name, arms, how hard (the judges' bonus), how often it goes down, the turn in the air] */
+  const STYLES = [['Two-hand', 'celebrate', 0, 1, 0], ['Tomahawk', 'dunk1', 0.45, 0.96, 0], ['Reverse', 'dunk1', 0.75, 0.92, Math.PI],
+    ['Windmill', 'windmill', 1.05, 0.88, 0], ['360', 'celebrate', 1.4, 0.8, Math.PI * 2]];
+  /* each dunk: from a spot, with the ball; drive and jump (from as far as the free-throw line). Move changes the dunk.
+     Five judges score it, six to ten each. */
+  function dunkSpot() { const D = G.drill, sp = D.def.spots[D.n % D.def.spots.length]; return toCourt(0, sp[0], sp[1]); }
+  function dunkStep(dt) {
+    const D = G.drill, u = G.user;
+    G.clock = 0; G.score[0] = D.score; G.score[1] = Math.min(D.n + 1, D.def.dunks);
+    if (D.next > 0) {
+      D.next -= dt;
+      if (D.next <= 0 && !D.over) {
+        D.next = 0; const sp = dunkSpot(); u.x = sp.x; u.z = sp.z; u.vx = u.vz = 0; u.y = 0; u.vy = 0;
+        u.face = Math.atan2(0 - u.x, hoopZ(0) - u.z); give(u); u.pose = 'dribble'; D.clock = 24;
+      }
+    }
+    /* 24 seconds to go up, on the shot clock; standing there is a miss */
+    if (G.ball.holder === u && !u.shoot && !D.over) {
+      D.clock = (D.clock === undefined ? 24 : D.clock) - dt;
+      if (D.clock <= 0) { D.clock = 24; G.ball.holder = null; dunkLands({ shooter: u, made: false, d: 0, style: D.style, timing: '' }); }
+    }
+    G.shotClock = Math.max(0, D.clock === undefined ? 24 : D.clock);
+    const st = STYLES[D.style];
+    $('#ftmsg').hidden = false;
+    $('#ftmsg').textContent = D.over ? `Total ${D.score}` : `Dunk ${D.n + 1} of ${D.def.dunks} · ${st[0]} · Move changes it`;
+    if (D.over && G.ball.state !== 'shot') { D.endT = (D.endT || 0) + dt; if (D.endT > 2.6) finish(); }
+  }
+  function dunkLands(s) {
+    const D = G.drill, b = G.ball, p = s.shooter, st = STYLES[s.style || 0];
+    const r = p.r, rate = ((r.dunk || 70) + (r.vert || 70)) / 2;
+    const tm = s.timing === 'Excellent' ? 0.7 : /Slightly/.test(s.timing || '') ? 0.2 : -0.5;
+    const base = s.made ? 7.1 + st[2] + clamp((s.d - 8) * 0.24, 0, 1.4) + tm + (rate - 75) / 45 : 5.6;
+    const judges = [0, 1, 2, 3, 4].map(() => clamp(Math.round(base + PB.gauss() * 0.45), s.made ? 6 : 5, s.made ? 10 : 7));
+    const sum = judges.reduce((a, x) => a + x, 0);
+    D.scores.push(sum); D.score += sum; D.att++; if (s.made) D.made++;
+    if (s.made) { R.swish(1); AU().play('dunk', { x: b.x }); AU().crowd.react(sum >= 45 ? 'roar' : 'applause', sum >= 45 ? 1.2 : 0.7); R.hype(sum >= 45 ? 1.4 : 0.8, sum >= 47 ? 0.8 : 0); buzz([20, 30, 30]); if (sum >= 46) wantReplay('dunk'); }
+    else { AU().play('rim', { x: b.ex, power: 0.8 }); AU().crowd.react('aww', 0.8); }
+    toast(`${judges.join(' ')} · ${sum}`, s.made ? 'judge' : 'judge miss');
+    feed(`${st[0]}${s.made ? '' : ' (missed)'} · ${sum}`);
+    if (sum === 50) setTimeout(() => toast('FIFTY!', 'make'), 1400);
+    b.state = 'drop'; b.t = 0;
+    D.n++;
+    if (D.n >= D.def.dunks) D.over = true; else D.next = 2.8;
+  }
   function drillSpot() { const D = G.drill, sp = D.def.spots[D.rack]; return toCourt(0, sp[0], sp[1]); }
   function drillLands(s) {
+    if (G.drill.kind === 'dunk') { dunkLands(s); return; }
     const D = G.drill, b = G.ball, money = D.def.money && D.ball === D.def.balls - 1;
     D.att++;
     if (s.made) { D.made++; D.score += money ? 2 : 1; R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); AU().crowd.react(money ? 'roar' : 'applause', money ? 0.9 : 0.5); if (money) toast('MONEY BALL', 'make'); buzz([15, 30, 15]); }
@@ -431,6 +491,7 @@
     if (D.next < 0) D.over = true;
   }
   function drillStep(dt) {
+    if (G.drill.kind === 'dunk') { dunkStep(dt); return; }
     const D = G.drill, u = G.user;
     if (!D.over) { D.t -= dt; if (D.t <= 0) { D.t = 0; D.over = true; } }
     G.clock = D.t; G.shotClock = 24; G.score[0] = D.score; G.score[1] = D.att;
@@ -976,6 +1037,7 @@
      screen, 0 any), 'step' (step-back: room for the jumper), 'spin' (spin toward the rim). */
   function pressC(kind, dir) {
     const u = G.user; if (!u || G.phase !== 'live' || u.inb) return;
+    if (G.drill && G.drill.kind === 'dunk') { if (!u.shoot && u.y <= 0) { const D = G.drill; D.style = (D.style + (kind === 'step' ? STYLES.length - 1 : 1)) % STYLES.length; toast(STYLES[D.style][0], 'call'); buzz(8); } return; }
     const b = G.ball;
     if (b.holder === u) {
       if (u.moveCd > 0 || u.shoot) return;
@@ -1132,7 +1194,7 @@
       }
       if (!live) { if (G.phase === 'dead' || G.phase === 'ftflight') { p.vx *= 0.9; p.vz *= 0.9; } }
       else if (p.inb) { /* out of bounds with the ball: inboundStep has him */ }
-      else if (p.isUser && G.drill) { /* the drill moves you */ }
+      else if (p.isUser && G.drill) { if (G.drill.kind === 'dunk' && !p.shoot && p.y <= 0 && !G.auto) userStep(p, dt); /* else the drill moves you */ }
       else if (p.isUser && !G.auto) {
         userStep(p, dt);
         if (p.cutUser > 0) { p.cutUser -= dt; if (!stickWorld()) { p.tx = 0; p.tz = hoopZ(0) - 6; seek(p, dt, 1); } }
@@ -1152,9 +1214,13 @@
         }
       }
       /* jump */
+      if (p.spin) {
+        const S = p.spin; S.t += dt; const k = Math.min(1, S.t / (S.T * 0.85)); p.spinA = S.total * k * k * (3 - 2 * k);
+        if (S.t > S.T * 0.5 && p.y <= 0) { p.face += S.total; p.spinA = 0; p.spin = null; }
+      }
       if (p.vy !== 0 || p.y > 0) {
         p.y += p.vy * dt; p.vy -= p.jg * dt;
-        if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1') p.pose = ''; }
+        if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'windmill') p.pose = ''; }
       }
       p.x += p.vx * dt; p.z += p.vz * dt;
       /* a hard cut squeaks the sneakers */
@@ -1343,7 +1409,7 @@
     AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1);
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
-    const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att } : null, score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
+    const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner,
       shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
     PB.Game.active = false;
@@ -1370,7 +1436,7 @@
      The last few seconds are kept as snapshots (positions, poses, the ball) thirty times a second. A dunk, an
      and-one of yours or a shot at the buzzer plays back at half speed from a camera circling the play, in the pause
      before the inbound; a tap skips it. Settings can turn them off. */
-  const SNAP = ['x', 'y', 'z', 'vx', 'vz', 'face', 'pose', 'jg', 'vy'];
+  const SNAP = ['x', 'y', 'z', 'vx', 'vz', 'face', 'pose', 'jg', 'vy', 'spinA'];
   let tape = [], snapT = 0, replayCd = 0;
   function record(dt) {
     snapT += dt;
@@ -1662,11 +1728,11 @@
       $('#grade').hidden = !G.user || !!o.switching; $('#ftmsg').hidden = true; $('#pause').hidden = true;
       if (o.drill) {
         const def = DRILLS[o.drill];
-        G.drill = { kind: o.drill, def, rack: 0, ball: 0, score: 0, made: 0, att: 0, t: def.secs, next: 0, over: false };
+        G.drill = { kind: o.drill, def: o.drill === 'dunk' ? { ...def, dunks: o.dunks || def.dunks } : def, rack: 0, ball: 0, score: 0, made: 0, att: 0, t: def.secs, next: 0, over: false, n: 0, scores: [], style: 0 };
         G.phase = 'live'; G.poss = 0; G.clock = def.secs;
-        const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0;
-        give(G.user);
-        $('#a0').textContent = 'PTS'; $('#a1').textContent = 'SHOTS';
+        if (o.drill === 'dunk') { G.drill.next = 0.4; const sp = dunkSpot(); G.user.x = sp.x; G.user.z = sp.z; G.user.face = Math.atan2(-sp.x, hoopZ(0) - sp.z); }
+        else { const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0; give(G.user); }
+        $('#a0').textContent = 'PTS'; $('#a1').textContent = o.drill === 'dunk' ? 'DUNK' : 'SHOTS';
         $('#grade').hidden = true;
         setTimeout(() => toast(def.title, 'call'), 200);
       }

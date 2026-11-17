@@ -51,7 +51,7 @@
       <button class="${live ? 'ghost' : 'big'}" id="newc">New career</button>
       ${list.length > 1 || (list.length && !live) ? `<button class="ghost" id="careers">Careers <small>${list.length} on this device</small></button>` : ''}
       <div class="row2"><button class="ghost" id="qg">Quick game</button><button class="ghost" id="seas">Season</button></div>
-      <button class="ghost sm" id="prac">Practice: 3-point contest, spot-up drill</button>
+      <button class="ghost sm" id="prac">Practice: 3-point and dunk contests, the drill</button>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length ? '<button class="ghost sm" id="hall">Retired careers and the Hall of Fame</button>' : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
@@ -114,16 +114,18 @@
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Practice</h2>
       <p class="mute">${cur && cur.me ? `As ${esc(PB.full(me))}, with your ratings and badges.` : 'As a practice shooter (80 overall).'}</p>
       <button class="big" id="p3">3-Point Contest<small>five racks, money balls, 60 seconds</small></button>
-      <button class="ghost" id="pc">Spot-up drill<small>the combine's fifteen shots in 45 seconds</small></button></div>`);
+      <button class="ghost" id="pc">Spot-up drill<small>the combine's fifteen shots in 45 seconds</small></button>
+      <button class="ghost" id="pd">Dunk Contest<small>three dunks, five judges; Move picks the dunk</small></button></div>`);
     $('#bk').onclick = title;
-    const go = kind => { scr().hidden = true; PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: me.id, drill: kind, qlen: 1, level: S.level, floor: t,
+    const go = kind => { scr().hidden = true; PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: me.id, drill: kind, dunks: 3, qlen: 1, level: S.level, floor: t,
       onEnd: r => { const d = r.drill || { score: 0, made: 0, att: 0 };
         const best = load('pbb.best') || {}; const k = kind; const nb = !best[k] || d.score > best[k]; if (nb) { best[k] = d.score; store('pbb.best', best); }
-        show(`<div class="page post"><p class="kick">${kind === 'contest' ? '3-Point Contest' : 'Spot-up drill'}</p><div class="gradebig"><b>${d.score}</b><span>${d.made} of ${d.att} made</span></div>
+        show(`<div class="page post"><p class="kick">${kind === 'contest' ? '3-Point Contest' : kind === 'dunk' ? 'Dunk Contest' : 'Spot-up drill'}</p><div class="gradebig"><b>${d.score}</b><span>${kind === 'dunk' ? (d.scores || []).join(' · ') : `${d.made} of ${d.att} made`}</span></div>
           <p class="mute">${nb ? 'A new best on this device.' : `Your best: ${best[k]}`}</p><button class="big" id="again">Again</button><button class="ghost" id="done">Done</button></div>`);
         $('#again').onclick = () => go(kind); $('#done').onclick = title; } }); };
     $('#p3').onclick = () => go('contest');
     $('#pc').onclick = () => go('combine');
+    $('#pd').onclick = () => go('dunk');
   }
   function how() {
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>How to play</h2>
@@ -526,6 +528,8 @@
         <button class="big" id="asg">Play the All-Star Game</button><button class="ghost" id="asgsim">Sim it</button></div>` + card;
       if (C.contest === 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>3-Point Contest</h3><p>Five racks, five balls each, 60 seconds; the last ball of every rack is the money ball, worth two. Seven of the league's best shooters are waiting.</p>
         <button class="big" id="contest">Take the floor</button><button class="ghost" id="nocontest">Pass this year</button></div>` + card;
+      if (C.dunk === 'invited' && C.contest !== 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>Dunk Contest</h3><p>Two dunks in the first round, the top two go to the final for two more. Five judges, ten points each. Pick the dunk with Move; take off from as far out as you dare.</p>
+        <button class="big" id="dunk">Take the floor</button><button class="ghost" id="nodunk">Pass this year</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
       body = card + (C.phase === 'playoffs' ? bracketCard() : '') + `
         <div class="tiles">
@@ -581,6 +585,8 @@
       PB.Game.start({ teams: [t, t], rosters: [[C.me], []], userId: 'me', drill: 'contest', qlen: 1, level: S.level, floor: t, onEnd: r => contestResult(r.drill ? r.drill.score : 0) });
     };
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
+    if ($('#dunk')) $('#dunk').onclick = () => dunkRound(1);
+    if ($('#nodunk')) $('#nodunk').onclick = () => { C.dunk = 'done'; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
     if ($('#sim5')) $('#sim5').onclick = () => simMany(5);
     if ($('#simall')) $('#simall').onclick = () => simMany(999);
@@ -743,7 +749,7 @@
       const nx = nextGame(); if (!nx || C.phase !== 'regular') break;
       simOne(nx);
       out.push(nx.g);
-      if (C.contest === 'invited' || (C.season.allstar && !C.asg) || C.gi >= C.games.length) break;   // the rest (talks, life, offers) waits on the hub
+      if (C.contest === 'invited' || C.dunk === 'invited' || (C.season.allstar && !C.asg) || C.gi >= C.games.length) break;   // the rest (talks, life, offers) waits on the hub
     }
     const w = out.filter(g => g.res.win).length;
     show(`<div class="page post"><p class="kick">Simulated ${out.length} game${out.length === 1 ? '' : 's'}</p><h2>${w}-${out.length - w}</h2>
@@ -1053,6 +1059,10 @@
     if (C.season.allstar || C.me.r.three >= 72 || (C.season.tpm / Math.max(1, C.season.gp)) >= 2) {
       C.contest = 'invited'; C.news.unshift(`${C.me.last} is in the 3-Point Contest at All-Star weekend`);
     }
+    /* the dunk contest wants fliers */
+    if (C.me.r.dunk >= 76 || (C.season.allstar && C.me.r.dunk >= 64) || (C.me.r.dunk >= 68 && C.me.r.vert >= 78)) {
+      C.dunk = 'invited'; C.news.unshift(`${C.me.last} enters the Dunk Contest`);
+    }
   }
   /* the All-Star Game: each conference's best at every position; you in yours */
   function allStarGame(play) {
@@ -1099,6 +1109,53 @@
     show(`<div class="page post awards"><p class="kick">All-Star weekend · 3-Point Contest</p>
       ${field.map((x, i) => `<div class="card aw ${x.me ? 'mine' : ''}"><span>${ordinal(i + 1)}</span><b>${esc(x.name)} <small>${PB.team(x.team).ab} · ${x.score} pts</small></b></div>`).join('')}
       <button class="big" id="go">Back to the season</button></div>`);
+    $('#go').onclick = hub;
+  }
+
+  /* the Dunk Contest: you and three of the league's fliers; two dunks, the top two to a final of two more */
+  function dunkScore(p) {
+    const k = ((p.r.dunk || 70) + (p.r.vert || 70)) / 2;
+    if (PB.rand() > 0.72 + (k - 70) / 150) return 25 + Math.floor(PB.rand() * 6);
+    return PB.clamp(Math.round(5 * (7.6 + (k - 80) / 14 + PB.gauss() * 0.75)), 30, 50);
+  }
+  function dunkField() {
+    const all = []; for (const t of PB.TEAMS) for (const p of C.rosters[t.id]) all.push([p, t.id]);
+    all.sort((a, b) => (b[0].r.dunk + b[0].r.vert) - (a[0].r.dunk + a[0].r.vert));
+    return all.slice(0, 3).map(([p, tid]) => ({ p, name: PB.full(p), team: tid, r1: dunkScore(p) + dunkScore(p) }));
+  }
+  function dunkRound(n, D) {
+    scr().hidden = true;
+    const t = PB.team(C.team);
+    PB.Game.start({ teams: [t, t], rosters: [[C.me], []], userId: 'me', drill: 'dunk', dunks: 2, qlen: 1, level: S.level, floor: t,
+      onEnd: r => (n === 1 ? dunkAfter1 : dunkFinal)((r.drill && r.drill.score) || 0, D) });
+  }
+  function dunkAfter1(mine) {
+    const field = dunkField().concat([{ name: PB.full(C.me), team: C.team, r1: mine, me: true }]).sort((a, b) => b.r1 - a.r1);
+    const on = field.slice(0, 2).some(x => x.me);
+    const row = (x, i, k) => `<div class="card aw ${x.me ? 'mine' : ''}"><span>${ordinal(i + 1)}</span><b>${esc(x.name)} <small>${PB.team(x.team).ab} · ${x[k]}</small></b></div>`;
+    if (!on) {
+      const [a, b] = field.slice(0, 2); a.f = dunkScore(a.p) + dunkScore(a.p); b.f = dunkScore(b.p) + dunkScore(b.p); const w = a.f >= b.f ? a : b;
+      C.dunk = 'done'; C.news.unshift(`${w.name} wins the Dunk Contest; ${C.me.last} goes out in the first round with ${mine}`); save();
+      show(`<div class="page post awards"><p class="kick">Dunk Contest · first round</p>${field.map((x, i) => row(x, i, 'r1')).join('')}
+        <p class="mute">The top two go on. ${esc(w.name)} wins the final, ${Math.max(a.f, b.f)} to ${Math.min(a.f, b.f)}.</p><button class="big" id="go">Back to the season</button></div>`);
+      $('#go').onclick = hub; return;
+    }
+    const other = field.slice(0, 2).find(x => !x.me);
+    show(`<div class="page post awards"><p class="kick">Dunk Contest · first round</p>${field.map((x, i) => row(x, i, 'r1')).join('')}
+      <p class="mute">You are in the final against ${esc(other.name)}. Two more dunks; the scores start over.</p><button class="big" id="fin">The final</button></div>`);
+    $('#fin').onclick = () => dunkRound(2, other);
+  }
+  function dunkFinal(mine, other) {
+    other.f = dunkScore(other.p) + dunkScore(other.p);
+    if (other.f === mine) other.f--;
+    const won = mine > other.f;
+    C.dunk = 'done';
+    if (won) { C.trophies.push(`Dunk Contest champion, season ${C.year}`); C.fans = Math.round(C.fans * 1.12); C.me.sp += 5; C.news.unshift(`${C.me.last} wins the Dunk Contest, ${mine} to ${other.f}!`); C.feed.unshift({ who: '@league', text: `${PB.full(C.me)} is your Dunk Contest champion` }); }
+    else C.news.unshift(`${other.name} beats ${C.me.last} in the Dunk Contest final, ${other.f} to ${mine}`);
+    save();
+    show(`<div class="page post awards"><p class="kick">Dunk Contest · the final</p>
+      <div class="final"><div><b>${mine}</b><span>You</span></div><em>${won ? 'CHAMPION' : 'SECOND'}</em><div><b>${other.f}</b><span>${esc(other.p.last)}</span></div></div>
+      ${won ? '<div class="card earn"><b>Dunk Contest champion</b><span>+5 skill points, and a lot more followers.</span></div>' : ''}<button class="big" id="go">Back to the season</button></div>`);
     $('#go').onclick = hub;
   }
 

@@ -429,11 +429,14 @@
     reach: () => [[0.1, -0.15, 0.98], [0.05, -0.2, 0.98], [0.6, -0.6, 0.4], [0.3, -0.5, 0.8]],
     guard: () => [[0.85, -0.3, 0.42], [0.65, 0.15, 0.7], [0.85, -0.3, 0.42], [0.65, 0.15, 0.7]],
     hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
+    /* the windmill: the ball arm goes down, back, over the top and through; k is the time in the air */
+    windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
+      return [d, d, [0.45, 0.5, 0.6], [0.3, 0.7, 0.6]]; },
   };
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   function updateSkinned(p, m, G, dt) {
     m.root.position.set(p.x, 0, p.z);
-    m.root.rotation.y = p.face;
+    m.root.rotation.y = p.face + (p.spinA || 0);   // the turn of a reverse or a 360 in the air
     m.body.position.y = p.y;
     const sp = Math.hypot(p.vx, p.vz), air = p.y > 0.3;
     /* legs: idle, walk, jog and sprint blended by speed; the stance on defense; the jump in the air */
@@ -474,6 +477,7 @@
     let kk = 0;
     if (pose === 'dribble') kk = (G.t * 8.5 / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
+    else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
     const P = POSES[pose](kk), w = m.poseW, s = TPL.sideR < 0 ? 1 : -1;

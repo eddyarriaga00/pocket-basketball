@@ -108,7 +108,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [ ] League leaders from simmed box scores
 - [x] All-Star weekend 3-Point Contest: five racks, money balls, against seven of the league's shooters (2026-11-17)
 - [x] The All-Star Game: East against West, the best at every position, an All-Star MVP (2026-11-17)
-- [ ] Dunk contest
+- [x] Dunk Contest: two dunks, the top two to a final; Move picks two-hand, tomahawk, reverse, windmill or 360,
+      take off from as far as the free-throw line; five judges; also in Practice (2026-11-17)
 - [ ] Injuries (day-to-day, out for weeks)
 
 ## M4 · Contracts and legacy

@@ -15,6 +15,7 @@ const { chromium } = require('playwright');
     if (y >= 6) break;
     const click = async sel => { if (await pg.$(sel)) { await pg.click(sel); return true; } return false; };
     if (await click('#sim')) { const p = await pg.$('#press .ans'); if (p) await p.click(); await click('#go'); continue; }
+    if (await click('#nodunk')) continue;
     if (await click('#contest')) { // play no shots: let the clock run out
       await pg.waitForFunction(() => !PB.Game.active, null, { timeout: 150000 }); await click('#go'); continue; }
     if (await click('#simpi') || await click('#simrd') || await click('#simpo')) continue;

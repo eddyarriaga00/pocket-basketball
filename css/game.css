@@ -55,7 +55,7 @@ input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--panel
 #toast{position:absolute;left:0;right:0;top:34%;text-align:center;font-family:var(--display);font-weight:900;font-size:34px;letter-spacing:.02em;
   color:#fff;text-shadow:0 3px 18px rgba(0,0,0,.6);opacity:0;transform:scale(.8);transition:opacity .2s,transform .2s;pointer-events:none;font-stretch:115%}
 #toast.on{opacity:1;transform:scale(1)}
-#toast.make{color:var(--acc)}#toast.opp{color:#ff8f9b;font-size:22px}#toast.blk{color:#7fd0ff}#toast.call{font-size:18px;color:var(--green)}
+#toast.make{color:var(--acc)}#toast.opp{color:#ff8f9b;font-size:22px}#toast.blk{color:#7fd0ff}#toast.call{font-size:18px;color:var(--green)}#toast.judge{font-size:24px;color:var(--acc)}#toast.judge.miss{color:#ff8f9b}
 #rel{position:absolute;left:0;right:0;top:42%;text-align:center;font-family:var(--display);font-weight:800;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none}
 #rel.on{opacity:1}#rel.g{color:var(--green)}#rel.y{color:#ffe066}#rel.r{color:#ff8f9b}
 #ftmsg{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:rgba(8,11,18,.85);padding:6px 14px;border-radius:999px;font-weight:700;font-size:13px;pointer-events:none}

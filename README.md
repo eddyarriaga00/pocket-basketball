@@ -27,7 +27,7 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
   grade that earns skill points; badges (bronze to gold, earned by doing the thing); coach trust that sets your
   role (starters start, a sixth man checks in mid-first quarter, the bench in the second); a word from the coach
   every five games; press conferences; a social feed and followers; shoe endorsements.
-- **The league around you**: standings, league leaders, All-Star picks and the 3-Point Contest, a play-in and
+- **The league around you**: standings, league leaders, All-Star picks, the 3-Point Contest and the Dunk Contest, a play-in and
   playoff series, awards night (MVP, ROY, DPOY, Sixth Man, Most Improved, All-League, Finals MVP).
 - **The business**: a rookie deal by pick, an extension offer, free agency with four offers, trade requests,
   career earnings; past thirty the legs slow, from 33 you can retire and the Hall of Fame votes.
@@ -50,7 +50,7 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
   net, the rim, the whistle, the horn, and a two-voice broadcast booth.
 
 Also: Season (one team, the whole team under your thumbs, to a title), Quick game (any two teams, one player or the
-whole team), Practice (the contest and the drill), Edit teams.
+whole team), Practice (the 3-point and dunk contests, the drill), Edit teams.
 
 ## Controls
 
