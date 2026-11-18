@@ -506,7 +506,7 @@
     b.apex = s.kind === 'dunk' ? 0.2 : s.kind === 'layup' ? 2 : s.kind === 'floater' || s.kind === 'hook' ? 5.5 : 3.5 + d * 0.2;
     G.shotLog[G.shotLog.length - 1].made = made;
     b.shot = { oop: !!s.oop, shooter: p, made, pts, foul, kind: s.kind, timing, prob, d: s.d, style: s.style, fade: !!s.fade, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
-    if (foul) { foul.st.pf++; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); if (R.refSignal) R.refSignal('sigf', 1.4); checkFoulOut(foul); }
+    if (foul) { foul.st.pf++; foul.celebK = 'call'; foul.celebT = 1.5; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); if (R.refSignal) R.refSignal('sigf', 1.4); checkFoulOut(foul); }
   }
 
   function blockShot(o, p, at) {
@@ -1074,7 +1074,7 @@
   }
   function contactFoul(def, off) {
     if (R.refSignal) R.refSignal('sigf', 1.4);   // the fist goes up
-    def.st.pf++;
+    def.st.pf++; def.celebK = 'call'; def.celebT = 1.5;   // a hand up: that one is on him
     G.tf[def.team]++;
     checkFoulOut(def);
     AU().play('whistle'); B('foul', { prio: 2 });
