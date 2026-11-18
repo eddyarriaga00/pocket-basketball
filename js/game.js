@@ -814,6 +814,7 @@
     const hp = handPos(p);
     b.state = 'pass'; b.holder = null; b.from = p; b.to = r; b.t = 0;
     p.pose = 'chest'; p.reachT = 0.32;   // both arms push the ball out
+    p.passA = Math.atan2(lx - p.x, lz - p.z); p.passT0 = G.t;   // he turns and steps into it
     b.sx = hp.x; b.sy = hp.y - 1; b.sz = hp.z; b.ex = lx; b.ez = lz; b.ey = r.ht / 12 * 0.6 + 1.2;
     b.dur = hyp(lx - p.x, lz - p.z) / 46 + 0.12; b.apex = 0.6 + b.dur * 1.4;
     b.passer = p; b.passT = G.t + b.dur;
@@ -1558,7 +1559,8 @@
       /* face: where you run, else the ball or the rim */
       const sp = hyp(p.vx, p.vz);
       let want;
-      if (p.shoot || b.holder === p && sp < 3) want = Math.atan2(0 - p.x, hoopZ(p.team) - p.z);
+      if (p.passA !== undefined && G.t - p.passT0 < 0.4) want = p.passA;
+      else if (p.shoot || b.holder === p && sp < 3) want = Math.atan2(0 - p.x, hoopZ(p.team) - p.z);
       else if (p.pose === 'guard' && sp < maxSpeed(p) * 0.92) {
         /* in a stance you face your man and slide, you don't turn and run (until he is gone) */
         const h = b.holder && b.holder.team !== p.team ? b.holder : null, tgt = h && hyp(h.x - p.x, h.z - p.z) < 14 ? h : b;

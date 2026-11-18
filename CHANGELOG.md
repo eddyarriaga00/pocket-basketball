@@ -10,6 +10,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 - Knees that work: a dip before a jumper, every landing absorbed, hips that shift with a crossover, a defender who
   walls up (taller, arms wide) chest to chest and stands his ground instead of running in place against a body. Off
   the ball the stance is lighter, hands ready; feet on the floor, one hand goes up in a shooter's eyes.
+- A passer turns and steps into the pass; under a ball coming off the rim everyone boxes out, wide and low with the
+  hands up for the board.
 - Layups, floaters and hooks go up off one hand (the knee drives, the off arm keeps the defender away); the speed
   dribble pushes the ball out in front at the waist.
 - A hand on the ball is a block: any defender whose hand meets a shot on its way up blocks it, every time (before,

@@ -925,6 +925,7 @@
     guard: (k) => { const b = 0.05 * Math.sin(k * 4.3), c = 0.05 * Math.sin(k * 3.1 + 1);
       return [[0.45, -0.75 + b, 0.48], [0.3, -0.1 + b * 2, 0.95], [0.86, -0.36 + c, 0.36], [0.72, 0.42 + c * 2, 0.55]]; },
     ready: (k) => { const b = 0.03 * Math.sin(k * 2.2); return [[0.42, -0.72 + b, 0.5], [0.12, 0.28 + b, 0.95], [0.42, -0.72 - b, 0.5], [0.12, 0.28 - b, 0.95]]; },   // hands out in front, a target
+    box: (k) => { const b = 0.04 * Math.sin(k * 5); return [[0.8, 0.25 + b, 0.45], [0.35, 0.9, 0.25], [0.8, 0.25 - b, 0.45], [0.35, 0.9, 0.25]]; },   // boxing out: wide, hands up for the board
     hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
     /* the windmill: the ball arm goes down, back, over the top and through; k is the time in the air */
     windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
@@ -1000,7 +1001,8 @@
       m.sway = (m.sway || 0) + (sw - (m.sway || 0)) * Math.min(1, dt * 14); m.body.position.x = -m.sway * (TPL.sideR < 0 ? 1 : -1); }
     /* a fadeaway leans back in the air */
     const lean = p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
-    const dlean = drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0;   // over the ball; more at a run
+    const plean = p.passT0 !== undefined && G.t - p.passT0 < 0.3 ? 0.16 * Math.sin(Math.PI * (G.t - p.passT0) / 0.3) : 0;
+    const dlean = plean + (drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0);   // over the ball; more at a run
     m.lean = (m.lean || 0) + (lean + dlean - (m.lean || 0)) * Math.min(1, dt * 10); m.body.rotation.x = m.lean;
     if (drib && p.y <= 0 && p.dph !== undefined) m.body.position.y = p.y - 0.11 * (1 - Math.abs(Math.sin(p.dph))) * (0.6 + 0.4 * prot);   // the body rides the bounce
     /* ankles broken: down on the seat of his shorts, then back up */
@@ -1043,7 +1045,8 @@
     m.mixer.update(dt);
     if (m.head) m.head.scale.setScalar(HEAD);
     /* down in a stance: the back flat and leaning in from the hips, the head up */
-    { const g = (p.pose === 'guard' || p.pose === 'reach' || p.pose === 'contest') && !air && G.ball.holder !== p ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);
+    { const bl = G.ball, rb = bl.state === 'loose' && bl.y > 5 && !p.ref && p.team !== undefined && Math.hypot(bl.x - p.x, bl.z - p.z) < 11 && G.phase === 'live'; m.rb = (m.rb || 0) + ((rb && !air ? 1 : 0) - (m.rb || 0)) * Math.min(1, dt * 8);
+      const g = (p.pose === 'guard' || p.pose === 'reach' || p.pose === 'contest' || rb) && !air && G.ball.holder !== p ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);
       /* on the ball he sits all the way down; away from it, a lighter stance with the hands ready */
       const h = G.ball.holder, on = h && h.team !== p.team && Math.hypot(h.x - p.x, h.z - p.z) < 8 ? 1 : 0; if (m.gd === undefined) m.gd = on; m.gd += (on - m.gd) * Math.min(1, dt * 5);
       /* chest to chest he stands taller and walls up, arms wide, instead of leaning through his man */
@@ -1088,6 +1091,7 @@
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
     if (!pose && m.rw > 0.3 && !has) pose = 'ready';
+    if ((!pose || pose === 'guard' || pose === 'ready') && m.rb > 0.3 && !has) pose = 'box';
     if (pose !== m.pose) { m.pose = pose; }
     m.poseW = Math.min(1, (m.poseW || 0) + dt * (POSES[pose] ? 9 : -6));
     if (!POSES[pose]) { m.poseW = Math.max(0, m.poseW - dt * 6); return; }
@@ -1096,7 +1100,7 @@
     if (pose === 'dribble') kk = ((p.dph !== undefined ? p.dph : G.t * 7.4 * dsf) / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
-    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard' || pose === 'ready') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
+    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
