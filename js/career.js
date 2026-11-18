@@ -328,7 +328,7 @@
       <p class="kick">Controls</p><div class="card set">
       ${opt('hand', ['Right-handed', 'Left-handed'], 'Buttons')}
       ${opt('btnSize', ['Normal', 'Large'], 'Button size')}</div>
-      <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name and colors</small></button>
+      <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>
       <p class="fine">Settings are kept on this device.</p></div>`);
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
     $('#edteams').onclick = () => editTeams();
@@ -358,12 +358,15 @@
       <div class="field"><label>Nickname</label><input id="en" maxlength="16" value="${esc(t.name)}"></div>
       <div class="field"><label>Short name (2 to 4 letters)</label><input id="ea" maxlength="4" value="${esc(t.ab)}"></div>
       <div class="row2"><div class="field"><label>Main color</label><input id="e1" type="color" value="${t.c1}"></div><div class="field"><label>Second color</label><input id="e2" type="color" value="${t.c2}"></div></div>
+      <div class="field"><label>Court design</label><div class="seg" id="ect">${[['', 'Auto'], ['0', 'Classic'], ['1', 'Stained arc'], ['2', 'Two-tone key'], ['3', 'Open key']].map(([v, n]) => `<button data-v="${v}" class="${String(t.court ?? '') === v ? 'on' : ''}">${n}</button>`).join('')}</div></div>
       <button class="big" id="sv">Save</button></div>`);
     $('#bk').onclick = () => editTeams();
+    scr().querySelectorAll('#ect button').forEach(b => b.onclick = () => scr().querySelectorAll('#ect button').forEach(x => x.classList.toggle('on', x === b)));
     $('#sv').onclick = () => {
       let ed = {}; try { ed = JSON.parse(localStorage.getItem('pbb.teams') || '{}'); } catch (e) { ed = {}; }
       const v = id => $(id).value.trim();
       ed[t.id] = { city: v('#ec') || t.city, name: v('#en') || t.name, ab: (v('#ea') || t.ab).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || t.ab, c1: v('#e1'), c2: v('#e2') };
+      { const cd = (scr().querySelector('#ect button.on') || { dataset: { v: '' } }).dataset.v; if (cd !== '') ed[t.id].court = +cd; }
       try { localStorage.setItem('pbb.teams', JSON.stringify(ed)); } catch (e) { /* fine */ }
       PB.applyTeamEdits(); editTeams();
     };
