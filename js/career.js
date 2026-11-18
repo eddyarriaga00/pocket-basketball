@@ -154,10 +154,11 @@
     el.innerHTML = `<h3>New in PocketBasketball</h3><ul>
       <li>A new player model, sculpted for this game: hairstyles, beards, faces, builds, and it blinks and shouts</li>
       <li>The pump fake: tap Shoot quickly. A defender who jumps at it is out of the play</li>
+      <li>On defense, an arrow shows where your man is going: green while you are in front of him</li>
       <li>New moves: a real layup with a finger roll, passes that snap, size-up dribbles, five more celebrations</li>
       <li>Your Look card: an undershirt, tights, tattoos and a sleeve that sit on the arm, dyed hair</li>
       <li>Your reserves on the bench, coaches in suits, referees in stripes and long pants</li>
-      <li>Slow motion on a last-second shot, a beat on blocks and dunks, confetti for a title</li></ul>
+      <li>Slow motion on a last-second shot, a rim that bends on a dunk, confetti for a title</li></ul>
       <button class="big" id="newok">Let's go</button>`;
     const t = scr().querySelector('.title'); if (!t) return; t.insertBefore(el, t.querySelector('.logo').nextSibling);
     $('#newok').onclick = () => { store('pbb.seen', NEW_V); el.remove(); };
