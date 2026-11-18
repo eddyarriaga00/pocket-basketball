@@ -19,8 +19,10 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
 
 ## Career (the main mode)
 
-- **Your player**: position, one of six builds, height, skin tone, number, and a Look card (your jump shot,
-  hair, facial hair, headband, arm sleeve, shoes). Every rating shows its ceiling from day one.
+- **Your player**: position, one of six builds, height, skin tone, number, and a Look card: fifteen hairstyles in
+  eight colors, five beards, eight faces, a headband, goggles, tattoos, an arm sleeve, an undershirt, wristbands, a
+  bicep band, leg sleeves, tights, socks, four cuts of shoe, your jump shot, your dribble and your signature
+  celebration. Every rating shows its ceiling from day one.
 - **The road in**: a pre-draft combine (fifteen spot-up shots in 45 seconds, and your measurements) and team
   interviews that move your draft stock, draft night, and a rival from your draft class in your division.
 - **The season**: play or sim each game. Three goals a game by position; team practice between games; a teammate
@@ -41,7 +43,8 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
 
 ## On the floor
 
-- 5-on-5 in a 3D arena with rigged, animated players in team kits. Computer teams space the floor, run the
+- 5-on-5 in a 3D arena with the game's own player model (built in Blender for it), animated, in team kits, with
+  faces that change with the moment; your reserves on the bench, coaches in suits, referees in stripes. Computer teams space the floor, run the
   pick-and-roll, cut, drive and kick, post up, throw alley-oops, help and recover on defense, switch screens and
   close out on shooters.
 - Shots are decided by the shooter's rating, the nearest defender and your release (the meter). Dunks, layups,
@@ -53,6 +56,7 @@ The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMA
   quicker first step, moves that land). Two misses in a row and you cool off.
 - Call a pick, call a play (get me the ball, pick-and-roll, feed the post); post up as a big; hooks and fadeaways;
   get hot and they double you. The bench plays: computer players tire and sub at dead balls; fast breaks.
+- The pump fake (a quick tap of Shoot): a defender who jumps at it is out of the play.
 - Dribble moves on the Move button (swipe for a crossover either way, a step-back, a spin), stamina, replays of
   dunks and buzzer-beaters, an opening flyover, halftime stats, a shot chart and box score after the game.
 - Three cameras: Player lock (the default: high behind your player, facing the rim in play), Broadcast (the
