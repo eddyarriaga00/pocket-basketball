@@ -97,6 +97,7 @@
         <button class="tile" id="prac">${MIC.target}<b>Practice</b><small>Drills and contests</small></button>
         <button class="tile" id="daily">${MIC.day}<b>Daily challenge${dailyDone() ? ' ✓' : ''}</b><small>A new one every day</small></button>
       </div>
+      <button class="mode" id="chat">${MIC.chat}<span><b>Chat</b><small>Talk with everyone playing.</small></span><em>›</em></button>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
@@ -111,6 +112,7 @@
     $('#daily').onclick = daily;
     $('#seas').onclick = () => PB.Season.start();
     $('#how').onclick = how;
+    if ($('#chat')) $('#chat').onclick = () => { if (PB.online) PB.online.open(); };
     if ($('#hall')) $('#hall').onclick = () => {
       const hall = load('pbb.hall') || [], RB = load('pbb.records') || {};
       const rec = (o, list) => list.filter(([k]) => o && o[k]).map(([k, l]) => `<div class="card rec"><span>${l}</span><b>${o[k].v}</b><small>${esc(o[k].name)} · ${esc(PB.team(o[k].team).ab)} · season ${o[k].year}</small></div>`).join('');
@@ -1189,6 +1191,7 @@
   const MIC = { career: mic('<circle cx="12" cy="8" r="3.500"/><path d="M5 20c0-3.600 3.100-6 7-6s7 2.400 7 6"/>'), plus: mic('<path d="M12 5v14M5 12h14"/>'), list: mic('<path d="M8 7h11M8 12h11M8 17h11M4.500 7h.01M4.500 12h.01M4.500 17h.01"/>'),
     vs: mic('<path d="M4 7l3.500 10L11 7M20 8.500c-.700-1-1.800-1.500-3-1.500-1.700 0-3 1-3 2.400 0 3.100 6 1.600 6 4.900 0 1.500-1.400 2.700-3.200 2.700-1.400 0-2.600-.600-3.300-1.700"/>'),
     cup: mic('<path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4c0 3 1.500 4.500 3.500 4.500M17 6h3c0 3-1.500 4.500-3.500 4.500M12 13v4M8.500 20h7"/>'),
+    chat: mic('<path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7l-4 3.500V17H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>'),
     target: mic('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".800"/>'), day: mic('<rect x="4" y="5.500" width="16" height="14" rx="2.500"/><path d="M8 3.500v4M16 3.500v4M4 10.500h16M9 15l2 2 4-4"/>') };
   /* the hub's bottom bar: one line icon a tab */
   const NAVIC = { home: '<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/>', team: '<circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.3"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5M15.5 14.2c2.800 0 5.500 1.500 5.500 4.300"/>',
