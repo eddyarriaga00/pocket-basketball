@@ -1249,6 +1249,7 @@
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
     const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back
     if (fk >= 0) pose = 'shoot';
+    if (pose === 'guard' && !has) { const h = G.ball.holder; if (Math.hypot(p.vx, p.vz) > 10 && (!h || Math.hypot(h.x - p.x, h.z - p.z) > 9)) pose = ''; }   // sprinting back, far from the ball: he runs, arms pumping, not spread like wings
     if (!pose && m.rw > 0.3 && !has) pose = 'ready';
     if ((!pose || pose === 'guard' || pose === 'ready') && m.rb > 0.3 && !has) pose = 'box';
     if (pose !== m.pose) { m.pose = pose; }

@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- A defender sprinting back, far from the ball, runs with his arms pumping instead of spread like wings.
 - Five more celebrations: the shrug, too small, ice in the veins, night night and the shush (the last three come
   out in clutch time). All of them can be your signature on the Look card.
 - The pump fake: a quick tap of Shoot shows the ball and pulls it back. A defender going up with the shot may leave
