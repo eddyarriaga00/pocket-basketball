@@ -623,7 +623,7 @@
     const judges = [0, 1, 2, 3, 4].map(() => clamp(Math.round(base + PB.gauss() * 0.45), s.made ? 6 : 5, s.made ? 10 : 7));
     const sum = judges.reduce((a, x) => a + x, 0);
     D.scores.push(sum); D.score += sum; D.att++; if (s.made) D.made++;
-    if (s.made) { R.swish(1); AU().play('dunk', { x: b.x }); AU().crowd.react(sum >= 45 ? 'roar' : 'applause', sum >= 45 ? 1.2 : 0.7); R.hype(sum >= 45 ? 1.4 : 0.8, sum >= 47 ? 0.8 : 0); buzz([20, 30, 30]); if (sum >= 46) wantReplay('dunk'); }
+    if (s.made) { R.swish(1); if (R.rimSnap) R.rimSnap(1); AU().play('dunk', { x: b.x }); AU().crowd.react(sum >= 45 ? 'roar' : 'applause', sum >= 45 ? 1.2 : 0.7); R.hype(sum >= 45 ? 1.4 : 0.8, sum >= 47 ? 0.8 : 0); buzz([20, 30, 30]); if (sum >= 46) wantReplay('dunk'); }
     else { AU().play('rim', { x: b.ex, power: 0.8 }); AU().crowd.react('aww', 0.8); }
     toast(`${judges.join(' ')} · ${sum}`, s.made ? 'judge' : 'judge miss');
     B(sum === 50 ? 'dk_fifty' : s.made ? 'dk_good' : 'dk_miss', { prio: 4, follow: s.made && sum < 50 ? 0.45 : 0 });
@@ -675,6 +675,7 @@
       R.swish(p.team === 0 ? 1 : -1);
       AU().play(s.kind === 'dunk' ? 'dunk' : s.prob > 0.55 || rand() < 0.62 ? 'swish' : 'rimin', { x: b.x });
       if (s.kind === 'dunk' && !G.replay && !G.drill) G.hitT = 0.07;
+      if (s.kind === 'dunk' && R.rimSnap) R.rimSnap(p.team === 0 ? 1 : -1);
       if (home(p.team)) AU().crowd.react('roar', s.kind === 'dunk' ? 1.2 : s.pts === 3 ? 1 : 0.65);
       if (home(p.team) || s.kind === 'dunk') R.hype(s.kind === 'dunk' ? 1.4 : s.pts === 3 ? 1 : 0.6, s.kind === 'dunk' ? 0.9 : 0); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.pts === 3 ? 0.8 : 0.5);
       if (s.foul) { AU().crowd.react('roar', 1.1); }
