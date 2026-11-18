@@ -1905,9 +1905,18 @@
   }
 
   R.swish = s => { for (const n of nets) if (n.s === s) n.swish = 1; };
-  /* adaptive resolution: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x, then 1x) */
-  let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2;
+  /* adaptive quality: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x, then 1x),
+     then drop the outlines and the men on the bench (about half the triangles). If none of that buys anything, the
+     frame rate is being held down from outside (a phone in Low Power Mode draws thirty frames a second whatever
+     you ask of it): everything goes back to full quality and stays there. */
+  let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2, qLvl = 0, avg0 = 0, qLock = false;
   R.lite = () => lite;
+  function setQuality(n) {
+    qLvl = n; prCap = n === 0 ? 2 : n === 1 ? 1.5 : 1;
+    const lt = n >= 3;
+    if (lt !== lite) { lite = lt; scene.traverse(o => { if (o.material === OUTLINE_MAT) o.visible = !lite; }); for (const m of benchMesh) if (m.userData.pl) m.userData.pl.visible = !lite; }
+    R.resize();
+  }
   R.render = menu => {
     const now = performance.now();
     /* a scene behind a menu runs at thirty frames a second on purpose: it says nothing about the phone, so it is not
@@ -1917,9 +1926,11 @@
     ftLast = now;
     if (ftN >= 90) {
       const avg = ftAcc / ftN; ftAcc = 0; ftN = 0;
-      if (avg > 22 && prCap > 1) { prCap = prCap > 1.5 ? 1.5 : 1; R.resize(); }
-      /* still slow at the fewest pixels: the outlines and the men on the bench go (about half the triangles) */
-      else if (avg > 24 && prCap <= 1 && !lite) { lite = true; scene.traverse(o => { if (o.material === OUTLINE_MAT) o.visible = false; }); for (const m of benchMesh) if (m.userData.pl) m.userData.pl.visible = false; }
+      if (!qLock && avg > 22) {
+        if (qLvl === 0) avg0 = avg;
+        if (qLvl < 3) setQuality(qLvl + 1);
+        else { if (avg > avg0 * 0.85) setQuality(0); qLock = true; }   // nothing helped: it was never the drawing
+      }
     }
     renderer.render(scene, cam);
   };
