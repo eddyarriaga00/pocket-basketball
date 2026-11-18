@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Tap anyone on the Team tab for his card: a sheet with the player standing in his uniform, his ratings by group and
+  what he is best at. The League tab opens on the standings (your conference first, games back) with the leaders a
+  tap away; the next-game card shows the season so far and your last five results; milestones are tiles.
 - Stuffed: a jumping defender's hand on the ball while the shooter still has it up in the air is a block too. After
   the game, your night on one banner (your face, points, line, grade). Your line, live, under the score. How to play
   opens one topic at a time.

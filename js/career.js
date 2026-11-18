@@ -944,7 +944,7 @@
       const st = C.standings[C.team] || { w: 0, l: 0 };
       const five = role() === 'Starter' ? liveFive() : starters(C.team);
       const bench = myRoster().concat([me]).filter(p => !five.includes(p)).sort((a, b) => b.ovr - a.ovr);
-      const row = (p, i) => `<div class="ros ${p.me ? 'me' : ''}"><img alt="" data-head="${esc(p.id)}"><b class="no">${p.num}</b>
+      const row = (p, i) => `<div class="ros ${p.me ? 'me' : ''}" data-pid="${esc(p.id)}" role="button" tabindex="0"><img alt="" data-head="${esc(p.id)}"><b class="no">${p.num}</b>
         <div><b>${esc(PB.full(p))}${p.me ? ' <small>you</small>' : ''}${p.out > 0 ? ` <small class="out">out ${p.out}</small>` : ''}</b>
         <span>${i < 5 ? PB.POS[i] : p.pos} · ${PB.fmtH(p.ht)} · ${p.age}${p.from ? ' · ' + esc(p.from) : ''}</span></div><em>${p.ovr}</em></div>`;
       body = `<div class="teamban" style="--c1:${t.c1};--c2:${t.c2}">${badge(t)}<div><small>${esc(t.city)}</small><b>${esc(t.name)}</b><span>${st.w}-${st.l} · team overall ${strength(C.team)}</span></div></div>
@@ -991,6 +991,7 @@
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
     scr().querySelectorAll('.ltabs button').forEach(b => b.onclick = () => { ltab = b.dataset.l; hub(); });
+    scr().querySelectorAll('.ros[data-pid]').forEach(r => r.onclick = () => { const p = r.dataset.pid === 'me' ? C.me : myRoster().find(x => x.id === r.dataset.pid); if (p) playerCard(p, PB.team(C.team)); });
     fillHeads();
     $('#menu').onclick = title;
     if ($('#play')) $('#play').onclick = playGame;
@@ -1156,6 +1157,24 @@
     return `<p class="kick conf">${c}ern Conference</p>` + divs.map(d => `<p class="kick dv">${esc(d || '')}</p><div class="tgrid">${ts.filter(t => t.div === d).map(t =>
       `<button class="trow tt" data-id="${t.id}" style="--tc:${t.c1}"><i></i><span><small>${esc(t.city)}</small><b>${esc(t.name)}</b></span><em>${esc(t.ab || t.id)}</em></button>`).join('')}</div>`).join(''); }).join('');
   let ltab = 'stand';   // the League tab's own two pages
+  /* a player's card: a sheet from the bottom with the player standing in his uniform, what he is and what he is good at */
+  function playerCard(p, t) {
+    const old = document.querySelector('#pcard'); if (old) old.remove();
+    const G4 = [['Scoring', ['close', 'dunk', 'mid', 'three', 'ft']], ['Playmaking', ['handle', 'pass']], ['Athleticism', ['speed', 'vert']], ['Defense', ['perD', 'inD', 'steal', 'block', 'reb']]];
+    const avg = ks => Math.round(ks.reduce((a, k) => a + ((p.r || {})[k] || 0), 0) / ks.length);
+    const best = PB.ATTRS.slice().sort((a, b) => ((p.r || {})[b[0]] || 0) - ((p.r || {})[a[0]] || 0)).slice(0, 3);
+    let img = null; try { img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(p, t, 200, { body: true }) : null; } catch (e) { img = null; }
+    const d = document.createElement('div'); d.id = 'pcard';
+    d.innerHTML = `<div class="sheet" style="--tc:${t.c1}" role="dialog" aria-label="${esc(PB.full(p))}"><button class="x" aria-label="Close">×</button>
+      <div class="top">${img ? `<img src="${img}" alt="">` : ''}<div><span>${esc(t.name)} · #${p.num}</span><h3>${esc(PB.full(p))}</h3>
+        <p>${p.pos}${p.arch ? ' · ' + esc(p.arch) : ''} · ${PB.fmtH(p.ht)} · age ${p.age}</p>${p.from ? `<p>${esc(p.from)}</p>` : ''}<b>${p.ovr}<small>OVR</small></b></div></div>
+      ${G4.map(([n, ks]) => `<div class="bar"><span>${n}</span><i><u style="width:${avg(ks)}%"></u></i><b>${avg(ks)}</b></div>`).join('')}
+      <p class="kick">Best at</p><div class="chips">${best.map(([k, n]) => `<span>${n} <b>${(p.r || {})[k] || 0}</b></span>`).join('')}</div></div>`;
+    document.body.appendChild(d);
+    const close = () => { d.classList.remove('on'); setTimeout(() => d.remove(), 220); };
+    d.onclick = e => { if (e.target === d || e.target.classList.contains('x')) close(); };
+    requestAnimationFrame(() => d.classList.add('on'));
+  }
   /* the title's mode cards: a line icon each */
   const mic = d => `<i class="mi"><svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg></i>`;
   const MIC = { career: mic('<circle cx="12" cy="8" r="3.500"/><path d="M5 20c0-3.600 3.100-6 7-6s7 2.400 7 6"/>'), plus: mic('<path d="M12 5v14M5 12h14"/>'), list: mic('<path d="M8 7h11M8 12h11M8 17h11M4.500 7h.01M4.500 12h.01M4.500 17h.01"/>'),
