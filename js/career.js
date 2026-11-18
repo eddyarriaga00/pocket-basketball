@@ -991,7 +991,7 @@
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
     scr().querySelectorAll('.ltabs button').forEach(b => b.onclick = () => { ltab = b.dataset.l; hub(); });
-    scr().querySelectorAll('.ros[data-pid]').forEach(r => r.onclick = () => { const p = r.dataset.pid === 'me' ? C.me : myRoster().find(x => x.id === r.dataset.pid); if (p) playerCard(p, PB.team(C.team)); });
+    scr().querySelectorAll('.ros[data-pid]').forEach(r => r.onclick = () => { const p = r.dataset.pid === 'me' ? C.me : myRoster().find(x => x.id === r.dataset.pid); if (p) rosterCard(p, PB.team(C.team)); });
     fillHeads();
     $('#menu').onclick = title;
     if ($('#play')) $('#play').onclick = playGame;
@@ -1158,7 +1158,7 @@
       `<button class="trow tt" data-id="${t.id}" style="--tc:${t.c1}"><i></i><span><small>${esc(t.city)}</small><b>${esc(t.name)}</b></span><em>${esc(t.ab || t.id)}</em></button>`).join('')}</div>`).join(''); }).join('');
   let ltab = 'stand';   // the League tab's own two pages
   /* a player's card: a sheet from the bottom with the player standing in his uniform, what he is and what he is good at */
-  function playerCard(p, t) {
+  function rosterCard(p, t) {
     const old = document.querySelector('#plcard'); if (old) old.remove();
     const G4 = [['Scoring', ['close', 'dunk', 'mid', 'three', 'ft']], ['Playmaking', ['handle', 'pass']], ['Athleticism', ['speed', 'vert']], ['Defense', ['perD', 'inD', 'steal', 'block', 'reb']]];
     const avg = ks => Math.round(ks.reduce((a, k) => a + ((p.r || {})[k] || 0), 0) / ks.length);
