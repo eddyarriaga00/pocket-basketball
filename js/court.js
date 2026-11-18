@@ -924,6 +924,7 @@
     /* active hands: one up in the ball's face (it mirrors the dribble), the other low and wide in the passing lane */
     guard: (k) => { const b = 0.05 * Math.sin(k * 4.3), c = 0.05 * Math.sin(k * 3.1 + 1);
       return [[0.45, -0.75 + b, 0.48], [0.3, -0.1 + b * 2, 0.95], [0.86, -0.36 + c, 0.36], [0.72, 0.42 + c * 2, 0.55]]; },
+    ready: (k) => { const b = 0.03 * Math.sin(k * 2.2); return [[0.42, -0.72 + b, 0.5], [0.12, 0.28 + b, 0.95], [0.42, -0.72 - b, 0.5], [0.12, 0.28 - b, 0.95]]; },   // hands out in front, a target
     hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
     /* the windmill: the ball arm goes down, back, over the top and through; k is the time in the air */
     windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
@@ -1052,7 +1053,10 @@
     { if (p.y > 0.12) m.airT = G.t;
       m.land = !air && m.airT !== undefined && p.y <= 0.12 ? (G.t - m.airT) / 0.34 : 9; m.gath = p.shoot && p.y <= 0.02 && !p.inb && G.phase !== 'ft' ? 1 : 0;
       const g = !air && fall <= 0 ? Math.max(drib ? 1 - smooth(5, 9, sp) : 0, m.gath, m.land < 1 ? 1 - smooth(8, 13, sp) : 0) : 0;
-      m.dw = (m.dw || 0) + (g - (m.dw || 0)) * Math.min(1, dt * (m.land < 1 ? 30 : 8)); }
+      m.dw = (m.dw || 0) + (g - (m.dw || 0)) * Math.min(1, dt * (m.land < 1 ? 30 : 8));
+      /* off the ball on offense, standing: on the balls of his feet, hands ready for the pass */
+      const h = G.ball.holder, rd = h && h !== p && h.team === p.team && p.team !== undefined && !p.ref && !air && !p.pose && G.phase === 'live' && fall <= 0 ? 1 - smooth(2.5, 5, sp) : 0;
+      m.rw = (m.rw || 0) + (rd - (m.rw || 0)) * Math.min(1, dt * 5); }
     m.tilt = (0.16 + 0.14 * m.gd + (p.pose === 'reach' ? 0.14 : 0)) * (1 - 0.7 * m.gc) * m.gw + 0.08 * m.dw * (1 - m.gw);
     if (m.tilt > 0.01 && m.bones[bk('DEF-hips')]) { const hb = m.bones[bk('DEF-hips')], f = p.face + (p.spinA || 0); m.body.updateMatrixWorld(true);
       _ax.set(Math.cos(f), 0, -Math.sin(f)); hb.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, m.tilt).multiply(_qw); hb.parent.getWorldQuaternion(_qp).invert().multiply(_q); hb.quaternion.copy(_qp);
@@ -1072,13 +1076,14 @@
     abduct(m, p.face + (p.spinA || 0), ABD);
     /* planted feet: in a defensive stance (and standing over a dribble) the feet are set on the floor and step, one
        at a time, as he moves; the legs are solved to reach them. sw eases in and out so he drops into it */
-    { const gs = m.gw * (1 - smooth(13, 17, sp)), sw = Math.max(gs, m.dw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = ms < 1 && mv.k !== 'hesi' ? 0.05 : 0;
-      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, 0.25 + (0.05 + 0.08 * m.gd) * k, 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
+    { const gs = m.gw * (1 - smooth(13, 17, sp)), rdy = m.rw > m.dw && m.rw > gs, sw = Math.max(gs, m.dw, m.rw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = ms < 1 && mv.k !== 'hesi' ? 0.05 : 0;
+      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
     /* the arms */
     const has = G.ball.holder === p;
     let pose = p.pose;
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
+    if (!pose && m.rw > 0.3 && !has) pose = 'ready';
     if (pose !== m.pose) { m.pose = pose; }
     m.poseW = Math.min(1, (m.poseW || 0) + dt * (POSES[pose] ? 9 : -6));
     if (!POSES[pose]) { m.poseW = Math.max(0, m.poseW - dt * 6); return; }
@@ -1087,7 +1092,7 @@
     if (pose === 'dribble') kk = ((p.dph !== undefined ? p.dph : G.t * 7.4 * dsf) / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
-    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
+    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard' || pose === 'ready') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
