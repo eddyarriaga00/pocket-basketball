@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- One scorebug: the score on top with each team's timeouts as dots, and a thin strip under it for pause, your grade
+  and zoom. The pause menu opens on the matchup (badges, score, clock) and has switches for sound and commentary.
+  Quick game sets its difficulty and quarter length right there. Build cards show what each build is good at;
+  achievements are a grid of tiles.
 - Menus after Pocket Football: the title is mode cards (an icon, a line on what it is); Season and Quick game pick
   from the whole league by conference and division, two teams to a row in their colors; Settings is four short groups
   with real switches.

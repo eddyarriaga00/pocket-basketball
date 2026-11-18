@@ -198,6 +198,7 @@
     const sc = $('#sc'); sc.textContent = Math.ceil(Math.max(0, G.shotClock)); sc.classList.toggle('low', G.shotClock < 5);
     sc.style.visibility = G.phase === 'live' && G.poss !== null ? 'visible' : 'hidden';
     $('#sd0').classList.toggle('poss', G.poss === 0); $('#sd1').classList.toggle('poss', G.poss === 1);
+    if (G.to && $('#t0')) for (const i of [0, 1]) { const e = $('#t' + i), v = '•'.repeat(Math.max(0, G.to[i])); if (e.textContent !== v) e.textContent = v; }
     /* in the bonus: the other side has five fouls this quarter, every foul now is two shots */
     if (G.tf) { $('#sd0').classList.toggle('bonus', G.tf[1] >= 5); $('#sd1').classList.toggle('bonus', G.tf[0] >= 5); }
     /* the buttons read what they do right now */
@@ -2030,8 +2031,8 @@
     ov.hidden = !on;
     if (on) {
       ov.innerHTML = `<div class="card"><h2>Paused</h2>
-        <div class="pscore"><span>${G.teams[0].ab || G.teams[0].id}</span><b>${G.score[0]} – ${G.score[1]}</b><span>${G.teams[1].ab || G.teams[1].id}</span></div>
-        <p class="mute">${$('#qt').textContent} · ${$('#clk').textContent} · your grade ${G.user ? gradeLetter(G.grade) : '–'}</p>
+        <div class="pmatch">${[0, 1].map(i => { const t = G.teams[i]; return `<div><i style="background:${t.c1};color:${PB.ink ? PB.ink(t.c1, t.c2) : '#fff'}">${t.ab || t.id}</i><b>${G.score[i]}</b><s>${'•'.repeat(Math.max(0, G.to ? G.to[i] : 0))}</s></div>`; }).join(`<span><small>${$('#qt').textContent}</small>${$('#clk').textContent}</span>`)}</div>
+        <p class="mute pc">${G.user ? `Your grade ${gradeLetter(G.grade)}` : ''}</p>
         ${G.user && !G.drill ? (() => { const st = G.user.st; return `<p class="pline"><b>${st.pts}</b> pts · <b>${st.reb}</b> reb · <b>${st.ast}</b> ast · ${st.fgm}/${st.fga} FG · ${st.tpm}/${st.tpa} 3PT${st.pf ? ` · ${st.pf} PF` : ''}</p>`; })() : ''}
         ${opts.goals && G.user ? `<div class="pgoals"><b>Your goals</b>${opts.goals.map(g => { const v = g.k === 'grade' ? null : G.user.st[g.k] || 0; const ok = g.k === 'grade' ? LETTERS.indexOf(gradeLetter(G.grade)) >= g.n : g.k === 'tov' ? v <= g.n : v >= g.n;
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
@@ -2040,7 +2041,7 @@
         ${G.user && !G.drill && !G.switching ? `<div class="plays"><b>Call a play <small>${G.play ? `${({ iso: 'Get me the ball', pnr: 'Pick-and-roll', post: 'Feed the post' })[G.play.kind]} · ${G.play.left + 1} more trip${G.play.left ? 's' : ''}` : 'for the next three trips'}</small></b>
           <div class="row3"><button class="ghost sm" data-play="iso">Get me the ball</button><button class="ghost sm" data-play="pnr">Pick-and-roll</button><button class="ghost sm" data-play="post">Feed the post</button></div></div>` : ''}
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
-        ${PB.settings ? `<div class="row2"><button class="ghost sm" id="psnd">Sound: ${PB.settings.sound === false ? 'off' : 'on'}</button><button class="ghost sm" id="pcom">Commentary: ${PB.settings.commentary === false ? 'off' : 'on'}</button></div>` : ''}
+        ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
         <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
         <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A perfect release goes in unless it is blocked.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
       $('#pr').onclick = () => pause(false);

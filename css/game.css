@@ -516,3 +516,24 @@ details.help p b{color:var(--ink);font-weight:700}details.help p span{color:var(
 .achgrid .card.ach span{display:block;font-size:11.5px;line-height:1.35;margin-top:2px}
 .achgrid .card.ach em{display:block;font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-top:8px}
 .achgrid .card.ach.got em{color:#fff}
+/* ---- one scorebug: the score on top, a thin strip under it (pause, your grade, zoom); timeouts as dots ---- */
+.bug{border-radius:14px 14px 0 0;border-bottom-color:rgba(255,255,255,.06);box-shadow:none}
+.bug .side{position:relative}
+.bug .side s{position:absolute;bottom:3px;left:20px;text-decoration:none;font-size:9px;letter-spacing:2px;line-height:1;color:#c9d2e3;opacity:.8}
+.bug .side.r s{left:auto;right:20px}
+.bug .side b{transform:translateY(-3px)}
+.sub{margin-top:0;height:30px;gap:4px;padding:0 4px;background:rgba(8,8,10,.86);border:1px solid rgba(255,255,255,.08);border-top:0;border-radius:0 0 14px 14px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.sub #pz,.sub #zm button{background:none;height:28px;width:32px}
+.sub #grade{background:none;height:28px;flex:1;justify-content:center;padding:0}
+.sub #grade b{font-size:14px;min-width:0}
+#radar{top:98px}
+/* ---- pause: the matchup on top ---- */
+.pmatch{display:flex;align-items:center;justify-content:space-around;background:var(--panel2);border-radius:14px;padding:14px 8px 10px;margin:4px 0 6px}
+.pmatch div{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px}
+.pmatch i{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;font-style:normal;font-family:var(--display);font-weight:900;font-size:13px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.pmatch b{font-family:var(--display);font-weight:900;font-size:28px;line-height:1}
+.pmatch s{text-decoration:none;font-size:11px;letter-spacing:3px;color:var(--mute);min-height:11px}
+.pmatch span{font-family:var(--display);font-weight:800;font-size:20px;text-align:center}.pmatch span small{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+p.pc{text-align:center;margin:0 0 6px}
+#pause .card.set{margin:10px 0}
+#pause{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}#pause .card{margin:auto}#pause h2{margin-top:0}

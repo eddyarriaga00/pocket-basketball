@@ -356,7 +356,9 @@
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Quick game</h2>
       <div class="qvs">${['qa', 'qb'].map((id, i) => `<div class="qt" data-s="${id}"><span class="kick">${i ? 'Opponent' : 'Your team'}</span><div class="qc"><button class="ar" data-d="-1" aria-label="Previous team">‹</button><i class="qb"></i><button class="ar" data-d="1" aria-label="Next team">›</button></div><b></b><small></small><select id="${id}" aria-label="${i ? 'Opponent' : 'Your team'}">${opts}</select></div>`).join('<em>vs</em>')}</div>
       <div class="field"><label>You play</label><div class="seg" id="qp">${PB.POS.map((p, i) => `<button data-v="${i}" class="${i === 0 ? 'on' : ''}">${p}</button>`).join('')}<button data-v="team">Whole team</button></div></div>
-      <p class="fine">Pick a position to play one player while your teammates play around you, or Whole team to control whoever has the ball (and, on defense, the man guarding it; Switch moves you to the defender nearest the ball). ${S.qlen}-minute quarters, ${S.level}.</p>
+      <p class="fine">One player with your teammates around you, or the whole team: whoever has the ball, and on defense the man guarding it.</p>
+      <div class="field"><label>Difficulty</label><div class="seg sm qo" data-k="level">${['Rookie', 'Pro', 'All-Star', 'Legend'].map(v => `<button class="${S.level === v ? 'on' : ''}" data-v="${v}">${v}</button>`).join('')}</div></div>
+      <div class="field"><label>Quarter length</label><div class="seg sm qo" data-k="qlen">${[2, 3, 5, 12].map(v => `<button class="${S.qlen == v ? 'on' : ''}" data-v="${v}">${v} min</button>`).join('')}</div></div>
       <button class="big" id="go">Tip off</button>
       <p class="fine" id="qhint"></p>${PB.teamGrid()}</div>`);
     $('#qb').value = 'BOS'; $('#qa').value = 'LAK';
@@ -366,6 +368,7 @@
       q.querySelector('b').textContent = t.name; q.querySelector('small').textContent = t.city; });
     scr().querySelectorAll('.qt').forEach(q => { const sel = q.querySelector('select'); sel.onchange = paintQ;
       q.querySelectorAll('.ar').forEach(a => a.onclick = () => { const n = PB.TEAMS.length; sel.selectedIndex = (sel.selectedIndex + +a.dataset.d + n) % n; paintQ(); }); });
+    scr().querySelectorAll('.qo button').forEach(b => b.onclick = () => { const k = b.parentElement.dataset.k; S[k] = k === 'qlen' ? +b.dataset.v : b.dataset.v; saveSettings(); b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); });
     /* or pick from the whole league below: tap a side, then a team */
     let side = 'qa';
     const setSide = k => { side = k; scr().querySelectorAll('.qt').forEach(q => q.classList.toggle('on', q.dataset.s === k)); $('#qhint').textContent = `Tap a team below to set ${k === 'qa' ? 'your team' : 'the opponent'}.`;
