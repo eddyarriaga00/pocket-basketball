@@ -1214,7 +1214,7 @@
   const LET = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];
   const LOOK = {
-    hair: [['short', 'Short'], ['fade', 'Fade'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['cornrows', 'Cornrows'], ['locs', 'Locs'], ['bun', 'Bun'], ['mohawk', 'Mohawk'], ['buzz', 'Buzz'], ['bald', 'Bald']],
+    hair: [['short', 'Short'], ['fade', 'Fade'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['cornrows', 'Cornrows'], ['locs', 'Locs'], ['bun', 'Bun'], ['mohawk', 'Mohawk'], ['curly', 'Curly'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['buzz', 'Buzz'], ['bald', 'Bald']],
     face: [[null, 'Classic'], ['1', 'Focused'], ['2', 'Bright'], ['3', 'Calm'], ['4', 'Bold']],
     build: [[null, 'Regular'], ['slim', 'Slim'], ['strong', 'Strong'], ['big', 'Big']],
     hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver'], ['#2f6bd8', 'Blue'], ['#e0489a', 'Pink'], ['#2fa56b', 'Green']],

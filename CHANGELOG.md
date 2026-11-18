@@ -27,7 +27,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 - Replays start from the rim's side of the play, a little above the heads, so the scorer comes at the camera
   instead of the view sitting behind someone's back; the play-by-play line no longer sits under the REPLAY label.
   A one-time tip teaches the pump fake the first time a defender is right on you.
-- More for the Look card: compression tights, and hair dyed blue, pink or green.
+- More for the Look card: three more hairstyles (curly, a ponytail, long), compression tights, and hair dyed blue,
+  pink or green.
 - An undershirt for your Look card (white, black or team color): sleeves and a collar under the tank top. Some of
   the league wears one. On a big play the reserves get up; the chairs stay where they are.
 - The bench is the real thing: your actual reserves sit there in uniform, hands on their knees, and a coach in a
@@ -59,7 +60,7 @@ What changed, newest first. The full list is the git log; the order of work is [
   longer legs, a tank jersey with a scoop neck, baggy shorts, crew socks, sneakers with a sole and a tongue, hands with
   fingers, and a smooth head with simple eyes and a cap of hair. Joints bend smoothly instead of hinging. It wears
   every team's kit, numbers and names.
-- The model is yours to change: ten hairstyles (or bald) in five colors, three beards, five faces, a headband,
+- The model is yours to change: thirteen hairstyles (or bald) in five colors, three beards, five faces, a headband,
   goggles, and a build (slim, regular, strong, big). Heights run wider at every position (a 5'9" point guard to a 7'5"
   center), and a seven-footer's head is no bigger than a guard's. Every player in the league gets a look of his own.
 

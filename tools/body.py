@@ -181,6 +181,11 @@ part('hair_bun', 5, 8, [cap('h8', 1.07, 1.06), back('h8b'), hb(0, 0.108, 0.122, 
 part('hair_mohawk', 5, 9, [loft('h9', capped([(hv(0, y, skz(y) + 0.020), 0.030 * HS, 0.034 * HS) for y in (-0.112, -0.070, -0.020, 0.030, 0.080, 0.120)]), X, Z, seg=12)])
 import math as _m
 part('hair_locs', 5, 10, [cap('h10', 1.07, 1.06), back('h10b')] + [loft('loc', capped([(hv(_m.sin(a) * 0.128, _m.cos(a) * 0.134 + 0.012, 0.070), 0.017 * HS, 0.017 * HS), (hv(_m.sin(a) * 0.140, _m.cos(a) * 0.146 + 0.014, -0.030), 0.016 * HS, 0.016 * HS), (hv(_m.sin(a) * 0.138, _m.cos(a) * 0.144 + 0.016, -0.130), 0.013 * HS, 0.013 * HS)]), X, Y, seg=8) for a in [_m.radians(d) for d in range(-110, 111, 20)]])
+# three more: tight curls (a cap of small bumps all over), a ponytail (pulled back, a tail off the crown), long hair (a curtain to the neck)
+part('hair_curly', 5, 14, [cap('h14', 1.05, 1.045), back('h14b', 0.074)] + [hb(x, y, skz(y, x) + 0.030, 0.030, 0.030, 0.034, 'cu') for x in (-0.105, -0.07, -0.035, 0, 0.035, 0.07, 0.105) for y in (-0.095, -0.055, -0.015, 0.025, 0.065, 0.105) if (x / 0.125) ** 2 + (y / 0.125) ** 2 < 1.0]
+     + [hb(_m.sin(a) * 0.118, _m.cos(a) * 0.118 + 0.02, 0.045, 0.030, 0.030, 0.032, 'cs') for a in [_m.radians(d) for d in range(60, 301, 24)]])
+part('hair_ponytail', 5, 15, [cap('h15', 1.07, 1.06), back('h15b'), loft('tail', capped([(hv(0, 0.118, 0.070), 0.040 * HS, 0.040 * HS), (hv(0, 0.185, 0.045), 0.036 * HS, 0.036 * HS), (hv(0, 0.222, -0.040), 0.028 * HS, 0.028 * HS), (hv(0, 0.214, -0.135), 0.014 * HS, 0.014 * HS)]), X, Z, seg=12)])
+part('hair_long', 5, 22, [cap('h22', 1.08, 1.07), back('h22b', 0.084)] + [loft('lg', capped([(hv(_m.sin(a) * 0.126, _m.cos(a) * 0.132 + 0.012, 0.080), 0.030 * HS, 0.026 * HS), (hv(_m.sin(a) * 0.140, _m.cos(a) * 0.146 + 0.016, -0.040), 0.030 * HS, 0.024 * HS), (hv(_m.sin(a) * 0.142, _m.cos(a) * 0.150 + 0.020, -0.150), 0.022 * HS, 0.018 * HS)]), X, Y, seg=8) for a in [_m.radians(d) for d in range(-118, 119, 14)]])
 part('beard_stubble', 5, 11, [loft('b11', [(hv(0, -0.004, z), rx * HS * 1.025, ry * HS * 1.025) for z, rx, ry in PROFILE[:3]] + [(hv(0, 0.004, -0.070), 0.126 * HS, 0.130 * HS)], X, Y, seg=40, power=2.35)])
 part('beard_goatee', 5, 12, [hb(0, -0.090, -0.128, 0.040, 0.034, 0.030, 'b12'), loft('b12m', capped([(hv(-0.040, -0.122, -0.066), 0.007 * HS, 0.006 * HS), (hv(0, -0.134, -0.060), 0.008 * HS, 0.007 * HS), (hv(0.040, -0.122, -0.066), 0.007 * HS, 0.006 * HS)]), Y, Z, seg=8)])
 part('beard_full', 5, 13, [loft('b13', [(hv(0, -0.006, z), rx * HS * 1.06, ry * HS * 1.06) for z, rx, ry in PROFILE[:3]] + [(hv(0, 0.000, -0.064), 0.129 * HS, 0.130 * HS)], X, Y, seg=40, power=2.35)]
@@ -200,9 +205,9 @@ part('shut', 7, 31, [loft('lid', capped([(hv(sg * 0.052 - 0.020, -0.131, -0.010)
 part('band', 5, 24, [loft('band', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((0.034, 1.0), (0.040, 1.045), (0.078, 1.045), (0.084, 1.0))], X, Y, seg=40, power=2.35)])
 part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'lens') for sg in (1, -1)] + [loft('strap', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((-0.014, 1.0), (-0.010, 1.03), (0.008, 1.03), (0.012, 1.0))], X, Y, seg=40, power=2.35)])
 
-B0 = {'hair_twists': 1700, 'hair_rows': 1500, 'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
-V0 = {'hair_twists': 0.0055, 'hair_rows': 0.005, 'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
-S0 = {'hair_twists': 1, 'hair_rows': 1, 'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
+B0 = {'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
+V0 = {'hair_twists': 0.0055, 'hair_rows': 0.005, 'hair_curly': 0.0055, 'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
+S0 = {'hair_twists': 1, 'hair_rows': 1, 'hair_curly': 1, 'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
 part('yell', 7, 23, [hb(0, -0.127, -0.093, 0.021, 0.010, 0.019, 'yell')])   # an open mouth for a shout: it covers the small one
 kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') or g.startswith('eyes') or g in ('shut', 'yell') else 'glint' if g.startswith('glint') else g
 BUDGET = lambda g: B0.get(g) or {'hair': 800, 'face': 420, 'glint': 60}[kind(g)]
