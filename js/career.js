@@ -1447,7 +1447,7 @@
     C.endorse = C.endorse || { tier: 0 };
     for (let i = C.endorse.tier; i < tiers.length; i++) if (C.fans >= tiers[i][0]) { C.endorse.offer = i; break; }
     /* between games, now and then, life happens: a choice with a cost and a payoff */
-    if (!g.po && !C.event && PB.rand() < 0.28) C.event = EVENTS[Math.floor(PB.rand() * EVENTS.length)].k;
+    if (!g.po && !C.event && PB.rand() < 0.28) { const seen = C.evSeen || (C.evSeen = []), pool = EVENTS.filter(e => !seen.includes(e.k)), e = (pool.length ? pool : EVENTS)[Math.floor(PB.rand() * (pool.length || EVENTS.length))]; C.event = e.k; seen.push(e.k); if (seen.length > 16) seen.shift(); }   // not one you have had lately
     /* now and then the body pays for it: a sore ankle or a tight hamstring, a few points for a game or two */
     if (C.injury) { C.injury.games--; if (C.injury.games <= 0) { for (const k in C.injury.r) me.r[k] = Math.min(99, me.r[k] + C.injury.r[k]); me.ovr = PB.ovr(me.r, me.pos); C.news.unshift(`${me.last} is back to full health`); C.injury = null; } }
     else if (PB.rand() < 0.045) {
@@ -1482,6 +1482,16 @@
     { k: 'festival', q: 'The city\'s summer festival asks you to throw the first pitch at a ballgame.', a: [['Throw it', { fans: 4 }, 'A strike, somehow. Highlight of the week.'], ['Pass', {}, 'Maybe next year.']] },
     { k: 'gaming', q: 'A streamer invites you to play online with his audience.', a: [['Stream for an hour', { fans: 7, trust: -1 }, 'Twenty thousand people watched you lose at a video game.'], ['Sleep', { sp: 1 }, 'Early night.']] },
     { k: 'diet', q: 'The team nutritionist has a new meal plan for you.', a: [['Follow it', { sp: 2 }, 'Lighter on your feet already.'], ['Ignore it', { trust: -1 }, 'Pizza, again.']] },
+    { k: 'rookie', q: 'A younger teammate keeps getting lost on defense. He asks you to walk him through the coverages.', a: [['Stay and teach him', { trust: 4, sp: -1 }, 'He was in the right spot all night. The coach knows why.'], ['Tell him to ask the coaches', { trust: -1 }, 'He figured it out. Eventually.']] },
+    { k: 'school', q: 'Your old school wants to retire your number at halftime of their rivalry game. It is the night before a road trip.', a: [['Be there', { fans: 6, sp: -1 }, 'A full gym chanting your name. Worth the red-eye.'], ['Send a video', { fans: 2 }, 'They played it on the big screen.']] },
+    { k: 'weights', q: 'The strength coach wants you in for an extra lift twice a week.', a: [['Commit to it', { sp: 2, trust: 1 }, 'Stronger through contact already.'], ['Stick to the usual', {}, 'Your legs thank you, for now.']] },
+    { k: 'commercial', q: 'A local car dealer offers you a commercial. The script is terrible.', a: [['Do it anyway', { fans: 5, trust: -1 }, 'Everyone in town can do your line now.'], ['Ask for a rewrite', { fans: 3 }, 'Still not good. Better.'], ['Pass', { trust: 1 }, 'The front office appreciates the quiet.']] },
+    { k: 'fine', q: 'You were five minutes late to shootaround. The veterans run a players\' fine jar.', a: [['Pay double and bring breakfast', { trust: 3, fans: 1 }, 'The bagels were a hit. Nobody is late twice.'], ['Pay the fine', { trust: 1 }, 'Lesson learned.'], ['Argue about it', { trust: -4 }, 'You lost the argument and paid anyway.']] },
+    { k: 'sleep', q: 'The team offers a sleep study: no phone after ten for two weeks.', a: [['Do the two weeks', { sp: 2 }, 'You forgot what mornings could feel like.'], ['No chance', { fans: 1 }, 'You were online at two in the morning. People noticed the likes.']] },
+    { k: 'fan', q: 'A kid has been at every home game holding a sign with your name on it.', a: [['Bring him onto the floor for warmups', { fans: 7, trust: 1 }, 'The clip has two million views. He made a layup.'], ['Sign the sign after the game', { fans: 3 }, 'He will keep it forever.']] },
+    { k: 'shootout', q: 'A teammate bets you dinner he can beat you in a three-point shootout after practice.', a: [['Take the bet', { sp: 1, trust: 2 }, 'It went to a tiebreak. Dinner was on him.'], ['Not today', {}, 'He is telling everyone you ducked him.']] },
+    { k: 'media', q: 'The league wants you for an all-day media shoot on your one day off this week.', a: [['Do every station', { fans: 6, sp: -1 }, 'You are on the side of a bus now.'], ['Do an hour and leave', { fans: 2 }, 'Enough to keep the league happy.']] },
+    { k: 'mentor', q: 'A retired great from your position offers to work with you for a week in the summer.', a: [['Clear the week', { sp: 3, fans: 1 }, 'One week. Three things you will use for ten years.'], ['Thank him and decline', { trust: -1 }, 'He told a reporter he was surprised.']] },
   ];
   function eventCard() {
     const ev = EVENTS.find(e => e.k === C.event); if (!ev) return '';
@@ -1549,6 +1559,26 @@
       ['Every possession matters. You feel it.', 2, 2, 'measured'],
       ['This is what I came here for.', 1, 5, 'fired up'],
       ['Same game. Same me.', 0, 3, 'cool']] },
+    tripdub: { q: () => 'A triple-double. When did you know it was going to be that kind of night?', a: [
+      ['When the guys kept cutting and the ball kept finding them.', 4, 3, 'generous'],
+      ['I look at the scoreboard, not the box score.', 2, 2, 'focused'],
+      ['Around the second quarter. I told the bench to start counting.', -2, 9, 'showman']] },
+    close: { q: () => 'That one came down to the last possession. What was going through your head?', a: [
+      ['Next play. That is all there is at that point.', 2, 2, 'steady'],
+      ['I wanted the ball. I always want the ball there.', 0, 6, 'clutch'],
+      ['Honestly, my heart was pounding. That is why we play.', 1, 4, 'honest']] },
+    routed: { q: () => 'That got away from you early tonight. What do you say in that locker room?', a: [
+      ['Nothing tonight. We watch the film and we own it tomorrow.', 4, 0, 'accountable'],
+      ['One game. Flush it.', 0, 2, 'short memory'],
+      ['Some of us need to look in the mirror.', -5, 6, 'pointed']] },
+    stopper: { q: () => 'You were everywhere on defense tonight. Is that where your game starts?', a: [
+      ['Defense travels. Shots come and go.', 4, 2, 'old school'],
+      ['I take it personally when my man scores.', 1, 5, 'proud'],
+      ['I would rather talk about the win.', 2, 1, 'team first']] },
+    dimes: { q: n => `${n} assists. Are you a scorer or a playmaker?`, a: [
+      ['Whatever the game asks for that night.', 3, 2, 'complete'],
+      ['A playmaker. Making the right read is the best feeling in the game.', 4, 3, 'unselfish'],
+      ['A scorer who happens to see everything.', -1, 7, 'confident']] },
   };
   function pressFor(g, r) {
     if (r.sim) return null;
@@ -1558,6 +1588,12 @@
     if (C.contract && C.contract.years === 1 && PB.rand() < 0.15) return ['contract', ''];
     if (C.rival && g.opp === C.rival.team && PB.rand() < 0.8) return ['rival', PB.full(rivalP())];
     if (g.po && C.po.games.length === 1) return ['playoff', ''];
+    { const L = r.line;
+      if (L.pts >= 10 && L.reb >= 10 && L.ast >= 10) return ['tripdub', ''];
+      if (Math.abs(r.us - r.them) <= 3 && PB.rand() < 0.45) return ['close', ''];
+      if (!r.win && r.them - r.us >= 18 && PB.rand() < 0.6) return ['routed', ''];
+      if ((L.stl || 0) + (L.blk || 0) >= 5 && PB.rand() < 0.7) return ['stopper', ''];
+      if (L.ast >= 9 && PB.rand() < 0.6) return ['dimes', L.ast]; }
     if (r.line.pts >= 22 || r.gscore >= 10) return ['big', r.line.pts];
     if (r.gscore <= 3) return ['bad', ''];
     return null;
