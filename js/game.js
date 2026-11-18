@@ -320,7 +320,7 @@
         if (!G.played.includes(p.st)) G.played.push(p.st), G.playedBy.push({ d: p.d, team: t });
         R.removePlayer && R.removePlayer(p); R.addPlayer(p, G.kits[t]);
         /* he checks in at the scorer's table and runs on (he used to appear where the other man stood) */
-        if (G.phase !== 'live') { p.x = 24.4; p.z = clamp(p.z * 0.3, -9, 9); p.vx = p.vz = 0; p.face = -Math.PI / 2; }
+        if (G.phase !== 'live') { p.x = 24.4; p.z = clamp(p.z * 0.3, -9, 9) + n * 2.6 + (t ? 1.3 : -1.3); p.vx = p.vz = 0; p.face = -Math.PI / 2; }   // (two at once stand side by side)
         if (t === 0 || rand() < 0.3) feed(`${t === 0 ? '' : G.teams[1].name + ': '}${p.name} in for ${out.name}`);
         if (t === 0 && n === 0 && rand() < 0.3) B('subs_ana', { prio: 1 });
         n++;

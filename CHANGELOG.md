@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Fixed: the trail behind a shot and the cameras flashing in the stands were there for the first game of a sitting
+  and gone from the second on.
 - On defense, an arrow on the floor in front of your man shows where he is going with the ball: green while you are
   between him and the rim, red once he has a step on you.
 - A substitute checks in at the scorer's table and runs on (he used to appear where the other man stood).

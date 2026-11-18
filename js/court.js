@@ -1435,6 +1435,10 @@
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
   R.build = (home) => {
     drillYaw = null;
+    /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
+       are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
+       from the second game of a sitting on) */
+    trail = null; trailPts = []; flashPts = null; leds.length = 0; shocks.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
