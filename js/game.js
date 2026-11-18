@@ -1509,7 +1509,7 @@
       fatigue(dt);
       if (G.sitQ === G.q && G.inb && !G.auto) { sitOut(); return; }
       if (G.inb) inboundStep(dt);
-      if (!G.inb || !G.inb.stop) G.clock -= dt;
+      if (!G.inb || !G.inb.stop) G.clock = Math.max(0, G.clock - dt);   // it stops at zero while a shot is still in the air
       if (G.poss !== null && !G.inb && (b.state === 'held' || b.state === 'pass')) G.shotClock -= dt;
       if (G.callT > 0) G.callT -= dt;
       /* the building: louder late in a close game, hushed at the line, and the home crowd chants on defense */

@@ -26,6 +26,7 @@ node tools/smoke.js                  # a career loop with real input; must print
 node tools/balance.js 6              # six 48-minute computer games against the league's numbers
 node tools/drill.js                  # the combine and the 3-point contest, shot by shot
 node tools/career.js                 # five short seasons: playoffs, awards, contracts, free agency, retirement
+node tools/invariants.js 2            # two computer games checked every tick for states that must never happen
 node tools/frames.js shot side 12 0.08 6   # an animation frame by frame on one sheet (.shots/): fake, layup, dunk, pass, c-shrug ...
 node tools/looks.js .shots/looks.png hair   # every hairstyle, beard and accessory on the model (also: body, arm)
 ```
