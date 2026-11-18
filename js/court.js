@@ -1776,7 +1776,12 @@
     }
     const b = G.ball;
     ballMesh.position.set(b.x, b.y, b.z);
-    ballMesh.rotation.x += dt * (b.state === 'held' ? 8 : 12);
+    /* the ball turns the way it travels: backspin on a shot and a pass, forward off the dribble or rolling loose, and
+       it sits still in the hands of a man holding it */
+    { const dx = b.x - (ballMesh.userData.px ?? b.x), dz = b.z - (ballMesh.userData.pz ?? b.z), sp = dt > 0 ? Math.hypot(dx, dz) / dt : 0; ballMesh.userData.px = b.x; ballMesh.userData.pz = b.z;
+      ballMesh.rotation.order = 'YXZ'; if (sp > 2) ballMesh.rotation.y = Math.atan2(dx, dz);
+      const h = b.holder, drib = b.state === 'held' && h && !h.shoot && !h.inb && G.phase !== 'ft' && h.pose !== 'hold' && !(h.fakeT !== undefined && G.t - h.fakeT < 0.4);
+      ballMesh.rotation.x += dt * (b.state === 'shot' ? -9 : b.state === 'pass' ? (b.bounce ? 7 : -5) : b.state === 'held' ? (drib ? 6 : 0) : Math.min(14, 3 + sp * 0.5)); }
     ballShadow.position.set(b.x, 0.03, b.z);
     const u = G.user;
     userRing.visible = !!u;

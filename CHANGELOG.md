@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The ball turns the way it travels: backspin on a shot and a pass, forward off the dribble, and it sits still in
+  the hands of a man holding it (it used to spin the same way all the time).
 - Every arena's floor has a design of its own as well as its own wood: the classic solid key, a darker stain inside
   the three-point line, a two-tone key, or an open key edged in the team's color. Edit teams lets you pick one.
 - In the dunk contest and the drills the camera no longer whips around when you get under the rim or past it.
