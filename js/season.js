@@ -28,7 +28,7 @@
   function pick() {
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Season</h2>
       <p class="mute">Pick a team. You control the whole team: whoever has the ball, and on defense the man guarding it (Switch moves you to the defender nearest the ball).</p>
-      ${['East', 'West'].map(c => `<div class="card"><h3>${c}</h3>${PB.TEAMS.filter(t => t.conf === c).map(t => `<button class="trow" data-id="${t.id}">${badge(t)}<span>${esc(t.city)} ${esc(t.name)}</span></button>`).join('')}</div>`).join('')}</div>`);
+      ${PB.teamGrid()}</div>`);
     $('#bk').onclick = () => PB.Career.title();
     document.querySelectorAll('.trow').forEach(b => b.onclick = () => begin(b.dataset.id));
   }

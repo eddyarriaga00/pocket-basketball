@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Menus after Pocket Football: the title is mode cards (an icon, a line on what it is); Season and Quick game pick
+  from the whole league by conference and division, two teams to a row in their colors; Settings is four short groups
+  with real switches.
 - The hub has a bottom bar: five tabs with icons under your thumb, the page sliding in above it. Ratings on the Player
   tab are grouped (Scoring, Playmaking, Athleticism, Defense) with each group's average. Quick game picks its matchup
   from two team cards (badge, arrows to flick through the league, tap the name for the list). The pause menu's

@@ -88,11 +88,15 @@
     const live = C && C.me;
     show(`<div class="title">
       <div class="logo"><div class="ball"></div><h1>Pocket<br>Basketball</h1><p>Your career, from draft night to the Hall of Fame.</p></div>
-      ${live ? `<button class="big" id="cont">Continue career<small>${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></button>` : ''}
-      <button class="${live ? 'ghost' : 'big'}" id="newc">New career</button>
-      ${list.length > 1 || (list.length && !live) ? `<button class="ghost" id="careers">Careers <small>${list.length} on this device</small></button>` : ''}
-      <div class="row2"><button class="ghost" id="qg">Quick game</button><button class="ghost" id="seas">Season</button></div>
-      <div class="row2"><button class="ghost sm" id="prac">Practice</button><button class="ghost sm" id="daily">Daily challenge${dailyDone() ? ' ✓' : ''}</button></div>
+      ${live ? `<button class="mode pri" id="cont">${MIC.career}<span><b>Continue career</b><small>${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></span><em>›</em></button>` : ''}
+      <button class="mode ${live ? '' : 'pri'}" id="newc">${live ? MIC.plus : MIC.career}<span><b>New career</b><small>Create a player and take him from draft night to the Hall of Fame.</small></span><em>›</em></button>
+      ${list.length > 1 || (list.length && !live) ? `<button class="mode" id="careers">${MIC.list}<span><b>Careers</b><small>${list.length} on this device</small></span><em>›</em></button>` : ''}
+      <div class="modes">
+        <button class="tile" id="qg">${MIC.vs}<b>Quick game</b><small>Two teams, one game</small></button>
+        <button class="tile" id="seas">${MIC.cup}<b>Season</b><small>Run a whole team</small></button>
+        <button class="tile" id="prac">${MIC.target}<b>Practice</b><small>Drills and contests</small></button>
+        <button class="tile" id="daily">${MIC.day}<b>Daily challenge${dailyDone() ? ' ✓' : ''}</b><small>A new one every day</small></button>
+      </div>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
@@ -279,24 +283,32 @@
   }
 
   function settings() {
-    const opt = (k, vals, lab) => `<div class="field"><label>${lab}</label><div class="seg" data-k="${k}">${vals.map(v => `<button class="${S[k] == v ? 'on' : ''}" data-v="${v}">${typeof v === 'number' && k === 'qlen' ? v + ' min' : v}</button>`).join('')}</div></div>`;
+    /* a row: the name on the left; a switch for on/off, a short run of choices otherwise */
+    const opt = (k, vals, lab, sub) => { const sw = vals.length === 2 && vals[0] === 'On';
+      return `<div class="srow${sw ? '' : ' wide'}"><label>${lab}${sub ? `<small>${sub}</small>` : ''}</label>${sw
+        ? `<div class="seg sw" data-k="${k}"><button class="tog${S[k] !== 'Off' ? ' on' : ''}" role="switch" aria-checked="${S[k] !== 'Off'}" aria-label="${lab}" data-v="${S[k] !== 'Off' ? 'Off' : 'On'}"><i></i></button></div>`
+        : `<div class="seg sm" data-k="${k}">${vals.map(v => `<button class="${S[k] == v ? 'on' : ''}" data-v="${v}">${typeof v === 'number' && k === 'qlen' ? v + ' min' : v}</button>`).join('')}</div>`}</div>`; };
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Settings</h2>
+      <p class="kick">The game</p><div class="card set">
+      ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
+      ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
+      ${opt('timing', ['Easy', 'Normal', 'Hard'], 'Shot timing', 'how wide the green band is')}
+      ${opt('season', [10, 20, 41, 82], 'Games in a career season', 'from next season on')}
+      ${opt('replaysOn', ['On', 'Off'], 'Replays')}</div>
+      <p class="kick">Sound</p><div class="card set">
       ${opt('soundOn', ['On', 'Off'], 'Sound')}
       ${opt('musicOn', ['On', 'Off'], 'Menu music')}
       ${opt('commentaryOn', ['On', 'Off'], 'Commentary')}
-      ${opt('replaysOn', ['On', 'Off'], 'Replays')}
-      ${opt('vibrateOn', ['On', 'Off'], 'Vibration (Android)')}
+      ${opt('vibrateOn', ['On', 'Off'], 'Vibration', 'Android')}</div>
+      <p class="kick">Camera and look</p><div class="card set">
       ${opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera')}
-      ${opt('timing', ['Easy', 'Normal', 'Hard'], 'Shot timing (how wide the green band is)')}
-      ${opt('hand', ['Right-handed', 'Left-handed'], 'Buttons')}
-      ${opt('radarOn', ['On', 'Off'], 'Radar (the whole floor, top right)')}
-      ${opt('gfx', ['High', 'Low'], 'Graphics (Low for older phones: fewer details, lower resolution)')}
-      ${opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock camera distance')}
-      ${opt('btnSize', ['Normal', 'Large'], 'Button size')}
+      ${opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock distance')}
+      ${opt('gfx', ['High', 'Low'], 'Graphics', 'Low for older phones')}
       ${opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players')}
-      ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
-      ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
-      ${opt('season', [10, 20, 41, 82], 'Games in a career season (next season on)')}
+      ${opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')}</div>
+      <p class="kick">Controls</p><div class="card set">
+      ${opt('hand', ['Right-handed', 'Left-handed'], 'Buttons')}
+      ${opt('btnSize', ['Normal', 'Large'], 'Button size')}</div>
       <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name and colors</small></button>
       <p class="fine">Settings are kept on this device.</p></div>`);
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
@@ -345,7 +357,8 @@
       <div class="qvs">${['qa', 'qb'].map((id, i) => `<div class="qt" data-s="${id}"><span class="kick">${i ? 'Opponent' : 'Your team'}</span><div class="qc"><button class="ar" data-d="-1" aria-label="Previous team">‹</button><i class="qb"></i><button class="ar" data-d="1" aria-label="Next team">›</button></div><b></b><small></small><select id="${id}" aria-label="${i ? 'Opponent' : 'Your team'}">${opts}</select></div>`).join('<em>vs</em>')}</div>
       <div class="field"><label>You play</label><div class="seg" id="qp">${PB.POS.map((p, i) => `<button data-v="${i}" class="${i === 0 ? 'on' : ''}">${p}</button>`).join('')}<button data-v="team">Whole team</button></div></div>
       <p class="fine">Pick a position to play one player while your teammates play around you, or Whole team to control whoever has the ball (and, on defense, the man guarding it; Switch moves you to the defender nearest the ball). ${S.qlen}-minute quarters, ${S.level}.</p>
-      <button class="big" id="go">Tip off</button></div>`);
+      <button class="big" id="go">Tip off</button>
+      <p class="fine" id="qhint"></p>${PB.teamGrid()}</div>`);
     $('#qb').value = 'BOS'; $('#qa').value = 'LAK';
     /* each side of the matchup: the badge, arrows to flick through the league, the name (tap it for the whole list) */
     const paintQ = () => scr().querySelectorAll('.qt').forEach(q => { const t = PB.team(q.querySelector('select').value);
@@ -353,6 +366,13 @@
       q.querySelector('b').textContent = t.name; q.querySelector('small').textContent = t.city; });
     scr().querySelectorAll('.qt').forEach(q => { const sel = q.querySelector('select'); sel.onchange = paintQ;
       q.querySelectorAll('.ar').forEach(a => a.onclick = () => { const n = PB.TEAMS.length; sel.selectedIndex = (sel.selectedIndex + +a.dataset.d + n) % n; paintQ(); }); });
+    /* or pick from the whole league below: tap a side, then a team */
+    let side = 'qa';
+    const setSide = k => { side = k; scr().querySelectorAll('.qt').forEach(q => q.classList.toggle('on', q.dataset.s === k)); $('#qhint').textContent = `Tap a team below to set ${k === 'qa' ? 'your team' : 'the opponent'}.`;
+      scr().querySelectorAll('.tt').forEach(b => b.classList.toggle('on', b.dataset.id === $('#' + k).value)); };
+    scr().querySelectorAll('.qt').forEach(q => q.addEventListener('click', () => setSide(q.dataset.s)));
+    scr().querySelectorAll('.tt').forEach(b => b.onclick = () => { $('#' + side).value = b.dataset.id; paintQ(); setSide(side === 'qa' ? 'qb' : 'qa'); scr().scrollTo({ top: 0, behavior: 'smooth' }); });
+    setSide('qa');
     paintQ();
     let slot = 0;
     scr().querySelectorAll('#qp button').forEach(b => b.onclick = () => { slot = b.dataset.v === 'team' ? 'team' : +b.dataset.v; scr().querySelectorAll('#qp button').forEach(x => x.classList.toggle('on', x === b)); });
@@ -1117,6 +1137,16 @@
   const glog = (x, n) => `<div class="glog"><span>${n}</span>${badge(PB.team(x.opp))}
         <b class="${x.res.win ? 'w' : 'l'}">${x.res.win ? 'W' : 'L'} ${x.res.us}-${x.res.them}</b><em>${x.res.line.pts} pts · ${x.res.line.reb} reb · ${x.res.line.ast} ast</em><i>${x.res.grade}${x.res.sim ? ' · sim' : ''}</i></div>`;
   const fmtFans = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n));
+  /* every team, by conference and division, two to a row: a stripe in its color, the city over the nickname */
+  PB.teamGrid = () => ['East', 'West'].map(c => { const ts = PB.TEAMS.filter(t => t.conf === c), divs = [...new Set(ts.map(t => t.div))];
+    return `<p class="kick conf">${c}ern Conference</p>` + divs.map(d => `<p class="kick dv">${esc(d || '')}</p><div class="tgrid">${ts.filter(t => t.div === d).map(t =>
+      `<button class="trow tt" data-id="${t.id}" style="--tc:${t.c1}"><i></i><span><small>${esc(t.city)}</small><b>${esc(t.name)}</b></span><em>${esc(t.ab || t.id)}</em></button>`).join('')}</div>`).join(''); }).join('');
+  /* the title's mode cards: a line icon each */
+  const mic = d => `<i class="mi"><svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg></i>`;
+  const MIC = { career: mic('<circle cx="12" cy="8" r="3.500"/><path d="M5 20c0-3.600 3.100-6 7-6s7 2.400 7 6"/>'), plus: mic('<path d="M12 5v14M5 12h14"/>'), list: mic('<path d="M8 7h11M8 12h11M8 17h11M4.500 7h.01M4.500 12h.01M4.500 17h.01"/>'),
+    vs: mic('<path d="M4 7l3.500 10L11 7M20 8.500c-.700-1-1.800-1.500-3-1.500-1.700 0-3 1-3 2.400 0 3.100 6 1.600 6 4.900 0 1.500-1.400 2.700-3.200 2.700-1.400 0-2.600-.600-3.300-1.700"/>'),
+    cup: mic('<path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4c0 3 1.500 4.500 3.500 4.500M17 6h3c0 3-1.500 4.500-3.500 4.500M12 13v4M8.500 20h7"/>'),
+    target: mic('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".800"/>'), day: mic('<rect x="4" y="5.500" width="16" height="14" rx="2.500"/><path d="M8 3.500v4M16 3.500v4M4 10.500h16M9 15l2 2 4-4"/>') };
   /* the hub's bottom bar: one line icon a tab */
   const NAVIC = { home: '<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/>', team: '<circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.3"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5M15.5 14.2c2.800 0 5.500 1.500 5.500 4.300"/>',
     player: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.600 3.100-6 7-6s7 2.400 7 6"/>', league: '<path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4c0 3 1.500 4.500 3.500 4.500M17 6h3c0 3-1.500 4.500-3.500 4.500M12 13v4M8.500 20h7"/>', log: '<path d="M5 19V9M10 19V5M15 19v-7M20 19v-11"/>' };
