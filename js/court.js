@@ -127,12 +127,23 @@
     g.globalAlpha = 0.06; g.fillStyle = '#000';
     for (let i = 0; i < 3000; i++) g.fillRect(PB.rand() * cv.width, PB.rand() * cv.height, 1 + PB.rand() * 2, 4 + PB.rand() * 18);
     g.globalAlpha = 1;
+    /* every floor its own design too: 0 the classic (a solid key), 1 a darker stain inside the three-point line,
+       2 a two-tone key (the second color in the circle and under the rim), 3 an open key (wood, edged in the color) */
+    const design = home.court !== undefined ? home.court : (hh >>> 3) % 4;
+    const arcPath = s2 => { const rz = 41.75 * s2, bz = 47 * s2, cz = rz - s2 * Math.sqrt(23.75 * 23.75 - 22 * 22), a0 = Math.atan2(cz - rz, -22), a1 = Math.atan2(cz - rz, 22);
+      g.beginPath(); g.moveTo(X(-22), Z(bz)); g.lineTo(X(-22), Z(cz)); if (s2 > 0) g.arc(X(0), Z(rz), 23.75 * PX, a0, a1, false); else g.arc(X(0), Z(rz), 23.75 * PX, a0, a1, true); g.lineTo(X(22), Z(bz)); g.closePath(); };
+    if (design === 1) { g.fillStyle = 'rgba(70,36,8,0.20)'; for (const s2 of [-1, 1]) { arcPath(s2); g.fill(); } }
     /* the paint and the center circle in the home team's color */
     g.fillStyle = home.c1;
-    g.globalAlpha = 0.88;
+    g.globalAlpha = design === 3 ? 0.16 : 0.88;
     g.fillRect(X(-8), Z(-47), 16 * PX, 19 * PX);
     g.fillRect(X(-8), Z(28), 16 * PX, 19 * PX);
+    g.globalAlpha = 0.88;
     g.beginPath(); g.arc(X(0), Z(0), 6 * PX, 0, 7); g.fill();
+    if (design === 3) { g.lineWidth = 0.75 * PX; g.strokeStyle = home.c1; for (const s2 of [-1, 1]) g.strokeRect(X(-8) + g.lineWidth / 2, Z(s2 > 0 ? 28 : -47) + g.lineWidth / 2, 16 * PX - g.lineWidth, 19 * PX - g.lineWidth); }
+    if (design === 2) { g.fillStyle = home.c2; g.globalAlpha = 0.8;
+      for (const s2 of [-1, 1]) { g.beginPath(); g.arc(X(0), Z(28 * s2), 6 * PX, 0, 7); g.fill(); g.beginPath(); g.arc(X(0), Z(41.75 * s2), 4 * PX, s2 > 0 ? Math.PI : 0, s2 > 0 ? 2 * Math.PI : Math.PI, false); g.lineTo(X(s2 > 0 ? 4 : -4), Z(47 * s2)); g.lineTo(X(s2 > 0 ? -4 : 4), Z(47 * s2)); g.closePath(); g.fill(); }
+      g.fillStyle = home.c1; g.globalAlpha = 0.88; g.fillRect(X(-8), Z(-47), 16 * PX, 13 * PX - 0); g.fillRect(X(-8), Z(34), 16 * PX, 13 * PX); }
     g.globalAlpha = 1;
     /* sideline and baseline band */
     g.fillStyle = home.c1; g.globalAlpha = 0.9;

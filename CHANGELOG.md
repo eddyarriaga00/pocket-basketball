@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Every arena's floor has a design of its own as well as its own wood: the classic solid key, a darker stain inside
+  the three-point line, a two-tone key, or an open key edged in the team's color.
 - In the dunk contest and the drills the camera no longer whips around when you get under the rim or past it.
 - On defense, a reach goes at the ball (down for a low dribble), and anyone off the floor without the ball has his
   hands up: a block try or a rebound no longer goes up with the arms held out in front.
