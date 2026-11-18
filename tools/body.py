@@ -128,10 +128,21 @@ for S, sg in (('L', 1), ('R', -1)):
         ln = 0.115 - 0.012 * abs(q - 1.4)
         G['skin'].append(loft(f'finger{S}{q}', capped([(h0 + X * sg * 0.125 + Y * dy * 0.92 - Z * 0.004, 0.0150, 0.0150), (h0 + X * sg * (0.125 + ln * 0.55) + Y * dy - Z * 0.012, 0.0145, 0.0140), (h0 + X * sg * (0.125 + ln) + Y * dy * 1.04 - Z * 0.028, 0.0125, 0.0120)]), Y, Z, seg=10, k=1.2))
 
-REGION = {'skin': 0, 'jersey': 1, 'shorts': 2, 'shoe': 3, 'sock': 4}
-BUDGET = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500}
-VOXEL = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009}
-SMOOTH = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2}
+# ---- the head: big for the body (the pocket look), a jaw, ears, a nose; hair as a cap; simple eyes, brows and a mouth
+hc = Vector((0, -0.010, head('DEF-head').z + 0.150)); HS = 1.16
+hb = lambda dx, dy, dz, rx, ry, rz, n: ball(n, (hc.x + dx * HS, hc.y + dy * HS, hc.z + dz * HS), (rx * HS, ry * HS, rz * HS), seg=24)
+G['head'] = [hb(0, 0, 0, 0.122, 0.136, 0.140, 'skull'), hb(0, -0.020, -0.075, 0.100, 0.108, 0.082, 'jaw'), hb(0, -0.138, -0.022, 0.020, 0.024, 0.022, 'nose')]
+G['head'] += [hb(sg * 0.122, 0.012, -0.020, 0.018, 0.026, 0.036, 'ear' + str(sg)) for sg in (1, -1)]
+G['hair'] = [hb(0, 0.026, 0.050, 0.130, 0.138, 0.112, 'hair')]
+G['eye'] = [hb(sg * 0.046, -0.118, 0.012, 0.026, 0.012, 0.030, 'eye' + str(sg)) for sg in (1, -1)]
+G['dark'] = [hb(sg * 0.046, -0.127, 0.010, 0.013, 0.008, 0.017, 'pupil' + str(sg)) for sg in (1, -1)]
+G['dark'] += [hb(sg * 0.046, -0.120, 0.056, 0.030, 0.008, 0.007, 'brow' + str(sg)) for sg in (1, -1)]
+G['dark'] += [hb(0, -0.118, -0.080, 0.034, 0.008, 0.007, 'mouth')]
+
+REGION = {'skin': 0, 'jersey': 1, 'shorts': 2, 'shoe': 3, 'sock': 4, 'head': 0, 'hair': 5, 'eye': 6, 'dark': 7}
+BUDGET = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 1500, 'hair': 500, 'eye': 240, 'dark': 400}
+VOXEL = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.006, 'hair': 0.008, 'eye': 0.004, 'dark': 0.0035}
+SMOOTH = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 4, 'hair': 2, 'eye': 1, 'dark': 1}
 layers = []
 for g, objs in G.items():
     for o in bpy.data.objects: o.select_set(False)
@@ -148,7 +159,7 @@ for g, objs in G.items():
     # which layer a vertex belongs to rides along as a vertex color (red = the region number / 8): the game reads it
     ca = o.data.color_attributes.new('Col', 'BYTE_COLOR', 'CORNER')
     for d in ca.data: d.color = (REGION[g] / 8.0, 0.0, 0.0, 1.0)
-    mat = bpy.data.materials.new('M_' + g); mat.diffuse_color = {'skin': (0.62, 0.42, 0.30, 1), 'jersey': (0.93, 0.93, 0.95, 1), 'shorts': (0.10, 0.10, 0.12, 1), 'shoe': (0.95, 0.95, 0.96, 1), 'sock': (0.85, 0.85, 0.87, 1)}[g]
+    mat = bpy.data.materials.new('M_' + g); mat.diffuse_color = {'skin': (0.62, 0.42, 0.30, 1), 'jersey': (0.93, 0.93, 0.95, 1), 'shorts': (0.10, 0.10, 0.12, 1), 'shoe': (0.95, 0.95, 0.96, 1), 'sock': (0.85, 0.85, 0.87, 1), 'head': (0.62, 0.42, 0.30, 1), 'hair': (0.06, 0.05, 0.05, 1), 'eye': (0.97, 0.97, 0.97, 1), 'dark': (0.05, 0.04, 0.04, 1)}[g]
     o.data.materials.append(mat)
     layers.append(o)
 for o in bpy.data.objects: o.select_set(False)
@@ -168,6 +179,10 @@ bpy.ops.object.parent_set(type='ARMATURE_AUTO')
 bpy.context.view_layer.objects.active = body
 bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
 bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
+# the small shapes of the face (eyes, brows, mouth) are too small for bone heat to reach: they ride on the head bone
+hg = body.vertex_groups.get('DEF-head') or body.vertex_groups.new(name='DEF-head')
+loose = [q.index for q in body.data.vertices if not q.groups]
+if loose: hg.add(loose, 1.0, 'REPLACE')
 unw = sum(1 for q in body.data.vertices if not q.groups)
 tris = sum(len(p.vertices) - 2 for p in body.data.polygons)
 print('BODY verts', len(body.data.vertices), 'tris', tris, 'unweighted', unw, 'groups', len(body.vertex_groups))
@@ -177,7 +192,7 @@ if PREVIEW:
     sc = bpy.context.scene
     sc.render.engine = 'BLENDER_WORKBENCH'
     sc.display.shading.light = 'STUDIO'; sc.display.shading.color_type = 'MATERIAL'; sc.display.shading.show_cavity = True
-    sc.render.resolution_x, sc.render.resolution_y = 1800, 760
+    sc.render.resolution_x, sc.render.resolution_y = 1800, 860
     sc.render.film_transparent = False
     sc.world = bpy.data.worlds.new('W'); sc.world.color = (0.03, 0.03, 0.035)
     views = []
@@ -188,8 +203,8 @@ if PREVIEW:
         d.location = ((k - 1) * 1.95 + (0.25 if k == 2 else 0), 0, 0); d.rotation_euler = (0, 0, math.radians(ang)); views.append(d)
     body.hide_render = True; arm.hide_render = True
     cam = bpy.data.objects.new('Cam', bpy.data.cameras.new('Cam')); sc.collection.objects.link(cam); sc.camera = cam
-    cam.data.type = 'ORTHO'; cam.data.ortho_scale = 6.1
-    cam.location = (0, -8, 0.86); cam.rotation_euler = (math.radians(90), 0, 0)
+    cam.data.type = 'ORTHO'; cam.data.ortho_scale = 6.3
+    cam.location = (0, -8, 0.98); cam.rotation_euler = (math.radians(90), 0, 0)
     sc.render.filepath = PREVIEW
     bpy.ops.render.render(write_still=True)
     for d in views: bpy.data.objects.remove(d, do_unlink=True)
