@@ -95,7 +95,10 @@ fictional: real league, team and player names are trademarks. Settings › Edit 
 python3 tools/serve.py 8000
 ```
 Then open http://localhost:8000. Tests (they need Playwright): `node tools/smoke.js`, `node tools/balance.js`,
-`node tools/drill.js`, `node tools/career.js`.
+`node tools/drill.js`, `node tools/career.js`, `node tools/monkey.js` (random input), `node tools/human.js` (a player
+who plays properly), `node tools/invariants.js` (things that must never happen, checked every tick),
+`node tools/session.js` (several games in one sitting), `node tools/webkit.js` (the game in Safari's engine, as an
+iPhone). `node tools/frames.js <scene> <view>` steps one animation into a sheet of pictures.
 
 ## Built with
 
