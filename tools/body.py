@@ -66,24 +66,24 @@ shz = head('DEF-upper_arm.L').z
 parts.append(loft('trunk', capped([
     ((0, 0.016, hz - 0.105), 0.168, 0.104), ((0, 0.014, hz - 0.03), 0.190, 0.116), ((0, 0.010, hz + 0.07), 0.172, 0.110),
     ((0, 0.006, s1 + 0.05), 0.150, 0.098), ((0, 0.002, s2 + 0.02), 0.158, 0.100), ((0, 0.000, s2 + 0.11), 0.176, 0.106),
-    ((0, 0.004, s3 + 0.04), 0.186, 0.106), ((0, 0.010, shz - 0.035), 0.176, 0.098), ((0, 0.014, shz + 0.022), 0.118, 0.082),
+    ((0, 0.004, s3 + 0.04), 0.196, 0.116), ((0, 0.010, shz - 0.035), 0.198, 0.112), ((0, 0.014, shz + 0.022), 0.150, 0.094),
     ((0, 0.012, nk + 0.012), 0.062, 0.060)]), X, Y, seg=28, power=2.5, k=0.95))   # slimmer than the jersey over it, so it never shows through
-parts.append(loft('neck', [((0, 0.010, nk - 0.03), 0.056, 0.056), ((0, 0.004, nk + 0.04), 0.050, 0.051), ((0, -0.004, head('DEF-head').z + 0.035), 0.048, 0.049)], X, Y, seg=16))
+parts.append(loft('neck', [((0, 0.010, nk - 0.03), 0.070, 0.068), ((0, 0.004, nk + 0.04), 0.062, 0.062), ((0, -0.004, head('DEF-head').z + 0.045), 0.060, 0.060)], X, Y, seg=16))
 for S, sg in (('L', 1), ('R', -1)):
     sh, el, wr = head(f'DEF-upper_arm.{S}'), head(f'DEF-forearm.{S}'), head(f'DEF-hand.{S}')
     ax = lambda t, a, b: Vector((a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t))
     # the shoulder is a ball the arm hangs from; the arm: a soft upper arm, a clear elbow, a forearm that swells then narrows to the wrist
-    parts.append(ball('delt' + S, (sh.x - sg * 0.004, sh.y - 0.004, sh.z - 0.002), (0.078, 0.074, 0.074)))
+    parts.append(ball('delt' + S, (sh.x - sg * 0.004, sh.y - 0.004, sh.z - 0.002), (0.090, 0.084, 0.086)))
     parts.append(loft('arm' + S, capped([
-        (ax(-0.04, sh, el), 0.058, 0.060), (ax(0.22, sh, el), 0.056, 0.058), (ax(0.55, sh, el), 0.052, 0.054), (ax(0.86, sh, el), 0.046, 0.048),
-        (ax(0.0, el, wr), 0.044, 0.045), (ax(0.14, el, wr), 0.047, 0.049), (ax(0.36, el, wr), 0.048, 0.050), (ax(0.66, el, wr), 0.041, 0.042),
-        (ax(0.92, el, wr), 0.033, 0.031), (ax(1.02, el, wr), 0.031, 0.028)]), Y, Z, seg=18, k=LIMB))
+        (ax(-0.04, sh, el), 0.068, 0.070), (ax(0.22, sh, el), 0.068, 0.070), (ax(0.55, sh, el), 0.062, 0.064), (ax(0.86, sh, el), 0.053, 0.055),
+        (ax(0.0, el, wr), 0.050, 0.052), (ax(0.14, el, wr), 0.054, 0.056), (ax(0.36, el, wr), 0.055, 0.057), (ax(0.66, el, wr), 0.049, 0.050),
+        (ax(0.92, el, wr), 0.038, 0.036), (ax(1.02, el, wr), 0.036, 0.033)]), Y, Z, seg=18, k=LIMB))
     # the hand: a palm, the fingers together as one pad curling a little, a thumb
     h0 = Vector((wr.x + sg * 0.015, wr.y, wr.z))
     parts.append(loft('hand' + S, capped([
         (h0, 0.034, 0.022), (h0 + X * sg * 0.035, 0.046, 0.024), (h0 + X * sg * 0.075, 0.050, 0.024), (h0 + X * sg * 0.115 - Z * 0.003, 0.047, 0.021),
-        (h0 + X * sg * 0.155 - Z * 0.008, 0.041, 0.018), (h0 + X * sg * 0.185 - Z * 0.015, 0.032, 0.015)]), Y, Z, seg=16, power=2.6, k=1.22))
-    parts.append(loft('thumb' + S, capped([(h0 + X * sg * 0.045 - Y * 0.030, 0.019, 0.017), (h0 + X * sg * 0.070 - Y * 0.062 - Z * 0.006, 0.018, 0.016), (h0 + X * sg * 0.092 - Y * 0.082 - Z * 0.012, 0.015, 0.014)]), Vector((sg * 0.7, 0.7, 0)).normalized(), Z, seg=12, k=1.22))
+        (h0 + X * sg * 0.155 - Z * 0.008, 0.041, 0.018), (h0 + X * sg * 0.185 - Z * 0.015, 0.032, 0.015)]), Y, Z, seg=16, power=2.6, k=1.42))
+    parts.append(loft('thumb' + S, capped([(h0 + X * sg * 0.045 - Y * 0.030, 0.019, 0.017), (h0 + X * sg * 0.070 - Y * 0.062 - Z * 0.006, 0.018, 0.016), (h0 + X * sg * 0.092 - Y * 0.082 - Z * 0.012, 0.015, 0.014)]), Vector((sg * 0.7, 0.7, 0)).normalized(), Z, seg=12, k=1.5))
     hp, kn, an = head(f'DEF-thigh.{S}'), head(f'DEF-shin.{S}'), head(f'DEF-foot.{S}')
     lg = lambda t, a, b, dy=0.0, dx=0.0: Vector((a.x + (b.x - a.x) * t + sg * dx, a.y + (b.y - a.y) * t + dy, a.z + (b.z - a.z) * t))
     # the leg: a full thigh that narrows to the knee, a calf that sits behind the shin, a slim ankle
@@ -96,10 +96,17 @@ for S, sg in (('L', 1), ('R', -1)):
 # ---- the kit, as layers of its own over the body (what the reference games do: clothes are shapes, not paint):
 # a loose jersey with a hem, baggy shorts to the knee, crew socks, sneakers with a sole, a toe cap and a tongue
 G = {'skin': parts, 'jersey': [], 'shorts': [], 'sock': [], 'shoe': []}
-G['jersey'].append(loft('jersey', capped([
-    ((0, 0.014, hz - 0.060), 0.205, 0.132), ((0, 0.012, hz + 0.02), 0.200, 0.130), ((0, 0.008, s1 + 0.05), 0.186, 0.122),
-    ((0, 0.004, s2 + 0.03), 0.190, 0.122), ((0, 0.002, s2 + 0.12), 0.202, 0.124), ((0, 0.006, s3 + 0.045), 0.206, 0.122),
-    ((0, 0.012, shz - 0.045), 0.192, 0.114), ((0, 0.014, shz + 0.006), 0.160, 0.102), ((0, 0.012, shz + 0.038), 0.120, 0.088)]), X, Y, seg=32, power=2.4))
+jersey = loft('jersey', capped([
+    ((0, 0.014, hz - 0.048), 0.201, 0.129), ((0, 0.012, hz + 0.02), 0.200, 0.129), ((0, 0.008, s1 + 0.05), 0.198, 0.128),
+    ((0, 0.004, s2 + 0.03), 0.208, 0.132), ((0, 0.002, s2 + 0.12), 0.216, 0.134), ((0, 0.006, s3 + 0.045), 0.220, 0.134),
+    ((0, 0.012, shz - 0.045), 0.216, 0.128), ((0, 0.014, shz + 0.008), 0.190, 0.114), ((0, 0.012, shz + 0.046), 0.130, 0.094)]), X, Y, seg=36, power=2.7)
+def cut(o, cutter):
+    bpy.context.view_layer.objects.active = o
+    m = o.modifiers.new('Cut', 'BOOLEAN'); m.operation = 'DIFFERENCE'; m.object = cutter; m.solver = 'EXACT'
+    bpy.ops.object.modifier_apply(modifier='Cut'); bpy.data.objects.remove(cutter, do_unlink=True)
+cut(jersey, ball('neckcut', (0, -0.045, shz + 0.062), (0.092, 0.150, 0.098), seg=24))                 # the scoop of the neck
+for sg in (1, -1): cut(jersey, ball('armcut', (sg * 0.232, 0.030, shz - 0.030), (0.086, 0.170, 0.118), seg=24))   # the armholes
+G['jersey'].append(jersey)
 G['shorts'].append(loft('shortsTop', capped([
     ((0, 0.016, hz - 0.150), 0.190, 0.120), ((0, 0.014, hz - 0.070), 0.214, 0.134), ((0, 0.012, hz + 0.010), 0.208, 0.134),
     ((0, 0.010, hz + 0.060), 0.196, 0.128)]), X, Y, seg=32, power=2.6))
@@ -124,23 +131,28 @@ for S, sg in (('L', 1), ('R', -1)):
     G['shoe'].append(ball('tongue' + S, (an.x, an.y - 0.060, 0.150), (0.040, 0.026, 0.058)))
     # four fingers on the pad of the hand, a little apart at the tips and curling down
     wr = head(f'DEF-hand.{S}'); h0 = Vector((wr.x + sg * 0.015, wr.y, wr.z))
-    for q, dy in enumerate((-0.042, -0.014, 0.014, 0.042)):
+    for q, dy in enumerate((-0.050, -0.017, 0.017, 0.050)):
         ln = 0.115 - 0.012 * abs(q - 1.4)
-        G['skin'].append(loft(f'finger{S}{q}', capped([(h0 + X * sg * 0.125 + Y * dy * 0.92 - Z * 0.004, 0.0150, 0.0150), (h0 + X * sg * (0.125 + ln * 0.55) + Y * dy - Z * 0.012, 0.0145, 0.0140), (h0 + X * sg * (0.125 + ln) + Y * dy * 1.04 - Z * 0.028, 0.0125, 0.0120)]), Y, Z, seg=10, k=1.2))
+        G['skin'].append(loft(f'finger{S}{q}', capped([(h0 + X * sg * 0.125 + Y * dy * 0.92 - Z * 0.004, 0.0150, 0.0150), (h0 + X * sg * (0.125 + ln * 0.55) + Y * dy - Z * 0.012, 0.0145, 0.0140), (h0 + X * sg * (0.125 + ln) + Y * dy * 1.04 - Z * 0.028, 0.0125, 0.0120)]), Y, Z, seg=10, k=1.55))
 
 # ---- the head: big for the body (the pocket look), a jaw, ears, a nose; hair as a cap; simple eyes, brows and a mouth
-hc = Vector((0, -0.010, head('DEF-head').z + 0.150)); HS = 1.16
+hc = Vector((0, -0.010, head('DEF-head').z + 0.158)); HS = 1.2
 hb = lambda dx, dy, dz, rx, ry, rz, n: ball(n, (hc.x + dx * HS, hc.y + dy * HS, hc.z + dz * HS), (rx * HS, ry * HS, rz * HS), seg=24)
-G['head'] = [hb(0, 0, 0, 0.122, 0.136, 0.140, 'skull'), hb(0, -0.020, -0.075, 0.100, 0.108, 0.082, 'jaw'), hb(0, -0.138, -0.022, 0.020, 0.024, 0.022, 'nose')]
-G['head'] += [hb(sg * 0.122, 0.012, -0.020, 0.018, 0.026, 0.036, 'ear' + str(sg)) for sg in (1, -1)]
-G['hair'] = [hb(0, 0.026, 0.050, 0.130, 0.138, 0.112, 'hair')]
-G['eye'] = [hb(sg * 0.046, -0.118, 0.012, 0.026, 0.012, 0.030, 'eye' + str(sg)) for sg in (1, -1)]
-G['dark'] = [hb(sg * 0.046, -0.127, 0.010, 0.013, 0.008, 0.017, 'pupil' + str(sg)) for sg in (1, -1)]
-G['dark'] += [hb(sg * 0.046, -0.120, 0.056, 0.030, 0.008, 0.007, 'brow' + str(sg)) for sg in (1, -1)]
-G['dark'] += [hb(0, -0.118, -0.080, 0.034, 0.008, 0.007, 'mouth')]
+G['head'] = [hb(0, 0, 0, 0.124, 0.136, 0.138, 'skull'), hb(0, -0.018, -0.078, 0.104, 0.110, 0.084, 'jaw'), hb(0, -0.060, -0.128, 0.052, 0.050, 0.034, 'chin'),
+             hb(0, -0.132, -0.030, 0.022, 0.018, 0.016, 'nose'), hb(0, -0.128, -0.006, 0.014, 0.018, 0.030, 'bridge')]
+G['head'] += [hb(sg * 0.124, 0.016, -0.026, 0.014, 0.024, 0.032, 'ear' + str(sg)) for sg in (1, -1)]
+G['head'] += [hb(sg * 0.058, -0.086, -0.050, 0.036, 0.028, 0.028, 'cheek' + str(sg)) for sg in (1, -1)]
+# a short cut with a flat top and a clean hairline: a cap over the skull, squared off on top, tight at the sides
+G['hair'] = [hb(0, 0.030, 0.048, 0.129, 0.136, 0.112, 'hair'), hb(0, 0.016, 0.098, 0.108, 0.116, 0.062, 'top'), hb(0, 0.070, -0.030, 0.120, 0.090, 0.090, 'back')]
+G['eye'] = [hb(sg * 0.047, -0.112, 0.014, 0.030, 0.014, 0.034, 'eye' + str(sg)) for sg in (1, -1)]
+G['dark'] = [hb(sg * 0.044, -0.123, 0.011, 0.016, 0.008, 0.021, 'pupil' + str(sg)) for sg in (1, -1)]
+G['eye'] += [hb(sg * 0.044 + 0.006, -0.130, 0.020, 0.005, 0.004, 0.006, 'glint' + str(sg)) for sg in (1, -1)]
+for sg in (1, -1):   # brows: thick, a little lower toward the nose; and a mouth that turns up at the corners
+    G['dark'].append(loft('brow' + str(sg), capped([(hc + Vector((sg * 0.020, -0.130, 0.050)) * HS, 0.010, 0.008), (hc + Vector((sg * 0.050, -0.127, 0.060)) * HS, 0.011, 0.008), (hc + Vector((sg * 0.078, -0.112, 0.054)) * HS, 0.008, 0.007)]), Y, Z, seg=8))
+G['dark'].append(loft('mouth', capped([(hc + Vector((-0.036, -0.112, -0.074)) * HS, 0.008, 0.005), (hc + Vector((-0.018, -0.122, -0.084)) * HS, 0.008, 0.006), (hc + Vector((0.0, -0.125, -0.087)) * HS, 0.008, 0.006), (hc + Vector((0.018, -0.122, -0.084)) * HS, 0.008, 0.006), (hc + Vector((0.036, -0.112, -0.074)) * HS, 0.008, 0.005)]), Y, Z, seg=8))
 
 REGION = {'skin': 0, 'jersey': 1, 'shorts': 2, 'shoe': 3, 'sock': 4, 'head': 0, 'hair': 5, 'eye': 6, 'dark': 7}
-BUDGET = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 1500, 'hair': 500, 'eye': 240, 'dark': 400}
+BUDGET = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 1800, 'hair': 700, 'eye': 300, 'dark': 600}
 VOXEL = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.006, 'hair': 0.008, 'eye': 0.004, 'dark': 0.0035}
 SMOOTH = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 4, 'hair': 2, 'eye': 1, 'dark': 1}
 layers = []
@@ -207,6 +219,8 @@ if PREVIEW:
     cam.location = (0, -8, 0.98); cam.rotation_euler = (math.radians(90), 0, 0)
     sc.render.filepath = PREVIEW
     bpy.ops.render.render(write_still=True)
+    cam.data.ortho_scale = 2.5; cam.location = (-0.975, -8, 1.52); sc.render.resolution_x, sc.render.resolution_y = 1500, 900
+    sc.render.filepath = PREVIEW.replace('.png', '-head.png'); bpy.ops.render.render(write_still=True)
     for d in views: bpy.data.objects.remove(d, do_unlink=True)
     body.hide_render = False
 
