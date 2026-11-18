@@ -1909,7 +1909,8 @@
      then drop the outlines and the men on the bench (about half the triangles). If none of that buys anything, the
      frame rate is being held down from outside (a phone in Low Power Mode draws thirty frames a second whatever
      you ask of it): everything goes back to full quality and stays there. */
-  let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2, qLvl = 0, avg0 = 0, qLock = false;
+  let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2, qLvl = 0, avg0 = 0, slow0 = 0, qLock = false;
+  R.quality = () => ({ level: qLvl, locked: qLock, base: Math.round(avg0) });
   R.lite = () => lite;
   function setQuality(n) {
     qLvl = n; prCap = n === 0 ? 2 : n === 1 ? 1.5 : 1;
@@ -1927,10 +1928,13 @@
     if (ftN >= 90) {
       const avg = ftAcc / ftN; ftAcc = 0; ftN = 0;
       if (!qLock && avg > 22) {
-        if (qLvl === 0) avg0 = avg;
-        if (qLvl < 3) setQuality(qLvl + 1);
+        /* two slow stretches in a row at full quality before anything is given up (the first seconds of a game hitch
+           while it loads), and the better of the two is what the reductions have to beat */
+        if (qLvl === 0 && !slow0) { slow0 = avg; }
+        else if (qLvl === 0) { avg0 = Math.min(slow0, avg); setQuality(1); }
+        else if (qLvl < 3) setQuality(qLvl + 1);
         else { if (avg > avg0 * 0.85) setQuality(0); qLock = true; }   // nothing helped: it was never the drawing
-      }
+      } else if (qLvl === 0) slow0 = 0;
     }
     renderer.render(scene, cam);
   };
