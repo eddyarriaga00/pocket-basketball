@@ -793,7 +793,7 @@
     const big = d.pos === 'C' || d.pos === 'PF', bd = (h >> 4) % 8;   // builds: bigs run strong, guards run slim, most are regular
     return { build: big ? [null, null, 'strong', 'strong', 'big', null, 'strong', 'slim'][bd] : [null, null, null, 'slim', 'slim', null, 'strong', null][bd], hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
       beard: [null, null, null, 'full', 'stubble', 'goatee', null, null, 'mustache', 'chinstrap', null][(h >> 12) % 11],
-      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 5, goggles: (h >> 27) % 23 === 0 ? 'black' : null, tee: (h >> 13) % 11 === 0 ? ((h >> 7) % 2 ? '#f2f2f2' : '#111111') : null };
+      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 8, goggles: (h >> 27) % 23 === 0 ? 'black' : null, tee: (h >> 13) % 11 === 0 ? ((h >> 7) % 2 ? '#f2f2f2' : '#111111') : null };
   }
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
@@ -830,11 +830,12 @@
         /* the model's hair, beard, face, headband and goggles: the parts this player's look asks for, in his colors */
         const dd = p.d || p, lk = dd.look || autoLook(dd), F0 = TPL.faceGeo, tv = F0.userData.tv;
         const HV = { short: 1, buzz: 2, high: 3, afro: 4, twists: 5, fade: 6, cornrows: 7, bun: 8, mohawk: 9, locs: 10, curly: 14, ponytail: 15, long: 22, spiky: 34, braids: 35 }, BV = { stubble: 11, goatee: 12, full: 13, mustache: 32, chinstrap: 33 };
-        const base = [HV[lk.hair] || 0, lk.hair === 'cornrows' ? 21 : 0, BV[lk.beard] || 0, 26 + (+lk.face || 0), lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean);
+        const fN = +lk.face || 0, eyeV = fN < 5 ? 16 + fN : 31 + fN, mouthV = fN < 5 ? 26 + fN : 41 + fN;   // faces 0 to 4, then 5 on (parts 36 and up)
+        const base = [HV[lk.hair] || 0, lk.hair === 'cornrows' ? 21 : 0, BV[lk.beard] || 0, mouthV, lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean);
         const setOf = want => { const key = want.join(','); let ixs = F0.userData.sets[key];
           if (!ixs) { const src = F0.index.array, out = []; for (let t = 0; t < tv.length; t++) if (want.includes(tv[t])) out.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]); ixs = F0.userData.sets[key] = F0.attributes.position.count > 65535 ? new T.Uint32BufferAttribute(out, 1) : new T.Uint16BufferAttribute(out, 1); }
           return ixs; };
-        let ixs = setOf(base.concat(16 + (+lk.face || 0))); const shutIx = setOf(base.concat(31));   // eyes open, and shut for a blink
+        let ixs = setOf(base.concat(eyeV)); const shutIx = setOf(base.concat(31));   // eyes open, and shut for a blink
         const fg = new T.BufferGeometry(); for (const a of ['position', 'normal', 'skinIndex', 'skinWeight']) fg.setAttribute(a, F0.attributes[a]); fg.setIndex(ixs);
         const team = kit.c1, pick = v => v === 'team' ? team : v, hairC = new T.Color(lk.hairColor || '#17110d'), skinC = new T.Color(PB.SKIN[dd.skin == null ? 3 : dd.skin] || '#8d5a3b');
         const cOf = { 2: hairC.clone().lerp(skinC, 0.32), 7: hairC.clone().lerp(skinC, 0.5), 11: hairC.clone().lerp(skinC, 0.55), 24: new T.Color(pick(lk.band) || '#f2f2f2'), 25: new T.Color(lk.goggles === 'team' ? team : /^#/.test(lk.goggles || '') ? lk.goggles : '#141414') }, white = new T.Color('#f4f4f4'), dark = new T.Color('#141011');
@@ -843,7 +844,7 @@
         const cl = new Float32Array(kc.count * 3);
         for (let i = 0; i < kc.count; i++) { const r = kc.getX(i), c = cOf[vv[i]] || (r < 0.5 ? hairC : r < 1.5 ? white : dark); cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
         fg.setAttribute('color', new T.BufferAttribute(cl, 3));
-        const fm = new T.SkinnedMesh(fg, new T.MeshLambertMaterial({ vertexColors: true })); fm.frustumCulled = false; bodyMesh.parent.add(fm); faceM = fm; fm.userData.open = ixs; fm.userData.shut = shutIx; fm.userData.yell = setOf(base.concat(16 + (+lk.face || 0), 23));
+        const fm = new T.SkinnedMesh(fg, new T.MeshLambertMaterial({ vertexColors: true })); fm.frustumCulled = false; bodyMesh.parent.add(fm); faceM = fm; fm.userData.open = ixs; fm.userData.shut = shutIx; fm.userData.yell = setOf(base.concat(eyeV, 23));
         fm.position.copy(bodyMesh.position); fm.quaternion.copy(bodyMesh.quaternion); fm.scale.copy(bodyMesh.scale); fm.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
       if (bodyMesh && !(TPL.model && !PB.mannequin)) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
     }
