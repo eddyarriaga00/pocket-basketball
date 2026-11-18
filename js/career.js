@@ -1620,7 +1620,7 @@
     const r = g.res, o = PB.team(g.opp), t = PB.team(C.team), l = r.line;
     const pr = pressFor(g, r);
     const P = pr && PRESS[pr[0]];
-    show(`<div class="page post"><p class="kick">${sim ? 'Simulated' : 'Final'}${g.po ? ' · Playoffs' : ''}</p>
+    show(`<div class="page post"><p class="kick">${sim ? 'Simulated' : 'Final'}${r.ot ? ' · ' + (r.ot > 1 ? r.ot : '') + 'OT' : ''}${g.po ? ' · Playoffs' : ''}</p>
       <div class="final"><div>${badge(t)}<b>${r.us}</b></div><em>${r.win ? 'WIN' : 'LOSS'}</em><div><b>${r.them}</b>${badge(o)}</div></div>
       <div class="night${r.win ? ' w' : ''}" style="--tc:${t.c1}">${portrait() ? `<img src="${portrait()}" alt="">` : ''}<div><span>${esc(PB.full(C.me))}</span><b>${l.pts} <small>PTS</small></b><p>${l.reb} reb · ${l.ast} ast · ${l.fgm}/${l.fga} FG</p></div><em>${r.grade}<i>Teammate grade</i></em></div>
       <div class="tiles"><div><b>${l.pts}</b><span>PTS</span></div><div><b>${l.reb}</b><span>REB</span></div><div><b>${l.ast}</b><span>AST</span></div>
@@ -1694,7 +1694,7 @@
     lastReels = res.reels || [];
     if (!g) {   // quick game
       const u = res.user || {};
-      show(`<div class="page post"><p class="kick">Final</p>
+      show(`<div class="page post"><p class="kick">Final${res.line && res.line.length > 4 ? ' · ' + (res.line.length > 5 ? res.line.length - 4 : '') + 'OT' : ''}</p>
         <div class="final"><div>${badge(res.teams[0])}<b>${res.score[0]}</b></div><em>${res.score[0] > res.score[1] ? 'WIN' : 'LOSS'}</em><div><b>${res.score[1]}</b>${badge(res.teams[1])}</div></div>
         <div class="gradebig"><b>${res.grade || '–'}</b><span>Teammate grade</span></div>
         <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div>
@@ -1710,7 +1710,7 @@
     const line = Object.assign({ pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0 }, u);
     if (res.winner) (C.flags = C.flags || {}).winner = true;
     const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0, fade: u.fade || 0, hookm: u.hookm || 0 };
-    record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots });
+    record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots, ot: res.line && res.line.length > 4 ? res.line.length - 4 : 0 });
     g.res.boxHtml = potg(res) + gameStats(res) + boxScore(res);
     after(g, false);
   }
