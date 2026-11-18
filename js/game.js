@@ -145,7 +145,7 @@
   function tkoTick() { const k = G.tko; if (k && k.on) { if (G.t > k.until) tkoEnd(); else tkoHud(); } }
   /* ---------- first-game tips: shown once each, the first time the moment comes up ---------- */
   const TIPS = {
-    ball: 'You have the ball. Hold SHOOT, let go at the top of the jump (green band). PASS finds the open man; swipe MOVE to break your man down.',
+    ball: 'You have the ball. Hold SHOOT, let go at the top of the jump (green band). PASS finds the open man, or tap a teammate; swipe MOVE to break your man down.',
     def: 'Defense. Stay between your man and the rim. STEAL when the button lights up. JUMP as he shoots.',
     mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
     ft: 'Free throw: hold SHOOT and let go in the green band.',
@@ -207,6 +207,8 @@
     const off = G.poss === 0 || (G.poss === null && G.ball.holder && G.ball.holder.team === 0);
     const has = G.ball.holder === u;
     const ft = G.phase === 'ft' && G.ftq && G.ftq.shooter === u;
+    { const ct = !G.drill && clutchTime(); document.querySelector('.bug').classList.toggle('clutch', ct); if (ct && !G.clutchSaid) { G.clutchSaid = true; toast('Clutch time', 'call'); }
+      const mt = $('#meter'); if (mt) mt.classList.toggle('away', !!(ft && u && !home(u.team))); }   // the last two minutes of a close game; a road crowd behind the basket at the line
     if (G.phase === 'live' && G.t > 2) { if (has) tip('ball'); else if (!off && G.ball.holder) tip('def'); else if (off && G.ball.holder) tip('mate'); }
     if (ft) tip('ft');
     $('#bA').textContent = ft || has || G.drill ? 'Shoot' : 'Jump';
@@ -440,7 +442,7 @@
       else if (ae <= w * 2.2) { timing = err < 0 ? 'Slightly early' : 'Slightly late'; }
       else if (ae <= w * 4) { timing = err < 0 ? 'Early' : 'Late'; prob *= 0.72; }
       else { timing = err < 0 ? 'Very early' : 'Very late'; prob *= 0.35; }
-      showRelease(timing, meter, w); buzz(timing === 'Excellent' ? [12, 40, 12] : 10);
+      showRelease(timing, meter, w); buzz(timing === 'Excellent' ? [12, 40, 12] : 10); G.greenShot = timing === 'Excellent';   // a perfect release leaves a green trail
       R.flash(timing === 'Excellent' ? 0x4cffb0 : /Slightly/.test(timing) ? 0xffffff : 0xff5a6b);
     } else {
       const err = Math.abs(s.aiRel - 0.82);
@@ -700,7 +702,7 @@
       else if (s.kind === 'hook') B('hookshot', { prio: 3 });
       else if (s.kind === 'dunk' && p.showoff) B('showoff', { prio: 5 });
       else B(s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : 'jumper', { prio: s.kind === 'dunk' || s.pts === 3 ? 3 : 2, follow: s.pts === 3 ? 0.3 : s.kind === 'dunk' ? 0.35 : 0.15 });
-      if (run.pts >= 8 && !run.said) { run.said = true; setTimeout(() => B('run', { prio: 1 }), 2600); }
+      if (run.pts >= 8 && !run.said) { run.said = true; setTimeout(() => B('run', { prio: 1 }), 2600); const tm = G.teams[p.team], n = run.pts; setTimeout(() => { const e = $('#statpop'); if (!e || G.drill) return; e.innerHTML = `<i style="background:${tm.c1}"></i><div><b>${tm.name}</b><span>on a ${n}-0 run</span></div>`; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 3200); }, 4200); }
       /* assist: a pass that set it up in the last few seconds */
       let ast = null;
       if (b.passer && b.passer.team === p.team && b.passer !== p && G.t - b.passT < 3.2 && (p.hold || 0) < 2.4) { ast = b.passer; ast.st.ast++; }
@@ -1302,6 +1304,14 @@
     } else if (u.shoot && u.shoot.user) {
       release(u, u.shoot.t / u.shoot.T);
     }
+  }
+  /* icon passing, the pocket way: tap a teammate on the floor and the ball goes to him */
+  function tapPass(cx, cy) {
+    const u = G && G.user; if (!u || G.paused || G.phase !== 'live' || G.ball.holder !== u || u.shoot || G.drill || !R.toScreen) return false;
+    let best = null, bd = 54;
+    for (const m of G.pl) { if (m.team !== u.team || m === u) continue; const q = R.toScreen(m.x, m.y + 3.4, m.z); if (!q) continue; const d = Math.hypot(q.x - cx, q.y - cy); if (d < bd) { bd = d; best = m; } }
+    if (!best) return false;
+    if (u.inb) { u.inb = false; G.inb = null; } passTo(u, best); buzz(8); return true;
   }
   function pressB() {
     const u = G.user; if (!u || G.phase !== 'live') return;
@@ -1989,6 +1999,7 @@
   function bindControls() {
     const zone = $('#stickzone'), knob = $('#knob'), base = $('#stickbase');
     let sid = null, ox = 0, oy = 0;
+    { const cv = $('#gl'); if (cv) cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(); if (tapPass(e.clientX - r.left, e.clientY - r.top)) e.preventDefault(); }); }
     zone.addEventListener('pointerdown', e => {
       if (sid !== null) return;
       sid = e.pointerId; zone.setPointerCapture(sid);
@@ -2079,7 +2090,7 @@
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
         <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
-        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A perfect release goes in unless it is blocked.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
+        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A perfect release goes in unless it is blocked.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {
         /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */

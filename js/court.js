@@ -1629,6 +1629,7 @@
     if (mine) { trailPts.push(new T.Vector3(b.x, b.y, b.z)); if (trailPts.length > 24) trailPts.shift(); }
     else if (trailPts.length) trailPts.shift();
     trail.visible = trailPts.length > 1;
+    if (trail.visible) trail.material.color.setHex(G.greenShot ? 0x4cffb0 : 0xffffff);
     if (trail.visible) { const pos = trail.geometry.attributes.position; for (let i = 0; i < 24; i++) { const q = trailPts[Math.min(i, trailPts.length - 1)]; pos.setXYZ(i, q.x, q.y, q.z); } pos.needsUpdate = true; trail.geometry.computeBoundingSphere(); }
     for (const n of nets) {
       n.swish = Math.max(0, n.swish - dt * 2.2);

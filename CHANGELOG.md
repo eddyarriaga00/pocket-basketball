@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Tap a teammate on the floor and the ball goes to him. A perfect release leaves a green trail. A team on an 8-0 run
+  gets a graphic. The clock turns red in clutch time (the last two minutes of a close game). On the road, the
+  free-throw meter shakes with the crowd. Your legs show as an arc round your ring.
 - More small things: the officials signal (both arms up on a three, a fist in the air on a foul); a dunk on a
   defender is called (POSTERIZED, and the bench is up); your badges show as they fire, on a chip with the badge's
   name and tier, on makes, steals and blocks. A tip card no longer sits under the REPLAY label.
