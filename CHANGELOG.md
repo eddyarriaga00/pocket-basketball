@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The layup is its own keyed move now: the ball comes up past the chest with the knee, the arm reaches full length
+  and the fingers roll through it, the off arm stays loose. The new model blinks (its eyes are a separate part).
 - A new player model, sculpted in Blender for this game (tools/body.py builds it; models/body.glb): tall and lean with
   longer legs, a tank jersey with a scoop neck, baggy shorts, crew socks, sneakers with a sole and a tongue, hands with
   fingers, and a smooth head with simple eyes and a cap of hair. Joints bend smoothly instead of hinging. It wears

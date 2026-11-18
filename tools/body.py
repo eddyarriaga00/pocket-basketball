@@ -188,23 +188,25 @@ part('beard_full', 5, 13, [loft('b13', [(hv(0, -0.006, z), rx * HS * 1.06, ry * 
 FACE = {16: (0.021, 0.033, 0.046, 0.047, 0.007, 0.008, 0.030), 17: (0.020, 0.027, 0.036, 0.054, 0.008, 0.000, 0.026), 18: (0.024, 0.039, 0.058, 0.056, 0.006, 0.014, 0.038),
         19: (0.022, 0.019, 0.044, 0.044, 0.006, 0.004, 0.022), 20: (0.021, 0.031, 0.040, 0.050, 0.011, 0.006, 0.030)}
 for vid, (ew, eh, bi, bo, bt, up, mw) in FACE.items():
-    dk = [hb(sg * 0.052, -0.129, -0.006, ew, 0.010, eh, 'eye') for sg in (1, -1)]
+    part(f'eyes{vid}', 7, vid, [hb(sg * 0.052, -0.129, -0.006, ew, 0.010, eh, 'eye') for sg in (1, -1)])
+    dk = []
     for sg in (1, -1): dk.append(loft('brow', capped([(hv(sg * 0.026, -0.134, bi), bt * HS, 0.005 * HS), (hv(sg * 0.054, -0.132, (bi + bo) / 2 + 0.006), bt * HS, 0.005 * HS), (hv(sg * 0.080, -0.120, bo), bt * 0.85 * HS, 0.004 * HS)]), Y, Z, seg=8))
     sm = 0.004 if vid == 20 else 0.0     # the bold face smirks: one corner higher
     dk.append(loft('mouth', capped([(hv(-mw, -0.124, -0.086 + up - sm), 0.006 * HS, 0.004 * HS), (hv(-mw * 0.45, -0.130, -0.086), 0.006 * HS, 0.004 * HS), (hv(mw * 0.45, -0.130, -0.086), 0.006 * HS, 0.004 * HS), (hv(mw, -0.124, -0.086 + up + sm), 0.006 * HS, 0.004 * HS)]), Y, Z, seg=8))
-    part(f'face{vid}', 7, vid, dk)
+    part(f'face{vid}', 7, vid + 10, dk)   # brows and mouth: 26 to 30
     part(f'glint{vid}', 6, vid, [hb(sg * 0.052 + 0.008, -0.138, min(0.008, eh * 0.4 - 0.004), 0.0065, 0.004, 0.009 if eh > 0.022 else 0.005, 'glint') for sg in (1, -1)])
+part('shut', 7, 31, [loft('lid', capped([(hv(sg * 0.052 - 0.020, -0.131, -0.010), 0.005 * HS, 0.004 * HS), (hv(sg * 0.052, -0.134, -0.014), 0.005 * HS, 0.004 * HS), (hv(sg * 0.052 + 0.020, -0.131, -0.010), 0.005 * HS, 0.004 * HS)]), Y, Z, seg=8) for sg in (1, -1)])   # a blink: the eyes as two short lines
 part('band', 5, 24, [loft('band', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((0.034, 1.0), (0.040, 1.045), (0.078, 1.045), (0.084, 1.0))], X, Y, seg=40, power=2.35)])
 part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'lens') for sg in (1, -1)] + [loft('strap', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((-0.014, 1.0), (-0.010, 1.03), (0.008, 1.03), (0.012, 1.0))], X, Y, seg=40, power=2.35)])
 
 B0 = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
 V0 = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
 S0 = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
-kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') else 'glint' if g.startswith('glint') else g
+kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') or g.startswith('eyes') or g == 'shut' else 'glint' if g.startswith('glint') else g
 BUDGET = lambda g: B0.get(g) or {'hair': 800, 'face': 420, 'glint': 60}[kind(g)]
 VOXEL = lambda g: V0.get(g) or {'hair': 0.0075, 'face': 0.004, 'glint': 0.003}[kind(g)]
 SMOOTH = lambda g: S0.get(g) if g in S0 else {'hair': 3, 'face': 1, 'glint': 1}[kind(g)]
-SHOW = ('skin', 'jersey', 'shorts', 'shoe', 'sock', 'head', 'hair_short', 'face16', 'glint16')   # what the preview picture wears
+SHOW = ('skin', 'jersey', 'shorts', 'shoe', 'sock', 'head', 'hair_short', 'face16', 'eyes16', 'glint16')   # what the preview picture wears
 KNEEZ = head('DEF-shin.L').z
 layers = []
 for g, objs in G.items():

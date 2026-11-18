@@ -786,6 +786,7 @@
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
+    let faceM = null;   // the model's face and hair mesh, for the blink
     if (TPL.shortsGeo) {
       const cs = [new T.Color(shorts), new T.Color(kit.alt || kit.c2), new T.Color(kit.c2)];
       const sm = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide });
@@ -805,9 +806,11 @@
         /* the model's hair, beard, face, headband and goggles: the parts this player's look asks for, in his colors */
         const dd = p.d || p, lk = dd.look || autoLook(dd), F0 = TPL.faceGeo, tv = F0.userData.tv;
         const HV = { short: 1, buzz: 2, high: 3, afro: 4, twists: 5, fade: 6, cornrows: 7, bun: 8, mohawk: 9, locs: 10 }, BV = { stubble: 11, goatee: 12, full: 13 };
-        const want = [HV[lk.hair] || 0, BV[lk.beard] || 0, 16 + (+lk.face || 0), lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean), key = want.join(',');
-        let ixs = F0.userData.sets[key];
-        if (!ixs) { const src = F0.index.array, out = []; for (let t = 0; t < tv.length; t++) if (want.includes(tv[t])) out.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]); ixs = F0.userData.sets[key] = new T.Uint16BufferAttribute(out, 1); if (F0.attributes.position.count > 65535) ixs = F0.userData.sets[key] = new T.Uint32BufferAttribute(out, 1); }
+        const base = [HV[lk.hair] || 0, BV[lk.beard] || 0, 26 + (+lk.face || 0), lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean);
+        const setOf = want => { const key = want.join(','); let ixs = F0.userData.sets[key];
+          if (!ixs) { const src = F0.index.array, out = []; for (let t = 0; t < tv.length; t++) if (want.includes(tv[t])) out.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]); ixs = F0.userData.sets[key] = F0.attributes.position.count > 65535 ? new T.Uint32BufferAttribute(out, 1) : new T.Uint16BufferAttribute(out, 1); }
+          return ixs; };
+        let ixs = setOf(base.concat(16 + (+lk.face || 0))); const shutIx = setOf(base.concat(31));   // eyes open, and shut for a blink
         const fg = new T.BufferGeometry(); for (const a of ['position', 'normal', 'skinIndex', 'skinWeight']) fg.setAttribute(a, F0.attributes[a]); fg.setIndex(ixs);
         const team = kit.c1, pick = v => v === 'team' ? team : v, hairC = new T.Color(lk.hairColor || '#17110d'), skinC = new T.Color(PB.SKIN[dd.skin == null ? 3 : dd.skin] || '#8d5a3b');
         const cOf = { 11: hairC.clone().lerp(skinC, 0.55), 24: new T.Color(pick(lk.band) || '#f2f2f2'), 25: new T.Color(lk.goggles === 'team' ? team : /^#/.test(lk.goggles || '') ? lk.goggles : '#141414') }, white = new T.Color('#f4f4f4'), dark = new T.Color('#141011');
@@ -816,7 +819,7 @@
         const cl = new Float32Array(kc.count * 3);
         for (let i = 0; i < kc.count; i++) { const r = kc.getX(i), c = cOf[vv[i]] || (r < 0.5 ? hairC : r < 1.5 ? white : dark); cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
         fg.setAttribute('color', new T.BufferAttribute(cl, 3));
-        const fm = new T.SkinnedMesh(fg, new T.MeshLambertMaterial({ vertexColors: true })); fm.frustumCulled = false; bodyMesh.parent.add(fm);
+        const fm = new T.SkinnedMesh(fg, new T.MeshLambertMaterial({ vertexColors: true })); fm.frustumCulled = false; bodyMesh.parent.add(fm); faceM = fm; fm.userData.open = ixs; fm.userData.shut = shutIx;
         fm.position.copy(bodyMesh.position); fm.quaternion.copy(bodyMesh.quaternion); fm.scale.copy(bodyMesh.scale); fm.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
       if (bodyMesh && !(TPL.model && !PB.mannequin)) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
     }
@@ -846,7 +849,7 @@
     const R = TPL.headR;
     const fi = (d.look && d.look.face != null ? +d.look.face : look.face || 0) % FACES.length; TPL.headGeos = TPL.headGeos || [];
     const HG = TPL.headGeos[fi] || (TPL.headGeos[fi] = headGeometries(R, FACES[fi]));
-    const hg = new T.Group(); put(head, TPL.decals.headC, hg); if (TPL.model && !PB.mannequin) hg.visible = false;   // the model has its own head
+    const hg = new T.Group(); put(head, TPL.decals.headC, hg); hg.userData.faceM = faceM; if (TPL.model && !PB.mannequin) hg.visible = false;   // the model has its own head
     hg.add(new T.Mesh(HG.skin, skinMat(d.skin || 0)));
     hg.add(new T.Mesh(HG.face, FACE_MAT));
     { const bl = new T.Mesh(HG.blink, skinMat(d.skin || 0)); bl.visible = false; hg.add(bl); hg.userData.blink = bl; hg.userData.bph = Math.random() * 4; }
@@ -1027,6 +1030,14 @@
     [0.38, [[0.20, -0.18, 0.96], [-0.10, 0.86, 0.50], [0.34, -0.14, 0.93], [-0.30, 0.82, 0.48]]],
     [0.76, [[0.12, 0.56, 0.82], [-0.02, 0.97, -0.22], [0.34, 0.50, 0.80], [-0.30, 0.92, 0.10]]],
     [1.00, [[0.10, 0.80, 0.59], [0.03, 0.86, 0.51], [0.40, 0.55, 0.73], [-0.10, 0.95, 0.28]]]];
+  /* the layup, keyed: the gather (two hands on the ball at the hip on the ball side), carried up past the shoulder,
+     the reach (the knee and that elbow go up together), the release at full stretch off the fingers; the off arm
+     comes off the ball and bars the defender */
+  const LAYUP = [
+    [0.00, [[0.30, -0.80, 0.50], [-0.10, -0.10, 0.99], [0.20, -0.75, 0.62], [-0.50, 0.00, 0.86]]],
+    [0.40, [[0.30, -0.10, 0.95], [0.00, 0.80, 0.60], [0.30, -0.20, 0.93], [-0.42, 0.60, 0.68]]],
+    [0.74, [[0.16, 0.74, 0.65], [0.08, 0.95, 0.30], [0.42, -0.74, 0.50], [-0.05, 0.30, 0.95]]],
+    [1.00, [[0.12, 0.93, 0.34], [0.06, 0.98, 0.20], [0.40, -0.82, 0.38], [0.02, 0.36, 0.93]]]];
   /* a pose between the keys of a keyed move, eased */
   function keyed(K, k) {
     let i = 0; while (i < K.length - 2 && k > K[i + 1][0]) i++;
@@ -1181,6 +1192,7 @@
     } else m.lookY = (m.lookY || 0) * Math.max(0, 1 - dt * 6);
     if (m.head && Math.abs(m.lookY || 0) > 0.01) { m.body.updateMatrixWorld(true); m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_up, m.lookY).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); }
     if (m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = (G.t + m.hg.userData.bph) % 3.8 < 0.13;
+    if (m.hg && m.hg.userData.faceM) { const fm = m.hg.userData.faceM, sh = (G.t + (m.bph2 || (m.bph2 = Math.random() * 3.8))) % 3.8 < 0.13, ix = sh ? fm.userData.shut : fm.userData.open; if (fm.geometry.index !== ix) fm.geometry.setIndex(ix); }   // the model blinks
     if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
@@ -1222,7 +1234,7 @@
     { const sk = p.shoot && p.shoot.kind; m.lay = p.shoot ? (sk === 'layup' || sk === 'floater' ? 1 : sk === 'hook' ? 2 : 0) : (p.y > 0.2 ? m.lay : 0);
       if (m.lay && (pose === 'shoot' || pose === 'follow')) { const e = pose === 'follow' ? 1 : smooth(0, 1, kk), L = (a, b) => a.map((v, j) => v + (b[j] - v) * e);
         P = m.lay === 2 ? [L([0.9, -0.1, 0.3], [0.35, 0.93, 0.1]), L([0.85, 0.3, 0.3], [0.15, 0.98, 0.1]), [0.6, -0.1, 0.7], [-0.2, 0.25, 0.9]]
-          : [L([0.25, -0.2, 0.9], [0.12, 0.93, 0.34]), L([0.1, 0.55, 0.8], [0.06, 0.98, 0.2]), [0.6, -0.5, 0.5], [-0.35, 0.3, 0.85]]; } }
+          : pose === 'follow' ? [[0.12, 0.93, 0.34], [0.06, 0.92, 0.38], [0.40, -0.82, 0.38], [0.02, 0.36, 0.93]] : keyed(LAYUP, kk); } }
     if (pose === 'dribble' && p.sigT !== undefined && G.t - p.sigT < 1.3 && !(ms < 1)) { const e = Math.sin(Math.PI * Math.min(1, (G.t - p.sigT) / 1.3)); const L = (a, b) => a.map((v, j) => v + (b[j] - v) * Math.min(1, e * 1.6)); P = [P[0], P[1], L(P[2], [0.3, 0.86, 0.35]), L(P[3], [0.12, 0.97, 0.2])]; }   // calling the set: the off hand goes up
     /* at a run the ball is pushed out in front at the waist, not carried up by the shoulder */
     if (pose === 'dribble' && p.runD > 0.05) { const e = 0.7 * p.runD, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], [0.1, -0.88, 0.45]), L(P[1], [0.2, -0.5, 0.84]), [0.3, -0.75, -0.2 + 0.5 * Math.sin(kk * 6.28)], [0.1, -0.3, 0.9]]; }
@@ -1251,6 +1263,8 @@
     aim(m.L.fore, m.L.hand, dirOf(p.face, Bf[0], Bf[1], Bf[2], -s), w);
     /* the shooter's wrists: cocked back under the ball at the set point, snapped through at the release and left
        hanging on the follow-through; the guide hand's fingers point up */
+    if ((pose === 'shoot' || pose === 'follow') && m.lay === 1 && m.R.fing && m.L.fing) { const hd = sw ? m.L : m.R, fr = pose === 'follow' ? [0, 0.15, 0.99] : [0, 0.55 + 0.2 * kk, 0.83 - 0.3 * kk];   // the finger roll: the palm under the ball, then the fingers through it
+      aim(hd.hand, hd.fing, dirOf(p.face, fr[0], fr[1], fr[2], sw ? -s : s), w); }
     if ((pose === 'shoot' || pose === 'follow') && !m.lay && m.R.fing && m.L.fing) {
       const e = pose === 'follow' ? 2 : kk, wr = e >= 2 ? [0, -0.62, 0.78] : e > 0.76 ? [0, 0.75 - 0.15 * (e - 0.76) / 0.24, -0.6 + 1.4 * (e - 0.76) / 0.24] : [0, 0.5 + 0.25 * e / 0.76, 0.85 - 1.45 * e / 0.76];
       aim(m.R.hand, m.R.fing, dirOf(p.face, wr[0], wr[1], wr[2], s), w);
