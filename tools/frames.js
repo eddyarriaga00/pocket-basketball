@@ -23,6 +23,7 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
     const far = SCENE === 'shot' || SCENE === 'contested' || SCENE === 'fake' || SCENE === 'pass' || SCENE === 'steal';
     u.x = 0; u.z = (far ? 22 : SCENE === 'dunk' ? 34 : 33) * hz; d.x = 0.5; d.z = u.z + 3.2 * hz; d.y = 0; m8.x = -16; m8.z = u.z - 6 * hz;
     if (SCENE === 'layup' || SCENE === 'dunk') { d.x = 30; u.vz = 12 * hz; if (SCENE === 'dunk') { u.r.dunk = 99; u.r.vert = 95; } }
+    if (SCENE === 'screen') { m8.x = 2.4; m8.z = u.z + 3.4 * hz; m8.vx = m8.vz = 0; m8.screen = 3; m8.face = Math.atan2(d.x - m8.x, d.z - m8.z); window._scr = m8; }
     if (SCENE === 'post') { u.d.pos = 'C'; u.x = 5; u.z = 32 * hz; d.x = 4; d.z = 34.6 * hz; }
     if (SCENE === 'hook') { u.d.pos = 'C'; u.x = 3; u.z = 33.5 * hz; d.x = 2.6; d.z = 36.3 * hz; u.face = Math.atan2(-3, 8 * hz); }
     if (SCENE === 'fade') { u.x = 0; u.z = 26 * hz; u.vz = -8 * hz; d.x = 0.4; d.z = 29 * hz; }
@@ -40,7 +41,7 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
     if (SCENE === 'inbound') { PB.Game.dbg.auto(true); for (let k = 0; k < 2400 && !(G.inb && G.phase === 'live' && G.ball.holder && G.ball.holder.inb); k++) PB.Game.dbg.run(0.1); window._S.ft = G.ball.holder; }
     if (SCENE === 'tip') { /* the opening tip: nothing to set up */ }
     if (SCENE === 'ft') { PB.Game.dbg.auto(true); for (let k = 0; k < 2400 && G.phase !== 'ft'; k++) PB.Game.dbg.run(0.25); window._S.ft = G.ftq && G.ftq.shooter; }
-    window._cam = () => { const w = (SCENE === 'ft' || SCENE === 'inbound') && window._S.ft ? window._S.ft : SCENE === 'catch' ? m8 : SCENE === 'contested' ? d : u, a = VIEW === 'front' ? 0 : VIEW === 'back' ? Math.PI : Math.PI / 2, fx = Math.sin(w.face + a), fz = Math.cos(w.face + a), h = (w.ht || 78) / 12;
+    window._cam = () => { const w = (SCENE === 'ft' || SCENE === 'inbound') && window._S.ft ? window._S.ft : SCENE === 'catch' || SCENE === 'screen' ? m8 : SCENE === 'contested' ? d : u, a = VIEW === 'front' ? 0 : VIEW === 'back' ? Math.PI : Math.PI / 2, fx = Math.sin(w.face + a), fz = Math.cos(w.face + a), h = (w.ht || 78) / 12;
       PB.R.studio = [w.x + fx * 13, h * 0.8 + 1.5 + w.y * 0.6, w.z + fz * (SCENE === 'contested' ? 16 : 13), w.x, h * 0.62 + w.y * 0.8, w.z]; };
     window._cam();
   }, [SCENE, VIEW]);
@@ -57,6 +58,7 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
     if (['shot', 'contested', 'layup', 'dunk', 'hook', 'fade', 'floater'].includes(SCENE) && u.shoot && u.shoot.t / u.shoot.T > 0.8) D.press('A', false);
     if (n > 0) D.run(DT); window._dt = DT; window._cam(); if (SCENE.startsWith('c-')) { G.ball.holder = m8; m8.x = -25; d.x = 30; u.vx = u.vz = 0; u.celebT = 9; u.pose = u.celebK; }
     if (SCENE === 'block') { if (G.ball.holder === d && !d.shoot) G.shotClock = Math.min(G.shotClock, 1.0); for (const p of G.pl) if (p !== u && p !== d) { p.x = 44; p.z = 44 * hz; } if (d.shoot && d.shoot.t / d.shoot.T > 0.3 && !window._S.jumped) { window._S.jumped = 1; D.press('A', true); D.press('A', false); } }
+    if (SCENE === 'screen') { const q = window._scr; q.screen = 3; q.vx = q.vz = 0; q.x = 2.4; q.z = u.z + 3.4 * hz; q.pose = ''; }
     if (SCENE === 'hands') { G.shotClock = Math.min(G.shotClock, 1.2); for (const p of G.pl) if (p !== u && p !== d) { p.x = 44; p.z = 44 * hz; } }
     if (SCENE === 'sizeup') { d.x = 0; d.z = u.z + 8 * hz; d.vx = d.vz = 0; } if (SCENE === 'rebound' && n === 3) { D.press('A', true); D.press('A', false); } if (SCENE === 'steal' || SCENE === 'jump') { G.ball.holder = G.ball.holder || d; d.vx = d.vz = 0; G.shotClock = 20; } if (SCENE === 'guard') { G.ball.holder = d; d.x = Math.sin(n * 0.5) * 2.5; d.z = -20 * hz; d.vx = d.vz = 0; G.shotClock = 20; D.stick(Math.cos(n * 0.5) > 0 ? 0.8 : -0.8, 0); } if (SCENE === 'walk' || SCENE === 'stand') { d.x = 20; d.z = u.z; d.vx = d.vz = 0; u.sizeT = 0; }
     return [n, u.pose, u.shoot ? +(u.shoot.t / u.shoot.T).toFixed(2) : null, +u.y.toFixed(1), G.ball.state, +G.ball.y.toFixed(1), d.pose, +d.y.toFixed(1)]; }, [SCENE, n, +DT]);

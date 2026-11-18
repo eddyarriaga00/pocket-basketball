@@ -1081,6 +1081,7 @@
     sig3: () => [[0.25, 0.96, 0.12], [0.1, 0.99, 0.05], [0.25, 0.96, 0.12], [0.1, 0.99, 0.05]],   // the officials: a three is good
     sigf: () => [[0.22, 0.96, 0.14], [0.06, 0.99, 0.08], [0.2, -0.95, 0.2], [0.12, -0.95, 0.28]],   // a foul: the fist goes up
     hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
+    screen: (k) => { const b = 0.02 * Math.sin(k * 3); return [[0.3, -0.8 + b, 0.52], [-0.82, -0.14, 0.55], [0.3, -0.8 - b, 0.52], [-0.82, -0.14, 0.55]]; },   // a screen: forearms crossed low in front, elbows in
     /* the inbounder: the ball over his head in both hands, looking one way and then the other for a man */
     over: (k) => { const s = 0.16 * Math.sin(k * 2.3); return [[0.3 + s, 0.72, 0.5], [-0.3 + s, 0.9, 0.12], [0.3 - s, 0.72, 0.5], [-0.3 - s, 0.9, 0.12]]; },
     /* the windmill: the ball arm goes down, back, over the top and through; k is the time in the air */
@@ -1299,6 +1300,8 @@
     if ((pose === 'guard' || pose === 'ready' || !pose) && !has && p.y > 0.35 && !p.shoot && p.pose !== 'hang') pose = 'contest';   // off the floor without the ball: the hands go up (a block try, a rebound)
     if (pose === 'guard' && !has) { const h = G.ball.holder; if (Math.hypot(p.vx, p.vz) > 10 && (!h || Math.hypot(h.x - p.x, h.z - p.z) > 9)) pose = ''; }   // sprinting back, far from the ball: he runs, arms pumping, not spread like wings
     if (!pose && m.rw > 0.3 && !has) pose = 'ready';
+    /* setting a screen: planted, arms crossed in front of him, braced for the bump */
+    if ((!pose || pose === 'ready') && !has && p.screen > 1.4 && p.y <= 0 && Math.hypot(p.vx, p.vz) < 4.5) pose = 'screen';
     if ((!pose || pose === 'guard' || pose === 'ready') && m.rb > 0.3 && !has) pose = 'box';
     if (pose !== m.pose) { m.pose = pose; }
     m.poseW = Math.min(1, (m.poseW || 0) + dt * (POSES[pose] ? 9 : -6));
@@ -1311,7 +1314,7 @@
     else if (pose === 'shoot' && ftk >= 0) kk = ftk;
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     else if (pose === 'dunk1') kk = p.shoot ? Math.min(1, p.shoot.t / p.shoot.T) : 1;
-    else if (pose === 'flex' || pose === 'roar' || pose === 'thump' || pose === 'three' || pose === 'call' || pose === 'shrug' || pose === 'toosmall' || pose === 'ice' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
+    else if (pose === 'flex' || pose === 'roar' || pose === 'thump' || pose === 'three' || pose === 'call' || pose === 'shrug' || pose === 'toosmall' || pose === 'ice' || pose === 'guard' || pose === 'ready' || pose === 'box' || pose === 'screen') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
