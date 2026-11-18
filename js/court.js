@@ -961,12 +961,12 @@
         if (q.t >= 1) { q.t = -1; q.y = 0; }
       } else { const e = Math.hypot(q.x - home[i][0], q.z - home[i][1]) + (vx * (home[i][0] - q.x) + vz * (home[i][1] - q.z)) * 0.3; if (e > fe) { fe = e; far = i; } }
     }
-    if (far >= 0 && fe > (sp < 0.5 ? thr * 0.45 : thr) && F[1 - far].t < 0) { const q = F[far]; q.t = 0; q.fx = q.x; q.fz = q.z; q.T = Math.max(0.1, 0.2 - sp * 0.008); }
+    if (far >= 0 && fe > (sp < 0.5 ? thr * 0.45 : thr) && (F[1 - far].t < 0 || fe > thr * 2.4)) { const q = F[far]; q.t = 0; q.fx = q.x; q.fz = q.z; q.T = Math.max(0.1, 0.2 - sp * 0.008); }
     /* the hips: down in the stance, lower still if a foot is out of reach; a little dip as a foot comes down */
     const bob = (F[0].t >= 0 ? Math.sin(Math.PI * Math.min(1, F[0].t)) : 0) + (F[1].t >= 0 ? Math.sin(Math.PI * Math.min(1, F[1].t)) : 0);
     let hipY = ank + L * (hk + 0.025 * bob);
     for (let i = 0; i < 2; i++) { legs[i].th.getWorldPosition(_H); const hd = Math.hypot(F[i].x - _H.x, F[i].z - _H.z), reach = 0.985 * L;
-      hipY = Math.min(hipY, ank + F[i].y + Math.sqrt(Math.max(0.2, reach * reach - hd * hd))); }
+      hipY = Math.max(hipY - 0.07 * L, Math.min(hipY, ank + F[i].y + Math.sqrt(Math.max(0.2, reach * reach - hd * hd)))); }
     legs[0].th.getWorldPosition(_H);
     m.body.position.y += (p.y + hipY - _H.y) * w; m.body.updateMatrixWorld(true);
     for (let i = 0; i < 2; i++) { const l = legs[i], q = F[i];
@@ -1097,6 +1097,8 @@
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
     let P = POSES[pose](kk);
+    /* at a run the ball is pushed out in front at the waist, not carried up by the shoulder */
+    if (pose === 'dribble' && p.runD > 0.05) { const e = 0.7 * p.runD, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], [0.1, -0.88, 0.45]), L(P[1], [0.2, -0.5, 0.84]), [0.3, -0.75, -0.2 + 0.5 * Math.sin(kk * 6.28)], [0.1, -0.3, 0.9]]; }
     if (pose === 'guard' && m.gd < 0.98) { const R0 = [[0.42, -0.8, 0.42], [0.4, -0.3, 0.86]], e = 1 - m.gd, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], R0[0]), L(P[1], R0[1]), L(P[2], R0[0]), L(P[3], R0[1])]; }
     if (pose === 'guard' && m.gc > 0.02) { const W0 = [[0.92, -0.3, 0.2], [0.82, 0.3, 0.45]], e = m.gc, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], W0[0]), L(P[1], W0[1]), L(P[2], W0[0]), L(P[3], W0[1])]; }
     if (pose === 'contest' && !air && p.y <= 0.05) P = [[0.3, 0.93, 0.22], [0.1, 0.98, 0.16], [0.8, -0.2, 0.55], [0.6, 0.45, 0.66]];   // feet on the floor: one hand up in the shooter's eyes
