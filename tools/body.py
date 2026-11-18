@@ -135,26 +135,30 @@ for S, sg in (('L', 1), ('R', -1)):
         ln = 0.115 - 0.012 * abs(q - 1.4)
         G['skin'].append(loft(f'finger{S}{q}', capped([(h0 + X * sg * 0.125 + Y * dy * 0.92 - Z * 0.004, 0.0150, 0.0150), (h0 + X * sg * (0.125 + ln * 0.55) + Y * dy - Z * 0.012, 0.0145, 0.0140), (h0 + X * sg * (0.125 + ln) + Y * dy * 1.04 - Z * 0.028, 0.0125, 0.0120)]), Y, Z, seg=10, k=1.55))
 
-# ---- the head: big for the body (the pocket look), a jaw, ears, a nose; hair as a cap; simple eyes, brows and a mouth
-hc = Vector((0, -0.010, head('DEF-head').z + 0.158)); HS = 1.2
-hb = lambda dx, dy, dz, rx, ry, rz, n: ball(n, (hc.x + dx * HS, hc.y + dy * HS, hc.z + dz * HS), (rx * HS, ry * HS, rz * HS), seg=24)
-G['head'] = [hb(0, 0, 0, 0.124, 0.136, 0.138, 'skull'), hb(0, -0.018, -0.078, 0.104, 0.110, 0.084, 'jaw'), hb(0, -0.060, -0.128, 0.052, 0.050, 0.034, 'chin'),
-             hb(0, -0.132, -0.030, 0.022, 0.018, 0.016, 'nose'), hb(0, -0.128, -0.006, 0.014, 0.018, 0.030, 'bridge')]
-G['head'] += [hb(sg * 0.124, 0.016, -0.026, 0.014, 0.024, 0.032, 'ear' + str(sg)) for sg in (1, -1)]
-G['head'] += [hb(sg * 0.058, -0.086, -0.050, 0.036, 0.028, 0.028, 'cheek' + str(sg)) for sg in (1, -1)]
-# a short cut with a flat top and a clean hairline: a cap over the skull, squared off on top, tight at the sides
-G['hair'] = [hb(0, 0.030, 0.048, 0.129, 0.136, 0.112, 'hair'), hb(0, 0.016, 0.098, 0.108, 0.116, 0.062, 'top'), hb(0, 0.070, -0.030, 0.120, 0.090, 0.090, 'back')]
-G['eye'] = [hb(sg * 0.047, -0.112, 0.014, 0.030, 0.014, 0.034, 'eye' + str(sg)) for sg in (1, -1)]
-G['dark'] = [hb(sg * 0.044, -0.123, 0.011, 0.016, 0.008, 0.021, 'pupil' + str(sg)) for sg in (1, -1)]
-G['eye'] += [hb(sg * 0.044 + 0.006, -0.130, 0.020, 0.005, 0.004, 0.006, 'glint' + str(sg)) for sg in (1, -1)]
-for sg in (1, -1):   # brows: thick, a little lower toward the nose; and a mouth that turns up at the corners
-    G['dark'].append(loft('brow' + str(sg), capped([(hc + Vector((sg * 0.020, -0.130, 0.050)) * HS, 0.010, 0.008), (hc + Vector((sg * 0.050, -0.127, 0.060)) * HS, 0.011, 0.008), (hc + Vector((sg * 0.078, -0.112, 0.054)) * HS, 0.008, 0.007)]), Y, Z, seg=8))
-G['dark'].append(loft('mouth', capped([(hc + Vector((-0.036, -0.112, -0.074)) * HS, 0.008, 0.005), (hc + Vector((-0.018, -0.122, -0.084)) * HS, 0.008, 0.006), (hc + Vector((0.0, -0.125, -0.087)) * HS, 0.008, 0.006), (hc + Vector((0.018, -0.122, -0.084)) * HS, 0.008, 0.006), (hc + Vector((0.036, -0.112, -0.074)) * HS, 0.008, 0.005)]), Y, Z, seg=8))
+# ---- the head, after the references (Switch Sports' Sportsmates, pocket and chibi sports games): BIG for the body, one
+# smooth shape with no bumps on it, simple dark eyes that sit flat on the face, a small mouth, hair as one chunky volume
+HS = 1.58
+hc = Vector((0, -0.006, head('DEF-head').z + 0.035 + 0.150 * HS))
+hv = lambda dx, dy, dz: hc + Vector((dx, dy, dz)) * HS
+hb = lambda dx, dy, dz, rx, ry, rz, n: ball(n, tuple(hv(dx, dy, dz)), (rx * HS, ry * HS, rz * HS), seg=28)
+PROFILE = [(-0.150, 0.046, 0.050), (-0.132, 0.086, 0.092), (-0.096, 0.114, 0.120), (-0.046, 0.130, 0.134), (0.006, 0.136, 0.140),
+           (0.058, 0.134, 0.138), (0.104, 0.118, 0.124), (0.134, 0.086, 0.092), (0.150, 0.042, 0.046)]
+G['head'] = [loft('skull', [(hv(0, 0, z), rx * HS, ry * HS) for z, rx, ry in PROFILE], X, Y, seg=40, power=2.35)]
+G['head'] += [hb(sg * 0.134, 0.012, -0.024, 0.014, 0.024, 0.032, 'ear' + str(sg)) for sg in (1, -1)]
+G['head'].append(hb(0, -0.137, -0.040, 0.011, 0.009, 0.009, 'nose'))
+# hair: a cap a touch bigger than the skull, sitting high and back, so its edge makes a clean hairline across the forehead
+G['hair'] = [loft('cap', [(hv(0, 0.022, z + 0.044), rx * HS * 1.09, ry * HS * 1.075) for z, rx, ry in PROFILE[3:]], X, Y, seg=40, power=2.35),
+             hb(0, 0.080, -0.010, 0.128, 0.078, 0.110, 'back')]
+G['dark'] = [hb(sg * 0.052, -0.129, -0.006, 0.021, 0.010, 0.033, 'eye' + str(sg)) for sg in (1, -1)]
+G['eye'] = [hb(sg * 0.052 + 0.008, -0.138, 0.008, 0.0065, 0.004, 0.009, 'glint' + str(sg)) for sg in (1, -1)]
+for sg in (1, -1):
+    G['dark'].append(loft('brow' + str(sg), capped([(hv(sg * 0.026, -0.134, 0.046), 0.007 * HS, 0.005 * HS), (hv(sg * 0.054, -0.132, 0.053), 0.007 * HS, 0.005 * HS), (hv(sg * 0.080, -0.120, 0.047), 0.006 * HS, 0.004 * HS)]), Y, Z, seg=8))
+G['dark'].append(loft('mouth', capped([(hv(-0.030, -0.124, -0.078), 0.006 * HS, 0.004 * HS), (hv(-0.014, -0.130, -0.086), 0.006 * HS, 0.004 * HS), (hv(0.014, -0.130, -0.086), 0.006 * HS, 0.004 * HS), (hv(0.030, -0.124, -0.078), 0.006 * HS, 0.004 * HS)]), Y, Z, seg=8))
 
 REGION = {'skin': 0, 'jersey': 1, 'shorts': 2, 'shoe': 3, 'sock': 4, 'head': 0, 'hair': 5, 'eye': 6, 'dark': 7}
-BUDGET = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 1800, 'hair': 700, 'eye': 300, 'dark': 600}
-VOXEL = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.006, 'hair': 0.008, 'eye': 0.004, 'dark': 0.0035}
-SMOOTH = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 4, 'hair': 2, 'eye': 1, 'dark': 1}
+BUDGET = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200, 'hair': 1100, 'eye': 300, 'dark': 600}
+VOXEL = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065, 'hair': 0.008, 'eye': 0.003, 'dark': 0.004}
+SMOOTH = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6, 'hair': 4, 'eye': 1, 'dark': 1}
 layers = []
 for g, objs in G.items():
     for o in bpy.data.objects: o.select_set(False)
@@ -215,11 +219,11 @@ if PREVIEW:
         d.location = ((k - 1) * 1.95 + (0.25 if k == 2 else 0), 0, 0); d.rotation_euler = (0, 0, math.radians(ang)); views.append(d)
     body.hide_render = True; arm.hide_render = True
     cam = bpy.data.objects.new('Cam', bpy.data.cameras.new('Cam')); sc.collection.objects.link(cam); sc.camera = cam
-    cam.data.type = 'ORTHO'; cam.data.ortho_scale = 6.3
-    cam.location = (0, -8, 0.98); cam.rotation_euler = (math.radians(90), 0, 0)
+    cam.data.type = 'ORTHO'; cam.data.ortho_scale = 6.6
+    cam.location = (0, -8, 1.06); cam.rotation_euler = (math.radians(90), 0, 0)
     sc.render.filepath = PREVIEW
     bpy.ops.render.render(write_still=True)
-    cam.data.ortho_scale = 2.5; cam.location = (-0.975, -8, 1.52); sc.render.resolution_x, sc.render.resolution_y = 1500, 900
+    cam.data.ortho_scale = 2.9; cam.location = (-0.975, -8, 1.62); sc.render.resolution_x, sc.render.resolution_y = 1500, 900
     sc.render.filepath = PREVIEW.replace('.png', '-head.png'); bpy.ops.render.render(write_still=True)
     for d in views: bpy.data.objects.remove(d, do_unlink=True)
     body.hide_render = False
