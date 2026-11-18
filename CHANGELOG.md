@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- The computer's players no longer drift (or get pushed) back over half court for a backcourt violation of their
+  own making. After the first and third quarters a graphic gives the score and each side's leading scorer. A block
+  from behind at a run is called a chase-down block.
 - Tap a teammate on the floor and the ball goes to him. A perfect release leaves a green trail. A team on an 8-0 run
   gets a graphic. The clock turns red in clutch time (the last two minutes of a close game). On the road, the
   free-throw meter shakes with the crowd. Your legs show as an arc round your ring.

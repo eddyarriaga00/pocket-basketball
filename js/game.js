@@ -1648,6 +1648,10 @@
       }
     }
     for (const p of G.pl) if (!p.inb) { p.x = clamp(p.x, -24.6, 24.6); p.z = clamp(p.z, -46.6, 46.6); }
+    /* once the ball is over half court, the computer's players on offense stay over it: no drifting (or being
+       pushed) back across the line for a violation of their own making */
+    if (G.vio && G.vio.crossed && G.vio.n === G.possN && G.phase === 'live' && G.poss !== null && G.poss !== undefined && !G.drill && b.state !== 'loose')
+      for (const p of G.pl) if (p.team === G.poss && (!p.isUser || G.auto) && !p.inb && along(p.z, p.team) > HALF - 1.2) { p.z = hoopZ(p.team) - (HALF - 1.2) * dirOf(p.team); if (p.vz * dirOf(p.team) < 0) p.vz = 0; }
     ballStep(dt);
   }
 
@@ -1813,6 +1817,12 @@
     AU().play('horn'); if (R.horn) R.horn(1.6); AU().crowd.react('applause', 0.7);
     setTimeout(() => AU().organ && AU().organ(g.q === 3 ? 'walk' : 'letsgo'), 2200);
     setTimeout(() => B(g.q === 3 ? 'half' : g.q > 4 ? 'ot' : 'end_q', { prio: 3, follow: g.q === 3 ? 0.6 : 0 }), 900);
+    /* between quarters, the broadcast's graphic: the leading scorer on each side */
+    if (g.q !== 3 && g.q <= 4 && !g.drill) setTimeout(() => { const e = $('#statpop'); if (!e || !G || G !== g) return;
+      const top = t => g.pl.concat((g.bench && g.bench[t]) || []).filter(p => p.team === t || (p.team === undefined && g.bench && g.bench[t].includes(p))).sort((a, b) => b.st.pts - a.st.pts)[0];
+      const a0 = top(0), a1 = top(1); if (!a0 || !a1) return;
+      e.innerHTML = `<i style="background:${g.teams[g.score[0] >= g.score[1] ? 0 : 1].c1}"></i><div><b>After ${g.q - 1 === 1 ? 'one' : 'three'} · ${g.teams[0].ab || g.teams[0].id} ${g.score[0]}, ${g.teams[1].ab || g.teams[1].id} ${g.score[1]}</b><span>${a0.name} ${a0.st.pts} PTS · ${a1.name} ${a1.st.pts} PTS</span></div>`;
+      e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 4200); }, 1400);
     if (g.q === 3 && !g.drill) halftime();
     g.poss = null;
     const t = g.q === 2 || g.q === 3 ? 1 - g.tipWinner : g.tipWinner;
