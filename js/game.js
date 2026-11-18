@@ -1618,6 +1618,14 @@
       const p = b.holder, hp = handPos(p);
       const H = R.hands && R.hands(p);
       if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : H ? 0 : 0.2); }
+      /* stuffed: a jumping defender's hand on the ball while the shooter still has it up in the air is a block too */
+      if (p.shoot && p.shoot.kind !== 'dunk' && p.y > 0.4 && G.phase === 'live' && !G.drill) for (const o of G.pl) {
+        if (o.team === p.team || o.y < 0.4) continue;
+        const Ho = R.hands && R.hands(o); if (!Ho) continue;
+        if ([Ho.r, Ho.l].some(hd => hyp(hd.x - o.x, hd.z - o.z) < 4 && Math.hypot(hd.x - b.x, hd.y - b.y, hd.z - b.z) < 1.0)) {
+          p.st.fga++; if (p.shoot.three) p.st.tpa++; p.shoot = null; p.pose = ''; G.possN = (G.possN || 0) + 1;
+          blockShot(o, p, { x: b.x, y: b.y, z: b.z }); return; }
+      }
       else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb)) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
         const mv = p.mv, ms = mv && H ? (G.t - mv.t0) / mv.T : 2;

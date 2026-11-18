@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Stuffed: a jumping defender's hand on the ball while the shooter still has it up in the air is a block too. After
+  the game, your night on one banner (your face, points, line, grade). Your line, live, under the score. How to play
+  opens one topic at a time.
 - One scorebug: the score on top with each team's timeouts as dots, and a thin strip under it for pause, your grade
   and zoom. The pause menu opens on the matchup (badges, score, clock) and has switches for sound and commentary.
   Quick game sets its difficulty and quarter length right there. Build cards show what each build is good at;
