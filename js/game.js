@@ -329,6 +329,8 @@
   function handPos(p) {
     /* the model's real hand when there is one: the ball leaves from where it is */
     const H = R.hands && R.hands(p);
+    /* a layup, a floater or a hook goes up off one hand */
+    if (H && p.shoot && (p.shoot.kind === 'layup' || p.shoot.kind === 'floater' || p.shoot.kind === 'hook')) { const h = p.dribHand < 0 ? H.l : H.r; return { x: h.x, y: h.y + 0.3, z: h.z }; }
     if (H) return p.shoot || p.pose === 'shoot' ? { x: (H.r.x + H.l.x) / 2, y: Math.max(H.r.y, H.l.y) + 0.35, z: (H.r.z + H.l.z) / 2 } : p.dribHand < 0 ? { x: H.l.x, y: H.l.y, z: H.l.z } : { x: H.r.x, y: H.r.y, z: H.r.z };
     const fx = Math.sin(p.face), fz = Math.cos(p.face);
     return { x: p.x + fx * 0.6 + fz * 0.5, y: p.ht / 12 * 0.95 + p.y + 1.5, z: p.z + fz * 0.6 - fx * 0.5 };

@@ -1078,6 +1078,10 @@
        at a time, as he moves; the legs are solved to reach them. sw eases in and out so he drops into it */
     { const gs = m.gw * (1 - smooth(13, 17, sp)), rdy = m.rw > m.dw && m.rw > gs, sw = Math.max(gs, m.dw, m.rw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = ms < 1 && mv.k !== 'hesi' ? 0.05 : 0;
       if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
+    /* a layup goes up off one foot: the knee on the ball side drives */
+    if (m.lay === 1 && p.y > 0.25 && m.bones[bk('DEF-thigh.L')]) { const right = (p.dribHand || 1) > 0, sd = right === (TPL.sideR < 0) ? 'R' : 'L', w = Math.min(1, (p.y - 0.25) * 2.5), f = p.face + (p.spinA || 0);
+      const th = m.bones[bk(`DEF-thigh.${sd}`)], sh = m.bones[bk(`DEF-shin.${sd}`)], ft = m.bones[bk(`DEF-foot.${sd}`)];
+      aim(th, sh, _t3.set(Math.sin(f) * 0.9, -0.42, Math.cos(f) * 0.9).normalize(), w); aim(sh, ft, _t3.set(-Math.sin(f) * 0.25, -0.97, -Math.cos(f) * 0.25).normalize(), w); }
     /* the arms */
     const has = G.ball.holder === p;
     let pose = p.pose;
@@ -1097,6 +1101,11 @@
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
     let P = POSES[pose](kk);
+    /* off one hand: a layup reaches up for the glass, the off arm keeping the defender away; a hook sweeps up from the side */
+    { const sk = p.shoot && p.shoot.kind; m.lay = p.shoot ? (sk === 'layup' || sk === 'floater' ? 1 : sk === 'hook' ? 2 : 0) : (p.y > 0.2 ? m.lay : 0);
+      if (m.lay && (pose === 'shoot' || pose === 'follow')) { const e = pose === 'follow' ? 1 : smooth(0, 1, kk), L = (a, b) => a.map((v, j) => v + (b[j] - v) * e);
+        P = m.lay === 2 ? [L([0.9, -0.1, 0.3], [0.35, 0.93, 0.1]), L([0.85, 0.3, 0.3], [0.15, 0.98, 0.1]), [0.6, -0.1, 0.7], [-0.2, 0.25, 0.9]]
+          : [L([0.25, -0.2, 0.9], [0.12, 0.93, 0.34]), L([0.1, 0.55, 0.8], [0.06, 0.98, 0.2]), [0.6, -0.5, 0.5], [-0.35, 0.3, 0.85]]; } }
     /* at a run the ball is pushed out in front at the waist, not carried up by the shoulder */
     if (pose === 'dribble' && p.runD > 0.05) { const e = 0.7 * p.runD, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], [0.1, -0.88, 0.45]), L(P[1], [0.2, -0.5, 0.84]), [0.3, -0.75, -0.2 + 0.5 * Math.sin(kk * 6.28)], [0.1, -0.3, 0.9]]; }
     if (pose === 'guard' && m.gd < 0.98) { const R0 = [[0.42, -0.8, 0.42], [0.4, -0.3, 0.86]], e = 1 - m.gd, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], R0[0]), L(P[1], R0[1]), L(P[2], R0[0]), L(P[3], R0[1])]; }
@@ -1115,7 +1124,7 @@
     /* dribbling with the left hand: the arms trade jobs */
     /* the high hand goes to the side the ball is on */
     if (pose === 'guard') { const bx = G.ball.x - p.x, bz = G.ball.z - p.z, side = bx * -Math.cos(p.face) + bz * Math.sin(p.face); if (Math.abs(side) > 0.35) m.gsw = side < 0; }
-    const sw = (pose === 'dribble' && p.dribHand < 0) || (pose === 'guard' && m.gsw), A = sw ? P[2] : P[0], Af = sw ? P[3] : P[1], Bu = sw ? P[0] : P[2], Bf = sw ? P[1] : P[3];
+    const sw = (pose === 'dribble' && p.dribHand < 0) || (m.lay && p.dribHand < 0 && (pose === 'shoot' || pose === 'follow')) || (pose === 'guard' && m.gsw), A = sw ? P[2] : P[0], Af = sw ? P[3] : P[1], Bu = sw ? P[0] : P[2], Bf = sw ? P[1] : P[3];
     aim(m.R.up, m.R.fore, dirOf(p.face, A[0], A[1] + hi, A[2] - hi, s), w);
     aim(m.R.fore, m.R.hand, dirOf(p.face, Af[0], Af[1] + hi, Af[2] - hi, s), w);
     aim(m.L.up, m.L.fore, dirOf(p.face, Bu[0], Bu[1], Bu[2], -s), w);
