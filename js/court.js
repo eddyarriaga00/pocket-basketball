@@ -1947,7 +1947,7 @@
   }
 
   R.swish = s => { for (const n of nets) if (n.s === s) n.swish = 1; };
-  R.rimSnap = s => { for (const n of nets) if (n.s === s) n.snap = 1; };
+  R.rimSnap = (s, k) => { for (const n of nets) if (n.s === s) n.snap = Math.max(n.snap, k || 1); };   // k: how hard (a dunk 1, a ball off the iron about half)
   /* adaptive quality: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x, then 1x),
      then drop the outlines and the men on the bench (about half the triangles). If none of that buys anything, the
      frame rate is being held down from outside (a phone in Low Power Mode draws thirty frames a second whatever

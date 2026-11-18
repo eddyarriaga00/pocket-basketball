@@ -753,6 +753,7 @@
         return;
       }
       AU().play(rand() < 0.3 ? 'board' : 'rim', { x: b.ex, power: rr(0.5, 1) });
+      if (R.rimSnap) R.rimSnap(p.team === 0 ? 1 : -1, 0.5);   // the iron shivers
       if (G.lastShot && G.lastShot.prob > 0.72 && !G.drill && rand() < 0.7) { p.celebK = 'ugh'; p.celebT = 1.1; }   // he had that one: hands to the head
       if (p.isUser) G.streak = 0;
       if (p.isUser && tkoOn() && ++G.tko.miss >= 2) tkoEnd('Cooled off');
