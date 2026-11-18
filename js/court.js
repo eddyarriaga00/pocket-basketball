@@ -12,7 +12,7 @@
   const anchor = new T.Vector3();
   const meshes = new Map();
   let board = null, ribbons = [];
-  let passArrow = null, manRing = null, flash = null, flashT = 0, passTarget = null, manTarget = null;
+  let passArrow = null, manRing = null, defArrow = null, flash = null, flashT = 0, passTarget = null, manTarget = null;
   R.marks = (pass, man) => { passTarget = pass; manTarget = man; };
   /* a tag floating over a player (your rival) */
   let tag = null, tagP = null;
@@ -51,7 +51,7 @@
     placeTag('me', u, true);
     placeTag('ball', mode === 'You and the ball' && h && h !== u && !G.replay ? h : null, false);
   };
-  R._marks = () => ({ pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
+  R._marks = () => ({ def: defArrow && defArrow.visible ? defArrow.material.color.getHexString() : null, pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
   R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
   /* ball racks for the shooting drills: a stand at each spot, a row of balls that empties as you shoot; the last
      ball of a rack (the money ball, when there is one) in white and black */
@@ -1572,6 +1572,12 @@
     passArrow.rotation.x = Math.PI; passArrow.renderOrder = 5; scene.add(passArrow);
     manRing = new T.Mesh(new T.RingGeometry(1.25, 1.5, 28), new T.MeshBasicMaterial({ color: 0xff4d5e, transparent: true, opacity: 0.75, depthWrite: false }));
     manRing.rotation.x = -Math.PI / 2; manRing.position.y = 0.035; scene.add(manRing);
+    /* which way your man is going: a chevron on the floor in front of him when he has the ball, green while you are
+       between him and the rim, red once he has a step on you */
+    { const sh = new T.Shape(); sh.moveTo(0, 1.0); sh.lineTo(0.95, -0.25); sh.lineTo(0.42, -0.25); sh.lineTo(0, 0.42); sh.lineTo(-0.42, -0.25); sh.lineTo(-0.95, -0.25); sh.closePath();
+      const g = new T.ShapeGeometry(sh); g.rotateX(Math.PI / 2);   // flat on the floor, pointing down +z
+      defArrow = new T.Mesh(g, new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0.8, depthWrite: false, side: T.DoubleSide }));
+      defArrow.position.y = 0.04; defArrow.visible = false; scene.add(defArrow); }
     flash = new T.Mesh(new T.RingGeometry(1.6, 2.3, 32), new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0, depthWrite: false }));
     flash.rotation.x = -Math.PI / 2; flash.position.y = 0.04; scene.add(flash);
   };
@@ -1870,6 +1876,14 @@
       if (passTarget) { passArrow.position.set(passTarget.x, (passTarget.ht || 78) / 12 + 2.4 + Math.sin(G.t * 6) * 0.25 + passTarget.y, passTarget.z); passArrow.rotation.y += dt * 2; }
       manRing.visible = !!manTarget;
       if (manTarget) { manRing.position.x = manTarget.x; manRing.position.z = manTarget.z; }
+      { const h = manTarget, uu = G.user, on = !!(h && uu && G.ball.holder === h && !h.shoot && !h.inb && G.phase === 'live' && Math.hypot(h.x - uu.x, h.z - uu.z) < 16);
+        if (defArrow) defArrow.visible = on;
+        if (on) { const rz = h.team === 0 ? 41.75 : -41.75, hx = -h.x, hz = rz - h.z, hl = Math.hypot(hx, hz) || 1, sp = Math.hypot(h.vx, h.vz);
+          const dx = sp > 2.5 ? h.vx / sp : hx / hl, dz = sp > 2.5 ? h.vz / sp : hz / hl;
+          /* in front: you are nearer the rim than he is, along his line to it, and close enough to matter */
+          const ahead = ((uu.x - h.x) * hx + (uu.z - h.z) * hz) / hl, off = Math.abs((uu.x - h.x) * -hz + (uu.z - h.z) * hx) / hl, good = ahead > 0.4 && ahead < 6.5 && off < 2.6;
+          defArrow.position.x = h.x + dx * 2.3; defArrow.position.z = h.z + dz * 2.3; defArrow.rotation.y = Math.atan2(dx, dz);
+          defArrow.material.color.setHex(good ? 0x4cffb0 : 0xff4d5e); defArrow.material.opacity = 0.55 + 0.3 * Math.min(1, sp / 8); } }
       if (flashT > 0 && G.user) { flashT -= dt; const k = 1 - flashT / 0.6; flash.position.x = G.user.x; flash.position.z = G.user.z; flash.scale.setScalar(1 + k * 1.2); flash.material.opacity = 0.85 * (1 - k); } else flash.material.opacity = 0;
     }
     arenaBits(dt);

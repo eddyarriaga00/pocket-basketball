@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- On defense, an arrow on the floor in front of your man shows where he is going with the ball: green while you are
+  between him and the rim, red once he has a step on you.
 - A substitute checks in at the scorer's table and runs on (he used to appear where the other man stood).
 - The opening tip is won at the top of the jump, at the two centers' fingertips, and tapped back to the point guard
   (the ball used to drop between them and jump into a guard's hands).
