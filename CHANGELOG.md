@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- An open teammate standing in his range puts a hand up for the ball now and then: it shows you who is open.
 - Sizing up: a ball handler standing with room to work keeps the ball moving (between the legs, behind the back, a
   crossover) instead of pounding one dribble. It is rhythm only: it gives the defense nothing extra to steal.
 - Replays start from the rim's side of the play, a little above the heads, so the scorer comes at the camera

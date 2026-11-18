@@ -1595,7 +1595,10 @@
         else if (b.state === 'loose') { reboundAI(p); seek(p, dt, 1); if (p.pose !== 'contest') p.pose = ''; }
         else {
           const offTeam = b.holder ? b.holder.team : G.poss;
-          if (offTeam === p.team) { offBallAI(p, dt); seek(p, dt, b.state === 'pass' && b.to === p ? 1 : 0.8); if (!(p.reachT > 0)) p.pose = b.state === 'pass' && b.to === p && b.dur - b.t < 0.45 ? 'catch' : ''; }
+          if (offTeam === p.team) { offBallAI(p, dt); seek(p, dt, b.state === 'pass' && b.to === p ? 1 : 0.8); if (!(p.reachT > 0)) p.pose = b.state === 'pass' && b.to === p && b.dur - b.t < 0.45 ? 'catch' : p.callT > G.t ? 'call' : '';
+            /* open, standing still, in his range: a hand goes up for the ball (now and then, and it shows you who is open) */
+            if (b.state === 'held' && b.holder && b.holder !== p && !(p.callCd > G.t) && G.phase === 'live') { p.callCd = G.t + rr(0.5, 1.1);
+              if (hyp(p.vx, p.vz) < 2.5 && nearestDef(p).d > 7 && distHoop(p.x, p.z, p.team) < 26 && (b.holder.hold || 0) > 0.8 && rand() < 0.45) { p.callT = G.t + rr(0.9, 1.5); p.callCd = G.t + rr(3, 6); } } }
           else {
             defAI(p, dt);
             /* closing out on a shooter who just caught it: a sprint, then short choppy steps */

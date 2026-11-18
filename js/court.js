@@ -1025,6 +1025,7 @@
     goggles: () => [[0.75, 0.35, 0.55], [-0.5, 0.82, 0.25], [0.75, 0.35, 0.55], [-0.5, 0.82, 0.25]],
     three: (k) => { const b = 0.05 * Math.sin(k * 8); return [[0.3, 0.94 + b, 0.15], [0.12, 0.99, 0.05], [0.2, -0.97, 0.1], [0.15, -0.95, 0.25]]; },
     point: () => [[0.35, 0.75, 0.55], [0.25, 0.8, 0.55], [0.25, -0.9, 0.3], [0.2, -0.6, 0.75]],
+    call: (k) => { const b = 0.07 * Math.sin(k * 8); return [[0.28, 0.9, 0.3], [0.12 + b, 0.98, 0.12], [0.35, -0.7, 0.6], [0.0, 0.3, 0.95]]; },   // open: a hand up for the ball, the other ready to catch
     /* more of them: the shrug (palms up), too small (a hand held low and patted down), night night (both hands a pillow by the
        head), the shush (a finger to the lips), ice in the veins (two fingers tapped on the forearm) */
     shrug: (k) => { const b = 0.06 * Math.sin(k * 6); return [[0.55, -0.72 + b, 0.32], [0.86, 0.32 + b, 0.38], [0.55, -0.72 + b, 0.32], [0.86, 0.32 + b, 0.38]]; },
@@ -1267,7 +1268,7 @@
     else if (pose === 'shoot' && fk >= 0) kk = 0.16 + 0.34 * Math.sin(Math.PI * Math.min(1, fk * 1.15));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     else if (pose === 'dunk1') kk = p.shoot ? Math.min(1, p.shoot.t / p.shoot.T) : 1;
-    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'shrug' || pose === 'toosmall' || pose === 'ice' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
+    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'call' || pose === 'shrug' || pose === 'toosmall' || pose === 'ice' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
