@@ -571,19 +571,21 @@
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
     const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
-      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
+      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, kRef: { value: cols.ref ? 1 : 0 }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;');
       /* a rim light: the edge of the body catches light, so players pop off the floor */
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
-      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nuniform float kSlv;\nuniform vec3 cSlv;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nuniform float kSlv;\nuniform float kRef;\nuniform vec3 cSlv;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
   /* the strongest region here wins */
   float vRegion = 0.0, rbest = vRA.x;
   if (vRA.y > rbest) { rbest = vRA.y; vRegion = 1.0; } if (vRA.z > rbest) { rbest = vRA.z; vRegion = 2.0; } if (vRA.w > rbest) { rbest = vRA.w; vRegion = 3.0; }
   if (vRB.x > rbest) { rbest = vRB.x; vRegion = 4.0; } if (vRB.z > rbest) { rbest = vRB.z; vRegion = 6.0; }
   if (vRegion > 5.5) discard;   // the mannequin's head: a drawn one sits on the bone
+  /* a referee: short sleeves (the shirt runs down the upper arm) and long pants (the legs take the shorts' color) */
+  if (kRef > 0.5 && vRB.w > 0.5 && vRegion < 0.5) { if (abs(vRB.y) > 0.05) { if (abs(vRB.y) - 0.05 < 0.34) vRegion = 1.0; } else if (vK.y < 0.95) vRegion = 2.0; else if (vK.y < 1.37) vRegion = 1.0; }
   /* a tank top cut by formula, not by the mesh: armholes (ellipses at each shoulder) and a neckline (deeper in front),
      each with a band of the trim color, so the edges are smooth curves at any distance */
   if (vRB.w < 0.5 && vRegion < 0.5 && abs(vK.x) < 0.05 && vK.y > 1.365) discard;   // the top of the neck: inside the drawn head
@@ -642,7 +644,7 @@
   if (bot) rc *= mix(0.84, 1.0, smoothstep(0.86, 0.98, vK.y));
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit10';
+    m.customProgramCacheKey = () => 'pb-kit11';
     return m;
   }
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
@@ -798,7 +800,7 @@
     const d = p.d || p;
     const shorts = kit.shorts || new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, ref: !!kit.ref, sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
@@ -1522,13 +1524,14 @@
      trail the far sideline a step behind the play. They are not players: nothing in the game touches them. */
   let refs = [], shadowIM = null;
   const _sm = new T.Matrix4();
+  R._refs = () => refs.map(p => ({ x: p.x, z: p.z }));   // for the test tools
   R.addRefs = () => {
     refs = [];
     if (!TPL || (PB.settings && PB.settings.gfx === 'Low')) return;
     for (let i = 0; i < 2; i++) {
       const p = { id: 'ref' + i, x: 26.5, z: i ? 30 : -10, y: 0, vx: 0, vz: 0, face: -Math.PI / 2, pose: '', ht: 75, num: [14, 37][i], pos: 'SG', skin: [1, 4][i],
         look: { hair: i ? 'buzz' : 'bald', hairColor: '#2a2a2a', shoe: '#111111' } };
-      const m = skinnedPlayer(p, { c1: '#f2f2f2', c2: '#16181b', alt: '#16181b', pat: 7, name: '', shorts: '#15171a', sock: '#15171a', shoe: '#111111' });
+      const m = skinnedPlayer(p, { c1: '#f2f2f2', c2: '#16181b', alt: '#16181b', pat: 7, name: '', shorts: '#15171a', sock: '#15171a', shoe: '#111111', ref: true });
       if (shadowIM) { m.shadow.visible = false; m.inst = true; }
       scene.add(m.root); meshes.set(p, m); refs.push(p);
     }

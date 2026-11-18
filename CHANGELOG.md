@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The referees are dressed as referees: a striped shirt with short sleeves and long black pants, not a striped
+  tank top and shorts.
 - A defender sprinting back, far from the ball, runs with his arms pumping instead of spread like wings.
 - Five more celebrations: the shrug, too small, ice in the veins, night night and the shush (the last three come
   out in clutch time). All of them can be your signature on the Look card. Computer players celebrate big shots too.
