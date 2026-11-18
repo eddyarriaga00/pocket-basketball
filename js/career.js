@@ -930,8 +930,12 @@
       /* the night before a rival game, he posts about you; answer him or let the game do it */
       const rvx = rivalP();
       if (nx && rvx && nx.opp === C.rival.team && C.talk !== `${C.year}-${C.gi}-${C.phase}`) {
-        const lines = [`Same draft class. Different levels. See you tomorrow, ${C.me.last}.`, `Heard ${C.me.last} has been talking. Bring it.`, `Tomorrow I'm going at ${C.me.last} every time down.`, `They keep comparing us. Tomorrow settles it.`];
-        const said = lines[(C.gi + C.year) % lines.length];
+        const h2h = C.rival.h2h || [0, 0];
+        const lines = [`Same draft class. Different levels. See you tomorrow, ${C.me.last}.`, `Heard ${C.me.last} has been talking. Bring it.`, `Tomorrow I'm going at ${C.me.last} every time down.`, `They keep comparing us. Tomorrow settles it.`,
+          `Circle it, ${C.me.last}. I have had tomorrow on my calendar for a month.`, `${PB.team(C.team).city} tomorrow. I already know who is guarding who.`, `Somebody tell ${C.me.last} to get his rest tonight.`, `No friends on the floor tomorrow. Dinner after, maybe.`]
+          /* what he says depends on who has been winning */
+          .concat(h2h[0] > h2h[1] ? [`${h2h[0]}-${h2h[1]} for ${C.me.last}. I can count. That changes tomorrow.`, `You have had my number, ${C.me.last}. Enjoy it tonight.`] : h2h[1] > h2h[0] ? [`${h2h[1]}-${h2h[0]} against ${C.me.last}. Make it interesting this time.`, `I own this matchup and everybody knows it.`] : []);
+        const said = lines[(C.gi * 7 + C.year * 3) % lines.length];
         card = `<div class="next talk"><p class="kick">Rival on social</p><p class="q">@${esc(rvx.first.toLowerCase())}${esc(rvx.last.toLowerCase())}: “${esc(said)}”</p>
           <button class="ghost" id="clap">Clap back<small>more followers; the coach would rather you didn't</small></button><button class="ghost" id="quiet">Let the game talk<small>the coach likes it</small></button></div>` + card;
       }
@@ -1508,17 +1512,22 @@
   }
 
   /* ---------- the social feed ---------- */
-  const FANS = ['hoopsdad_22', 'courtside_kay', 'bucketsonly', 'the_real_ref', 'nightcapnation', 'bench_mob', 'stat_nerd', 'local_scribe'];
+  const FANS = ['hoopsdad_22', 'courtside_kay', 'bucketsonly', 'the_real_ref', 'nightcapnation', 'bench_mob', 'stat_nerd', 'local_scribe', 'section_214', 'midrange_mary', 'film_room_fred', 'tipoff_tess', 'ankle_tax', 'glasscleaner99', 'sixth_man_sam', 'nosebleed_nate'];
+  const say = (...v) => v[Math.floor(PB.rand() * v.length)];
   function feedAfter(g, res) {
     const l = res.line, me = C.me, o = PB.team(g.opp), t = PB.team(C.team);
     const posts = [];
     const who = () => '@' + FANS[Math.floor(PB.rand() * FANS.length)];
-    if (l.pts >= 30) posts.push([who(), `${me.last} just put ${l.pts} on ${o.city}. Somebody check on their defense.`]);
-    else if (l.pts >= 20) posts.push([who(), `${l.pts} for ${me.last} tonight. This kid is for real.`]);
-    else if (res.gscore <= 3) posts.push([who(), `Rough one for #${me.num}. Shake it off.`]);
-    if (l.ast >= 8) posts.push([who(), `${l.ast} dimes. ${me.last} sees the whole floor.`]);
+    if (l.pts >= 40) posts.push([who(), say(`FORTY. ${me.last} had ${l.pts}. I need to sit down.`, `${l.pts} points. Put ${me.last} in the conversation. All of them.`)]);
+    else if (l.pts >= 30) posts.push([who(), say(`${me.last} just put ${l.pts} on ${o.city}. Somebody check on their defense.`, `${l.pts} for ${me.last}. ${o.city} tried three different guys on him.`, `That was a ${l.pts}-point clinic from #${me.num}.`)]);
+    else if (l.pts >= 20) posts.push([who(), say(`${l.pts} for ${me.last} tonight. This kid is for real.`, `Another ${l.pts} from ${me.last}. Getting used to this.`, `${me.last}: ${l.pts} and it looked easy.`)]);
+    else if (res.gscore <= 3) posts.push([who(), say(`Rough one for #${me.num}. Shake it off.`, `Not ${me.last}'s night. It happens to everybody.`, `${me.last} will want that one back.`)]);
+    if (l.reb >= 10 && l.pts >= 10) posts.push([who(), say(`A double-double for ${me.last}: ${l.pts} and ${l.reb}. Quietly does everything.`, `${l.pts} points, ${l.reb} boards. ${me.last} worked tonight.`)]);
+    else if (l.reb >= 10) posts.push(['@glasscleaner99', `${l.reb} rebounds for ${me.last}. Every one of them was his.`]);
+    if (l.fga >= 6 && l.fgm === l.fga) posts.push(['@stat_nerd', `${me.last} went ${l.fgm}-for-${l.fga}. He did not miss. I checked twice.`]);
+    if (l.ast >= 8) posts.push([who(), say(`${l.ast} dimes. ${me.last} sees the whole floor.`, `${l.ast} assists. Everybody eats when ${me.last} has the ball.`)]);
     if (l.blk >= 3) posts.push([who(), `${l.blk} blocks?! Stay out of the paint when ${me.last} is home.`]);
-    if (l.tpm >= 4) posts.push([who(), `${l.tpm} threes for #${me.num}. Range for days.`]);
+    if (l.tpm >= 4) posts.push([who(), say(`${l.tpm} threes for #${me.num}. Range for days.`, `${l.tpm} from deep. Do not leave ${me.last} open. Do not.`)]);
     if (l.stl >= 3) posts.push([who(), `${me.last} with ${l.stl} steals. Hands everywhere.`]);
     if (res.gscore >= 11) posts.push(['@stat_nerd', `${me.last}'s teammate grade tonight: ${res.grade}. That is winning basketball.`]);
     if (!res.win && l.pts >= 20) posts.push([who(), `${me.last} did everything he could. Need more help.`]);

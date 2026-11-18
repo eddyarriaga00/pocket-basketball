@@ -1335,7 +1335,11 @@
       if (o.isUser || o.y > 0 || hyp(o.x - p.x, o.z - p.z) > 6.5) continue;
       const ch = clamp(0.62 - (o.r.perD || 60) * 0.005 + ((p.r.three || 60) + (p.r.mid || 60) - 120) * 0.002, 0.12, 0.6) / p.fakeN;
       if (rand() < ch) { o.jg = GRAV * 1.6; o.vy = Math.sqrt(2 * o.jg * (1.5 + o.r.vert * 0.02)); o.pose = 'contest'; o.bitT = G.t; bit = o; } }
-    if (p.isUser) { if (bit) { toast('He bit on the fake', 'make'); grade(0.3, 'Pump fake'); buzz(10); } AU().play('squeak', { x: p.x, vol: 0.5 }); }
+    if (p.isUser) { if (bit) { toast('He bit on the fake', 'make'); grade(0.3, 'Pump fake'); buzz(10); }
+      else { /* the first few times, say what just happened: a tap is a fake, a hold is a shot */
+        let n = 0; try { n = +localStorage.getItem('pbb.fakes') || 0; if (n < 5) localStorage.setItem('pbb.fakes', n + 1); } catch (e) { /* fine */ }
+        toast(n < 5 ? 'Pump fake · hold Shoot to shoot' : 'Pump fake', 'call'); }
+      AU().play('squeak', { x: p.x, vol: 0.5 }); }
   }
   /* icon passing, the pocket way: tap a teammate on the floor and the ball goes to him */
   function tapPass(cx, cy) {
