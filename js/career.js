@@ -1228,6 +1228,8 @@
     band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],
     tee: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
+    bicep: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
+    socks: [[null, 'Crew'], ['high', 'High'], ['low', 'Low']],
     shoe: [[null, 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#e63946', 'Red'], ['#ffd23f', 'Gold']],
     beard: [[null, 'None'], ['stubble', 'Stubble'], ['goatee', 'Goatee'], ['full', 'Beard'], ['mustache', 'Mustache'], ['chinstrap', 'Chinstrap']],
     jumper: [[null, 'Standard'], ['quick', 'Quick'], ['high', 'High']],
@@ -1241,7 +1243,7 @@
   function lookEditor(me) {
     me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
     const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${String(me.look[k + 'Pick'] ?? me.look[k] ?? '') === String(v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
-    return row('build', 'Build') + row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('goggles', 'Goggles') + row('sleeve', 'Arm sleeve') + row('tee', 'Undershirt') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + row('celeb', 'Signature celebration') + row('drib', 'Dribble style') + '<p class="fine">Your look on the floor from your next game.</p>';
+    return row('build', 'Build') + row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('goggles', 'Goggles') + row('sleeve', 'Arm sleeve') + row('tee', 'Undershirt') + row('bicep', 'Bicep band') + row('socks', 'Socks') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + row('celeb', 'Signature celebration') + row('drib', 'Dribble style') + '<p class="fine">Your look on the floor from your next game.</p>';
   }
   function badgeList() {
     return PB.BADGES.map(b => {
