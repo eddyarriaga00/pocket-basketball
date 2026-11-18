@@ -1689,7 +1689,8 @@
   };
   let introFocus = null;
   R.setIntro = (sec, focus) => { intro = sec; if (sec > 0) introT = sec; introFocus = sec > 0 ? focus || null : null; };
-  R.setReplay = on => { replay = on; replayA = PB.rand() * Math.PI * 2; };
+  let replayD = 1;
+  R.setReplay = on => { replay = on; replayA = null; replayD = PB.rand() < 0.5 ? -1 : 1; };
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
   R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
   let snap = false; R.snap = () => { snap = true; };
@@ -1838,10 +1839,14 @@
     }
     if (replay) {
       /* replay: low, close, circling the ball */
-      replayA += dt * 0.35;
       const bx = PB.clamp(b.x, -20, 20), bz = PB.clamp(b.z, -44, 44);
-      cam.position.set(bx + Math.sin(replayA) * 22, 7.5, bz + Math.cos(replayA) * 22);
-      cam.lookAt(bx, Math.max(4, b.y * 0.6), bz);
+      /* it starts from the rim's side of the play, so the scorer comes at the camera and nobody's back is in the way,
+         a little above the heads, then drifts round */
+      if (replayA === null) replayA = Math.atan2(-bx, (bz >= 0 ? 41.75 : -41.75) - bz) + (PB.rand() - 0.5) * 1.1;
+      replayA += dt * 0.3 * replayD;
+      const rr = 18, cx = PB.clamp(bx + Math.sin(replayA) * rr, -29, 29), cz = PB.clamp(bz + Math.cos(replayA) * rr, -52, 52);
+      cam.position.set(cx, 9, cz);
+      cam.lookAt(bx, Math.max(4.5, b.y * 0.6), bz);
       return;
     }
     if (camMode === 'lock') {

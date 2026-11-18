@@ -150,6 +150,7 @@
     mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
     ft: 'Free throw: hold SHOOT and let go in the green band.',
     pick: 'PICK brings your big over to screen your man. Pause (top left) to call a play for the next three trips.',
+    fake: 'A man right on you? Tap SHOOT quickly: a pump fake. If he jumps at it, go by him or shoot when he lands.',
   };
   let seenTips = null;
   function tip(k) {
@@ -220,6 +221,7 @@
     const pk = has && !u.inb && !G.drill && G.phase === 'live' && along(u.z, u.team) < RIM;
     $('#bD').classList.toggle('on', pk);
     if (pk && G.t > 12 && seenTips && seenTips.ball && $('#tipcard').hidden) tip('pick');   // after the ball tip has had its moment
+    if (has && G.t > 30 && seenTips && seenTips.ball && $('#tipcard').hidden && !G.user.shoot && nearestDef(G.user).d < 3.6 && distHoop(G.user.x, G.user.z, G.user.team) > 12) tip('fake');
   }
   /* call for a pick: the nearest big comes to set a screen on your man, then rolls to the rim */
   function pressD() {

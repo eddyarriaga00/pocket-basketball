@@ -600,6 +600,7 @@ table.std tr.me td:first-child{box-shadow:inset 3px 0 0 #fff;color:#fff}
   transform:translateX(-120%);opacity:0;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .2s;pointer-events:none;box-shadow:0 6px 16px rgba(0,0,0,.4)}
 #badgepop.on{transform:none;opacity:1}#badgepop i{font-style:normal;font-size:9px;letter-spacing:1px}
 #game:has(#rp:not([hidden])) #tipcard{visibility:hidden}
+#game:has(#rp:not([hidden])) #feed{visibility:hidden}   /* the play-by-play line sat under the REPLAY label */
 .bug.clutch .mid b{color:#ff5a6b;animation:blink 1s infinite}
 @keyframes wob{0%,100%{transform:translate(0,0)}25%{transform:translate(-3px,1px)}50%{transform:translate(2px,-2px)}75%{transform:translate(3px,2px)}}
 #meter.away .tube{animation:wob .45s infinite}

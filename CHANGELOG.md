@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Replays start from the rim's side of the play, a little above the heads, so the scorer comes at the camera
+  instead of the view sitting behind someone's back; the play-by-play line no longer sits under the REPLAY label.
+  A one-time tip teaches the pump fake the first time a defender is right on you.
 - More for the Look card: compression tights, and hair dyed blue, pink or green.
 - An undershirt for your Look card (white, black or team color): sleeves and a collar under the tank top. Some of
   the league wears one. On a big play the reserves get up; the chairs stay where they are.
