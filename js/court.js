@@ -673,6 +673,7 @@
     m.customProgramCacheKey = () => 'pb-kit15';
     return m;
   }
+  const orphans = [];   // face geometries of players substituted out, freed with the arena
   let lite = false;   // set when a slow phone has had its outlines and bench taken away (see R.render)
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
     m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = vec3( position ) + normal * 0.011;'); };
@@ -859,7 +860,7 @@
           if (!ixs) { const src = F0.index.array, out = []; for (let t = 0; t < tv.length; t++) if (want.includes(tv[t])) out.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]); ixs = F0.userData.sets[key] = F0.attributes.position.count > 65535 ? new T.Uint32BufferAttribute(out, 1) : new T.Uint16BufferAttribute(out, 1); }
           return ixs; };
         let ixs = setOf(base.concat(eyeV)); const shutIx = setOf(base.concat(31));   // eyes open, and shut for a blink
-        const fg = new T.BufferGeometry(); for (const a of ['position', 'normal', 'skinIndex', 'skinWeight']) fg.setAttribute(a, F0.attributes[a]); fg.setIndex(ixs);
+        const fg = new T.BufferGeometry(); for (const a of ['position', 'normal', 'skinIndex', 'skinWeight']) fg.setAttribute(a, F0.attributes[a]); fg.setIndex(ixs); fg.userData.own = true;
         const team = kit.c1, pick = v => v === 'team' ? team : v, hairC = new T.Color(lk.hairColor || '#17110d'), skinC = new T.Color(PB.SKIN[dd.skin == null ? 3 : dd.skin] || '#8d5a3b');
         const cOf = { 2: hairC.clone().lerp(skinC, 0.32), 7: hairC.clone().lerp(skinC, 0.5), 11: hairC.clone().lerp(skinC, 0.55), 24: new T.Color(pick(lk.band) || '#f2f2f2'), 25: new T.Color(lk.goggles === 'team' ? team : /^#/.test(lk.goggles || '') ? lk.goggles : '#141414') }, white = new T.Color('#f4f4f4'), dark = new T.Color('#141011');
         /* a color a vertex: by the part it belongs to (its triangles' variant), else by its layer */
@@ -1392,7 +1393,7 @@
         hp.y -= 0.22; const dz = (o.close ? 3.15 : 4.1) * (mdl ? 1.22 : 1); hp.y += mdl ? (o.close ? 0.06 : -0.05) : o.close ? 0.3 : 0.12; c.position.set(hp.x + dz * 0.1, hp.y + 0.12, hp.z + dz); c.lookAt(hp); }
       rr.render(sc, c);
       const url = cv.toDataURL('image/png');
-      freeTree(m.root);
+      freeTree(m.root, true);   // nobody else is being drawn by the picture renderer
       return url;
     } catch (e) { return null; }
   };
@@ -1426,9 +1427,12 @@
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
   R.build = (home) => {
     drillYaw = null;
-    for (const m of meshes.values()) scene.remove(m.root);
+    /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
+       memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
+    for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
+    for (const g of orphans) g.dispose(); orphans.length = 0;
     meshes.clear(); refs = []; benchMesh = []; tags.me = tags.ball = null;
-    while (scene.children.length > 2) scene.remove(scene.children[2]);
+    while (scene.children.length > 2) { const o = scene.children[2]; scene.remove(o); freeTree(o, true); }
     /* every player's shadow, one instanced mesh */
     const sg = new T.CircleGeometry(1.1, 16); sg.rotateX(-Math.PI / 2);
     shadowIM = new T.InstancedMesh(sg, new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }), 32);
@@ -1625,6 +1629,13 @@
       const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(P, 3));
       for (const k of ['rA', 'rB', 'kpos', 'color']) if (g0.attributes[k]) g.setAttribute(k, g0.attributes[k]);
       g.setIndex(g0.index); g.computeVertexNormals(); grp.add(new T.Mesh(g, o.material)); });
+    /* the player he was baked from is done with: free what was his alone (his number's texture, his shadow, his
+       sleeves), keeping the two materials the baked meshes wear */
+    { const keep = new Set(grp.children.map(c => c.material));
+      m.root.traverse(o => { if (o.isSkinnedMesh) return;
+        if (o.material) for (const mt of [].concat(o.material)) { if (keep.has(mt) || mt.userData.shared || mt === FACE_MAT) continue; if (mt.map && mt.map !== (TPL && TPL.sharedMap)) mt.map.dispose(); mt.dispose(); }
+        if (o.geometry && !o.geometry.userData.shared && o.geometry !== (TPL && TPL.faceGeo)) o.geometry.dispose(); });
+      if (m.mixer) { m.mixer.stopAllAction(); m.mixer.uncacheRoot(m.mixer.getRoot()); } }
     return grp;
   }
   R.setBenches = (kits, rosters) => {
@@ -1670,16 +1681,22 @@
     });
   };
 
-  function freeTree(root) {
+  /* all: nobody else is on the floor (a new game, a picture just taken), so a player's own face geometry can go too
+     (it shares its vertex data with everyone's: while others are being drawn it is left alone) */
+  function freeTree(root, all) {
     root.traverse(o => {
       if (o.material) for (const mt of [].concat(o.material)) { if (mt.userData.shared) continue; if (mt.map && mt.map !== (TPL && TPL.sharedMap)) mt.map.dispose(); if (mt !== FACE_MAT) mt.dispose(); }
-      if (o.geometry && !o.isSkinnedMesh && !o.geometry.userData.shared && o.geometry !== (TPL && TPL.faceGeo)) o.geometry.dispose();
+      if (o.geometry && !o.geometry.userData.shared && o.geometry !== (TPL && TPL.faceGeo) && o.geometry !== (TPL && TPL.simpleGeo) && (!o.isSkinnedMesh || (all && o.geometry.userData.own))) o.geometry.dispose();
+      if (o.isInstancedMesh && o.dispose) o.dispose();
+      if (o.isSkinnedMesh && o.skeleton && o.skeleton.boneTexture) o.skeleton.dispose();   // each player's skeleton holds a texture of its own
     });
   }
   R.removePlayer = p => {
     const m = meshes.get(p); if (!m) return;
     scene.remove(m.root); meshes.delete(p);
-    /* free what was his alone: materials and their textures, and his own small geometries (the body and the face are shared) */
+    /* free what was his alone: materials and their textures, and his own small geometries (the body and the face are shared).
+       His face geometry waits for the next arena (others are still drawn from the vertex data it shares) */
+    m.root.traverse(o => { if (o.isSkinnedMesh && o.geometry && o.geometry.userData.own) orphans.push(o.geometry); });
     freeTree(m.root);
   };
   R.addPlayer = (p, kit) => {

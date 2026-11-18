@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Fixed: every game left its floor, stands, players and skeletons behind in graphics memory (about 170
+  geometries and 60 textures a game, the floor's seven-megabyte picture among them). A long session could fill a
+  phone's memory and take the page down. A new game now lets go of the last one first; four games in a row hold
+  steady (`tools/session.js` checks it).
 - More of a life around the games: ten more things that come up between them (a kid with a sign, a players' fine
   jar, a terrible car commercial ...), none repeated until you have seen the rest, and five more questions from the
   press (a triple-double, a game that came down to the last possession, a rout, a night of defense, a night of assists).
