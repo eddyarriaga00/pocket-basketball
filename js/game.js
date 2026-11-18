@@ -192,7 +192,7 @@
     $('#game').classList.toggle('bigbtn', !!(PB.settings && PB.settings.btnSize === 'Large'));
     const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;
     const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : s.toFixed(1);
-    $('#s0').textContent = G.score[0]; $('#s1').textContent = G.score[1];
+    for (const i of [0, 1]) { const e = $('#s' + i); if (e.textContent !== String(G.score[i])) { e.textContent = G.score[i]; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); } }
     $('#qt').textContent = G.q <= 4 ? ['1st', '2nd', '3rd', '4th'][G.q - 1] : (G.q === 5 ? 'OT' : `${G.q - 4}OT`);
     $('#clk').textContent = fmt(Math.max(0, G.clock));
     const sc = $('#sc'); sc.textContent = Math.ceil(Math.max(0, G.shotClock)); sc.classList.toggle('low', G.shotClock < 5);
@@ -2042,11 +2042,7 @@
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="row2"><button class="ghost sm" id="psnd">Sound: ${PB.settings.sound === false ? 'off' : 'on'}</button><button class="ghost sm" id="pcom">Commentary: ${PB.settings.commentary === false ? 'off' : 'on'}</button></div>` : ''}
         <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
-        <div class="help"><b>Controls</b><br>Left thumb: move (push to the edge to sprint).<br>
-        Shoot: hold, let go at the top of the jump (the green band). Pass: to the open man, or the one your stick points at.
-        Move: tap for a crossover, or swipe it: left or right to cross that way (behind the back at full speed, between the legs from a standstill or as a combo, a hesitation back to the same hand), down for a step-back (room for the jumper), up to spin to the rim. Pick (with the ball) calls your big for a screen. Off the ball: Call asks for it, Cut runs to the rim.<br>
-        Defense: slide to stay between your man and the rim (get set in front of a driver and you cut him off). Steal when the button lights up: the ball is on your side, or he is crossing over; a reach at a protected ball is a foul waiting to happen. Jump as he shoots to contest or block. Lift your thumb and you stay in front by yourself.<br>
-        Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</div></div>`;
+        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A perfect release goes in unless it is blocked.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {
         /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */

@@ -342,12 +342,18 @@
   function quick() {
     const opts = PB.TEAMS.map(t => `<option value="${t.id}">${tname(t)}</option>`).join('');
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Quick game</h2>
-      <div class="field"><label>Your team</label><select id="qa">${opts}</select></div>
-      <div class="field"><label>Opponent</label><select id="qb">${opts}</select></div>
+      <div class="qvs">${['qa', 'qb'].map((id, i) => `<div class="qt" data-s="${id}"><span class="kick">${i ? 'Opponent' : 'Your team'}</span><div class="qc"><button class="ar" data-d="-1" aria-label="Previous team">‹</button><i class="qb"></i><button class="ar" data-d="1" aria-label="Next team">›</button></div><b></b><small></small><select id="${id}" aria-label="${i ? 'Opponent' : 'Your team'}">${opts}</select></div>`).join('<em>vs</em>')}</div>
       <div class="field"><label>You play</label><div class="seg" id="qp">${PB.POS.map((p, i) => `<button data-v="${i}" class="${i === 0 ? 'on' : ''}">${p}</button>`).join('')}<button data-v="team">Whole team</button></div></div>
       <p class="fine">Pick a position to play one player while your teammates play around you, or Whole team to control whoever has the ball (and, on defense, the man guarding it; Switch moves you to the defender nearest the ball). ${S.qlen}-minute quarters, ${S.level}.</p>
       <button class="big" id="go">Tip off</button></div>`);
     $('#qb').value = 'BOS'; $('#qa').value = 'LAK';
+    /* each side of the matchup: the badge, arrows to flick through the league, the name (tap it for the whole list) */
+    const paintQ = () => scr().querySelectorAll('.qt').forEach(q => { const t = PB.team(q.querySelector('select').value);
+      q.style.setProperty('--tc', t.c1); const bd = q.querySelector('.qb'); bd.textContent = t.ab || t.id; bd.style.background = t.c1; bd.style.color = PB.ink(t.c1, t.c2);
+      q.querySelector('b').textContent = t.name; q.querySelector('small').textContent = t.city; });
+    scr().querySelectorAll('.qt').forEach(q => { const sel = q.querySelector('select'); sel.onchange = paintQ;
+      q.querySelectorAll('.ar').forEach(a => a.onclick = () => { const n = PB.TEAMS.length; sel.selectedIndex = (sel.selectedIndex + +a.dataset.d + n) % n; paintQ(); }); });
+    paintQ();
     let slot = 0;
     scr().querySelectorAll('#qp button').forEach(b => b.onclick = () => { slot = b.dataset.v === 'team' ? 'team' : +b.dataset.v; scr().querySelectorAll('#qp button').forEach(x => x.classList.toggle('on', x === b)); });
     $('#bk').onclick = title;
@@ -921,7 +927,8 @@
       body = `<div class="card"><h3>${esc(PB.full(me))} <small>${me.pos} · ${me.arch} · age ${me.age} · ${role()}</small></h3>
         <div class="ovr"><b>${me.ovr}</b><span>overall</span><em>${me.sp} skill points</em></div>
         ${PB.ATTRS.map(([k, n, d]) => { const c = cost(me.r[k]); const can = me.r[k] < A.cap[k] && me.sp >= c;
-          return `<div class="bar up"><span>${n}<small>${d}</small></span><i><u style="width:${me.r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${me.r[k]}</b>
+          const G0 = { close: ['Scoring', ['close', 'dunk', 'mid', 'three', 'ft']], handle: ['Playmaking', ['handle', 'pass']], speed: ['Athleticism', ['speed', 'vert']], perD: ['Defense', ['perD', 'inD', 'steal', 'block', 'reb']] }[k];
+          return `${G0 ? `<p class="kick grp">${G0[0]}<b>${Math.round(G0[1].reduce((a, x) => a + me.r[x], 0) / G0[1].length)}</b></p>` : ''}<div class="bar up"><span>${n}<small>${d}</small></span><i><u style="width:${me.r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${me.r[k]}</b>
           <button data-k="${k}" ${can ? '' : 'disabled'}>+1<small>${me.r[k] >= A.cap[k] ? 'max' : c + ' SP'}</small></button></div>`; }).join('')}
         <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p>
         ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
@@ -947,8 +954,8 @@
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}">
       <div class="hubtop"><div class="me">${portrait() ? `<img class="face" src="${portrait()}" alt="" style="background:${t.c1}">` : badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}${C.phase === 'playoffs' ? ' · Playoffs' : ''}</span></div></div>
       <button class="ic" id="menu" aria-label="Menu">⌂</button></div>
-      <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}">${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav>
-      <div class="hubbody">${body}</div></div>`);
+      <div class="hubbody">${body}</div>
+      <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
     fillHeads();
     $('#menu').onclick = title;
@@ -1110,6 +1117,9 @@
   const glog = (x, n) => `<div class="glog"><span>${n}</span>${badge(PB.team(x.opp))}
         <b class="${x.res.win ? 'w' : 'l'}">${x.res.win ? 'W' : 'L'} ${x.res.us}-${x.res.them}</b><em>${x.res.line.pts} pts · ${x.res.line.reb} reb · ${x.res.line.ast} ast</em><i>${x.res.grade}${x.res.sim ? ' · sim' : ''}</i></div>`;
   const fmtFans = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n));
+  /* the hub's bottom bar: one line icon a tab */
+  const NAVIC = { home: '<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/>', team: '<circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.3"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5M15.5 14.2c2.800 0 5.500 1.500 5.500 4.300"/>',
+    player: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.600 3.100-6 7-6s7 2.400 7 6"/>', league: '<path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4c0 3 1.500 4.500 3.500 4.500M17 6h3c0 3-1.500 4.500-3.500 4.500M12 13v4M8.500 20h7"/>', log: '<path d="M5 19V9M10 19V5M15 19v-7M20 19v-11"/>' };
   const canUpgrade = () => { const A = PB.ARCH[C.me.arch]; return PB.ATTRS.some(([k]) => C.me.r[k] < A.cap[k] && cost(C.me.r[k]) <= C.me.sp); };
   const cost = v => v < 60 ? 1 : v < 70 ? 2 : v < 80 ? 3 : v < 90 ? 4 : 6;
   const LET = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];

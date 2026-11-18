@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- The hub has a bottom bar: five tabs with icons under your thumb, the page sliding in above it. Ratings on the Player
+  tab are grouped (Scoring, Playmaking, Athleticism, Defense) with each group's average. Quick game picks its matchup
+  from two team cards (badge, arrows to flick through the league, tap the name for the list). The pause menu's
+  controls are a list you open, not a wall of text. The score pops when it changes; glass action buttons.
 - Feet that plant: in a defensive stance, and standing over a dribble, each foot is set on the floor and steps (one at
   a time, never crossing) as the player moves; the legs are solved to reach them, knees out over the toes, hips low,
   back flat and leaning in, head up. A defender's hands work: one down at the ball, one out in the passing lane.
