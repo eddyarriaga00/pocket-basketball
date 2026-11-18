@@ -550,3 +550,6 @@ p.pc{text-align:center;margin:0 0 6px}
 #pause .card .card{width:auto;max-width:none;margin:10px 0}
 details.help.how{margin-top:8px}details.help.how p{display:block;border-top:0;padding:0 0 14px;font-size:13.5px;line-height:1.55;color:var(--mute)}
 details.help.how p b{color:var(--ink)}
+#line{flex:none;font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--mute);white-space:nowrap;font-variant-numeric:tabular-nums}
+#line b{font-family:var(--display);font-size:13px;font-weight:900;color:#fff;margin-left:5px;letter-spacing:0}#line:empty{display:none}
+.sub #grade{min-width:0;justify-content:flex-start;padding-left:4px}.sub #grade span{overflow:hidden;text-overflow:ellipsis}

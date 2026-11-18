@@ -198,6 +198,7 @@
     const sc = $('#sc'); sc.textContent = Math.ceil(Math.max(0, G.shotClock)); sc.classList.toggle('low', G.shotClock < 5);
     sc.style.visibility = G.phase === 'live' && G.poss !== null ? 'visible' : 'hidden';
     $('#sd0').classList.toggle('poss', G.poss === 0); $('#sd1').classList.toggle('poss', G.poss === 1);
+    { const e = $('#line'), st = G.user && !G.drill && !G.switching && G.user.st, v = st ? `<b>${st.pts}</b> PTS <b>${st.reb}</b> REB <b>${st.ast}</b> AST` : ''; if (e && e._v !== v) { e._v = v; e.innerHTML = v; } }   // your line, live
     if (G.to && $('#t0')) for (const i of [0, 1]) { const e = $('#t' + i), v = '•'.repeat(Math.max(0, G.to[i])); if (e.textContent !== v) e.textContent = v; }
     /* in the bonus: the other side has five fouls this quarter, every foul now is two shots */
     if (G.tf) { $('#sd0').classList.toggle('bonus', G.tf[1] >= 5); $('#sd1').classList.toggle('bonus', G.tf[0] >= 5); }
@@ -2191,7 +2192,7 @@
       R.tag(o.rivalId ? pl.find(p => p.d.id === o.rivalId) || null : null, 'RIVAL');
       $('#a0').textContent = o.teams[0].ab || o.teams[0].id; $('#a1').textContent = o.teams[1].ab || o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
-      $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Teammate grade</span>' : '';
+      $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Grade</span>' : '';
       $('#grade').hidden = !G.user || !!o.switching; $('#ftmsg').hidden = true; $('#pause').hidden = true;
       if (o.drill) {
         const def = DRILLS[o.drill];
