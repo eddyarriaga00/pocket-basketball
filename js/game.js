@@ -415,6 +415,15 @@
     const h = b.state === 'held' ? b.holder : null;
     const a = h ? along(h.z, t) : along(b.z, t);   // the holder, not the ball: the ball is still where it was the moment he gets it
     if (!V.crossed && a < HALF - 0.5 && (!h || h.team === t)) V.crossed = true;
+    /* you have it in the backcourt and the count is half gone: say so once a trip */
+    if (!V.crossed && h && h.isUser && !G.auto && !V.told && V.start - G.shotClock > 4) { V.told = true; toast('Get it over half court', 'call'); }
+    /* still standing there with six of the eight seconds gone and no hand on the stick: you give it to the nearest
+       teammate, who brings it up (someone learning the controls is not whistled every trip; a player who is moving
+       keeps the ball and the count) */
+    if (!V.crossed && h && h.isUser && !G.auto && !G.switching && !V.bail && V.start - G.shotClock > 6 && !stickWorld() && !h.shoot && G.phase === 'live') {
+      const r = teamOf(h.team).filter(o => o !== h && !o.inb).sort((a, c) => hyp(a.x - h.x, a.z - h.z) - hyp(c.x - h.x, c.z - h.z))[0];
+      if (r) { V.bail = true; passTo(h, r); toast(`To ${r.name}`, ''); }
+    }
     if (!V.crossed && V.start - G.shotClock > 8) {
       toast('8 SECONDS', t === 0 ? 'opp' : ''); AU().play('whistle'); feed('Eight-second violation'); tally('8 sec'); B('eight', { prio: 3 });
       turnover(h || b.from, '8-second violation', 1 - t, { x: b.x, z: 0 }); return true;
@@ -902,6 +911,9 @@
       const dx = r.x - p.x, dz = r.z - p.z, L = hyp(dx, dz) || 1;
       const open = Math.min(nearestDef(r).d, 9);
       let s = open * 0.8 - L * 0.03 + (distHoop(r.x, r.z, p.team) < 12 ? 1.5 : 0) + (r.cutUser > 0 ? 2.5 : 0);
+      /* bringing it up is the point guard's job: the computer does not hand the ball to you in the backcourt unless you
+         play the point (a new player standing still there was given it, and whistled for eight seconds, trip after trip) */
+      if (r.isUser && !G.auto && !p.isUser && r.slot !== 0 && along(r.z, r.team) > RIM - 1.5) s -= 8;
       if (dirx !== undefined) s += ((dx * dirx + dz * dirz) / L) * 9;
       if (s > bs) { bs = s; best = r; }
     }
