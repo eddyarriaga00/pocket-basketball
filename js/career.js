@@ -146,7 +146,7 @@
     };
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-18';
+  const NEW_V = '2026-11-18b';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V) return;
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
@@ -155,6 +155,7 @@
       <li>A new player model, sculpted for this game: hairstyles, beards, faces, builds, and it blinks and shouts</li>
       <li>The pump fake: tap Shoot quickly. A defender who jumps at it is out of the play</li>
       <li>On defense, an arrow shows where your man is going: green while you are in front of him</li>
+      <li>A defense that answers your drives: help steps in, a big man guards the rim, and a perfect release is a sure thing only when you are open</li>
       <li>New moves: a real layup with a finger roll, passes that snap, size-up dribbles, five more celebrations</li>
       <li>Your Look card: an undershirt, tights, tattoos and a sleeve that sit on the arm, dyed hair</li>
       <li>Your reserves on the bench, coaches in suits, referees in stripes and long pants</li>
