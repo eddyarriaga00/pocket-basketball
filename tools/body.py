@@ -268,14 +268,20 @@ for o in pv: o.select_set(True)
 bpy.context.view_layer.objects.active = pv[0]
 bpy.ops.object.join()
 preview = pv[0]; preview.name = 'Preview'; bpy.ops.object.shade_smooth(); preview.hide_render = True
-for o in bpy.data.objects: o.select_set(False)
-for o in layers: o.select_set(True)
-bpy.context.view_layer.objects.active = layers[0]
-bpy.ops.object.join()
-body = layers[0]; body.name = 'PocketBody'
-bpy.ops.object.shade_smooth()
-
-# ---- skinning: bone heat on the body's own bones; fingers, toes and the root do not pull on it
+# ---- skinning. The body (skin, kit, shoes) gets bone heat on the body's own bones; fingers, toes and the root do not
+# pull on it. Everything from the neck up (the head, every hairstyle, beard, face and accessory) rides on the head bone
+# and nothing else: bone heat is not asked to solve those (with enough loose parts it gives up on the whole mesh and
+# says nothing, and the player comes out rigged to one bone).
+BODYL = ('L_skin', 'L_jersey', 'L_shorts', 'L_shoe', 'L_sock')
+bodyL = [o for o in layers if o.name in BODYL]; headL = [o for o in layers if o.name not in BODYL]
+assert len(bodyL) == len(BODYL), [o.name for o in layers]
+def joined(objs, name):
+    for o in bpy.data.objects: o.select_set(False)
+    for o in objs: o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    if len(objs) > 1: bpy.ops.object.join()
+    objs[0].name = name; bpy.ops.object.shade_smooth(); return objs[0]
+body = joined(bodyL, 'PocketBody'); headO = joined(headL, 'PocketHead')
 for b in arm.data.bones:
     b.use_deform = b.name.startswith('DEF-') and not any(k in b.name for k in ('f_index', 'f_middle', 'f_ring', 'f_pinky', 'thumb'))
 for o in bpy.data.objects: o.select_set(False)
@@ -285,10 +291,21 @@ bpy.ops.object.parent_set(type='ARMATURE_AUTO')
 bpy.context.view_layer.objects.active = body
 bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
 bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
-# the small shapes of the face (eyes, brows, mouth) are too small for bone heat to reach: they ride on the head bone
+# did bone heat do its work? A body that came out on one or two bones is not a body: stop here, write nothing
+top = {}
+for q in body.data.vertices:
+    if q.groups: gname = body.vertex_groups[max(q.groups, key=lambda e: e.weight).group].name; top[gname] = top.get(gname, 0) + 1
+nob = sum(1 for q in body.data.vertices if not q.groups)
+print('BODY rig: bones in charge of some of it', len(top), 'unweighted', nob, 'of', len(body.data.vertices))
+if len(top) < 14 or nob > len(body.data.vertices) * 0.02:
+    print('Error: bone heat failed (the body is not rigged). Nothing written.'); sys.exit(1)
 hg = body.vertex_groups.get('DEF-head') or body.vertex_groups.new(name='DEF-head')
 loose = [q.index for q in body.data.vertices if not q.groups]
 if loose: hg.add(loose, 1.0, 'REPLACE')
+hg2 = headO.vertex_groups.new(name='DEF-head'); hg2.add([q.index for q in headO.data.vertices], 1.0, 'REPLACE')
+for o in bpy.data.objects: o.select_set(False)
+headO.select_set(True); body.select_set(True); bpy.context.view_layer.objects.active = body
+bpy.ops.object.join()
 unw = sum(1 for q in body.data.vertices if not q.groups)
 tris = sum(len(p.vertices) - 2 for p in body.data.polygons)
 print('BODY verts', len(body.data.vertices), 'tris', tris, 'unweighted', unw, 'groups', len(body.vertex_groups))

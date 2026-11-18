@@ -4,6 +4,11 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Faces change with the moment: a grin in a celebration, a scowl after a shot he should have made or a pass thrown
+  away, heavy eyes when he is tired at a stoppage.
+- The model's build script rigs the body and everything from the neck up separately, and stops with an error if the
+  body comes out badly rigged (one build did, silently: every player stood stiff with his arms out for eight minutes
+  on the live site before it was caught and put back).
 - The lower-third for a player having a night shows his face next to his line.
 - A dribbler's off arm hangs loose when nobody is on him and pumps at a run; it comes up as a bar across his body
   only when a defender crowds him (it was held out stiff all the time).
