@@ -126,7 +126,7 @@
     if ($('#achv')) $('#achv').onclick = () => {
       const got = load('pbb.ach') || {};
       show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Achievements</h2><p class="mute">${Object.keys(got).length} of ${ACH.length}, across every career on this device.</p>
-        ${ACH.map(([k, n, d]) => `<div class="card ach ${got[k] ? 'got' : ''}"><i>${got[k] ? '★' : '☆'}</i><div><b>${n}</b><span>${d}${got[k] ? ` · ${esc(got[k].who)}` : ''}</span></div></div>`).join('')}</div>`);
+        <div class="achgrid">${ACH.map(([k, n, d]) => `<div class="card ach ${got[k] ? 'got' : ''}"><i>${got[k] ? '★' : '☆'}</i><div><b>${n}</b><span>${d}</span><em>${got[k] ? esc(got[k].who) : 'Not yet'}</em></div></div>`).join('')}</div></div>`);
       $('#bk').onclick = title;
     };
   }
@@ -407,7 +407,7 @@
         <div class="field"><label>Hometown <small>optional</small></label><input id="ht" maxlength="26" placeholder="Houston, TX" value="${esc(st.from || '')}"></div>
         <div class="field"><label>Your story</label><div class="arch paths">${PATHS.map(([k, n, d]) => `<button class="${k === st.path ? 'on' : ''}" data-path="${k}"><b>${n}</b><span>${d}</span></button>`).join('')}</div></div>
         <div class="field"><label>Position</label><div class="seg" id="pos">${PB.POS.map(p => `<button class="${p === st.pos ? 'on' : ''}" data-v="${p}">${p}</button>`).join('')}</div></div>
-        <div class="field"><label>Build</label><div class="arch">${archs.map(a => `<button class="${a === st.arch ? 'on' : ''}" data-v="${a}"><b>${a}</b><span>${PB.ARCH[a].tag}</span></button>`).join('')}</div></div>
+        <div class="field"><label>Build</label><div class="arch">${archs.map(a => `<button class="${a === st.arch ? 'on' : ''}" data-v="${a}"><b>${a}</b><span>${PB.ARCH[a].tag}</span>${[['Shoot', ['three', 'mid']], ['Finish', ['close', 'dunk']], ['Handle', ['handle', 'pass']], ['Defend', ['perD', 'inD', 'steal', 'block']]].map(([n, ks]) => `<u><em>${n}</em><i><s style="width:${Math.round(ks.reduce((x, k) => x + PB.ARCH[a].cap[k], 0) / ks.length)}%"></s></i></u>`).join('')}</button>`).join('')}</div></div>
         <div class="field"><label>Height · ${PB.fmtH(st.ht)}</label><input type="range" id="hgt" min="${hr[0]}" max="${hr[1]}" value="${st.ht}"></div>
         <div class="field"><label>Skin tone</label><div class="skins">${PB.SKIN.map((c, i) => `<button class="${i === st.skin ? 'on' : ''}" data-v="${i}" style="background:${c}"></button>`).join('')}</div></div>
         ${['face', 'hair', 'hairColor', 'beard'].map(k => `<div class="field"><label>${{ face: 'Face', hair: 'Hair', hairColor: 'Hair color', beard: 'Facial hair' }[k]}</label><div class="seg" data-cl="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(st.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`).join('')}
