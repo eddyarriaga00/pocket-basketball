@@ -357,6 +357,7 @@ input[type=color]{height:44px;padding:4px}
 .ros div span{display:block;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ros small{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:#fff;color:#000;border-radius:4px;padding:1px 5px;vertical-align:2px}
 .ros small.out{background:var(--panel3);color:var(--ink)}
+.ros.sel{background:rgba(255,255,255,.08);box-shadow:inset 3px 0 0 #fff;padding-left:8px}   /* picked for a lineup swap */
 .ros em{font-style:normal;font-weight:900;font-size:20px;min-width:34px;text-align:right}
 .ros.me{background:rgba(255,255,255,.06);margin:0 -10px;padding:7px 10px;border-radius:10px}
 .roster .kick+.ros{border-top:0}

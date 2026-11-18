@@ -16,7 +16,9 @@
   const S = () => PB.settings || { qlen: 3, level: 'Pro', season: 20 };
   const strength = id => PB.teamOvr(Z.rosters[id]);
   const winP = (a, b, home) => 1 / (1 + Math.exp(-(strength(a) - strength(b) + (home ? 2 : -2)) / 4));
-  const five = id => PB.POS.map(pos => Z.rosters[id].filter(p => p.pos === pos).sort((a, b) => b.ovr - a.ovr)[0]);
+  const best5 = id => PB.POS.map(pos => Z.rosters[id].filter(p => p.pos === pos).sort((a, b) => b.ovr - a.ovr)[0]);
+  /* your starting five is yours to set (Z.line: five ids, point guard to center); everyone else starts their best at each spot */
+  const five = id => { if (id === Z.team && Z.line) { const f = Z.line.map(pid => Z.rosters[id].find(p => p.id === pid)); if (f.every(Boolean) && new Set(Z.line).size === 5) return f; } return best5(id); };
   const rank = conf => PB.TEAMS.filter(t => !conf || t.conf === conf).map(t => t.id)
     .sort((a, b) => (Z.st[b].w - Z.st[b].l) - (Z.st[a].w - Z.st[a].l) || strength(b) - strength(a));
 
@@ -87,17 +89,45 @@
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}"><div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(t.city)} ${esc(t.name)}</b><span>Season ${Z.year || 1} · ${st.w}-${st.l}${(Z.titles || []).length ? ` · ${Z.titles.length} title${Z.titles.length > 1 ? 's' : ''}` : ''}</span></div></div><button class="ic" id="menu" aria-label="Menu">⌂</button></div>
       ${card}
       ${Z.po ? `<div class="card bracket"><h3>Playoffs</h3>${Z.po.round.map(m => `<div class="sr ${m.a === Z.team || m.b === Z.team ? 'me' : ''}">${badge(PB.team(m.a))}<b>${m.bo > 1 ? m.wa || 0 : m.w ? (m.w === m.a ? 'W' : 'L') : ''}</b><em>–</em><b>${m.bo > 1 ? m.wb || 0 : m.w ? (m.w === m.b ? 'W' : 'L') : ''}</b>${badge(PB.team(m.b))}<span>${m.w ? esc(PB.team(m.w).name) : ''}</span></div>`).join('')}</div>` : ''}
+      ${rosterCard()}
       ${L.length ? `<div class="card"><h3>Your leaders <small>a game</small></h3><table class="std"><tr><th></th><th>PTS</th><th>REB</th><th>AST</th></tr>${L.map(x => `<tr><td>${esc(x.name)}</td><td>${x.ppg.toFixed(1)}</td><td>${x.rpg.toFixed(1)}</td><td>${x.apg.toFixed(1)}</td></tr>`).join('')}</table></div>` : ''}
       ${Z.mvp ? `<div class="card earn"><b>${esc(Z.mvp.title)}</b><span>${esc(Z.mvp.name)} · ${Z.mvp.line}</span></div>` : ''}
       ${['East', 'West'].map(c => `<div class="card"><h3>${c}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th></tr>${conf(c)}</table></div>`).join('')}
       <button class="ghost sm" id="quit">Start over with another team</button></div>`);
     $('#menu').onclick = () => PB.Career.title();
+    /* the lineup: tap one player, then another, and they trade places */
+    let pick1 = null;
+    document.querySelectorAll('#screen .ros[data-pid]').forEach(el => el.onclick = () => {
+      const id = el.dataset.pid;
+      if (!pick1) { pick1 = id; el.classList.add('sel'); return; }
+      if (pick1 !== id) { const line = five(Z.team).map(p => p.id), i = line.indexOf(pick1), j = line.indexOf(id);
+        if (i >= 0 && j >= 0) { line[i] = id; line[j] = pick1; } else if (i >= 0) line[i] = id; else if (j >= 0) line[j] = pick1;
+        if (i >= 0 || j >= 0) { Z.line = line; save(); } }
+      const y = $('#screen').scrollTop; hub(); $('#screen').scrollTop = y; });
+    heads();
     if ($('#play')) $('#play').onclick = () => play(nx);
     if ($('#sim')) $('#sim').onclick = () => { const w = PB.rand() < winP(Z.team, nx.opp, nx.home); result(nx, w, null); };
     if ($('#po')) $('#po').onclick = () => { if (!Z.po) startPO(); else { while (!Z.champ) simRound(); } save(); hub(); };
     if ($('#again')) $('#again').onclick = () => { if (confirm('Leave this team and start over?')) { localStorage.removeItem(KEY); pick(); } };
     if ($('#next')) $('#next').onclick = nextSeason;
     $('#quit').onclick = () => { if (confirm('Leave this season and pick another team?')) { localStorage.removeItem(KEY); pick(); } };
+  }
+  function rosterCard() {
+    const f = five(Z.team), rest = Z.rosters[Z.team].filter(p => !f.includes(p)).sort((a, b) => b.ovr - a.ovr);
+    const row = (p, i) => { const e = Z.lead[p.id], gp = e && e.gp;
+      return `<div class="ros" data-pid="${esc(p.id)}" role="button" tabindex="0"><img alt="" data-head="${esc(p.id)}"><b class="no">${p.num}</b>
+        <div><b>${esc(PB.full(p))}</b><span>${i < 5 ? PB.POS[i] + (p.pos !== PB.POS[i] ? ' (a ' + p.pos + ')' : '') : p.pos} · ${PB.fmtH(p.ht)}${p.age ? ' · ' + p.age : ''}${gp ? ` · ${(e.pts / gp).toFixed(1)} pts` : ''}</span></div><em>${p.ovr}</em></div>`; };
+    return `<div class="card"><h3>Your team <small>tap two players to swap them</small></h3><p class="kick" style="margin:8px 0 2px">Starting five</p>${f.map(row).join('')}<p class="kick" style="margin:12px 0 2px">Bench</p>${rest.map((p, i) => row(p, i + 5)).join('')}</div>`;
+  }
+  /* headshots, drawn one at a time after the screen is up and kept for the session */
+  const headCache = {};
+  function heads() {
+    const imgs = [...document.querySelectorAll('#screen img[data-head]')];
+    if (!imgs.length || PB.noGL || !PB.R || !PB.R.modelReady || !PB.R.modelReady()) return;
+    const step = () => { const img = imgs.shift(); if (!img || !img.isConnected) return; const p = Z.rosters[Z.team].find(x => x.id === img.dataset.head);
+      if (p) { const key = Z.team + p.id; if (!(key in headCache)) headCache[key] = PB.R.portrait(p, PB.team(Z.team), 96, { close: true }); if (headCache[key]) img.src = headCache[key]; }
+      setTimeout(step, 0); };
+    step();
   }
   function play(nx) {
     const t = PB.team(Z.team), o = PB.team(nx.opp), me = five(Z.team);

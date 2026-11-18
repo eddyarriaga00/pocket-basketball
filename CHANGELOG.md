@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Season mode shows your team: all ten players with a headshot, height, rating and points a game, and the starting
+  five is yours to set (tap two players and they trade places).
 - Big plays land with a beat: the game holds for a few frames on a block, a dunk and broken ankles.
 - An open teammate standing in his range puts a hand up for the ball now and then: it shows you who is open.
 - Whoever is whistled for a foul puts a hand up: that one is on him.
