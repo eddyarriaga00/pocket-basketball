@@ -957,6 +957,8 @@
     if (G.shotClock < 2.5 || (d < 5.5 && p.hold > 0.15)) { startShot(p); return; }
     const need = (p.team === 1 ? G.diff.oppShootEV : 0.98) - (three ? 0.01 : 0);
     if (p.hold > 0.5 && ev > need && nd > 4.2 && rand() < 0.62) { startShot(p); return; }
+    /* with you on him he may show the ball first: jump at the fake and he goes by you or shoots over you coming down */
+    { const u = G.user; if (u && !G.auto && u.team !== p.team && d > 9 && p.hold > 0.7 && !(p.fakeCd > G.t) && u.y === 0 && hyp(u.x - p.x, u.z - p.z) < 5 && rand() < 0.004) { p.fakeT = G.t; p.fakeCd = G.t + 6; p.hold = 0.45; return; } }
     if (p.hold > 0.9 && ev > need * 1.08 && nd > 3.2 && rand() < 0.35) { startShot(p); return; }
     /* bigs on the block back their man down, then turn for the hook */
     if (p.slot >= 3 && !three && d > 5 && d < 16 && p.post === undefined && p.hold > 0.6 && p.r.close >= 60 && rand() < 0.065) { p.post = 1.6 + rand(); return; }
@@ -1305,10 +1307,23 @@
       else if (G.ball.holder !== u && u.y === 0) {
         /* jump: contest, block, rebound */
         u.jg = GRAV * 1.6; u.vy = Math.sqrt(2 * u.jg * (1.6 + u.r.vert * 0.022)); u.pose = 'contest';
+        { const h = G.ball.holder; if (h && h.team !== u.team && !h.shoot && h.fakeT !== undefined && G.t - h.fakeT < 0.5 && hyp(h.x - u.x, h.z - u.z) < 6) { toast('You bit on the fake', 'opp'); grade(-0.3, 'Bit on a pump fake'); } }
       }
     } else if (u.shoot && u.shoot.user) {
-      release(u, u.shoot.t / u.shoot.T);
+      if (u.shoot.kind === 'jumper' && u.shoot.t < 0.14 && !G.drill && !(u.fakeCd > G.t)) pumpFake(u);   // a quick tap is a pump fake
+      else release(u, u.shoot.t / u.shoot.T);
     }
+  }
+  /* a pump fake: the shot is shown and pulled back. A defender who was going up with it may leave his feet (the
+     better the defender, and the more fakes in a row, the less he bites); in the air he can do nothing about a drive */
+  function pumpFake(p) {
+    p.shoot = null; if (p.y > 0 || p.vy > 0) p.vy = -5; p.pose = ''; p.fakeN = p.fakeT !== undefined && G.t - p.fakeT < 5 ? (p.fakeN || 1) + 1 : 1; p.fakeT = G.t; p.fakeCd = G.t + 0.55;
+    let bit = null;
+    for (const o of G.pl) { if (o.team === p.team || o.contestT === undefined) continue; delete o.contestT;
+      if (o.isUser || o.y > 0 || hyp(o.x - p.x, o.z - p.z) > 6.5) continue;
+      const ch = clamp(0.62 - (o.r.perD || 60) * 0.005 + ((p.r.three || 60) + (p.r.mid || 60) - 120) * 0.002, 0.12, 0.6) / p.fakeN;
+      if (rand() < ch) { o.jg = GRAV * 1.6; o.vy = Math.sqrt(2 * o.jg * (1.5 + o.r.vert * 0.02)); o.pose = 'contest'; o.bitT = G.t; bit = o; } }
+    if (p.isUser) { if (bit) { toast('He bit on the fake', 'make'); grade(0.3, 'Pump fake'); buzz(10); } AU().play('squeak', { x: p.x, vol: 0.5 }); }
   }
   /* icon passing, the pocket way: tap a teammate on the floor and the ball goes to him */
   function tapPass(cx, cy) {
@@ -1681,7 +1696,7 @@
           p.st.fga++; if (p.shoot.three) p.st.tpa++; p.shoot = null; p.pose = ''; G.possN = (G.possN || 0) + 1;
           blockShot(o, p, { x: b.x, y: b.y, z: b.z }); return; }
       } }   // (a shot never falls through to the dribble below: the ball stays in the hands)
-      else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb)) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
+      else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb || (p.fakeT !== undefined && G.t - p.fakeT < 0.36))) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
         const mv = p.mv, ms = mv && H ? (G.t - mv.t0) / mv.T : 2;
         if (ms < 1) {
@@ -2118,7 +2133,7 @@
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
         <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
-        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A perfect release goes in unless it is blocked.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
+        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {
         /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */

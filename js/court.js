@@ -1127,6 +1127,7 @@
     }
   }
   function updateSkinned(p, m, G, dt) {
+    if (dt <= 0 && m.posed) return; m.posed = 1;   // paused: the pose holds (the turns added on top of the clip would pile up frame after frame)
     m.root.position.set(p.x, 0, p.z);
     const mv = p.mv && G.ball.holder === p && !p.shoot ? p.mv : null, ms = mv ? (G.t - mv.t0) / mv.T : 2;
     const drib = G.ball.holder === p && !p.shoot && !p.inb && G.phase !== 'ft', prot = drib ? p.prot || 0 : 0;
@@ -1239,6 +1240,8 @@
     let pose = p.pose;
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
+    const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back
+    if (fk >= 0) pose = 'shoot';
     if (!pose && m.rw > 0.3 && !has) pose = 'ready';
     if ((!pose || pose === 'guard' || pose === 'ready') && m.rb > 0.3 && !has) pose = 'box';
     if (pose !== m.pose) { m.pose = pose; }
@@ -1248,6 +1251,7 @@
     const dsf = (ds => ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1)(p.d && p.d.look && p.d.look.drib);
     if (pose === 'dribble') kk = ((p.dph !== undefined ? p.dph : G.t * 7.4 * dsf) / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
+    else if (pose === 'shoot' && fk >= 0) kk = 0.16 + 0.34 * Math.sin(Math.PI * Math.min(1, fk * 1.15));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     else if (pose === 'dunk1') kk = p.shoot ? Math.min(1, p.shoot.t / p.shoot.T) : 1;
     else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
