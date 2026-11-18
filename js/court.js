@@ -1081,6 +1081,8 @@
     sig3: () => [[0.25, 0.96, 0.12], [0.1, 0.99, 0.05], [0.25, 0.96, 0.12], [0.1, 0.99, 0.05]],   // the officials: a three is good
     sigf: () => [[0.22, 0.96, 0.14], [0.06, 0.99, 0.08], [0.2, -0.95, 0.2], [0.12, -0.95, 0.28]],   // a foul: the fist goes up
     hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
+    /* the inbounder: the ball over his head in both hands, looking one way and then the other for a man */
+    over: (k) => { const s = 0.16 * Math.sin(k * 2.3); return [[0.3 + s, 0.72, 0.5], [-0.3 + s, 0.9, 0.12], [0.3 - s, 0.72, 0.5], [-0.3 - s, 0.9, 0.12]]; },
     /* the windmill: the ball arm goes down, back, over the top and through; k is the time in the air */
     windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
       return [d, d, [0.45, 0.5, 0.6], [0.3, 0.7, 0.6]]; },
@@ -1283,7 +1285,7 @@
     const has = G.ball.holder === p;
     let pose = p.pose;
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
-    if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
+    if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' ? 'hold' : p.inb ? 'over' : 'dribble';
     if (has && !p.shoot && !p.inb && p.y > 0.25 && p.pose !== 'hang') pose = 'contest';   // he came down with a rebound: the ball stays up in both hands until his feet are back on the floor
     const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back
     if (fk >= 0) pose = 'shoot';
@@ -2035,6 +2037,7 @@
   };
   R.pixelCap = () => prCap;
   R.info = () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, tex: renderer.info.memory.textures });
+  R._scene = () => scene;   // for the test tools
   R.resize = () => {
     const el = renderer.domElement.parentElement;
     if (!el.clientWidth) return;   // the game view is hidden (a menu is up): size it when it shows
