@@ -4,7 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
-- A dunk pulls the rim down and lets it go: it springs back, the net with it.
+- A dunk is carried all the way to the rim: he arrives as the ball goes down, the hand at the iron (he used to let
+  it go from two or three feet out). It pulls the rim down and lets it go: it springs back, the net with it. The
+  rim shivers when a shot comes off the iron.
 - The ball turns the way it travels: backspin on a shot and a pass, forward off the dribble, and it sits still in
   the hands of a man holding it (it used to spin the same way all the time).
 - Every arena's floor has a design of its own as well as its own wood: the classic solid key, a darker stain inside

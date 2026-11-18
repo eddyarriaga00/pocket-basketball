@@ -1591,7 +1591,8 @@
       if (p.shoot) {
         p.shoot.t += dt;
         const s = p.shoot;
-        if (s.kind === 'layup' || s.kind === 'dunk') { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 2.2; seek(p, dt, 0.8); }
+        if (s.kind === 'layup') { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 2.2; seek(p, dt, 0.8); }
+        else if (s.kind === 'dunk') { const dx = 0 - p.x, dz = hoopZ(p.team) - dirOf(p.team) * 1.0 - p.z, d = hyp(dx, dz), v = d > 0.05 ? Math.min(21, d / Math.max(0.05, s.T * 0.85 - s.t)) : 0; p.vx = d > 0.05 ? dx / d * v : 0; p.vz = d > 0.05 ? dz / d * v : 0; }   // a dunk is carried all the way to the rim: he arrives as the ball goes down
         if (s.user && s.t / s.T > 1.12) release(p, s.t / s.T);
         else if (!s.user && s.t / s.T >= s.aiRel) release(p, s.aiRel);
       }
