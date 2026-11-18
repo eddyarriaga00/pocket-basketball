@@ -446,7 +446,9 @@
     let prob = baseProb(p, p.x, p.z, s.kind) * (s.js === 'quick' ? 0.97 : 1) * (s.fade ? 0.9 + 0.025 * bt(p, 'fade') : 1) * (s.kind === 'hook' ? 1 + 0.025 * bt(p, 'post') : 1);
     let timing = '';
     if (s.user) {
-      const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase() * (tkoOn() ? 1.4 : 1);
+      /* a hand in your face makes the release harder to time: the green band is at its full width when you are open and
+         narrows to a little over half with a defender on you */
+      const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase() * (tkoOn() ? 1.4 : 1) * (0.55 + 0.45 * clamp((contest(p) - 0.6) / 0.4, 0, 1));
       const err = meter - 0.82;
       const ae = Math.abs(err);
       if (ae <= w) { timing = 'Excellent'; prob = prob + (1 - prob) * 0.62; }
@@ -2107,7 +2109,7 @@
     const ftm = G.phase === 'ft' && G.ftq && G.ftq.shooter === u ? (G.ftMeter || 0.0001) : 0;
     if (!s && !ftm) { m.hidden = true; return; }
     const v = s ? s.t / s.T : ftm;
-    const w = (s ? 0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006 : 0.05 + u.r.ft * 0.0007) * timingEase();
+    const w = (s ? 0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006 : 0.05 + u.r.ft * 0.0007) * timingEase() * (s ? 0.55 + 0.45 * clamp((contest(u) - 0.6) / 0.4, 0, 1) : 1);   // the band you see is the band you get: it shrinks as a defender closes
     const p = R.toScreen(u.x, u.ht / 12 + u.y + 1.2, u.z);
     m.hidden = false;
     m.style.transform = `translate(${Math.round(p.x + 26)}px, ${Math.round(p.y - 70)}px)`;
