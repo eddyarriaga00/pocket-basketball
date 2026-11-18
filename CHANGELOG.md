@@ -7,6 +7,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - An open teammate standing in his range puts a hand up for the ball now and then: it shows you who is open.
 - Whoever is whistled for a foul puts a hand up: that one is on him.
 - A shot he should have made, or a pass thrown to the other team: both hands go to the head.
+- Heavy legs at a stoppage: hands on the knees. You, when your stamina is low; one or two others late in a game.
 - Sizing up: a ball handler standing with room to work keeps the ball moving (between the legs, behind the back, a
   crossover) instead of pounding one dribble. It is rhythm only: it gives the defense nothing extra to steal.
 - Replays start from the rim's side of the play, a little above the heads, so the scorer comes at the camera

@@ -1577,6 +1577,9 @@
         p.jg = GRAV * 1.5; p.vy = Math.sqrt(2 * p.jg * (1.6 + p.r.vert * 0.022)); p.pose = 'contest';
       }
       if (p.celebT > 0) { p.celebT -= dt; if (!p.shoot && G.ball.holder !== p && p.y === 0) p.pose = p.celebT > 0 ? p.celebK || 'celebrate' : ''; }
+      /* heavy legs at a stoppage: hands on the knees (you, when your stamina is low; one or two of the others late in a game) */
+      if (!live) { if ((G.phase === 'ft' || G.phase === 'dead') && !G.drill && p.y === 0 && !p.pose && b.holder !== p && !(G.ftq && G.ftq.shooter === p) && (p.isUser && !G.switching ? p.energy < 0.3 : G.q >= 3 && ((p.num || 0) + G.q + (G.possN || 0)) % 6 === 0)) { p.pose = 'sad'; p.tiredP = true; } }
+      else if (p.tiredP) { p.tiredP = false; if (p.pose === 'sad') p.pose = ''; }
       if (p.wantBall > 0) p.wantBall -= dt;
       if (p.shoot) {
         p.shoot.t += dt;
