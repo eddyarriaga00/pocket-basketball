@@ -1266,6 +1266,7 @@
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
     const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back
     if (fk >= 0) pose = 'shoot';
+    if ((pose === 'guard' || pose === 'ready' || !pose) && !has && p.y > 0.35 && !p.shoot && p.pose !== 'hang') pose = 'contest';   // off the floor without the ball: the hands go up (a block try, a rebound)
     if (pose === 'guard' && !has) { const h = G.ball.holder; if (Math.hypot(p.vx, p.vz) > 10 && (!h || Math.hypot(h.x - p.x, h.z - p.z) > 9)) pose = ''; }   // sprinting back, far from the ball: he runs, arms pumping, not spread like wings
     if (!pose && m.rw > 0.3 && !has) pose = 'ready';
     if ((!pose || pose === 'guard' || pose === 'ready') && m.rb > 0.3 && !has) pose = 'box';
@@ -1291,6 +1292,9 @@
       P = [P[0], P[1], L(up, P[2]), L(fo, P[3])]; }
     if ((pose === 'chest' || pose === 'bpass') && p.passT0 !== undefined && G.t - p.passT0 < 0.6) { P = keyed(pose === 'chest' ? PASSK : BPASSK, Math.min(1, (G.t - p.passT0) / 0.3));
       if (pose === 'chest' && G.ball.lob && G.ball.passer === p) P = P.map(v => [v[0], v[1] + 0.5, v[2]]); }   // a lob goes up and out
+    /* a reach goes at the ball: down for a low dribble, up for one held high */
+    if (pose === 'reach' && G.ball.holder && G.ball.holder !== p) { const b = G.ball, d = Math.hypot(b.x - p.x, b.z - p.z) || 1, vy = Math.max(-0.75, Math.min(0.5, ((b.y || 0) - ((p.ht || 78) / 12 * 0.70 + (p.y || 0))) / Math.max(2, d)));
+      P = [[0.10, vy * 0.8, 0.98], [0.04, vy * 1.1, 0.98], P[2], P[3]]; }
     if (pose === 'catch' && G.ball.state === 'pass') { const b = G.ball, d = Math.hypot(b.x - p.x, b.z - p.z) || 1, vy = Math.max(-0.7, Math.min(0.9, ((b.y || 0) - ((p.ht || 78) / 12 * 0.78 + (p.y || 0))) / Math.max(3, d)));   // the hands go to where the ball is coming in
       P = [[0.30, vy * 0.5 - 0.1, 0.90], [0.10, vy + 0.15, 0.95], [0.30, vy * 0.5 - 0.1, 0.90], [0.10, vy + 0.15, 0.95]]; }
     /* off one hand: a layup reaches up for the glass, the off arm keeping the defender away; a hook sweeps up from the side */

@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- On defense, a reach goes at the ball (down for a low dribble), and anyone off the floor without the ball has his
+  hands up: a block try or a rebound no longer goes up with the arms held out in front.
 - Faces change with the moment: a grin in a celebration, a scowl after a shot he should have made or a pass thrown
   away, heavy eyes when he is tired at a stoppage.
 - The model's build script rigs the body and everything from the neck up separately, and stops with an error if the
