@@ -146,7 +146,7 @@
   /* ---------- first-game tips: shown once each, the first time the moment comes up ---------- */
   const TIPS = {
     ball: 'You have the ball. Hold SHOOT, let go at the top of the jump (green band). PASS finds the open man; swipe MOVE to break your man down.',
-    def: 'Defense. Lift your thumb and you stay in front of your man by yourself. JUMP to contest, STEAL to reach.',
+    def: 'Defense. Slide to stay between your man and the rim: get set in front and you cut him off. STEAL when the button lights up (the ball is on your side, or he crosses over). JUMP as he shoots.',
     mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
     ft: 'Free throw: hold SHOOT and let go in the green band.',
     pick: 'PICK brings your big over to screen your man. Pause (top left) to call a play for the next three trips.',
@@ -210,7 +210,7 @@
     $('#bA').textContent = ft || has || G.drill ? 'Shoot' : 'Jump';
     $('#bA').className = 'btn a ' + (has || ft || G.drill ? 'shoot' : 'jump');
     $('#bB').textContent = has ? 'Pass' : off ? 'Call' : 'Steal';
-    $('#bB').classList.toggle('lit', !has && off && G.callT > 0);
+    $('#bB').classList.toggle('lit', !has && (off ? G.callT > 0 : G.phase === 'live' && exposed(u, G.ball.holder) > 0));
     $('#bC').textContent = has ? 'Move' : off ? 'Cut' : G.switching ? 'Switch' : 'Help';
     if (G.drill && G.drill.kind === 'dunk') { $('#bA').textContent = 'Dunk'; $('#bC').textContent = 'Style'; }
     const pk = has && !u.inb && !G.drill && G.phase === 'live' && along(u.z, u.team) < RIM;
@@ -454,6 +454,16 @@
     const nd = nearestDef(p);
     /* how covered you were, next to the timing: a miss explains itself */
     if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing === 'Excellent' ? 'Perfect' : timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}`; }
+    /* your defense on the shot, said out loud: it is how you learn what a good contest is */
+    { const u = G.user;
+      if (u && p.team !== u.team && !G.drill && s.kind !== 'dunk' && !s.oop && (nd.who === u || u.slot === p.slot)) {
+        const du = hyp(u.x - p.x, u.z - p.z), up = u.y > 0.3 || u.pose === 'contest';
+        if (du < 2.4 && up) { toast('Smothered', 'make'); grade(1.5, 'Smothered the shot'); }
+        else if (du < 4.2 && up) { toast('Good contest', 'make'); grade(1, 'Contested the shot'); }
+        else if (du < 4.2) toast('Hand down', 'call');
+        else if (du < 8) toast('Late contest', 'call');
+        else if (u.slot === p.slot) { toast('Left him open', 'opp'); grade(-1, 'Left your man open'); }
+      } }
     p.st.fga++; if (s.three) p.st.tpa++;
     G.lastShot = { shooter: p, three: s.three, open: nd.d, prob, guard: nd.who };
     (G.shotLog = G.shotLog || []).push({ kind: s.three ? 'three' : s.oop ? 'oop' : s.kind, prob, d: s.d, x: p.x, a: along(p.z, p.team), user: p.isUser, team: p.team });
@@ -1203,9 +1213,19 @@
       G.idle = 0;
       const sprint = w.m > 0.82 ? 1 : 0.72;
       const sp = maxSpeed(u) * sprint * (u.shoot && u.shoot.kind === 'jumper' ? 0.1 : 1);
-      steer(u, dt, w.x * sp, w.z * sp);
+      let ax = 0, az = 0;
+      /* on the ball: a little help staying in front. Your slide is pulled toward the line between him and the rim
+         (sideways only: how tight you play him is yours), unless you are pushing the other way */
+      { const h = G.ball.holder;
+        if (!off && h && h !== u && !h.shoot && hyp(h.x - u.x, h.z - u.z) < 8) {
+          const hx = 0 - h.x, hz = hoopZ(h.team) - h.z, hl = hyp(hx, hz) || 1, px = -hz / hl, pz = hx / hl;
+          const e = (h.x - u.x) * px + (h.z - u.z) * pz, k = clamp(e * 2.4, -6, 6);
+          if ((w.x * px + w.z * pz) * Math.sign(e) > -0.35 && (u.x - h.x) * hx + (u.z - h.z) * hz > -hl) { ax = px * k; az = pz * k; }
+        } }
+      steer(u, dt, w.x * sp + ax, w.z * sp + az);
       if (G.ball.holder === u) u.pose = 'dribble';
-      else if (!off) u.pose = 'guard';
+      else if (!off) { const h = G.ball.holder, mn = G.pl.find(o => o.team !== u.team && o.slot === u.slot);   // a stance near the ball or your man; a run when you are getting back
+        u.pose = (h && hyp(h.x - u.x, h.z - u.z) < 17) || (mn && hyp(mn.x - u.x, mn.z - u.z) < 9) ? 'guard' : ''; }
       else u.pose = '';
       if (!off) handsUp(u);
     } else {
@@ -1217,6 +1237,14 @@
     }
   }
   /* on defense, both hands go up by themselves when the man in front of you rises to shoot (a jump is better) */
+  /* is the ball there to be taken? Yes while he crosses over, goes between the legs or hesitates in front of you
+     (1), and when he is dribbling on your side of his body (0.6); not when it is behind his back or his body */
+  function exposed(d, h) {
+    if (!h || h.team === d.team || h.shoot || h.inb || G.ball.state !== 'held' || hyp(h.x - d.x, h.z - d.z) > 5) return 0;
+    const mv = h.mv && G.t - h.mv.t0 < h.mv.T ? h.mv.k : null;
+    if (mv) return mv === 'cross' || mv === 'legs' || mv === 'hesi' ? 1 : 0;
+    return ((d.x - h.x) * -Math.cos(h.face) + (d.z - h.z) * Math.sin(h.face)) * (h.dribHand || 1) > 0.6 ? 0.6 : 0;
+  }
   function handsUp(u) {
     if (u.y > 0) return;
     const sh = G.pl.find(o => o.team !== u.team && o.shoot && o.shoot.kind !== 'dunk');
@@ -1253,16 +1281,17 @@
     if (off) { G.callT = 2.5; toast('Calling for it', 'call'); CH('ch_ball', u); return; }
     /* steal */
     if (u.reachCd > 0) return;
-    u.reachCd = 0.7; u.pose = 'reach'; u.reachT = 0.3;
+    u.reachCd = 0.9; u.pose = 'reach'; u.reachT = 0.3;
     const h = b.holder;
     if (h && hyp(h.x - u.x, h.z - u.z) < 5 && !h.shoot) {
-      const ch = clamp(0.12 + (u.r.steal - h.r.handle) * 0.004, 0.04, 0.38) + 0.025 * bt(u, 'pick');
+      /* a reach is about timing: at an exposed ball it is a real chance, at a protected one mostly a foul */
+      const ex = exposed(u, h), ch = clamp((0.06 + (u.r.steal - h.r.handle) * 0.003) * (1 + ex * 3), 0.03, 0.55) + 0.025 * bt(u, 'pick');
       if (rand() < ch) {
         u.st.stl++; h.st.tov++; grade(3, 'Steal'); buzz(25); toast('STOLEN', 'make'); feed(`Steal · ${u.name}`); give(u);
         AU().play('steal', { x: u.x }); AU().crowd.react(home(0) ? 'roar' : 'ooh', 0.9); B('steal', { prio: 4, follow: 0.4 });
-      } else if (rand() < 0.14) {
+      } else if (rand() < (ex > 0 ? 0.05 : 0.2)) {
         toast('Reach-in foul', 'opp'); contactFoul(u, h);
-      }
+      } else if (!ex && !G.reachSaid) { G.reachSaid = true; toast('He kept it away: reach when Steal lights up', 'call'); }
     } else if (b.state === 'pass' && hyp(b.x - u.x, b.z - u.z) < 4.5 && rand() < 0.35 + u.r.steal * 0.003) {
       b.pick = { who: u, f: b.t / b.dur + 0.05 };
     }
@@ -1450,7 +1479,7 @@
         const tight = nd.who && nd.d < 5.5 ? 1 - Math.max(0, nd.d - 2.5) / 3 : 0, run = clamp((spd - top * 0.6) / (top * 0.4), 0, 1) * (1 - tight);
         p.prot = (p.prot || 0) + (tight - (p.prot || 0)) * Math.min(1, dt * 6); p.runD = (p.runD || 0) + (run - (p.runD || 0)) * Math.min(1, dt * 5);
         const rate = (1 + 0.28 * p.prot - 0.2 * p.runD) * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1);
-        p.dph = (p.dph === undefined ? G.t * 8.5 : p.dph) + dt * 8.5 * rate;
+        p.dph = (p.dph === undefined ? G.t * 7.4 : p.dph) + dt * 7.4 * rate;
         if (p.handCd > 0) p.handCd -= dt;
         const busy = p.mv && G.t - p.mv.t0 < p.mv.T + 0.15;
         if (nd.who && nd.d < 5 && !busy && !(p.handCd > 0) && !(p.move > 0) && !(p.postUp > 0)) {
@@ -1539,6 +1568,10 @@
       if (h && b.state === 'held' && !h.shoot && G.phase === 'live' && !h.inb && !G.drill) {
         const hx = 0 - h.x, hz = hoopZ(h.team) - h.z, hl = hyp(hx, hz) || 1, ux = hx / hl, uz = hz / hl;
         const vin = h.vx * ux + h.vz * uz;
+        /* your man going by you: said once, so you know to get back in front (or call for help) */
+        { const u = G.user;
+          if (u && !G.auto && h.team !== u.team && vin > 5 && hl < 30 && hl > 5 && u.slot === h.slot && hyp(u.x - h.x, u.z - h.z) < 6 && (u.x - h.x) * ux + (u.z - h.z) * uz < -1 && !(G.t - (u.beatT || -9) < 6)) {
+            u.beatT = G.t; toast('Beaten: get back in front', 'opp'); grade(-0.5, 'Beaten off the dribble'); } }
         if (vin > 3) for (const d of G.pl) {
           if (d.team === h.team || d.pose !== 'guard' || d.y > 0.2 || d.stun > 0) continue;
           const rx = d.x - h.x, rz = d.z - h.z, ahead = rx * ux + rz * uz, side = Math.abs(rx * -uz + rz * ux);
@@ -1594,7 +1627,7 @@
         /* the dribble: from the hand to the floor and back, under the hand */
         b.x = hp.x; b.z = hp.z;
         const ds = p.d && p.d.look && p.d.look.drib, top = (H ? Math.max(1.2, (p.dribHand < 0 ? H.l.y : H.r.y) - 0.35) : 3.0) * (ds === 'low' ? 0.78 : ds === 'high' ? 1.06 : 1) * (1 - 0.18 * (p.prot || 0) + 0.08 * (p.runD || 0));
-        const ph = p.dph !== undefined ? p.dph : G.t * 8.5, sn = Math.abs(Math.sin(ph));
+        const ph = p.dph !== undefined ? p.dph : G.t * 7.4, sn = Math.abs(Math.sin(ph));
         b.y = 0.4 + sn * (top - 0.4);
         /* at a run the ball is pushed out ahead and comes back to the hand */
         if (p.runD > 0.05) { const f = (1 - sn) * 1.5 * p.runD, sp1 = hyp(p.vx, p.vz) || 1; b.x += p.vx / sp1 * f; b.z += p.vz / sp1 * f; }
@@ -2003,7 +2036,7 @@
         <div class="help"><b>Controls</b><br>Left thumb: move (push to the edge to sprint).<br>
         Shoot: hold, let go at the top of the jump (the green band). Pass: to the open man, or the one your stick points at.
         Move: tap for a crossover, or swipe it: left or right to cross that way (behind the back at full speed, between the legs from a standstill or as a combo, a hesitation back to the same hand), down for a step-back (room for the jumper), up to spin to the rim. Pick (with the ball) calls your big for a screen. Off the ball: Call asks for it, Cut runs to the rim.<br>
-        Defense: Jump to contest and block, Steal to reach. Lift your thumb and you stay in front of your man.<br>
+        Defense: slide to stay between your man and the rim (get set in front of a driver and you cut him off). Steal when the button lights up: the ball is on your side, or he is crossing over; a reach at a protected ball is a foul waiting to happen. Jump as he shoots to contest or block. Lift your thumb and you stay in front by yourself.<br>
         Keyboard: WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</div></div>`;
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {

@@ -487,7 +487,10 @@
       return g;
     }
     const clips = {}; for (const c of g.animations) clips[c.name] = c;
-    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR, simpleGeo };
+    /* the sole's normal in each foot bone's own frame, to keep planted shoes flat on the floor */
+    const footUp = {}; for (const sd of ['L', 'R']) { const fb = bones[bk(`DEF-foot.${sd}`)]; if (fb) footUp[sd] = V3(0, 1, 0).applyQuaternion(fb.getWorldQuaternion(Q4()).invert()); }
+    { const d = at('DEF-toe.L').sub(at('DEF-foot.L')); footUp.slope = d.y / Math.hypot(d.x, d.z); }   // the foot bone runs down from the ankle to the ball of the foot
+    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR, simpleGeo, footUp };
   }
   /* the kit: colors by body region, and a design on the jersey and shorts. Designs (cols.pat):
      0 plain, 1 side panels (down the jersey and the shorts), 2 pinstripes, 3 a chest band, 4 a fade to dark,
@@ -899,7 +902,7 @@
     dribble: (k) => { const u = (1 + 12 * k) % 12, i = Math.floor(u), f = u - i, a = DRIB[i], b = DRIB[(i + 1) % 12];
       const L = (x, y) => x.map((v, j) => v + (y[j] - v) * f);
       const up = L(a[0], b[0]); up[0] += 0.12;   // a little off the hip: this body is wider than the subject's
-      return [up, L(a[1], b[1]), [0.35, -0.6, 0.55], [0.05, -0.15, 1]]; },
+      return [up, L(a[1], b[1]), [0.5, -0.62, 0.42], [-0.12, 0.18, 0.95]]; },   // the off arm: a bar in front of him
     shoot: (k) => [[0.12, 0.62 + 0.3 * k, 0.7 - 0.4 * k], [0.02, 0.75 + 0.2 * k, 0.55 - 0.3 * k], [0.32, 0.6 + 0.25 * k, 0.6], [-0.35, 0.85, 0.35]],
     follow: () => [[0.08, 0.9, 0.42], [0.02, 0.35, 0.95], [0.32, 0.8, 0.4], [-0.2, 0.7, 0.6]],
     contest: () => [[0.25, 0.96, 0.15], [0.12, 0.99, 0.05], [0.25, 0.96, 0.15], [0.12, 0.99, 0.05]],
@@ -919,14 +922,15 @@
     catch: () => [[0.32, 0.05, 0.94], [0.12, 0.25, 0.96], [0.32, 0.05, 0.94], [0.12, 0.25, 0.96]],   // hands up for the ball
     reach: () => [[0.1, -0.15, 0.98], [0.05, -0.2, 0.98], [0.6, -0.6, 0.4], [0.3, -0.5, 0.8]],
     /* active hands: one up in the ball's face (it mirrors the dribble), the other low and wide in the passing lane */
-    guard: (k) => { const b = 0.06 * Math.sin(k * 5); return [[0.5, 0.05 + b, 0.86], [0.2, 0.72 + b, 0.66], [0.9, -0.38 - b, 0.25], [0.78, -0.42, 0.46]]; },
+    guard: (k) => { const b = 0.05 * Math.sin(k * 4.3), c = 0.05 * Math.sin(k * 3.1 + 1);
+      return [[0.45, -0.75 + b, 0.48], [0.3, -0.1 + b * 2, 0.95], [0.86, -0.36 + c, 0.36], [0.72, 0.42 + c * 2, 0.55]]; },
     hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
     /* the windmill: the ball arm goes down, back, over the top and through; k is the time in the air */
     windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
       return [d, d, [0.45, 0.5, 0.6], [0.3, 0.7, 0.6]]; },
   };
   /* dribble moves: [upper, forearm] of the hand the ball leaves (F) and the other arm (O), at the start, middle and end */
-  const GD = [[0.35, -0.6, 0.55], [0.05, -0.15, 1]], DR = [[0.36, -0.9, 0.23], [0.4, -0.85, 0.2]];
+  const GD = [[0.5, -0.62, 0.42], [-0.12, 0.18, 0.95]], DR = [[0.36, -0.9, 0.23], [0.4, -0.85, 0.2]];
   const MOVES = {
     cross: { F: [DR, [[0.02, -0.92, 0.4], [-0.7, -0.6, 0.4]], GD], O: [GD, [[0.12, -0.9, 0.4], [-0.45, -0.8, 0.4]], DR] },
     btb: { F: [DR, [[0.15, -0.82, -0.55], [-0.65, -0.45, -0.6]], GD], O: [GD, [[0.2, -0.85, -0.45], [-0.35, -0.75, -0.55]], DR] },
@@ -935,6 +939,53 @@
     spin: { F: [DR, [[0.3, -0.75, 0.55], [-0.15, -0.4, 0.9]], DR], O: [GD, [[0.9, -0.15, 0.2], [0.85, 0.05, 0.3]], GD] },
   };
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  /* Planted feet. Each foot has a place on the floor; when the body has moved far enough from it the foot steps (never
+     both at once) to where the body is going. Then the hips sit at `hk` of a leg's length and each leg is solved, hip to
+     knee to ankle, with the knee out over the toe. `wide` is half the stance in leg lengths. */
+  const _H = V3(), _A = V3(), _K = V3(), _u = V3(), _pl = V3(), _t3 = V3(), _fq = Q4();
+  function plant(p, m, G, dt, w, wide, hk) {
+    const B = m.bones, f = p.face + (p.spinA || 0), fx = Math.sin(f), fz = Math.cos(f), rx = -fz, rz = fx;
+    const legs = m.legs || (m.legs = ['L', 'R'].map(sd => ({ sd, s: (sd === 'R') === (TPL.sideR < 0) ? 1 : -1, th: B[bk(`DEF-thigh.${sd}`)], sh: B[bk(`DEF-shin.${sd}`)], ft: B[bk(`DEF-foot.${sd}`)], toe: B[bk(`DEF-toe.${sd}`)] })));
+    if (!legs[0].th || !legs[0].toe) return;
+    if (!m.legL) { legs[0].th.getWorldPosition(_H); legs[0].sh.getWorldPosition(_K); legs[0].ft.getWorldPosition(_A); m.legL = [_H.distanceTo(_K), _K.distanceTo(_A)]; }
+    const l1 = m.legL[0], l2 = m.legL[1], L = l1 + l2, W = wide * L, ank = 0.105 * L, sp = Math.hypot(p.vx, p.vz);
+    const thr = 0.2 * L, vx = sp > 0.5 ? p.vx / sp : 0, vz = sp > 0.5 ? p.vz / sp : 0, lead = Math.min(1, sp / 5);
+    if (!m.ft || Math.hypot(m.ft[0].x - p.x, m.ft[0].z - p.z) > 6) m.ft = legs.map(l => ({ x: p.x + rx * l.s * W, z: p.z + rz * l.s * W, t: -1, y: 0 }));
+    const F = m.ft, home = legs.map(l => [p.x + rx * l.s * W + fx * l.s * 0.06 * L, p.z + rz * l.s * W + fz * l.s * 0.06 * L]);
+    let far = -1, fe = 0;
+    for (let i = 0; i < 2; i++) { const q = F[i];
+      if (q.t >= 0) {   // in the air: it lands ahead of its place, where the body will be
+        q.t += dt / q.T; const e = Math.min(1, q.t), k = e * e * (3 - 2 * e), tx = home[i][0] + vx * thr * 0.9 * lead, tz = home[i][1] + vz * thr * 0.9 * lead;
+        q.x = q.fx + (tx - q.fx) * k; q.z = q.fz + (tz - q.fz) * k; q.y = Math.sin(Math.PI * e) * 0.1 * L;
+        if (q.t >= 1) { q.t = -1; q.y = 0; }
+      } else { const e = Math.hypot(q.x - home[i][0], q.z - home[i][1]) + (vx * (home[i][0] - q.x) + vz * (home[i][1] - q.z)) * 0.3; if (e > fe) { fe = e; far = i; } }
+    }
+    if (far >= 0 && fe > (sp < 0.5 ? thr * 0.45 : thr) && F[1 - far].t < 0) { const q = F[far]; q.t = 0; q.fx = q.x; q.fz = q.z; q.T = Math.max(0.1, 0.2 - sp * 0.008); }
+    /* the hips: down in the stance, lower still if a foot is out of reach; a little dip as a foot comes down */
+    const bob = (F[0].t >= 0 ? Math.sin(Math.PI * Math.min(1, F[0].t)) : 0) + (F[1].t >= 0 ? Math.sin(Math.PI * Math.min(1, F[1].t)) : 0);
+    let hipY = ank + L * (hk + 0.025 * bob);
+    for (let i = 0; i < 2; i++) { legs[i].th.getWorldPosition(_H); const hd = Math.hypot(F[i].x - _H.x, F[i].z - _H.z), reach = 0.985 * L;
+      hipY = Math.min(hipY, ank + F[i].y + Math.sqrt(Math.max(0.2, reach * reach - hd * hd))); }
+    legs[0].th.getWorldPosition(_H);
+    m.body.position.y += (p.y + hipY - _H.y) * w; m.body.updateMatrixWorld(true);
+    for (let i = 0; i < 2; i++) { const l = legs[i], q = F[i];
+      l.th.getWorldPosition(_H); _A.set(q.x, p.y + ank + q.y, q.z);
+      _u.copy(_A).sub(_H); let d = _u.length(); const dm = 0.985 * L; if (d > dm) { _u.multiplyScalar(dm / d); _A.copy(_H).add(_u); d = dm; }
+      _u.multiplyScalar(1 / d);
+      const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+      _pl.set(fx * 0.8 + rx * l.s * 0.6, 0.1, fz * 0.8 + rz * l.s * 0.6); _pl.addScaledVector(_u, -_pl.dot(_u)).normalize();   // the knee: forward and out
+      _K.copy(_H).addScaledVector(_u, a).addScaledVector(_pl, h);
+      aim(l.th, l.sh, _t3.copy(_K).sub(_H).normalize(), w);
+      aim(l.sh, l.ft, _t3.copy(_A).sub(_K).normalize(), w);
+      /* the shoe: toes a little out, flat on the floor (heel up as it steps) */
+      const out = 0.3 * l.s; _t3.set(fx + rx * out, 0, fz + rz * out).normalize(); _t3.y = (TPL.footUp.slope || 0) - q.y * 1.6 / L; _t3.normalize();
+      aim(l.ft, l.toe, _t3, w);
+      const up = TPL.footUp && TPL.footUp[l.sd];
+      if (up) { l.ft.getWorldQuaternion(_qw); _a.copy(up).applyQuaternion(_qw); _a.addScaledVector(_t3, -_a.dot(_t3)).normalize();
+        _b.set(0, 1, 0).addScaledVector(_t3, -_t3.y).normalize();
+        _fq.setFromUnitVectors(_a, _b); _q.copy(_fq).multiply(_qw); l.ft.parent.getWorldQuaternion(_qp).invert().multiply(_q); l.ft.quaternion.slerp(_qp, w); l.ft.updateMatrixWorld(true); }
+    }
+  }
   function updateSkinned(p, m, G, dt) {
     m.root.position.set(p.x, 0, p.z);
     const mv = p.mv && G.ball.holder === p && !p.shoot ? p.mv : null, ms = mv ? (G.t - mv.t0) / mv.T : 2;
@@ -943,6 +994,9 @@
     m.shield = (m.shield || 0) + ((drib ? -(p.dribHand || 1) * 0.42 * prot : 0) - (m.shield || 0)) * Math.min(1, dt * 7);
     m.root.rotation.y = p.face + m.shield + (p.spinA || 0) + (ms < 1 && mv.k === 'spin' ? mv.side * Math.PI * 2 * smooth(0, 1, ms) : 0);   // the turn of a reverse or a 360 in the air, or a spin move
     m.body.position.y = p.y;
+    /* a crossover shifts his weight: the hips go with the ball to the new side (the feet stay where they are planted) */
+    { const sw = ms < 1 && (mv.k === 'cross' || mv.k === 'legs' || mv.k === 'btb') ? Math.sin(Math.PI * Math.min(1, ms * 1.15)) * 0.5 * (mv.b > 0 ? 1 : -1) : 0;
+      m.sway = (m.sway || 0) + (sw - (m.sway || 0)) * Math.min(1, dt * 14); m.body.position.x = -m.sway * (TPL.sideR < 0 ? 1 : -1); }
     /* a fadeaway leans back in the air */
     const lean = p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     const dlean = drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0;   // over the ball; more at a run
@@ -951,14 +1005,16 @@
     /* ankles broken: down on the seat of his shorts, then back up */
     const ft = p.fallT !== undefined ? G.t - p.fallT : 9, fall = ft < 1.5 ? smooth(0, 0.22, ft) * (1 - smooth(1.05, 1.5, ft)) : 0;
     if (fall > 0) { m.body.rotation.x = m.lean - 1.25 * fall; m.body.position.y = p.y - 0.25 * fall; }
-    const sp = Math.hypot(p.vx, p.vz), air = p.y > 0.3;
+    /* how fast he is really moving: a man held up by a body in his way does not run in place */
+    if (dt > 0) { const rs = m.lx === undefined ? 0 : Math.hypot(p.x - m.lx, p.z - m.lz) / dt; m.rs = (m.rs || 0) + (Math.min(rs, 30) - (m.rs || 0)) * Math.min(1, dt * 9); m.lx = p.x; m.lz = p.z; }
+    const sp = Math.min(Math.hypot(p.vx, p.vz), (m.rs || 0) * 1.2 + 1.5), air = p.y > 0.3;
     /* legs: idle, walk, jog and sprint blended by speed; the stance on defense; the jump in the air */
     const ws = {};
     for (let i = 0; i < LOCO.length; i++) {
       const [n, v] = LOCO[i], lo = i ? LOCO[i - 1][1] : -1, hi = i < LOCO.length - 1 ? LOCO[i + 1][1] : 1e9;
       ws[n] = sp <= v ? (i ? smooth(lo, v, sp) : 1 - smooth(v, hi, sp)) : (i < LOCO.length - 1 ? 1 - smooth(v, hi, sp) : 1);
     }
-    let crouch = p.pose === 'guard' ? 0.72 : 0;
+    let crouch = 0;   // (the stance is its own thing: plant(), below)
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
     if (fall > 0) crouch = 1;
     if (p.pose === 'sad') crouch = 0.55;
@@ -985,6 +1041,18 @@
     if (m.head) { if (!m.headRest) m.headRest = m.head.quaternion.clone(); else m.head.quaternion.copy(m.headRest); }   // the turn below is fresh each frame
     m.mixer.update(dt);
     if (m.head) m.head.scale.setScalar(HEAD);
+    /* down in a stance: the back flat and leaning in from the hips, the head up */
+    { const g = (p.pose === 'guard' || p.pose === 'reach' || p.pose === 'contest') && !air && G.ball.holder !== p ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);
+      /* on the ball he sits all the way down; away from it, a lighter stance with the hands ready */
+      const h = G.ball.holder, on = h && h.team !== p.team && Math.hypot(h.x - p.x, h.z - p.z) < 8 ? 1 : 0; if (m.gd === undefined) m.gd = on; m.gd += (on - m.gd) * Math.min(1, dt * 5);
+      /* chest to chest he stands taller and walls up, arms wide, instead of leaning through his man */
+      const cl = on ? Math.min(1, Math.max(0, (3.5 - Math.hypot(h.x - p.x, h.z - p.z)) / 1.1)) : 0; m.gc = (m.gc || 0) + (cl - (m.gc || 0)) * Math.min(1, dt * 8); }
+    /* over the ball: a dribbler who is standing or walking has his feet set and his knees bent too */
+    { const g = drib && !air && fall <= 0 ? 1 - smooth(5, 9, sp) : 0; m.dw = (m.dw || 0) + (g - (m.dw || 0)) * Math.min(1, dt * 8); }
+    m.tilt = (0.16 + 0.14 * m.gd + (p.pose === 'reach' ? 0.14 : 0)) * (1 - 0.7 * m.gc) * m.gw + 0.08 * m.dw * (1 - m.gw);
+    if (m.tilt > 0.01 && m.bones[bk('DEF-hips')]) { const hb = m.bones[bk('DEF-hips')], f = p.face + (p.spinA || 0); m.body.updateMatrixWorld(true);
+      _ax.set(Math.cos(f), 0, -Math.sin(f)); hb.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, m.tilt).multiply(_qw); hb.parent.getWorldQuaternion(_qp).invert().multiply(_q); hb.quaternion.copy(_qp);
+      if (m.head) { m.body.updateMatrixWorld(true); m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, -m.tilt * 0.85).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); } }
     /* eyes on the ball: the head turns toward it (within a comfortable range), smoothly */
     if (m.head && G.ball && G.ball.holder !== p && !p.shoot && !G.show) {
       const bx = G.ball.x - p.x, bz = G.ball.z - p.z;
@@ -998,19 +1066,10 @@
     m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
     abduct(m, p.face + (p.spinA || 0), ABD);
-    /* the defensive stance: feet wide, sitting low, and a shuffle (the feet open and close, they never cross) when he
-       slides. gw eases in and out so he drops into it */
-    { const g = p.pose === 'guard' && !air ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);
-      if (m.gw > 0.02 && TPL.simpleGeo && !PB.mannequin) {
-        const f = p.face, lat = Math.abs(p.vx * -Math.cos(f) + p.vz * Math.sin(f)), amp = Math.min(1, (lat + sp * 0.35) / 9);
-        m.gph = (m.gph || 0) + dt * (5 + sp * 0.7);
-        const wide = 0.36 * m.gw, sh = Math.sin(m.gph) * 0.2 * amp * m.gw, sgn = TPL.sideR < 0 ? 1 : -1;
-        _ax.set(Math.sin(f), 0, Math.cos(f));
-        for (const [nm, th] of [['DEF-thigh.L', (wide + sh) * sgn], ['DEF-thigh.R', -(wide - sh) * sgn]]) { const b = m.bones[bk(nm)]; if (!b) continue;
-          b.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, th).multiply(_qw); b.parent.getWorldQuaternion(_qp).invert().multiply(_q); b.quaternion.copy(_qp); }
-        m.body.position.y = p.y - 3.2 * (m.sc || 1) / 3.4 * (1 - Math.cos(wide)) - 0.12 * m.gw * Math.abs(Math.sin(m.gph)) * amp;
-        m.body.updateMatrixWorld(true);
-      } }
+    /* planted feet: in a defensive stance (and standing over a dribble) the feet are set on the floor and step, one
+       at a time, as he moves; the legs are solved to reach them. sw eases in and out so he drops into it */
+    { const gs = m.gw * (1 - smooth(13, 17, sp)), sw = Math.max(gs, m.dw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = ms < 1 && mv.k !== 'hesi' ? 0.05 : 0;
+      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, 0.25 + (0.05 + 0.08 * m.gd) * k, 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low); else m.ft = null; }
     /* the arms */
     const has = G.ball.holder === p;
     let pose = p.pose;
@@ -1021,7 +1080,7 @@
     if (!POSES[pose]) { m.poseW = Math.max(0, m.poseW - dt * 6); return; }
     let kk = 0;
     const dsf = (ds => ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1)(p.d && p.d.look && p.d.look.drib);
-    if (pose === 'dribble') kk = ((p.dph !== undefined ? p.dph : G.t * 8.5 * dsf) / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
+    if (pose === 'dribble') kk = ((p.dph !== undefined ? p.dph : G.t * 7.4 * dsf) / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
@@ -1029,6 +1088,9 @@
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
     let P = POSES[pose](kk);
+    if (pose === 'guard' && m.gd < 0.98) { const R0 = [[0.42, -0.8, 0.42], [0.4, -0.3, 0.86]], e = 1 - m.gd, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], R0[0]), L(P[1], R0[1]), L(P[2], R0[0]), L(P[3], R0[1])]; }
+    if (pose === 'guard' && m.gc > 0.02) { const W0 = [[0.92, -0.3, 0.2], [0.82, 0.3, 0.45]], e = m.gc, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], W0[0]), L(P[1], W0[1]), L(P[2], W0[0]), L(P[3], W0[1])]; }
+    if (pose === 'contest' && !air && p.y <= 0.05) P = [[0.3, 0.93, 0.22], [0.1, 0.98, 0.16], [0.8, -0.2, 0.55], [0.6, 0.45, 0.66]];   // feet on the floor: one hand up in the shooter's eyes
     const w = m.poseW, s = TPL.sideR < 0 ? 1 : -1;
     if (pose === 'dribble' && ms < 1 && MOVES[mv.k]) {
       /* a dribble move: the ball arm (F) and the other arm (O) from three keyframes; F is the hand it leaves */
@@ -1554,6 +1616,7 @@
       const cz = anchor.z - fz * back, lim = 45.5, over = Math.max(0, Math.abs(cz) - lim);
       cam.position.set(PB.clamp(anchor.x - fx * back, -40, 40), up + over * 0.5, PB.clamp(cz, -lim, lim));
       cam.lookAt(anchor.x + fx * L.ahead, 3, anchor.z + fz * L.ahead);
+      if (R.studio) { cam.position.set(R.studio[0], R.studio[1], R.studio[2]); cam.lookAt(R.studio[3], R.studio[4], R.studio[5]); return; }   // a fixed camera, for looking at animation
       camPos.copy(cam.position); camLook.set(anchor.x + fx * L.ahead, 3, anchor.z + fz * L.ahead);
       applyShake(dt);
       return;

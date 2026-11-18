@@ -4,6 +4,12 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Feet that plant: in a defensive stance, and standing over a dribble, each foot is set on the floor and steps (one at
+  a time, never crossing) as the player moves; the legs are solved to reach them, knees out over the toes, hips low,
+  back flat and leaning in, head up. A defender's hands work: one down at the ball, one out in the passing lane.
+- Defense with timing: the Steal button lights up when the ball is there to take (he is dribbling on your side, or
+  crossing over in front of you); a reach at a protected ball is mostly a foul. Your slide is helped toward the line
+  between your man and the rim. Every shot you guard is called: Smothered, Good contest, Hand down, Late, Left open.
 - Your story, picked when you create your player: a Top prospect (rated higher, a top-five pick, a city that expects a
   star and gets loud on bad nights), a Prospect (the combine and interviews decide), or Undrafted (no call on draft
   night, three camp invites to choose from, a two-way deal at the end of the bench; you grow faster, good nights win
