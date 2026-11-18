@@ -914,7 +914,9 @@
     goggles: () => [[0.75, 0.35, 0.55], [-0.5, 0.82, 0.25], [0.75, 0.35, 0.55], [-0.5, 0.82, 0.25]],
     three: (k) => { const b = 0.05 * Math.sin(k * 8); return [[0.3, 0.94 + b, 0.15], [0.12, 0.99, 0.05], [0.2, -0.97, 0.1], [0.15, -0.95, 0.25]]; },
     point: () => [[0.35, 0.75, 0.55], [0.25, 0.8, 0.55], [0.25, -0.9, 0.3], [0.2, -0.6, 0.75]],
-    dunk1: () => [[0.15, 0.97, 0.2], [0.05, 0.99, 0.1], [0.55, -0.55, 0.35], [0.3, -0.6, 0.6]],
+    /* the dunk: the ball cocked back behind the head on the way up, then thrown down through the rim; k is the way there */
+    dunk1: (k) => { const e = smooth(0.55, 0.92, k), L = (a, b) => a.map((v, j) => v + (b[j] - v) * e);
+      return [L([0.22, 0.8, -0.45], [0.12, 0.8, 0.58]), L([0.1, 0.97, -0.2], [0.05, 0.35, 0.93]), L([0.7, 0.1, 0.4], [0.75, -0.35, 0.2]), L([0.4, 0.6, 0.6], [0.6, -0.5, 0.4])]; },
     hang: () => [[0.12, 0.98, 0.12], [0.04, 0.99, 0.12], [0.12, 0.98, 0.12], [0.04, 0.99, 0.12]],   // on the rim
     bpass: () => [[0.22, -0.55, 0.8], [0.05, -0.6, 0.8], [0.22, -0.55, 0.8], [0.05, -0.6, 0.8]],   // a bounce pass, pushed down
     sad: () => [[0.2, -0.75, 0.62], [0.05, -0.85, 0.5], [0.2, -0.75, 0.62], [0.05, -0.85, 0.5]],   // hands on knees
@@ -1000,10 +1002,15 @@
     { const sw = ms < 1 && (mv.k === 'cross' || mv.k === 'legs' || mv.k === 'btb') ? Math.sin(Math.PI * Math.min(1, ms * 1.15)) * 0.5 * (mv.b > 0 ? 1 : -1) : 0;
       m.sway = (m.sway || 0) + (sw - (m.sway || 0)) * Math.min(1, dt * 14); m.body.position.x = -m.sway * (TPL.sideR < 0 ? 1 : -1); }
     /* a fadeaway leans back in the air */
-    const lean = p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
+    const lean = p.shoot && p.shoot.kind === 'dunk' && p.y > 0.3 ? (p.shoot.t / p.shoot.T < 0.6 ? -0.16 : 0.16) : p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     const plean = p.passT0 !== undefined && G.t - p.passT0 < 0.3 ? 0.16 * Math.sin(Math.PI * (G.t - p.passT0) / 0.3) : 0;
     const dlean = plean + (drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0);   // over the ball; more at a run
-    m.lean = (m.lean || 0) + (lean + dlean - (m.lean || 0)) * Math.min(1, dt * 10); m.body.rotation.x = m.lean;
+    /* a runner leans into it: forward as he takes off, back as he stops, and banked into a cut */
+    if (dt > 0) { const ax = (p.vx - (m.pvx === undefined ? p.vx : m.pvx)) / dt, az = (p.vz - (m.pvz === undefined ? p.vz : m.pvz)) / dt, f = p.face; m.pvx = p.vx; m.pvz = p.vz;
+      const run = smooth(4, 9, Math.hypot(p.vx, p.vz)) * (p.y > 0.2 ? 0 : 1), fw = ax * Math.sin(f) + az * Math.cos(f), lat = ax * -Math.cos(f) + az * Math.sin(f);
+      m.bank = (m.bank || 0) + (Math.max(-0.2, Math.min(0.2, lat * 0.009)) * run - (m.bank || 0)) * Math.min(1, dt * 5);
+      m.pitch = (m.pitch || 0) + (Math.max(-0.1, Math.min(0.13, fw * 0.007)) * Math.max(run, 0.4) * (p.y > 0.2 ? 0 : 1) - (m.pitch || 0)) * Math.min(1, dt * 5); }
+    m.lean = (m.lean || 0) + (lean + dlean - (m.lean || 0)) * Math.min(1, dt * 10); m.body.rotation.x = m.lean + (m.pitch || 0); m.body.rotation.z = (m.bank || 0) * (TPL.sideR < 0 ? 1 : -1);
     if (drib && p.y <= 0 && p.dph !== undefined) m.body.position.y = p.y - 0.11 * (1 - Math.abs(Math.sin(p.dph))) * (0.6 + 0.4 * prot);   // the body rides the bounce
     /* ankles broken: down on the seat of his shorts, then back up */
     const ft = p.fallT !== undefined ? G.t - p.fallT : 9, fall = ft < 1.5 ? smooth(0, 0.22, ft) * (1 - smooth(1.05, 1.5, ft)) : 0;
@@ -1081,6 +1088,10 @@
        at a time, as he moves; the legs are solved to reach them. sw eases in and out so he drops into it */
     { const gs = m.gw * (1 - smooth(13, 17, sp)), rdy = m.rw > m.dw && m.rw > gs, sw = Math.max(gs, m.dw, m.rw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = ms < 1 && mv.k !== 'hesi' ? 0.05 : 0;
       if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
+    /* a dunk: the knees tuck under him as he rises */
+    if ((p.pose === 'dunk1' || p.pose === 'windmill') && p.y > 0.5 && m.bones[bk('DEF-thigh.L')]) { const w = Math.min(1, (p.y - 0.5) * 1.6), f = p.face + (p.spinA || 0);
+      for (const sd of ['L', 'R']) { const th = m.bones[bk(`DEF-thigh.${sd}`)], sh = m.bones[bk(`DEF-shin.${sd}`)], ft = m.bones[bk(`DEF-foot.${sd}`)], k = sd === 'L' ? 0.5 : 0.72;
+        aim(th, sh, _t3.set(Math.sin(f) * k, -0.8, Math.cos(f) * k).normalize(), w); aim(sh, ft, _t3.set(-Math.sin(f) * 0.75, -0.66, -Math.cos(f) * 0.75).normalize(), w); } }
     /* a layup goes up off one foot: the knee on the ball side drives */
     if (m.lay === 1 && p.y > 0.25 && m.bones[bk('DEF-thigh.L')]) { const right = (p.dribHand || 1) > 0, sd = right === (TPL.sideR < 0) ? 'R' : 'L', w = Math.min(1, (p.y - 0.25) * 2.5), f = p.face + (p.spinA || 0);
       const th = m.bones[bk(`DEF-thigh.${sd}`)], sh = m.bones[bk(`DEF-shin.${sd}`)], ft = m.bones[bk(`DEF-foot.${sd}`)];
@@ -1100,6 +1111,7 @@
     if (pose === 'dribble') kk = ((p.dph !== undefined ? p.dph : G.t * 7.4 * dsf) / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
+    else if (pose === 'dunk1') kk = p.shoot ? Math.min(1, p.shoot.t / p.shoot.T) : 1;
     else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose

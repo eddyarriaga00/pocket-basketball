@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- The dunk has a wind-up: the ball cocked back behind the head on the way up, thrown down through the rim, knees
+  tucked. Runners lean into it: forward as they take off, back as they stop, banked into a cut.
 - Tap anyone on the Team tab for his card: a sheet with the player standing in his uniform, his ratings by group and
   what he is best at. The League tab opens on the standings (your conference first, games back) with the leaders a
   tap away; the next-game card shows the season so far and your last five results; milestones are tiles.
