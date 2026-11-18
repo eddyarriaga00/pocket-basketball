@@ -82,7 +82,7 @@ input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--panel
 .btn.b{width:66px;height:66px;right:118px;bottom:calc(30px + var(--sb))}
 .btn.b.lit{border-color:var(--green);color:var(--green)}
 .btn.c{width:58px;height:58px;right:40px;bottom:calc(132px + var(--sb));font-size:12px}
-#pause{position:absolute;inset:0;background:rgba(4,4,6,.72);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+#pause{position:absolute;inset:0;background:rgba(4,4,6,.72);display:flex;align-items:center;justify-content:center;padding:16px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 #pause .card{width:100%;max-width:360px}
 .pscore{display:flex;align-items:center;justify-content:center;gap:14px;font-family:var(--display);font-size:15px;font-weight:700;color:var(--mute)}
 .pscore b{font-size:30px;color:var(--ink)}
