@@ -1298,7 +1298,8 @@
     const t = G.teams[p.team], st = p.st;
     /* his face next to his line, drawn the first time he earns one and kept for the game */
     let hd = '';
-    if (!(PB.settings && PB.settings.gfx === 'Low') && R.portrait && !PB.noGL) { const H = G.heads || (G.heads = {}); if (!(p.d.id in H)) { try { H[p.d.id] = R.portrait(p.d, t, 96, { close: true, kitObj: G.kits && G.kits[p.team] }) || ''; } catch (err) { H[p.d.id] = ''; } } hd = H[p.d.id]; }
+    if (!(PB.settings && PB.settings.gfx === 'Low') && R.portrait && !PB.noGL) { const H = G.heads || (G.heads = {}); if (!(p.d.id in H)) { const ready = R._shots && R._shots.get([p.d.id || p.name, t.id, p.team, JSON.stringify(p.d.look || '')].join('|'));   // the starting lineups already drew the starters: no second picture, no hitch
+        try { H[p.d.id] = ready || R.portrait(p.d, t, 96, { close: true, kitObj: G.kits && G.kits[p.team] }) || ''; } catch (err) { H[p.d.id] = ''; } } hd = H[p.d.id]; }
     e.innerHTML = `${hd ? `<img alt="" src="${hd}" style="background:${t.c1}">` : ''}<i style="background:${t.c1}"></i><div><b>${p.num !== undefined ? '#' + p.num + ' ' : ''}${p.name}</b><span>${lead ? lead + ' · ' : ''}${st.pts} PTS · ${st.fgm}/${st.fga} FG${st.tpa ? ` · ${st.tpm}/${st.tpa} 3PT` : ''}${st.ast >= 3 ? ` · ${st.ast} AST` : ''}</span></div>`;
     e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 3600);
   }
@@ -1335,7 +1336,7 @@
       if (o.isUser || o.y > 0 || hyp(o.x - p.x, o.z - p.z) > 6.5) continue;
       const ch = clamp(0.62 - (o.r.perD || 60) * 0.005 + ((p.r.three || 60) + (p.r.mid || 60) - 120) * 0.002, 0.12, 0.6) / p.fakeN;
       if (rand() < ch) { o.jg = GRAV * 1.6; o.vy = Math.sqrt(2 * o.jg * (1.5 + o.r.vert * 0.02)); o.pose = 'contest'; o.bitT = G.t; bit = o; } }
-    if (p.isUser) { if (bit) { toast('He bit on the fake', 'make'); grade(0.3, 'Pump fake'); buzz(10); }
+    if (p.isUser) { if (bit) { toast('He bit on the fake', 'make'); grade(0.3, 'Pump fake'); buzz(10); if (home(p.team)) AU().crowd.react('ooh', 0.5); }
       else { /* the first few times, say what just happened: a tap is a fake, a hold is a shot */
         let n = 0; try { n = +localStorage.getItem('pbb.fakes') || 0; if (n < 5) localStorage.setItem('pbb.fakes', n + 1); } catch (e) { /* fine */ }
         toast(n < 5 ? 'Pump fake · hold Shoot to shoot' : 'Pump fake', 'call'); }
