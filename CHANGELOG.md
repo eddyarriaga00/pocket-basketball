@@ -10,6 +10,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 - At the rim: a body between you and the basket turns a dunk into a layup (unless you are a poster dunker), a crowd
   of defenders takes more off the finish, and a perfect release is automatic only when you had room to shoot. With a
   man on you it is a big help, not a promise. The green trail is kept for the ones that cannot miss.
+- A hand in your face narrows the green band on the shot meter: the release is harder to time with a defender on you.
 - The third dribble move of a possession fools a defender less than the first two.
 - A screener plants with his arms crossed. The goggles celebration frames the eyes; the chest thump is back (the
   chest pass had taken its pose). In a replay, a bystander standing in front of the lens steps out of the shot.
