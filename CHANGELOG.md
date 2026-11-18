@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Fixed: a few seconds on the title screen (which runs at thirty frames a second on purpose) made the game think
+  the phone was slow and draw every game after it at a lower resolution. Games are as sharp as the phone allows
+  again. A phone that really cannot keep up at the lowest resolution now also drops the outlines and the bench.
 - Season mode shows your team: all ten players with a headshot, height, rating and points a game, and the starting
   five is yours to set (tap two players and they trade places).
 - Big plays land with a beat: the game holds for a few frames on a block, a dunk and broken ankles.

@@ -650,6 +650,7 @@
     m.customProgramCacheKey = () => 'pb-kit13';
     return m;
   }
+  let lite = false;   // set when a slow phone has had its outlines and bench taken away (see R.render)
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
     m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = vec3( position ) + normal * 0.011;'); };
     m.customProgramCacheKey = () => 'pb-outline'; m.userData.shared = true; return m; })();
@@ -820,7 +821,7 @@
         sb.position.copy(bodyMesh.position); sb.quaternion.copy(bodyMesh.quaternion); sb.scale.copy(bodyMesh.scale); sb.bind(bodyMesh.skeleton, bodyMesh.bindMatrix);
         bodyMesh.visible = false;
         /* a thin dark outline (the inside of a slightly fatter copy): players read clearly against the floor */
-        if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; bodyMesh.parent.add(ol);
+        if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; ol.visible = !lite; bodyMesh.parent.add(ol);
           ol.position.copy(bodyMesh.position); ol.quaternion.copy(bodyMesh.quaternion); ol.scale.copy(bodyMesh.scale); ol.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
       }
       if (bodyMesh && TPL.model && TPL.faceGeo && !PB.mannequin) {
@@ -1621,7 +1622,7 @@
         add(new T.CylinderGeometry(0.55, 0.6, 2.4, 8), cx, 4.2, cz, '#2b2e36');
         add(new T.SphereGeometry(0.42, 8, 6), cx, 5.85, cz, PB.SKIN[(t * 4 + 1) % 6]); }
       const m = new T.Mesh(mergeGeo(parts), new T.MeshLambertMaterial({ vertexColors: true }));
-      if (real) { const ro = (rosters && rosters[t]) || [], pg = new T.Group(); m.add(pg); m.userData.pl = pg;   // the reserves get up on a big play; the chairs and the coach stay put
+      if (real) { const ro = (rosters && rosters[t]) || [], pg = new T.Group(); pg.visible = !lite; m.add(pg); m.userData.pl = pg;   // the reserves get up on a big play; the chairs and the coach stay put
         for (let i = 0; i < 5; i++) { const d = ro[i] || { id: 'bench' + t + i + (k.name || ''), last: 'B' + i, pos: ['PG', 'SG', 'SF', 'PF', 'C'][i], ht: 75 + i * 2, skin: (i * 3 + t * 2) % 6, num: 20 + i * 3 + t };
           try { pg.add(baked(d, k, 28.15, side * (15 + i * 2.1), -Math.PI / 2, true)); } catch (e) { console.warn('bench', e); } }
         try { m.add(baked({ id: 'coach' + t + (k.name || ''), last: 'Coach', pos: 'SF', ht: 74, skin: (t * 4 + 1) % 6, look: { hair: t ? 'short' : 'buzz', hairColor: t ? '#17110d' : '#8d8d8d', beard: t ? null : 'stubble', face: 1 + t } },
@@ -1685,7 +1686,7 @@
         else { const hh = p.dribHand < 0 ? H.l : H.r; b.x = hh.x; b.z = hh.z; b.y = 0.4 + Math.abs(Math.sin(g.t * 8.5)) * (Math.max(1.2, hh.y - 0.35) - 0.4); } }
       cam.position.set(Math.sin(a) * 14.5, 4.4 + Math.sin(a * 0.7) * 0.6, Math.cos(a) * 14.5);
       cam.lookAt(0, 2.5, 0);
-      R.render();
+      R.render(true);
     };
     show.raf = requestAnimationFrame(loop);
   };
@@ -1906,13 +1907,19 @@
   R.swish = s => { for (const n of nets) if (n.s === s) n.swish = 1; };
   /* adaptive resolution: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x, then 1x) */
   let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2;
-  R.render = () => {
+  R.lite = () => lite;
+  R.render = menu => {
     const now = performance.now();
+    /* a scene behind a menu runs at thirty frames a second on purpose: it says nothing about the phone, so it is not
+       measured (it used to be, and a few seconds on the title screen cost the whole session its sharpness) */
+    if (menu) { ftLast = 0; ftAcc = 0; ftN = 0; renderer.render(scene, cam); return; }
     if (ftLast) { ftAcc += Math.min(100, now - ftLast); ftN++; }
     ftLast = now;
     if (ftN >= 90) {
       const avg = ftAcc / ftN; ftAcc = 0; ftN = 0;
       if (avg > 22 && prCap > 1) { prCap = prCap > 1.5 ? 1.5 : 1; R.resize(); }
+      /* still slow at the fewest pixels: the outlines and the men on the bench go (about half the triangles) */
+      else if (avg > 24 && prCap <= 1 && !lite) { lite = true; scene.traverse(o => { if (o.material === OUTLINE_MAT) o.visible = false; }); for (const m of benchMesh) if (m.userData.pl) m.userData.pl.visible = false; }
     }
     renderer.render(scene, cam);
   };
