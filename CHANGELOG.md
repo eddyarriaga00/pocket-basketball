@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Big plays land with a beat: the game holds for a few frames on a block, a dunk and broken ankles.
 - An open teammate standing in his range puts a hand up for the ball now and then: it shows you who is open.
 - Whoever is whistled for a foul puts a hand up: that one is on him.
 - A shot he should have made, or a pass thrown to the other team: both hands go to the head.

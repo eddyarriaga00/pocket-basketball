@@ -513,6 +513,7 @@
     const b = G.ball;
     if (o.isUser) reelMark('block', 2.6, 'Block');
     o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); badgePop(o, 'rim'); }
+    if (!G.drill && !G.replay) G.hitT = 0.09;
     if (p.isUser) grade(-1, 'Got blocked');
     /* from behind at a run: the chase-down */
     { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, hl = hyp(hx, hz) || 1, behind = ((o.x - p.x) * hx + (o.z - p.z) * hz) / hl < -0.6, chase = behind && hyp(o.vx, o.vz) > 9;
@@ -673,6 +674,7 @@
       if (clutchTime()) p.st.clutch += s.pts;
       R.swish(p.team === 0 ? 1 : -1);
       AU().play(s.kind === 'dunk' ? 'dunk' : s.prob > 0.55 || rand() < 0.62 ? 'swish' : 'rimin', { x: b.x });
+      if (s.kind === 'dunk' && !G.replay && !G.drill) G.hitT = 0.07;
       if (home(p.team)) AU().crowd.react('roar', s.kind === 'dunk' ? 1.2 : s.pts === 3 ? 1 : 0.65);
       if (home(p.team) || s.kind === 'dunk') R.hype(s.kind === 'dunk' ? 1.4 : s.pts === 3 ? 1 : 0.6, s.kind === 'dunk' ? 0.9 : 0); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.pts === 3 ? 0.8 : 0.5);
       if (s.foul) { AU().crowd.react('roar', 1.1); }
@@ -1430,7 +1432,7 @@
   /* a dribble move the body and ball act out: the ball's path from hand to hand (court.js poses the arms from p.mv) */
   const MV_T = { cross: 0.32, btb: 0.4, legs: 0.38, hesi: 0.5, spin: 0.5 };
   /* an ankle-breaker: the beaten defender goes down and needs a moment to get up */
-  function ankles(d) { d.fallT = G.t; d.stun = 1.5; d.vx *= 0.3; d.vz *= 0.3; if (R.shock) R.shock(d.x, d.z, 5); }
+  function ankles(d) { if (!G.replay) G.hitT = 0.07; d.fallT = G.t; d.stun = 1.5; d.vx *= 0.3; d.vz *= 0.3; if (R.shock) R.shock(d.x, d.z, 5); }
   function startMv(p, k, a, b, side) { p.mv = { k, t0: G.t, T: MV_T[k], a, b, side: side || 1, bn: false }; }
   function feedMove(lbl) { const r = $('#rel'); r.textContent = lbl; r.className = 'on y'; relT = 0.6; }
 
@@ -2012,6 +2014,7 @@
     pollPad();
     raf = requestAnimationFrame(frame);
     let dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now;   // a frame's timestamp can come before the clock we read
+    if (G.hitT > 0) { G.hitT -= dt; dt = 0; }   // the beat a big play lands on: a block, a dunk, broken ankles hold for a few frames
     if (G.slowT) { if (G.ball.state === 'shot' && !G.replay) { dt *= 0.4; if (G.slowT === 1) { G.slowT = 2; AU().muffle(true); } } else { G.slowT = 0; if (!G.paused) AU().muffle(false); } }
     if (G.replay) {
       if (!G.paused) replayFrame(dt);
