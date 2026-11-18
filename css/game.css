@@ -548,3 +548,5 @@ p.pc{text-align:center;margin:0 0 6px}
 .night em{flex:none;font-style:normal;font-family:var(--display);font-weight:900;font-size:44px;line-height:1;text-align:center}
 .night em i{display:block;font-style:normal;font-family:var(--body);font-weight:600;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin-top:4px}
 #pause .card .card{width:auto;max-width:none;margin:10px 0}
+details.help.how{margin-top:8px}details.help.how p{display:block;border-top:0;padding:0 0 14px;font-size:13.5px;line-height:1.55;color:var(--mute)}
+details.help.how p b{color:var(--ink)}
