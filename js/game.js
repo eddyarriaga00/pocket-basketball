@@ -1707,7 +1707,15 @@
     /* once the ball is over half court, the computer's players on offense stay over it: no drifting (or being
        pushed) back across the line for a violation of their own making */
     if (G.vio && G.vio.crossed && G.vio.n === G.possN && G.phase === 'live' && G.poss !== null && G.poss !== undefined && !G.drill && b.state !== 'loose')
-      for (const p of G.pl) if (p.team === G.poss && (!p.isUser || G.auto) && !p.inb && along(p.z, p.team) > HALF - 1.2) { p.z = hoopZ(p.team) - (HALF - 1.2) * dirOf(p.team); if (p.vz * dirOf(p.team) < 0) p.vz = 0; }
+    {
+      const held = [];
+      for (const p of G.pl) if (p.team === G.poss && (!p.isUser || G.auto) && !p.inb && along(p.z, p.team) > HALF - 1.2) { p.z = hoopZ(p.team) - (HALF - 1.2) * dirOf(p.team); if (p.vz * dirOf(p.team) < 0) p.vz = 0; held.push(p); }
+      /* two of them held on the line at once would stand inside each other: slide them apart along it */
+      for (const a of held) for (const c of G.pl) { if (c === a || c.inb || (held.includes(c) && G.pl.indexOf(c) < G.pl.indexOf(a))) continue;
+        const dx = c.x - a.x, dz = c.z - a.z, d = hyp(dx, dz); if (d >= 2.3) continue;
+        const need = Math.sqrt(2.3 * 2.3 - dz * dz) - Math.abs(dx), sg = dx < 0 ? -1 : 1;
+        if (held.includes(c)) { a.x -= sg * need / 2; c.x += sg * need / 2; } else c.x += sg * need; }
+    }
     ballStep(dt);
   }
 
