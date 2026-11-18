@@ -1589,7 +1589,8 @@
     const v = V3(), M = new T.Matrix4().makeRotationY(faceY); M.setPosition(x, dy, z);
     m.root.traverse(o => { if (!o.isSkinnedMesh || o.material === OUTLINE_MAT || !o.visible || !o.geometry.attributes.skinIndex) return;
       const g0 = o.geometry, n = g0.attributes.position.count, P = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) { o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld).applyMatrix4(M); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; }
+      const used = new Uint8Array(n), ia = g0.index ? g0.index.array : null; if (ia) for (let k = 0; k < ia.length; k++) used[ia[k]] = 1;   // only what is drawn (one hairstyle of many)
+      for (let i = 0; i < n; i++) { if (ia && !used[i]) continue; o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld).applyMatrix4(M); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; }
       const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(P, 3));
       for (const k of ['rA', 'rB', 'kpos', 'color']) if (g0.attributes[k]) g.setAttribute(k, g0.attributes[k]);
       g.setIndex(g0.index); g.computeVertexNormals(); grp.add(new T.Mesh(g, o.material)); });
