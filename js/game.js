@@ -114,8 +114,10 @@
     G.gradeLog.push([delta, why]);
     tkoAdd(delta > 0 ? delta * 0.05 : delta * 0.025);
     const g = $('#grade'); g.innerHTML = `<b>${gradeLetter(G.grade)}</b><span class="${delta >= 0 ? 'up' : 'dn'}">${delta >= 0 ? '+' : '−'} ${why}</span>`;
-    g.classList.remove('flash'); void g.offsetWidth; g.classList.add('flash');
+    g.classList.remove('flash'); void g.offsetWidth; g.classList.add('flash', 'why');
     if (before !== gradeLetter(G.grade)) g.classList.add('chg');
+    /* the reason has the row to itself for a moment (it used to be squeezed to "+ Cut hi…" beside the stat line), then the stat line is back */
+    clearTimeout(grade.t); grade.t = setTimeout(() => { g.classList.remove('why'); const sp = g.querySelector('span'); if (sp) sp.remove(); }, 2600);
   }
   /* ---------- Takeover: good plays fill the meter (your grade's gains, a little back for its losses); full, tap it
      (or T) for 25 seconds of hot hands: a wider green window, better looks, a quicker first step, moves that land.
@@ -2328,7 +2330,7 @@
       $('#a0').textContent = o.teams[0].ab || o.teams[0].id; $('#a1').textContent = o.teams[1].ab || o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
       $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Grade</span>' : '';
-      $('#grade').hidden = !G.user || !!o.switching; $('#ftmsg').hidden = true; $('#pause').hidden = true;
+      $('#grade').hidden = !G.user || !!o.switching; $('#grade').classList.remove('why'); $('#ftmsg').hidden = true; $('#pause').hidden = true;
       if (o.drill) {
         const def = DRILLS[o.drill];
         G.drill = { kind: o.drill, def: o.drill === 'dunk' ? { ...def, dunks: o.dunks || def.dunks } : def, rack: 0, ball: 0, score: 0, made: 0, att: 0, t: def.secs, next: 0, over: false, n: 0, scores: [], style: 0 };
