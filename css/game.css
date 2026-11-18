@@ -648,3 +648,6 @@ svg.pbg text{fill:#c9c9cf;font-size:8.5px;text-anchor:middle;font-family:var(--d
 .csend{display:flex;gap:8px;margin-top:10px}.csend input{flex:1}.csend .big{width:auto;margin:0;padding:0 18px;font-size:15px}
 #cmuted .ghost{margin:8px 0 0}
 .chat .back{align-self:flex-start}
+/* the smallest phones: the grade keeps its letter and drops the word, so it stops sitting on the points */
+@media (max-width:380px){.sub #grade{flex:0 0 auto;padding:0 6px 0 4px}.sub #grade span{display:none}.sub #line{flex:1;min-width:0}}
+@media (max-width:350px){#energy{width:26px}#line{letter-spacing:0}}

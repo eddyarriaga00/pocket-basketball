@@ -1240,8 +1240,8 @@
     legs: [[null, 'None'], ['one', 'Leg sleeve'], ['both', 'Both legs'], ['pads', 'Knee pads'], ['tights', 'Tights']],
     goggles: [[null, 'None'], ['black', 'Black'], ['team', 'Team']],
     tat: [[null, 'None'], [1, 'Arm band'], [2, 'Sleeve'], [3, 'Both'], [4, 'Forearm']],
-    celeb: [[null, 'Mixed'], ['flex', 'Flex'], ['roar', 'Roar'], ['goggles', 'Goggles'], ['three', 'Three up'], ['point', 'Point'], ['chest', 'Chest'], ['shrug', 'Shrug'], ['toosmall', 'Too small'], ['ice', 'Ice in the veins'], ['nightnight', 'Night night'], ['shh', 'Shush']],
-    drib: [[null, 'Standard'], ['low', 'Low and quick'], ['high', 'High and loose']],
+    celeb: [[null, 'Mixed'], ['flex', 'Flex'], ['roar', 'Roar'], ['goggles', 'Goggles'], ['three', 'Three up'], ['point', 'Point'], ['chest', 'Chest'], ['shrug', 'Shrug'], ['toosmall', 'Too small'], ['ice', 'Ice veins'], ['nightnight', 'Night night'], ['shh', 'Shush']],
+    drib: [[null, 'Standard'], ['low', 'Low, quick'], ['high', 'High, loose']],
   };
   function lookEditor(me) {
     me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
