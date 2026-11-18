@@ -4,6 +4,13 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Tested in Safari's engine (WebKit) as an iPhone, not only Chrome's: the whole game runs clean there. Sound comes
+  back after a call or the lock screen interrupts it.
+- Fixed: backing a man down in the post, your player shook between two facings; his back now stays to the basket.
+- Fixed: two players held at the half-court line could stand inside each other.
+- The inbounder holds the ball over his head in both hands.
+- Small phones (320 to 380 wide): the grade no longer sits on your points in the scorebug. The reason for a grade
+  change has the row to itself for a moment, instead of being cut to a few letters.
 - Fixed: the trail behind a shot and the cameras flashing in the stands were there for the first game of a sitting
   and gone from the second on.
 - On defense, an arrow on the floor in front of your man shows where he is going with the ball: green while you are
