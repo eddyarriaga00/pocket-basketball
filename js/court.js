@@ -1048,7 +1048,11 @@
       /* chest to chest he stands taller and walls up, arms wide, instead of leaning through his man */
       const cl = on ? Math.min(1, Math.max(0, (3.5 - Math.hypot(h.x - p.x, h.z - p.z)) / 1.1)) : 0; m.gc = (m.gc || 0) + (cl - (m.gc || 0)) * Math.min(1, dt * 8); }
     /* over the ball: a dribbler who is standing or walking has his feet set and his knees bent too */
-    { const g = drib && !air && fall <= 0 ? 1 - smooth(5, 9, sp) : 0; m.dw = (m.dw || 0) + (g - (m.dw || 0)) * Math.min(1, dt * 8); }
+    /* the same for the dip before a jumper, and for every landing: the knees take it */
+    { if (p.y > 0.12) m.airT = G.t;
+      m.land = !air && m.airT !== undefined && p.y <= 0.12 ? (G.t - m.airT) / 0.34 : 9; m.gath = p.shoot && p.y <= 0.02 && !p.inb && G.phase !== 'ft' ? 1 : 0;
+      const g = !air && fall <= 0 ? Math.max(drib ? 1 - smooth(5, 9, sp) : 0, m.gath, m.land < 1 ? 1 - smooth(8, 13, sp) : 0) : 0;
+      m.dw = (m.dw || 0) + (g - (m.dw || 0)) * Math.min(1, dt * (m.land < 1 ? 30 : 8)); }
     m.tilt = (0.16 + 0.14 * m.gd + (p.pose === 'reach' ? 0.14 : 0)) * (1 - 0.7 * m.gc) * m.gw + 0.08 * m.dw * (1 - m.gw);
     if (m.tilt > 0.01 && m.bones[bk('DEF-hips')]) { const hb = m.bones[bk('DEF-hips')], f = p.face + (p.spinA || 0); m.body.updateMatrixWorld(true);
       _ax.set(Math.cos(f), 0, -Math.sin(f)); hb.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, m.tilt).multiply(_qw); hb.parent.getWorldQuaternion(_qp).invert().multiply(_q); hb.quaternion.copy(_qp);
@@ -1069,7 +1073,7 @@
     /* planted feet: in a defensive stance (and standing over a dribble) the feet are set on the floor and step, one
        at a time, as he moves; the legs are solved to reach them. sw eases in and out so he drops into it */
     { const gs = m.gw * (1 - smooth(13, 17, sp)), sw = Math.max(gs, m.dw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = ms < 1 && mv.k !== 'hesi' ? 0.05 : 0;
-      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, 0.25 + (0.05 + 0.08 * m.gd) * k, 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low); else m.ft = null; }
+      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, 0.25 + (0.05 + 0.08 * m.gd) * k, 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
     /* the arms */
     const has = G.ball.holder === p;
     let pose = p.pose;

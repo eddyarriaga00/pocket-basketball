@@ -7,6 +7,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 - Feet that plant: in a defensive stance, and standing over a dribble, each foot is set on the floor and steps (one at
   a time, never crossing) as the player moves; the legs are solved to reach them, knees out over the toes, hips low,
   back flat and leaning in, head up. A defender's hands work: one down at the ball, one out in the passing lane.
+- Knees that work: a dip before a jumper, every landing absorbed, hips that shift with a crossover, a defender who
+  walls up (taller, arms wide) chest to chest and stands his ground instead of running in place against a body. Off
+  the ball the stance is lighter, hands ready; feet on the floor, one hand goes up in a shooter's eyes.
 - Defense with timing: the Steal button lights up when the ball is there to take (he is dribbling on your side, or
   crossing over in front of you); a reach at a protected ball is mostly a foul. Your slide is helped toward the line
   between your man and the rim. Every shot you guard is called: Smothered, Good contest, Hand down, Late, Left open.
