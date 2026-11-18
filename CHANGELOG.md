@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Five more celebrations: the shrug, too small, ice in the veins, night night and the shush (the last three come
+  out in clutch time). All of them can be your signature on the Look card.
 - The pump fake: a quick tap of Shoot shows the ball and pulls it back. A defender going up with the shot may leave
   his feet (good defenders bite less, and less each time you repeat it). Computer players fake against you too.
 - Fixed: while the game was paused (the pause menu, halftime, a timeout) the players slowly folded over behind the card.

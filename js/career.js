@@ -1227,7 +1227,7 @@
     legs: [[null, 'None'], ['one', 'Leg sleeve'], ['both', 'Both legs'], ['pads', 'Knee pads']],
     goggles: [[null, 'None'], ['black', 'Black'], ['team', 'Team']],
     tat: [[null, 'None'], [1, 'Arm band'], [2, 'Sleeve'], [3, 'Both'], [4, 'Forearm']],
-    celeb: [[null, 'Mixed'], ['flex', 'Flex'], ['roar', 'Roar'], ['goggles', 'Goggles'], ['three', 'Three up'], ['point', 'Point'], ['chest', 'Chest']],
+    celeb: [[null, 'Mixed'], ['flex', 'Flex'], ['roar', 'Roar'], ['goggles', 'Goggles'], ['three', 'Three up'], ['point', 'Point'], ['chest', 'Chest'], ['shrug', 'Shrug'], ['toosmall', 'Too small'], ['ice', 'Ice in the veins'], ['nightnight', 'Night night'], ['shh', 'Shush']],
     drib: [[null, 'Standard'], ['low', 'Low and quick'], ['high', 'High and loose']],
   };
   function lookEditor(me) {
