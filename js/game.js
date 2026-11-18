@@ -1161,9 +1161,12 @@
       }
     }
     if (man === b.holder) {
-      const dx = H.x - man.x, dz = H.z - man.z, L = hyp(dx, dz) || 1;
+      /* he guards where the ball is going, not where it was: a good defender reads the first step and is already
+         sliding there (he used to aim at the dribbler's feet, a step late on every drive) */
+      const lead = p.isUser || p.stun > 0 || !man.isUser || G.auto ? 0 : 0.12 + p.r.perD / 99 * 0.2, mx = man.x + man.vx * lead, mz = man.z + man.vz * lead;
+      const dx = H.x - mx, dz = H.z - mz, L = hyp(dx, dz) || 1;
       const gap = clamp(3.2 + (L > 28 ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400);
-      p.tx = man.x + dx / L * gap; p.tz = man.z + dz / L * gap;
+      p.tx = mx + dx / L * gap; p.tz = mz + dz / L * gap;
       p.pose = 'guard';
       /* down by a few with the clock running out: foul to stop it */
       const behind = G.score[1 - p.team] - G.score[p.team];
