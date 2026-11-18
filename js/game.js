@@ -1435,6 +1435,8 @@
   /* ---------- main step ---------- */
   function step(dt) {
     G.t += dt;
+    /* the game's flow: the margin every few seconds, for the chart after the game */
+    if (G.phase === 'live' && !G.drill && G.t - (G.flowT || 0) > 4) { G.flowT = G.t; (G.flow = G.flow || []).push([Math.round((G.q - 1) * G.qlen * 60 + (G.qlen * 60 - G.clock)), G.score[0] - G.score[1]]); }
     if (G.phase === 'buzzer') {
       G.buzzT -= dt;
       for (const p of G.pl) { p.vx *= Math.max(0, 1 - dt * 4); p.vz *= Math.max(0, 1 - dt * 4); p.x += p.vx * dt; p.z += p.vz * dt; if (p.y > 0 || p.vy) { p.y = Math.max(0, p.y + p.vy * dt); p.vy -= (p.jg || 60) * dt; if (p.y <= 0) p.vy = 0; } }
@@ -1811,6 +1813,7 @@
       if (R.benchJump) R.benchJump(w);
       return;
     }
+    (g.qsc = g.qsc || []).push(g.score.slice());   // the score at the end of each period, for the line score
     g.q++;
     g.clock = g.q > 4 ? Math.max(60, g.qlen * 60 * 5 / 12) : g.qlen * 60;
     toast(g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, '');
@@ -1860,7 +1863,8 @@
     if (AU().pulse) AU().pulse(false);
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.played ? G.playedBy.map((x, i) => ({ d: x.d, team: x.team, st: G.played[i], user: !!(G.user && x.d === G.user.d) })) : G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
-    const res = { drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
+    const line = (G.qsc || []).concat([G.score.slice()]), flow = (G.flow || []).concat([[Math.round(G.q * G.qlen * 60), G.score[0] - G.score[1]]]);
+    const res = { line, flow, qlen: G.qlen, drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner,
       shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
     PB.Game.active = false;

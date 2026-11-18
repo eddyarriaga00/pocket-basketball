@@ -602,3 +602,21 @@ table.std tr.me td:first-child{box-shadow:inset 3px 0 0 #fff;color:#fff}
 .bug.clutch .mid b{color:#ff5a6b;animation:blink 1s infinite}
 @keyframes wob{0%,100%{transform:translate(0,0)}25%{transform:translate(-3px,1px)}50%{transform:translate(2px,-2px)}75%{transform:translate(3px,2px)}}
 #meter.away .tube{animation:wob .45s infinite}
+/* ---- the game in numbers (after the stats app): line score, game flow, team comparison ---- */
+table.lsc td,table.lsc th{text-align:center}table.lsc td:first-child{text-align:left;color:var(--ink);white-space:nowrap}table.lsc td:last-child{font-family:var(--display);font-size:15px}
+.flow .fl{display:flex;align-items:stretch;gap:8px;margin:6px 0 10px}
+.flow .fl span{display:flex;align-items:flex-start;font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--mute);width:28px}.flow .fl span:last-child{align-items:flex-end;justify-content:flex-end}
+.flow svg{flex:1;height:96px;background:var(--panel2);border-radius:10px}
+.flow svg .q{stroke:rgba(255,255,255,.08);stroke-width:1}.flow svg .z{stroke:rgba(255,255,255,.28);stroke-width:1}.flow svg .ln{fill:none;stroke:#fff;stroke-width:1.6;vector-effect:non-scaling-stroke}
+.tiles.t3 div b{font-size:20px}.tiles.t3 div span{font-size:9.5px;letter-spacing:.04em}
+.cmp .ch{display:flex;justify-content:space-between;font-family:var(--display);font-weight:800;font-size:13px;margin:2px 0 8px}
+.cmp .cr{display:grid;grid-template-columns:40px 1fr 74px 1fr 40px;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--line);font-size:12.5px}
+.cmp .cr b{font-family:var(--display);font-weight:700;color:var(--mute);font-variant-numeric:tabular-nums}.cmp .cr b:last-child{text-align:right}.cmp .cr b.w{color:#fff;font-weight:900}
+.cmp .cr em{font-style:normal;text-align:center;color:var(--mute);font-size:11.5px}
+.cmp .cr i{height:6px;border-radius:3px;background:var(--panel3);display:flex;justify-content:flex-end;overflow:hidden}.cmp .cr i.r{justify-content:flex-start}
+.cmp .cr u{display:block;height:100%;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+table.lsc th,table.lsc td{width:auto!important}table.lsc td:first-child{width:38%!important}
+.tiles.rk div em{display:block;font-style:normal;font-size:10px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--panel3);border-radius:999px;padding:2px 0;margin:6px 10px 0}
+svg.pbg{width:100%;height:auto;display:block;margin-top:4px}
+svg.pbg rect.w{fill:#fff}svg.pbg rect.l{fill:#55555c}svg.pbg .av{stroke:rgba(255,255,255,.45);stroke-width:1;stroke-dasharray:3 3}
+svg.pbg text{fill:#c9c9cf;font-size:8.5px;text-anchor:middle;font-family:var(--display);font-weight:700}svg.pbg text.lg{text-anchor:end;fill:#8a8a92;font-size:8px;font-family:var(--body);font-weight:500}

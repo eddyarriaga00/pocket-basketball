@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- The game in numbers, after a stats app: the final screen has the score by quarter, a game-flow chart (who led,
+  by how much, lead changes, times tied) and the two teams side by side on seven stats. The Log tab opens on your
+  season: averages with their league rank and your points game by game.
 - The computer's players no longer drift (or get pushed) back over half court for a backcourt violation of their
   own making. After the first and third quarters a graphic gives the score and each side's leading scorer. A block
   from behind at a run is called a chase-down block.

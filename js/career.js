@@ -977,7 +977,7 @@
         + (ltab === 'lead' ? leadersCard() : confs.map(c => `<div class="card"><h3>${c}${c === mine ? ' <small>your conference</small>' : ''}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>GB</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
         + `<p class="fine">The top six in each conference make the playoffs (the solid line); seven to ten play in for the last two places (the dashed line).</p>`);
     } else {
-      body = `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => glog(x, i + 1)).join('') || '<p class="mute">No games yet.</p>'}</div>
+      body = seasonCard() + `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => glog(x, i + 1)).join('') || '<p class="mute">No games yet.</p>'}</div>
         ${C.po && C.po.games.length ? `<div class="card"><h3>Playoffs</h3>${C.po.games.map((x, i) => glog(x, 'P' + (i + 1))).join('')}</div>` : ''}
         ${C.seasons.length ? `<div class="card"><h3>Career</h3>${C.seasons.map(z => `<div class="glog"><span>Y${z.year}</span>${badge(PB.team(z.team))}<b>${z.w}-${z.l}</b><em>${z.ppg} / ${z.rpg} / ${z.apg}</em><i>${z.awards.join(', ') || '–'}</i></div>`).join('')}</div>` : ''}
         <div class="card"><h3>Career highs <small>in the games you play</small></h3><div class="tiles">${[['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST'], ['stl', 'STL'], ['blk', 'BLK'], ['tpm', '3PM']].map(([k, l]) => `<div><b>${(C.highs || {})[k] || 0}</b><span>${l}</span></div>`).join('')}</div>
@@ -1625,7 +1625,7 @@
         <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div>
         <div><b>${u.fgm || 0}/${u.fga || 0}</b><span>FG</span></div><div><b>${u.tpm || 0}/${u.tpa || 0}</b><span>3PT</span></div><div><b>${u.stl || 0}/${u.blk || 0}</b><span>STL/BLK</span></div></div>
         ${potg(res)}${reelBtn()}
-        ${boxScore(res)}
+        ${gameStats(res)}${boxScore(res)}
         <button class="big" id="go">Main menu</button></div>`);
       $('#go').onclick = title; reelWire();
       return;
@@ -1636,7 +1636,7 @@
     if (res.winner) (C.flags = C.flags || {}).winner = true;
     const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0, fade: u.fade || 0, hookm: u.hookm || 0 };
     record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots });
-    g.res.boxHtml = potg(res) + boxScore(res);
+    g.res.boxHtml = potg(res) + gameStats(res) + boxScore(res);
     after(g, false);
   }
   /* the player of the game: the best line on the winning side (points, boards and assists, efficiency) */
@@ -1650,6 +1650,46 @@
       <b class="nm">${esc(b.d.first || '')}<br>${esc(b.d.last || '')}</b><span class="tm">${esc(tm.name)} · #${b.d.num ?? ''}</span>
       <div class="ln"><div><b>${b.st.pts}</b><span>PTS</span></div><div><b>${b.st.reb}</b><span>REB</span></div><div><b>${b.st.ast}</b><span>AST</span></div></div>
       <span class="fg">${b.st.fgm}-${b.st.fga} FG${b.st.tpa ? ` · ${b.st.tpm}-${b.st.tpa} 3PT` : ''}</span></div></div>`;
+  }
+  /* the game in numbers, the way a stats app lays it out: the score by quarter, the lead through the night, and the two
+     teams side by side */
+  /* your season the way a stats app shows a player: his averages with where they rank in the league, and his points
+     game by game (white for a win) */
+  function seasonCard() {
+    const dn = C.games.filter(x => x.done && x.res && x.res.line); if (!dn.length) return '';
+    const rows = leaders(), mine = rows.filter(r => r.me)[0];
+    const ord = n => n + (n % 100 > 10 && n % 100 < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+    const tile = (k, lbl) => { if (!mine) return ''; const rank = rows.slice().sort((a, b) => b[k] - a[k]).indexOf(mine) + 1; return `<div><b>${mine[k].toFixed(1)}</b><span>${lbl}</span><em>${ord(rank)}</em></div>`; };
+    const last = dn.slice(-20), mx = Math.max(10, ...last.map(x => x.res.line.pts)), W = 320, H = 84, bw = W / Math.max(last.length, 8), avg = last.reduce((a, x) => a + x.res.line.pts, 0) / last.length;
+    return `<div class="card season"><h3>This season <small>${dn.length} game${dn.length > 1 ? 's' : ''}${mine ? ' · league rank under each' : ''}</small></h3>
+      ${mine ? `<div class="tiles rk">${tile('ptspg', 'PPG')}${tile('rebpg', 'RPG')}${tile('astpg', 'APG')}</div>` : ''}
+      <p class="kick">Points by game</p><svg viewBox="0 0 ${W} ${H + 14}" class="pbg" aria-label="Your points in each game">
+      <line x1="0" x2="${W}" y1="${(H - avg / mx * (H - 12)).toFixed(1)}" y2="${(H - avg / mx * (H - 12)).toFixed(1)}" class="av"/>
+      ${last.map((x, i) => { const v = x.res.line.pts, h = Math.max(2, v / mx * (H - 12)); return `<rect x="${(i * bw + bw * 0.18).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${(bw * 0.64).toFixed(1)}" height="${h.toFixed(1)}" rx="2" class="${x.res.win ? 'w' : 'l'}"/><text x="${(i * bw + bw / 2).toFixed(1)}" y="${(H - h - 3).toFixed(1)}">${v}</text>`; }).join('')}
+      <text x="${W}" y="${H + 12}" class="lg">white: a win · line: your average ${avg.toFixed(1)}</text></svg></div>`;
+  }
+  function gameStats(res) {
+    if (!res || !res.box || !res.teams) return '';
+    const T = res.teams, ab = t => esc(T[t].ab || T[t].id || T[t].name.slice(0, 3).toUpperCase());
+    /* a team's color to draw with on the dark page: its second color when the first is too dark to see */
+    const lum = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return 1; const n = parseInt(m[1], 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+    const col = t => lum(T[t].c1) < 0.16 ? (lum(T[t].c2) < 0.16 ? '#d8d8de' : T[t].c2) : T[t].c1;
+    let out = '';
+    if (res.line && res.line.length > 1) { const q = res.line.map((v, i) => [v[0] - (i ? res.line[i - 1][0] : 0), v[1] - (i ? res.line[i - 1][1] : 0)]);
+      out += `<div class="card"><h3>By quarter</h3><table class="std lsc"><tr><th></th>${q.map((_, i) => `<th>${i < 4 ? i + 1 : 'OT'}</th>`).join('')}<th>T</th></tr>${[0, 1].map(t => `<tr class="${res.score[t] > res.score[1 - t] ? 'me' : ''}"><td>${badge(T[t])} ${ab(t)}</td>${q.map(v => `<td>${v[t]}</td>`).join('')}<td><b>${res.score[t]}</b></td></tr>`).join('')}</table></div>`; }
+    if (res.flow && res.flow.length > 3) { const F = res.flow, W = 320, H = 96, tot = F[F.length - 1][0] || 1, pk = Math.max(6, ...F.map(p => Math.abs(p[1]))), X = t => (t / tot * W).toFixed(1), Y = m => (H / 2 - m / pk * (H / 2 - 6)).toFixed(1);
+      const d = F.map((p, i) => `${i ? 'L' : 'M'}${X(p[0])} ${Y(p[1])}`).join(' '), big = F.reduce((a, p) => Math.abs(p[1]) > Math.abs(a[1]) ? p : a, F[0]);
+      let ch = 0, ties = 0; for (let i = 1; i < F.length; i++) { if (Math.sign(F[i][1]) && Math.sign(F[i - 1][1]) && Math.sign(F[i][1]) !== Math.sign(F[i - 1][1])) ch++; if (F[i][1] === 0 && F[i - 1][1] !== 0) ties++; }
+      const qn = Math.max(4, res.line ? res.line.length : 4);
+      out += `<div class="card flow"><h3>Game flow</h3><div class="fl"><span>${ab(0)}</span><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="The lead through the game"><defs><clipPath id="fa"><rect x="0" y="0" width="${W}" height="${H / 2}"/></clipPath><clipPath id="fb"><rect x="0" y="${H / 2}" width="${W}" height="${H / 2}"/></clipPath></defs>
+        ${Array.from({ length: qn - 1 }, (_, i) => `<line x1="${(W * (i + 1) / qn).toFixed(1)}" y1="0" x2="${(W * (i + 1) / qn).toFixed(1)}" y2="${H}" class="q"/>`).join('')}<line x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" class="z"/>
+        <path d="${d} L${W} ${H / 2} L0 ${H / 2} Z" clip-path="url(#fa)" fill="${col(0)}" opacity=".55"/><path d="${d} L${W} ${H / 2} L0 ${H / 2} Z" clip-path="url(#fb)" fill="${col(1)}" opacity=".55"/><path d="${d}" class="ln"/></svg><span>${ab(1)}</span></div>
+        <div class="tiles t3"><div><b>${Math.abs(big[1])}</b><span>Biggest lead · ${big[1] === 0 ? '–' : ab(big[1] > 0 ? 0 : 1)}</span></div><div><b>${ch}</b><span>Lead changes</span></div><div><b>${ties}</b><span>Times tied</span></div></div></div>`; }
+    const sum = (t, k) => res.box.filter(b => b.team === t).reduce((a, b) => a + (b.st[k] || 0), 0), pct = (m, a) => a ? Math.round(m / a * 100) : 0;
+    const rows = [['FG%', t => pct(sum(t, 'fgm'), sum(t, 'fga')), '%'], ['3P%', t => pct(sum(t, 'tpm'), sum(t, 'tpa')), '%'], ['Rebounds', t => sum(t, 'reb')], ['Assists', t => sum(t, 'ast')], ['Steals', t => sum(t, 'stl')], ['Blocks', t => sum(t, 'blk')], ['Turnovers', t => sum(t, 'tov'), '', true]];
+    out += `<div class="card cmp"><h3>Team stats</h3><div class="ch"><span>${badge(T[0])} ${ab(0)}</span><span>${ab(1)} ${badge(T[1])}</span></div>${rows.map(([n, f, u, low]) => { const a = f(0), b = f(1), m = Math.max(a, b, 1), wa = low ? a < b : a > b, wb = low ? b < a : b > a;
+      return `<div class="cr"><b class="${wa ? 'w' : ''}">${a}${u || ''}</b><i><u style="width:${Math.round(a / m * 100)}%;background:${col(0)}"></u></i><em>${n}</em><i class="r"><u style="width:${Math.round(b / m * 100)}%;background:${col(1)}"></u></i><b class="${wb ? 'w' : ''}">${b}${u || ''}</b></div>`; }).join('')}</div>`;
+    return out;
   }
   function boxScore(res) {
     const rows = t => res.box.filter(b => b.team === t).map(b => `<tr class="${b.user ? 'me' : ''}"><td>${esc(b.d.last)}</td><td>${b.st.pts}</td><td>${b.st.reb}</td><td>${b.st.ast}</td><td>${b.st.fgm}-${b.st.fga}</td><td>${b.st.tpm}-${b.st.tpa}</td></tr>`).join('');
