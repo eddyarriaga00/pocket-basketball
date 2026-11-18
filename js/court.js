@@ -1126,6 +1126,8 @@
     if (pose === 'dribble' && p.runD > 0.05) { const e = 0.7 * p.runD, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], [0.1, -0.88, 0.45]), L(P[1], [0.2, -0.5, 0.84]), [0.3, -0.75, -0.2 + 0.5 * Math.sin(kk * 6.28)], [0.1, -0.3, 0.9]]; }
     if (pose === 'guard' && m.gd < 0.98) { const R0 = [[0.42, -0.8, 0.42], [0.4, -0.3, 0.86]], e = 1 - m.gd, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], R0[0]), L(P[1], R0[1]), L(P[2], R0[0]), L(P[3], R0[1])]; }
     if (pose === 'guard' && m.gc > 0.02) { const W0 = [[0.92, -0.3, 0.2], [0.82, 0.3, 0.45]], e = m.gc, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], W0[0]), L(P[1], W0[1]), L(P[2], W0[0]), L(P[3], W0[1])]; }
+    /* in the air at a shooter: one long arm to the ball, the other down for balance (both go up for a rebound) */
+    if (pose === 'contest' && air && G.ball.state !== 'loose' && G.phase === 'live' && G.pl && G.pl.some(o => o.team !== p.team && (o.shoot || G.ball.state === 'shot') && Math.hypot(o.x - p.x, o.z - p.z) < 7)) P = [[0.18, 0.95, 0.26], [0.06, 0.98, 0.2], [0.6, -0.55, 0.3], [0.5, -0.7, 0.25]];
     if (pose === 'contest' && !air && p.y <= 0.05) P = [[0.3, 0.93, 0.22], [0.1, 0.98, 0.16], [0.8, -0.2, 0.55], [0.6, 0.45, 0.66]];   // feet on the floor: one hand up in the shooter's eyes
     const w = m.poseW, s = TPL.sideR < 0 ? 1 : -1;
     if (pose === 'dribble' && ms < 1 && MOVES[mv.k]) {
@@ -1139,8 +1141,8 @@
     }
     /* dribbling with the left hand: the arms trade jobs */
     /* the high hand goes to the side the ball is on */
-    if (pose === 'guard') { const bx = G.ball.x - p.x, bz = G.ball.z - p.z, side = bx * -Math.cos(p.face) + bz * Math.sin(p.face); if (Math.abs(side) > 0.35) m.gsw = side < 0; }
-    const sw = (pose === 'dribble' && p.dribHand < 0) || (m.lay && p.dribHand < 0 && (pose === 'shoot' || pose === 'follow')) || (pose === 'guard' && m.gsw), A = sw ? P[2] : P[0], Af = sw ? P[3] : P[1], Bu = sw ? P[0] : P[2], Bf = sw ? P[1] : P[3];
+    if (pose === 'guard' || pose === 'contest') { const bx = G.ball.x - p.x, bz = G.ball.z - p.z, side = bx * -Math.cos(p.face) + bz * Math.sin(p.face); if (Math.abs(side) > 0.35) m.gsw = side < 0; }
+    const sw = (pose === 'dribble' && p.dribHand < 0) || (m.lay && p.dribHand < 0 && (pose === 'shoot' || pose === 'follow')) || ((pose === 'guard' || pose === 'contest') && m.gsw), A = sw ? P[2] : P[0], Af = sw ? P[3] : P[1], Bu = sw ? P[0] : P[2], Bf = sw ? P[1] : P[3];
     aim(m.R.up, m.R.fore, dirOf(p.face, A[0], A[1] + hi, A[2] - hi, s), w);
     aim(m.R.fore, m.R.hand, dirOf(p.face, Af[0], Af[1] + hi, Af[2] - hi, s), w);
     aim(m.L.up, m.L.fore, dirOf(p.face, Bu[0], Bu[1], Bu[2], -s), w);
