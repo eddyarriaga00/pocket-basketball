@@ -109,7 +109,7 @@ h3 small{font-weight:500;color:var(--mute);font-size:12px;margin-left:6px}
 .field{margin:14px 0}.field label{display:block;font-size:12px;font-weight:700;color:var(--mute);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
 .seg button{flex:1;min-width:52px;height:42px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-weight:700}
-.seg[data-look] button{font-size:13px;padding:0 4px;min-width:62px;letter-spacing:-.01em}   /* long names (Cornrows, Ice in the veins) fit their button */
+.seg[data-look] button,.seg[data-cl] button{font-size:13px;padding:0 4px;min-width:76px;letter-spacing:-.01em;white-space:nowrap}   /* long names (Cornrows, Ice in the veins) fit their button */
 .seg button.on{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
 .arch{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .arch button{text-align:left;padding:10px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
