@@ -20,7 +20,21 @@ arm = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
 for o in list(bpy.data.objects):
     if o.type == 'MESH':
         bpy.data.objects.remove(o, do_unlink=True)
+# ---- taller: a ballplayer's legs. The skeleton's rest pose is stretched below the hips (and everything above rides up
+# with it); the game applies the same stretch to its skeleton (LEGK is printed, and kept in the file's extras)
+LEGK = 1.16
 M = arm.matrix_world
+hipz0 = (M @ arm.data.bones['DEF-thigh.L'].head_local).z
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.mode_set(mode='EDIT')
+Mi = M.inverted()
+def tall(co):
+    w = M @ co; w.z = w.z * LEGK if w.z <= hipz0 else w.z + hipz0 * (LEGK - 1); return Mi @ w
+for eb in arm.data.edit_bones:
+    eb.head = tall(eb.head.copy()); eb.tail = tall(eb.tail.copy())
+bpy.ops.object.mode_set(mode='OBJECT')
+arm['legk'] = LEGK
+print('LEGK', LEGK, 'hip height', round(hipz0, 3), '->', round(hipz0 * LEGK, 3))
 J = {b.name: (M @ b.head_local, M @ b.tail_local) for b in arm.data.bones}
 head = lambda n: J[n][0].copy()
 tail = lambda n: J[n][1].copy()
@@ -57,7 +71,7 @@ def capped(pts):
     out += pts
     out += [(Vector(c1) + d1 * (min(a1, b1) * f), a1 * g, b1 * g) for f, g in ((0.28, 0.94), (0.62, 0.74), (0.92, 0.30))]
     return out
-LIMB = 1.2   # how chunky the arms and legs are: the pocket look
+LIMB = 1.12   # how chunky the arms and legs are: the pocket look, but an athlete's
 X, Y, Z = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
 parts = []
 hz, s1, s2, s3, nk = head('DEF-hips').z, head('DEF-spine.001').z, head('DEF-spine.002').z, head('DEF-spine.003').z, head('DEF-neck').z
@@ -137,7 +151,7 @@ for S, sg in (('L', 1), ('R', -1)):
 
 # ---- the head, after the references (Switch Sports' Sportsmates, pocket and chibi sports games): BIG for the body, one
 # smooth shape with no bumps on it, simple dark eyes that sit flat on the face, a small mouth, hair as one chunky volume
-HS = 1.3
+HS = 1.22
 hc = Vector((0, -0.006, head('DEF-head').z + 0.035 + 0.150 * HS))
 hv = lambda dx, dy, dz: hc + Vector((dx, dy, dz)) * HS
 hb = lambda dx, dy, dz, rx, ry, rz, n: ball(n, tuple(hv(dx, dy, dz)), (rx * HS, ry * HS, rz * HS), seg=28)
@@ -219,11 +233,11 @@ if PREVIEW:
         d.location = ((k - 1) * 1.95 + (0.25 if k == 2 else 0), 0, 0); d.rotation_euler = (0, 0, math.radians(ang)); views.append(d)
     body.hide_render = True; arm.hide_render = True
     cam = bpy.data.objects.new('Cam', bpy.data.cameras.new('Cam')); sc.collection.objects.link(cam); sc.camera = cam
-    cam.data.type = 'ORTHO'; cam.data.ortho_scale = 6.6
-    cam.location = (0, -8, 1.06); cam.rotation_euler = (math.radians(90), 0, 0)
+    cam.data.type = 'ORTHO'; cam.data.ortho_scale = 6.9
+    cam.location = (0, -8, 1.13); cam.rotation_euler = (math.radians(90), 0, 0)
     sc.render.filepath = PREVIEW
     bpy.ops.render.render(write_still=True)
-    cam.data.ortho_scale = 2.9; cam.location = (-0.975, -8, 1.62); sc.render.resolution_x, sc.render.resolution_y = 1500, 900
+    cam.data.ortho_scale = 2.9; cam.location = (-0.975, -8, 1.74); sc.render.resolution_x, sc.render.resolution_y = 1500, 900
     sc.render.filepath = PREVIEW.replace('.png', '-head.png'); bpy.ops.render.render(write_still=True)
     for d in views: bpy.data.objects.remove(d, do_unlink=True)
     body.hide_render = False
