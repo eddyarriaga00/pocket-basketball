@@ -263,19 +263,23 @@
     let best = null, bd = 1e9;
     for (const p of (pool.length ? pool : mates)) { const d = hyp(p.x - at.x, p.z - at.z); if (d < bd) { bd = d; best = p; } }
     const sz = Math.sign(at.z) || 1;
-    if (baseline || Math.abs(at.z) > 43) { best.x = clamp(at.x, -12, 12) || (rand() < 0.5 ? -5 : 5); best.z = sz * 48.2; best.face = sz > 0 ? Math.PI : 0; }
-    else { const sx = Math.sign(at.x) || (rand() < 0.5 ? -1 : 1); best.x = sx * 26.4; best.z = clamp(at.z, -42, 42); best.face = sx > 0 ? -Math.PI / 2 : Math.PI / 2; }
+    /* he goes out there on his feet: the ball in his hands, a jog to the line (he used to be there all at once) */
+    let wx, wz;
+    if (baseline || Math.abs(at.z) > 43) { wx = clamp(at.x, -12, 12) || (rand() < 0.5 ? -5 : 5); wz = sz * 48.2; }
+    else { const sx = Math.sign(at.x) || (rand() < 0.5 ? -1 : 1); wx = sx * 26.4; wz = clamp(at.z, -42, 42); }
     best.vx = best.vz = 0; best.shoot = null; best.drive = 0;
     give(best);
     G.ball.passer = null;
     /* after a basket the game clock keeps running, except in the last two minutes of the fourth and overtime */
     const stop = !baseline || (G.q >= 4 && G.clock < 120);
-    best.inb = true; G.inb = { p: best, t: 0, wait: rr(0.9, 1.6) * (stop ? 1 : 0.7), stop };
-    G.ball.x = best.x; G.ball.z = best.z;
+    best.inb = true; G.inb = { p: best, t: 0, wait: rr(0.9, 1.6) * (stop ? 1 : 0.7), stop, walk: { x: wx, z: wz, t: 0 } };
   }
   function inboundStep(dt) {
     const I = G.inb, p = I.p;
-    if (G.ball.holder !== p) { p.inb = false; G.inb = null; return; }
+    if (G.ball.holder !== p) { p.inb = false; p.inbW = false; G.inb = null; return; }
+    if (I.walk) { const W = I.walk, dx = W.x - p.x, dz = W.z - p.z, d = hyp(dx, dz); W.t += dt;
+      if (d > 0.6 && W.t < 3.2) { const sp = Math.min(17, 5 + d * 3); p.vx = dx / d * sp; p.vz = dz / d * sp; p.face = Math.atan2(dx, dz); p.pose = 'hold'; p.inbW = true; return; }
+      I.walk = null; p.inbW = false; p.vx = p.vz = 0; }
     I.t += dt; p.vx = p.vz = 0; p.pose = 'hold';
     p.face = Math.atan2(0 - p.x, 0 - p.z * 0.4);   // toward the floor
     const manual = p.isUser && !G.auto;
@@ -293,6 +297,16 @@
     G.poss = null;
     const spot = at || { x: G.ball.x, z: G.ball.z };
     dead(0.9, () => inboundOut(giveTo, { x: clamp(spot.x, -24, 24), z: clamp(spot.z, -46, 46) }));
+  }
+  /* a cut, the way a broadcast goes to another camera: the picture dips to black for a moment. Used whenever players
+     have to be somewhere else at once (lining up for a free throw, a substitution, the start of a period, your
+     check-in), so nobody is seen jumping from one place to another. */
+  function cut() {
+    if (!G || G.cutT === G.t) return; G.cutT = G.t;
+    let e = document.getElementById('cut');
+    if (!e) { e = document.createElement('div'); e.id = 'cut'; e.style.cssText = 'position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:0'; const cv = $('#gl'); cv.parentNode.insertBefore(e, cv.nextSibling); }
+    e.style.transition = 'none'; e.style.opacity = '1'; void e.offsetWidth;
+    clearTimeout(cut.h); cut.h = setTimeout(() => { e.style.transition = 'opacity .3s ease-out'; e.style.opacity = '0'; }, 170);
   }
   function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; subs(); if (stintOver() && !G.ftq) G.then = () => sitDown(); }
   /* ---------- the bench: computer players tire as they play and rest on the bench; at a dead ball a tired man comes
@@ -322,6 +336,7 @@
         if (!G.played.includes(p.st)) G.played.push(p.st), G.playedBy.push({ d: p.d, team: t });
         R.removePlayer && R.removePlayer(p); R.addPlayer(p, G.kits[t]);
         /* he checks in at the scorer's table and runs on (he used to appear where the other man stood) */
+        cut();
         if (G.phase !== 'live') { p.x = 24.4; p.z = clamp(p.z * 0.3, -9, 9) + n * 2.6 + (t ? 1.3 : -1.3); p.vx = p.vz = 0; p.face = -Math.PI / 2; }   // (two at once stand side by side)
         if (t === 0 || rand() < 0.3) feed(`${t === 0 ? '' : G.teams[1].name + ': '}${p.name} in for ${out.name}`);
         if (t === 0 && n === 0 && rand() < 0.3) B('subs_ana', { prio: 1 });
@@ -793,6 +808,7 @@
     /* line everyone up: shooter at the line, two from each side on the lane, the rest behind the arc */
     const lane = [[-8.7, 7], [8.7, 7], [-8.7, 11], [8.7, 11], [-8.7, 14], [8.7, 14]];
     let li = 0;
+    const was = G.pl.map(o => [o.x, o.z]);   // the line-up: a cut to the free-throw camera whenever anyone has to be moved to his place
     for (const o of G.pl) {
       o.vx = o.vz = 0; o.y = 0; o.shoot = null; o.pose = '';
       if (o === p) { const s = toCourt(t, 0, 13.75); o.x = s.x; o.z = s.z; o.face = t === 0 ? 0 : Math.PI; continue; }
@@ -805,6 +821,7 @@
     G.ball.state = 'held'; G.ball.holder = p;
     $('#ftmsg').textContent = `Free throw ${q.total - q.n + 1} of ${q.total}`; $('#ftmsg').hidden = false;
     AU().play('whistle', { vol: 0.6 });
+    if (G.pl.some((o, i) => hyp(o.x - was[i][0], o.z - was[i][1]) > 1.2)) cut();
   }
   function shootFT(meter) {
     const q = G.ftq, p = q.shooter, b = G.ball;
@@ -853,14 +870,15 @@
   function passTo(p, r) {
     const b = G.ball;
     if (b.holder !== p || p.shoot) return;
-    const T0 = hyp(r.x - p.x, r.z - p.z) / 46 + 0.12;
+    const PS = 58;   // feet a second: a pass with some zip on it (it was 46, and floated)
+    const T0 = hyp(r.x - p.x, r.z - p.z) / PS + 0.1;
     const lx = clamp(r.x + r.vx * T0 * 0.8, -24, 24), lz = clamp(r.z + r.vz * T0 * 0.8, -46, 46);
     const hp = handPos(p);
     b.state = 'pass'; b.holder = null; b.from = p; b.to = r; b.t = 0;
     p.pose = 'chest'; p.reachT = 0.32;   // both arms push the ball out
     p.passA = Math.atan2(lx - p.x, lz - p.z); p.passT0 = G.t;   // he turns and steps into it
     b.sx = hp.x; b.sy = hp.y - 1; b.sz = hp.z; b.ex = lx; b.ez = lz; b.ey = r.ht / 12 * 0.6 + 1.2;
-    b.dur = hyp(lx - p.x, lz - p.z) / 46 + 0.12; b.apex = 0.6 + b.dur * 1.4;
+    b.dur = hyp(lx - p.x, lz - p.z) / PS + 0.1; b.apex = 0.35 + b.dur * 0.9; b.wild = false;
     b.passer = p; b.passT = G.t + b.dur;
     /* the alley-oop: a cutter heading for the rim who can finish above it gets the ball thrown up there */
     b.lob = false;
@@ -875,7 +893,7 @@
       r.oopT = b.dur + 0.4;
     }
     /* now and then a pass sails: high, behind him, off his hands */
-    if (!p.isUser && rand() < clamp(0.018 + (62 - p.r.pass) * 0.0006, 0.006, 0.04)) { const a = rand() * 6.28, m = rr(6, 11); b.ex = clamp(b.ex + Math.sin(a) * m, -26, 26); b.ez = clamp(b.ez + Math.cos(a) * m, -48, 48); b.ey += 2; }
+    if (!p.isUser && rand() < clamp(0.018 + (62 - p.r.pass) * 0.0006, 0.006, 0.04)) { const a = rand() * 6.28, m = rr(6, 11); b.ex = clamp(b.ex + Math.sin(a) * m, -26, 26); b.ez = clamp(b.ez + Math.cos(a) * m, -48, 48); b.ey += 2; b.wild = true; }
     /* a defender in the lane may jump it */
     b.pick = null;
     if (b.lob) { r.wantBall = 1.2; return; }
@@ -888,7 +906,7 @@
       if (off > 1.8) continue;
       /* a lazy pass through a man in the lane: the league picks off about one pass in forty */
       let ch = clamp(0.035 + (o.r.steal - p.r.pass) * 0.002, 0.01, 0.14) * (1 - off / 1.8) * (o.isUser ? 1.5 : G.diff.oppSteal) * (1 - 0.15 * bt(p, 'general'));
-      if (p.isUser) ch *= 1.0;
+      if (p.isUser) ch *= off < 1.1 ? 0.8 : 0.35;   // your pass is picked by a man standing in its path, rarely by one a step to the side
       if (rand() < ch) { b.pick = { who: o, f: t / L }; break; }
     }
     r.wantBall = 1.2;
@@ -901,10 +919,13 @@
       const dx = r.x - p.x, dz = r.z - p.z, L = hyp(dx, dz) || 1;
       const open = Math.min(nearestDef(r).d, 9);
       let s = open * 0.8 - L * 0.03 + (distHoop(r.x, r.z, p.team) < 12 ? 1.5 : 0) + (r.cutUser > 0 ? 2.5 : 0);
+      /* a man standing in the passing lane makes that teammate a worse choice */
+      { let blk = 0; for (const o of G.pl) { if (o.team === p.team) continue; const rx = o.x - p.x, rz = o.z - p.z, t = (rx * dx + rz * dz) / L; if (t < 3 || t > L - 2) continue; const off = Math.abs(rx * dz - rz * dx) / L; if (off < 1.6) blk = Math.max(blk, 1 - off / 1.6); } s -= blk * 3; }
       /* bringing it up is the point guard's job: the computer does not hand the ball to you in the backcourt unless you
          play the point (a new player standing still there was given it, and whistled for eight seconds, trip after trip) */
       if (r.isUser && !G.auto && !p.isUser && r.slot !== 0 && along(r.z, r.team) > RIM - 1.5) s -= 8;
-      if (dirx !== undefined) s += ((dx * dirx + dz * dirz) / L) * 9;
+      /* with the stick held, the pass goes where the stick points: the teammate nearest that line, and nobody behind you */
+      if (dirx !== undefined) { const c = (dx * dirx + dz * dirz) / L; s = c > 0.3 ? s * 0.35 + c * c * 22 : s - 30; }
       if (s > bs) { bs = s; best = r; }
     }
     return best;
@@ -1763,18 +1784,22 @@
         a.x -= ux * push; a.z -= uz * push; c.x += ux * push; c.z += uz * push;
       }
     }
-    for (const p of G.pl) if (!p.inb) { p.x = clamp(p.x, -24.6, 24.6); p.z = clamp(p.z, -46.6, 46.6); }
+    /* (a man who is outside the lines, the inbounder after his pass, steps back in: he is not put back in) */
+    for (const p of G.pl) if (!p.inb) { const cx = clamp(p.x, -24.6, 24.6), cz = clamp(p.z, -46.6, 46.6);
+      if (p.wasInb && (cx !== p.x || cz !== p.z)) { const m = dt * 13; p.x += clamp(cx - p.x, -m, m); p.z += clamp(cz - p.z, -m, m); } else { p.wasInb = false; p.x = cx; p.z = cz; } }
+      else p.wasInb = true;
     /* once the ball is over half court, the computer's players on offense stay over it: no drifting (or being
        pushed) back across the line for a violation of their own making */
     if (G.vio && G.vio.crossed && G.vio.n === G.possN && G.phase === 'live' && G.poss !== null && G.poss !== undefined && !G.drill && b.state !== 'loose')
     {
       const held = [];
-      for (const p of G.pl) if (p.team === G.poss && (!p.isUser || G.auto) && !p.inb && along(p.z, p.team) > HALF - 1.2) { p.z = hoopZ(p.team) - (HALF - 1.2) * dirOf(p.team); if (p.vz * dirOf(p.team) < 0) p.vz = 0; held.push(p); }
+      const ovr = G.vio.over || (G.vio.over = new Set());   /* (only a man who has crossed is kept across: a trailer still coming up the floor runs there, he is not moved there) */
+      for (const p of G.pl) if (p.team === G.poss && (!p.isUser || G.auto) && !p.inb) { if (along(p.z, p.team) <= HALF - 1.2) { ovr.add(p); continue; } if (!ovr.has(p)) continue; p.z = hoopZ(p.team) - (HALF - 1.2) * dirOf(p.team); if (p.vz * dirOf(p.team) < 0) p.vz = 0; held.push(p); }
       /* two of them held on the line at once would stand inside each other: slide them apart along it */
       for (const a of held) for (const c of G.pl) { if (c === a || c.inb || (held.includes(c) && G.pl.indexOf(c) < G.pl.indexOf(a))) continue;
         const dx = c.x - a.x, dz = c.z - a.z, d = hyp(dx, dz); if (d >= 2.3) continue;
         const need = Math.sqrt(2.3 * 2.3 - dz * dz) - Math.abs(dx), sg = dx < 0 ? -1 : 1;
-        if (held.includes(c)) { a.x -= sg * need / 2; c.x += sg * need / 2; } else c.x += sg * need; }
+        const mv = Math.min(need, dt * 18); if (held.includes(c)) { a.x -= sg * mv / 2; c.x += sg * mv / 2; } else c.x += sg * mv; }
     }
     ballStep(dt);
   }
@@ -1833,6 +1858,13 @@
     if (b.state === 'pass') {
       b.t += dt;
       const u = Math.min(1, b.t / b.dur);
+      /* thrown to a man, not to a spot on the floor: the pass bends to where he is as it comes (it used to land where he
+         was headed when it left, so a receiver who changed his mind watched it go by); a pass that sails is the exception */
+      if (b.to && !b.wild) { const r = b.to, rem = Math.max(0, b.dur - b.t), k = Math.min(1, dt * 9);
+        const gx = b.lob ? clamp(r.x + r.vx * rem * 0.6, -8, 8) : clamp(r.x + r.vx * rem * 0.5, -25, 25), gz = b.lob ? b.ez : clamp(r.z + r.vz * rem * 0.5, -47, 47);
+        b.ex += (gx - b.ex) * k; b.ez += (gz - b.ez) * k; if (!b.lob) b.ey += ((r.ht || 78) / 12 * 0.6 + 1.2 + r.y - b.ey) * k; }
+      /* the man going up for a lob leaves the floor as it arrives (he used to be lifted to it) */
+      if (b.lob && b.to && !b.to.oopJ && b.dur - b.t < 0.34 && b.to.y <= 0.05) { const r = b.to; r.oopJ = true; r.jg = GRAV * 1.2; r.vy = Math.sqrt(2 * r.jg * 3.1); r.pose = 'celebrate'; }
       b.x = b.sx + (b.ex - b.sx) * u; b.z = b.sz + (b.ez - b.sz) * u; b.y = b.sy + (b.ey - b.sy) * u + 4 * b.apex * u * (1 - u);
       if (b.bounce) { const f = 0.62; b.y = u < f ? b.sy + (0.4 - b.sy) * (u / f) : 0.4 + (b.ey - 0.4) * ((u - f) / (1 - f)) + 2.2 * ((u - f) / (1 - f)) * (1 - (u - f) / (1 - f));
         if (u >= f && !b.bn) { b.bn = true; AU().play('bounce', { x: b.x, vol: 0.6 }); } }
@@ -1847,12 +1879,12 @@
         const r = b.to;
         if (b.lob && hyp(r.x - b.x, r.z - b.z) < 6) {
           /* caught above the rim: thrown down in one motion */
-          give(r); r.caughtT = G.t; r.caughtFrom = b.from; r.x += (b.x - r.x) * 0.6; r.z += (b.z - r.z) * 0.6;
-          r.jg = GRAV * 1.2; r.vy = 6; r.y = Math.max(r.y, 2.6); r.pose = 'celebrate';
+          give(r); r.caughtT = G.t; r.caughtFrom = b.from; r.oopJ = false;
+          if (r.y < 1) { r.jg = GRAV * 1.2; r.vy = Math.max(r.vy || 0, 9); } r.pose = 'celebrate';
           r.shoot = { t: 0, T: 0.14, kind: 'dunk', user: false, three: false, d: distHoop(r.x, r.z, r.team), aiRel: 0.82, oop: true };
           toast('ALLEY-OOP', r.team === 0 ? 'make' : 'opp'); AU().crowd.react('ooh', 1);
         }
-        else if (hyp(r.x - b.x, r.z - b.z) < 4) { give(r); r.caughtT = G.t; r.caughtFrom = b.from; r.pose = 'hold'; r.holdPoseT = 0.3; AU().play('catch', { x: r.x, vol: 0.7 }); }
+        else if (hyp(r.x - b.x, r.z - b.z) < 5) { r.oopJ = false; give(r); r.caughtT = G.t; r.caughtFrom = b.from; r.pose = 'hold'; r.holdPoseT = 0.3; AU().play('catch', { x: r.x, vol: 0.7 }); }
         else { b.state = 'loose'; b.vx = (b.ex - b.sx) / b.dur * 0.5; b.vz = (b.ez - b.sz) / b.dur * 0.5; b.vy = 0; b.lastTouch = b.from.team; G.reb = null; }
       }
       return;
@@ -1964,6 +1996,7 @@
     for (const p of g.pl) if (p.energy !== undefined) p.energy = Math.min(1, p.energy + 0.35);
     dead(1.8, () => {
       /* the team with the ball starts in its backcourt, the defense back in front of its rim */
+      cut();
       for (const p of g.pl) { const c = toCourt(t, SPOTS[p.slot][0][0] * 0.8, p.team === t ? 58 : 40); p.x = c.x; p.z = c.z; p.vx = p.vz = 0; }
       inboundTo(t, toCourt(t, 0, 70));
     });
@@ -2048,6 +2081,7 @@
     return elapsed() >= cur[1] - 0.003;
   }
   function checkIn(first) {
+    cut();
     G.phase = 'dead'; G.deadT = 1.6; G.poss = null;
     const t = G.score[0] > G.score[1] ? 1 : 0;
     for (const p of G.pl) { p.shoot = null; p.drive = 0; p.pose = ''; p.vx = p.vz = 0; p.y = 0; p.inb = false; const c = toCourt(p.team, SPOTS[p.slot][0][0] * 0.8, p.team === 0 ? 40 : 55); p.x = c.x; p.z = c.z; p.energy = p.isUser ? Math.min(1, (p.energy ?? 1) + 0.5) : 1; }
@@ -2318,6 +2352,7 @@
         const late = G.q >= 4 && G.clock < 120;
         G.poss = null;
         dead(2.4, () => {
+          if (late) cut();
           if (late) for (const p of G.pl) { const c = toCourt(0, SPOTS[p.slot][0][0] * 0.9, p.team === 0 ? 30 : 24); p.x = c.x; p.z = c.z; p.vx = p.vz = 0; }
           const h = G.ball.holder && G.ball.holder.team === 0 ? G.ball.holder : G.pl.find(p => p.team === 0 && p.slot === 0);
           give(h); G.shotClock = Math.max(G.shotClock, late ? 14 : G.shotClock);

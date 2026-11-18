@@ -1286,7 +1286,7 @@
     const has = G.ball.holder === p;
     let pose = p.pose;
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
-    if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' ? 'hold' : p.inb ? 'over' : 'dribble';
+    if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' ? 'hold' : p.inb ? (p.inbW ? 'hold' : 'over') : 'dribble';   // (carried at the waist on the jog out to the line, overhead once he is there)
     if (pose === 'chest' && !(p.reachT > 0) && !(p.passT0 !== undefined && G.t - p.passT0 < 0.6)) pose = 'thump';   // the celebration (the chest pass had taken its name, and with it its arms)
     if (has && !p.shoot && !p.inb && p.y > 0.25 && p.pose !== 'hang') pose = 'contest';   // he came down with a rebound: the ball stays up in both hands until his feet are back on the floor
     const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back

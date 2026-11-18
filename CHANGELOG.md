@@ -4,6 +4,17 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Passing. A pass is thrown to the man, not to a spot on the floor: it bends to where he is as it comes, so a receiver
+  who keeps moving (you, above all) is hit in the hands instead of watching it go by. Passes have more zip (58 feet a
+  second, flatter), the Pass button with the stick held goes where the stick points and never behind you, a teammate
+  with a defender in the passing lane is passed over for an open one, and your passes are picked off only by a man
+  standing in the lane.
+- Nobody jumps from place to place in view. The worst of it: the moment a pass crossed half court, every trailing
+  teammate was moved up to the line, as far as 47 feet in one frame. Trailers now run up the floor. The inbounder jogs
+  out to the line with the ball and steps back in after his pass. A man going up for a lob jumps for it. Where players
+  must be somewhere else at once (the free-throw line-up, a substitution, the start of a period, your check-in) the
+  picture cuts, the way a broadcast changes cameras. A test steps whole games a tick at a time and reports any
+  player who moves more than a stride without a cut (`tools/teleport.js`): none.
 - Awards night is the league's, not just yours: Most Valuable Player, Defensive Player, Rookie, Sixth Man, Most
   Improved and Clutch Player of the Year, Coach of the Year, three All-League teams, two All-Defensive teams, the
   All-Rookie team, and the scoring, rebounding, assists, steals and blocks titles, every one with a name from around
