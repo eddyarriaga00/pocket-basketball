@@ -1911,6 +1911,7 @@
      you ask of it): everything goes back to full quality and stays there. */
   let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2, qLvl = 0, avg0 = 0, slow0 = 0, qLock = false;
   R.quality = () => ({ level: qLvl, locked: qLock, base: Math.round(avg0) });
+  R._qReset = () => { qLock = false; slow0 = 0; avg0 = 0; ftAcc = 0; ftN = 0; ftLast = 0; setQuality(0); };   // for the tests
   R.lite = () => lite;
   function setQuality(n) {
     qLvl = n; prCap = n === 0 ? 2 : n === 1 ? 1.5 : 1;
