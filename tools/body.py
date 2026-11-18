@@ -172,10 +172,11 @@ skz = lambda y, x=0.0: 0.150 * max(0.0, 1 - (y / 0.142) ** 2 - (x / 0.140) ** 2)
 part('hair_short', 5, 1, [cap('h1', 1.09, 1.075), back('h1b')])
 part('hair_buzz', 5, 2, [cap('h2', 1.04, 1.035), back('h2b', 0.070)])
 part('hair_high', 5, 3, [cap('h3', 1.08, 1.07), back('h3b'), loft('h3t', capped([(hv(0, 0.012, 0.105), 0.118 * HS, 0.126 * HS), (hv(0, 0.012, 0.165), 0.122 * HS, 0.130 * HS), (hv(0, 0.012, 0.215), 0.118 * HS, 0.126 * HS)]), X, Y, seg=28, power=3.4)])
-part('hair_afro', 5, 4, [hb(0, 0.016, 0.066, 0.178, 0.180, 0.158, 'h4')])
-part('hair_twists', 5, 5, [cap('h5', 1.04, 1.035), back('h5b', 0.070)] + [hb(x, y, skz(y, x) + 0.012, 0.027, 0.027, 0.034, 'tw') for x in (-0.084, -0.042, 0, 0.042, 0.084) for y in (-0.070, -0.022, 0.026, 0.074) if abs(x) + abs(y) < 0.15])
+part('hair_afro', 5, 4, [hb(0, 0.030, 0.095, 0.172, 0.168, 0.150, 'h4')])
+part('hair_twists', 5, 5, [cap('h5', 1.04, 1.035), back('h5b', 0.070)] + [hb(x, y, skz(y, x) + 0.020, 0.026, 0.026, 0.040, 'tw') for x in (-0.084, -0.042, 0, 0.042, 0.084) for y in (-0.070, -0.022, 0.026, 0.074) if abs(x) + abs(y) < 0.15])
 part('hair_fade', 5, 6, [cap('h6', 1.07, 1.06, start=5, dz=0.030, dy=0.010), hb(0, 0.0, 0.118, 0.112, 0.118, 0.050, 'h6t')])
-part('hair_cornrows', 5, 7, [cap('h7', 1.035, 1.03), back('h7b', 0.068)] + [loft('row', capped([(hv(x, y, skz(y, x) + 0.010), 0.011 * HS, 0.010 * HS) for y in (-0.100, -0.060, -0.010, 0.040, 0.085, 0.118)]), X, Z, seg=8) for x in (-0.076, -0.038, 0, 0.038, 0.076)])
+part('hair_cornrows', 5, 7, [cap('h7', 1.035, 1.03), back('h7b', 0.068)])   # the scalp between the rows: the game draws it lighter
+part('hair_rows', 5, 21, [loft('row', capped([(hv(x, y, skz(y, x) + 0.052), 0.0105 * HS, 0.012 * HS) for y in (-0.104, -0.060, -0.010, 0.040, 0.085, 0.122)]), X, Z, seg=8) for x in (-0.090, -0.060, -0.030, 0, 0.030, 0.060, 0.090)])
 part('hair_bun', 5, 8, [cap('h8', 1.07, 1.06), back('h8b'), hb(0, 0.108, 0.122, 0.052, 0.050, 0.050, 'bun')])
 part('hair_mohawk', 5, 9, [loft('h9', capped([(hv(0, y, skz(y) + 0.020), 0.030 * HS, 0.034 * HS) for y in (-0.112, -0.070, -0.020, 0.030, 0.080, 0.120)]), X, Z, seg=12)])
 import math as _m
@@ -199,9 +200,9 @@ part('shut', 7, 31, [loft('lid', capped([(hv(sg * 0.052 - 0.020, -0.131, -0.010)
 part('band', 5, 24, [loft('band', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((0.034, 1.0), (0.040, 1.045), (0.078, 1.045), (0.084, 1.0))], X, Y, seg=40, power=2.35)])
 part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'lens') for sg in (1, -1)] + [loft('strap', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((-0.014, 1.0), (-0.010, 1.03), (0.008, 1.03), (0.012, 1.0))], X, Y, seg=40, power=2.35)])
 
-B0 = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
-V0 = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
-S0 = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
+B0 = {'hair_twists': 1700, 'hair_rows': 1500, 'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
+V0 = {'hair_twists': 0.0055, 'hair_rows': 0.005, 'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
+S0 = {'hair_twists': 1, 'hair_rows': 1, 'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
 part('yell', 7, 23, [hb(0, -0.127, -0.093, 0.021, 0.010, 0.019, 'yell')])   # an open mouth for a shout: it covers the small one
 kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') or g.startswith('eyes') or g in ('shut', 'yell') else 'glint' if g.startswith('glint') else g
 BUDGET = lambda g: B0.get(g) or {'hair': 800, 'face': 420, 'glint': 60}[kind(g)]

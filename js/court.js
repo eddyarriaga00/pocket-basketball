@@ -459,12 +459,20 @@
       const A = { P: [], N: [], SI: [], SW: [], RA: [], RB: [], KP: [], IX: [], id: new Int32Array(p.count).fill(-1) }, F = { P: [], N: [], SI: [], SW: [], KC: [], IX: [], TV: [], id: new Int32Array(p.count).fill(-1) };
       let top = -1e9, bot = 1e9; const reg = new Uint8Array(p.count);
       for (let i = 0; i < p.count; i++) { reg[i] = Math.round(col.getX(i) * 8); w.fromBufferAttribute(p, i).applyMatrix4(Wm); if (w.y > top) top = w.y; if (w.y < bot) bot = w.y; }
+      /* how far down an arm a skin vertex sits (shoulder 0, wrist 1), signed by the arm: a sleeve and tattoos are painted from it */
+      const bw = n => { const b = src.skeleton.bones.find(b => b.name === n || b.name === n.replace('.', '')); return b ? b.getWorldPosition(V3()) : null; };
+      const ARM = ['R', 'L'].map(S => ({ a: bw('DEF-upper_arm.' + S), b: bw('DEF-hand.' + S), ids: src.skeleton.bones.map((b, k) => /upper_arm|forearm|hand|f_|thumb|palm/.test(b.name) && new RegExp('[._]?' + S + '(\\.\\d+)?$').test(b.name) ? k : -1).filter(k => k >= 0) }));
+      const armRaw = (i, w) => { for (let s = 0; s < 2; s++) { const A = ARM[s]; if (!A.a || !A.b) continue; let ws = 0; for (let c = 0; c < 4; c++) if (A.ids.includes(sj.getComponent(i, c))) ws += sw.getComponent(i, c);
+        if (ws > 0.5) { const dx = A.b.x - A.a.x, dy = A.b.y - A.a.y, dz = A.b.z - A.a.z; return [s, ((w.x - A.a.x) * dx + (w.y - A.a.y) * dy + (w.z - A.a.z) * dz) / (dx * dx + dy * dy + dz * dz)]; } } return null; };
+      const ext = [[1e9, -1e9], [1e9, -1e9]];   // the mesh's own arm, shoulder to fingertips (the bones are not to its scale)
+      for (let i = 0; i < p.count; i++) if (reg[i] === 0) { w.fromBufferAttribute(p, i).applyMatrix4(Wm); const r = armRaw(i, w); if (r) { if (r[1] < ext[r[0]][0]) ext[r[0]][0] = r[1]; if (r[1] > ext[r[0]][1]) ext[r[0]][1] = r[1]; } }
+      const armT = (i, w) => { const r = armRaw(i, w); if (!r) return 0; const e = ext[r[0]]; return (r[0] ? -1 : 1) * (0.05 + Math.max(0, Math.min(1, (r[1] - e[0]) / ((e[1] - e[0]) || 1)))); };
       const push = (D, i) => { if (D.id[i] >= 0) return D.id[i]; const k = D.P.length / 3; D.id[i] = k;
         v.fromBufferAttribute(p, i).applyMatrix4(Mx); n.fromBufferAttribute(nr, i).applyMatrix3(nm).normalize(); w.fromBufferAttribute(p, i).applyMatrix4(Wm);
         D.P.push(v.x, v.y, v.z); D.N.push(n.x, n.y, n.z);
         let ws = 0; for (let c = 0; c < 4; c++) ws += sw.getComponent(i, c);
         for (let c = 0; c < 4; c++) { D.SI.push(map[sj.getComponent(i, c)] || 0); D.SW.push(ws > 0 ? sw.getComponent(i, c) / ws : c ? 0 : 1); }
-        if (D === A) { const r = reg[i]; for (let c = 0; c < 4; c++) D.RA.push(r === c ? 1 : 0); D.RB.push(r === 4 ? 1 : 0, 0, 0, 1); D.KP.push(w.x / H, (w.y - box.min.y) / H, w.z / H); }
+        if (D === A) { const r = reg[i]; for (let c = 0; c < 4; c++) D.RA.push(r === c ? 1 : 0); D.RB.push(r === 4 ? 1 : 0, r === 0 ? armT(i, w) : 0, 0, 1); D.KP.push(w.x / H, (w.y - box.min.y) / H, w.z / H); }
         else D.KC.push(reg[i] - 5);
         return k; };
       for (let t = 0; t < ix.length; t += 3) { const D = reg[ix[t]] >= 5 ? F : A; D.IX.push(push(D, ix[t]), push(D, ix[t + 1]), push(D, ix[t + 2])); if (D === F) F.TV.push(Math.round(col.getY(ix[t]) * 32)); }   // which hairstyle, beard, face or accessory a triangle belongs to
@@ -563,13 +571,13 @@
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
     const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
-      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 } };
+      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;');
       /* a rim light: the edge of the body catches light, so players pop off the floor */
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
-      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nuniform float kSlv;\nuniform vec3 cSlv;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
   /* the strongest region here wins */
   float vRegion = 0.0, rbest = vRA.x;
@@ -601,7 +609,15 @@
   }
   /* tattoos (kTat: 1 a band on the right arm, 2 a sleeve on the left, 3 both, 4 a forearm piece): in the rest pose the
      arms lie along x, the right one on -x */
-  if (vRegion < 0.5 && kTat > 0.5 && abs(vK.y - 1.266) < 0.045) {
+  if (vRegion < 0.5 && vRB.w > 0.5 && abs(vRB.y) > 0.05) {   // the model: the arm's own coordinate
+    float at = abs(vRB.y) - 0.05; bool rgt = vRB.y > 0.0; float ink = 0.0;
+    if ((kTat > 0.5 && kTat < 1.5 || kTat > 2.5 && kTat < 3.5) && rgt && at > 0.29 && at < 0.43) ink = step(0.5, fract(at * 60.0 + vK.z * 40.0)) * 0.6 + (abs(at - 0.36) < 0.03 ? 0.9 : 0.0);
+    if (kTat > 1.5 && kTat < 3.5 && !rgt && at > 0.12 && at < 0.76) ink = max(ink, step(0.55, fract(sin(floor(at * 34.0) * 12.9 + floor((vK.y + vK.z) * 70.0) * 78.2) * 437.5)) * 0.9);
+    if (kTat > 3.5 && rgt && at > 0.52 && at < 0.70) ink = step(0.35, fract(at * 26.0 + vK.y * 30.0)) * 0.8;
+    rc = mix(rc, vec3(0.06, 0.07, 0.1), clamp(ink, 0.0, 1.0) * 0.55);
+    if (kSlv > 0.5 && rgt && at > 0.24 && at < 0.77) rc = cSlv;   // a shooting sleeve, upper arm to wrist
+  }
+  else if (vRegion < 0.5 && kTat > 0.5 && abs(vK.y - 1.266) < 0.045) {
     float ax1 = abs(vK.x); bool rgt = vK.x < 0.0;
     float ink = 0.0;
     if ((kTat < 1.5 || kTat > 2.5 && kTat < 3.5) && rgt && ax1 > 0.13 && ax1 < 0.165) ink = step(0.5, fract(ax1 * 120.0 + vK.z * 40.0)) * 0.5 + (abs(ax1 - 0.147) < 0.012 ? 0.5 : 0.0);
@@ -782,7 +798,7 @@
     const d = p.d || p;
     const shorts = kit.shorts || new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0 });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
@@ -806,14 +822,14 @@
         /* the model's hair, beard, face, headband and goggles: the parts this player's look asks for, in his colors */
         const dd = p.d || p, lk = dd.look || autoLook(dd), F0 = TPL.faceGeo, tv = F0.userData.tv;
         const HV = { short: 1, buzz: 2, high: 3, afro: 4, twists: 5, fade: 6, cornrows: 7, bun: 8, mohawk: 9, locs: 10 }, BV = { stubble: 11, goatee: 12, full: 13 };
-        const base = [HV[lk.hair] || 0, BV[lk.beard] || 0, 26 + (+lk.face || 0), lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean);
+        const base = [HV[lk.hair] || 0, lk.hair === 'cornrows' ? 21 : 0, BV[lk.beard] || 0, 26 + (+lk.face || 0), lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean);
         const setOf = want => { const key = want.join(','); let ixs = F0.userData.sets[key];
           if (!ixs) { const src = F0.index.array, out = []; for (let t = 0; t < tv.length; t++) if (want.includes(tv[t])) out.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]); ixs = F0.userData.sets[key] = F0.attributes.position.count > 65535 ? new T.Uint32BufferAttribute(out, 1) : new T.Uint16BufferAttribute(out, 1); }
           return ixs; };
         let ixs = setOf(base.concat(16 + (+lk.face || 0))); const shutIx = setOf(base.concat(31));   // eyes open, and shut for a blink
         const fg = new T.BufferGeometry(); for (const a of ['position', 'normal', 'skinIndex', 'skinWeight']) fg.setAttribute(a, F0.attributes[a]); fg.setIndex(ixs);
         const team = kit.c1, pick = v => v === 'team' ? team : v, hairC = new T.Color(lk.hairColor || '#17110d'), skinC = new T.Color(PB.SKIN[dd.skin == null ? 3 : dd.skin] || '#8d5a3b');
-        const cOf = { 11: hairC.clone().lerp(skinC, 0.55), 24: new T.Color(pick(lk.band) || '#f2f2f2'), 25: new T.Color(lk.goggles === 'team' ? team : /^#/.test(lk.goggles || '') ? lk.goggles : '#141414') }, white = new T.Color('#f4f4f4'), dark = new T.Color('#141011');
+        const cOf = { 2: hairC.clone().lerp(skinC, 0.32), 7: hairC.clone().lerp(skinC, 0.5), 11: hairC.clone().lerp(skinC, 0.55), 24: new T.Color(pick(lk.band) || '#f2f2f2'), 25: new T.Color(lk.goggles === 'team' ? team : /^#/.test(lk.goggles || '') ? lk.goggles : '#141414') }, white = new T.Color('#f4f4f4'), dark = new T.Color('#141011');
         /* a color a vertex: by the part it belongs to (its triangles' variant), else by its layer */
         const kc = F0.attributes.kc, vv = new Uint8Array(kc.count), src = F0.index.array; for (let t = 0; t < tv.length; t++) { vv[src[t * 3]] = tv[t]; vv[src[t * 3 + 1]] = tv[t]; vv[src[t * 3 + 2]] = tv[t]; }
         const cl = new Float32Array(kc.count * 3);
@@ -919,7 +935,7 @@
         hg.add(mu);
       }
     }
-    if (look.sleeve) {
+    if (look.sleeve && !(TPL.model && !PB.mannequin && !PB.oldBody)) {
       const fore = bones[bk('DEF-forearm.R')], hand = bones[bk('DEF-hand.R')];
       const len = hand.position.length();
       const sl = new T.Mesh(new T.CylinderGeometry(H * 0.033, H * 0.027, len * 0.8, 10), new T.MeshLambertMaterial({ color: new T.Color(look.sleeve) }));

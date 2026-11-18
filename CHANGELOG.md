@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Looks checked one by one on the new model and fixed: the afro no longer covers the eyes, cornrows are dark rows on
+  a lighter scalp, twists have their bumps, a buzz cut is lighter than short hair; the shooting sleeve and the
+  tattoos are painted on the model's own arm (shoulder to wrist) instead of floating at the elbow or not showing.
 - The model shouts after a big play (an open mouth part), and the line where the shorts end on the thigh is clean
   instead of jagged.
 - Passes snap: the ball loads at the chest, the arms shoot out at the target and hold a beat (down for a bounce pass,
