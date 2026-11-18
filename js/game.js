@@ -358,7 +358,7 @@
     if (d < 9) {
       /* a body between him and the rim: it is a layup over him, unless he is the kind who dunks on people */
       const hx = 0 - p.x, hzz = hoopZ(p.team) - p.z, hl = hyp(hx, hzz) || 1;
-      const wall = G.pl.some(o => o.team !== p.team && o.y < 1 && (() => { const ox = o.x - p.x, oz = o.z - p.z, f = (ox * hx + oz * hzz) / hl; return f > 0.2 && f < 4.6 && Math.abs(ox * hzz - oz * hx) / hl < 2.4; })());
+      const wall = p.isUser && !G.auto && G.pl.some(o => o.team !== p.team && o.y < 1 && (() => { const ox = o.x - p.x, oz = o.z - p.z, f = (ox * hx + oz * hzz) / hl; return f > 0.2 && f < 4.6 && Math.abs(ox * hzz - oz * hx) / hl < 2.4; })());
       const dunkOk = p.r.dunk >= 55 && d < 7.5 && (sp > 5 || p.ht >= 82) && rand() < 0.35 + (p.r.dunk - 55) / 60 + 0.12 * bt(p, 'poster') && (!wall || rand() < 0.12 + 0.2 * bt(p, 'poster') + Math.max(0, p.r.dunk - 85) * 0.012);
       kind = dunkOk ? 'dunk' : 'layup';
     } else if (d < 13 && sp > 7 && !isThree(p.x, p.z, p.team)) kind = 'floater';   // a runner on the move: lofted over the bigs
@@ -1149,7 +1149,7 @@
     }
     /* the rim protector: with the ball coming downhill at the basket, the big man leaves his own man and stands in the
        lane between the ball and the rim, so a drive ends against a body and not at an empty basket */
-    if (!p.isUser && p.slot === 4 && drv && drv.team === offT && drv !== man && G.phase === 'live' && attacking(drv) && distHoop(drv.x, drv.z, offT) < 19 && p.contestT === undefined) {
+    if (!p.isUser && p.slot === 4 && drv && drv.isUser && !G.auto && drv.team === offT && drv !== man && G.phase === 'live' && attacking(drv) && distHoop(drv.x, drv.z, offT) < 19 && p.contestT === undefined) {
       const hz = hoopZ(offT), dx = drv.x - 0, dz = drv.z - hz, L = hyp(dx, dz) || 1, out = Math.min(4.5, L * 0.5);
       p.tx = dx / L * out; p.tz = hz + dz / L * out; p.pose = 'guard'; p.protT = G.t;
       return;
