@@ -560,3 +560,11 @@ details.help.how p b{color:var(--ink)}
 .prog b.w{background:#fff;color:#000}.prog b.l{background:var(--panel3);color:var(--mute)}
 .mile{display:inline-block;vertical-align:top;box-sizing:border-box;width:calc(50% - 4px);margin:3px 1px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font-size:12.5px}
 .mile.got{border-color:rgba(255,255,255,.45);background:var(--panel2)}.mile small{display:block;margin-top:1px;font-size:10.5px}
+.ltabs{margin:0 0 4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px}
+.ltabs button{border:0;background:none;color:var(--mute);height:36px;font-size:13.5px}.ltabs button.on{background:#fff;color:#000}
+table.std td:nth-child(n+3),table.std th:nth-child(n+3){text-align:right;font-variant-numeric:tabular-nums;width:30px}
+table.std td:first-child{color:var(--mute);width:18px}
+table.std tr.me td{background:rgba(255,255,255,.1);font-weight:700}
+table.std tr.me td:first-child{box-shadow:inset 3px 0 0 #fff;color:#fff}
+.leaders p{position:relative;padding-bottom:8px}
+.leaders p[style]::after{content:"";position:absolute;left:24px;bottom:2px;height:2px;border-radius:1px;width:calc((100% - 24px) * var(--w,0));background:linear-gradient(90deg,#6a6a72,#fff)}

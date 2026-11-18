@@ -969,9 +969,13 @@
         <button class="ghost" id="pcard">Share your player card<small>an image of you, your numbers and your trophies</small></button>`;
     } else if (tab === 'league') {
       const conf = c => confRank(c).map((id, i) => { const x = PB.team(id), st = C.standings[id];
-        return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${strength(id)}</td></tr>`; }).join('');
-      body = (C.phase === 'playoffs' ? bracketCard() : '') + leadersCard() + ['East', 'West'].map(c => `<div class="card"><h3>${c}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
-        + `<p class="fine">The top six in each conference make the playoffs; seven to ten play in for the last two places.</p>`;
+        const top = C.standings[confRank(c)[0]], gb = ((top.w - st.w) + (st.l - top.l)) / 2;
+        return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${gb ? gb : '–'}</td><td>${strength(id)}</td></tr>`; }).join('');
+      /* your conference first; the standings and the leaders a tap apart */
+      const mine = PB.team(C.team).conf, confs = mine === 'West' ? ['West', 'East'] : ['East', 'West'];
+      body = (C.phase === 'playoffs' ? bracketCard() : '') + `<div class="seg sm ltabs"><button data-l="stand" class="${ltab === 'stand' ? 'on' : ''}">Standings</button><button data-l="lead" class="${ltab === 'lead' ? 'on' : ''}">Leaders</button></div>`
+        + (ltab === 'lead' ? leadersCard() : confs.map(c => `<div class="card"><h3>${c}${c === mine ? ' <small>your conference</small>' : ''}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>GB</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
+        + `<p class="fine">The top six in each conference make the playoffs (the solid line); seven to ten play in for the last two places (the dashed line).</p>`);
     } else {
       body = `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => glog(x, i + 1)).join('') || '<p class="mute">No games yet.</p>'}</div>
         ${C.po && C.po.games.length ? `<div class="card"><h3>Playoffs</h3>${C.po.games.map((x, i) => glog(x, 'P' + (i + 1))).join('')}</div>` : ''}
@@ -986,6 +990,7 @@
       <div class="hubbody">${body}</div>
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
+    scr().querySelectorAll('.ltabs button').forEach(b => b.onclick = () => { ltab = b.dataset.l; hub(); });
     fillHeads();
     $('#menu').onclick = title;
     if ($('#play')) $('#play').onclick = playGame;
@@ -1150,6 +1155,7 @@
   PB.teamGrid = () => ['East', 'West'].map(c => { const ts = PB.TEAMS.filter(t => t.conf === c), divs = [...new Set(ts.map(t => t.div))];
     return `<p class="kick conf">${c}ern Conference</p>` + divs.map(d => `<p class="kick dv">${esc(d || '')}</p><div class="tgrid">${ts.filter(t => t.div === d).map(t =>
       `<button class="trow tt" data-id="${t.id}" style="--tc:${t.c1}"><i></i><span><small>${esc(t.city)}</small><b>${esc(t.name)}</b></span><em>${esc(t.ab || t.id)}</em></button>`).join('')}</div>`).join(''); }).join('');
+  let ltab = 'stand';   // the League tab's own two pages
   /* the title's mode cards: a line icon each */
   const mic = d => `<i class="mi"><svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg></i>`;
   const MIC = { career: mic('<circle cx="12" cy="8" r="3.500"/><path d="M5 20c0-3.600 3.100-6 7-6s7 2.400 7 6"/>'), plus: mic('<path d="M12 5v14M5 12h14"/>'), list: mic('<path d="M8 7h11M8 12h11M8 17h11M4.500 7h.01M4.500 12h.01M4.500 17h.01"/>'),
@@ -1876,7 +1882,7 @@
     if (!rows.length) return '';
     const cat = (k, lbl) => { const top = rows.slice().sort((a, b) => b[k] - a[k]).slice(0, 5);
       const mine = rows.filter(r => r.me)[0], rank = mine ? rows.slice().sort((a, b) => b[k] - a[k]).indexOf(mine) + 1 : 0;
-      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}"><span>${i + 1}</span><i>${esc(r.name)} <small>${PB.team(r.team).ab}</small></i><em>${r[k].toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span><i>You</i><em>${mine[k].toFixed(1)}</em></p>` : ''}</div>`; };
+      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}" style="--w:${(r[k] / (top[0][k] || 1)).toFixed(2)}"><span>${i + 1}</span><i>${esc(r.name)} <small>${PB.team(r.team).ab}</small></i><em>${r[k].toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span><i>You</i><em>${mine[k].toFixed(1)}</em></p>` : ''}</div>`; };
     return `<div class="card leaders"><h3>League leaders <small>a game, full-length</small></h3>${cat('ptspg', 'Points')}${cat('rebpg', 'Rebounds')}${cat('astpg', 'Assists')}${cat('stlpg', 'Steals')}${cat('blkpg', 'Blocks')}</div>`;
   }
   function awardsNight() {
