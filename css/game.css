@@ -585,3 +585,5 @@ table.std tr.me td:first-child{box-shadow:inset 3px 0 0 #fff;color:#fff}
 #plcard .kick{margin:14px 0 6px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}.chips span{background:var(--panel3);border-radius:999px;padding:5px 11px;font-size:12.5px}.chips b{font-family:var(--display);margin-left:3px}
 .ros[data-pid]{cursor:pointer}.ros[data-pid]:active{background:rgba(255,255,255,.06)}
+#mopp{cursor:pointer}#mopp:active{opacity:.7}
+#plcard .tip{margin:5px 0;padding-left:12px;border-left:2px solid rgba(255,255,255,.5);font-size:13px;line-height:1.4}

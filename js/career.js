@@ -866,7 +866,7 @@
         <div class="prog"><i><u style="width:${Math.round(dn.length / tot * 100)}%"></u></i>${l5.length ? `<span>${l5.map(x => `<b class="${x.res && x.res.win ? 'w' : 'l'}">${x.res && x.res.win ? 'W' : 'L'}</b>`).join('')}</span>` : ''}</div>
         <div class="vs"><div>${badge(t)}<b>${t.name}</b><span>${st.w}-${st.l} · ${strength(C.team)}</span></div><em>vs</em>
         <div>${badge(o)}<b>${o.name}</b><span>${os.w}-${os.l} · ${strength(o.id)}</span></div></div>
-        ${(() => { const mh = matchShot(them, o), yh = portrait(); return mh && yh ? `<div class="matchup"><div><img alt="" src="${yh}" style="--tc:${t.c1}"><b>${esc(me.last)}</b><span>${me.ovr}</span></div><em>guards</em><div><img alt="" src="${mh}" style="--tc:${o.c1}"><b>${esc(them.last)}</b><span>${them.ovr}</span></div></div>` : ''; })()}
+        ${(() => { muOpp = [them, o]; const mh = matchShot(them, o), yh = portrait(); return mh && yh ? `<div class="matchup"><div><img alt="" src="${yh}" style="--tc:${t.c1}"><b>${esc(me.last)}</b><span>${me.ovr}</span></div><em>guards</em><div id="mopp" role="button" tabindex="0"><img alt="" src="${mh}" style="--tc:${o.c1}"><b>${esc(them.last)}</b><span>${them.ovr} · scout ›</span></div></div>` : ''; })()}
         ${rivalGame ? `<p class="rivaltag">Rival game: ${esc(PB.full(rivalP()))} is on the other side</p>` : `<p class="fine">Their ${me.pos}: ${esc(PB.full(them))} (${them.ovr}). You guard him.</p>`}
         ${(() => { const out = (id, who) => C.rosters[id].filter(p => p.out > 0 && p.ovr >= 72).sort((a, b) => b.ovr - a.ovr).slice(0, 2).map(p => `${esc(p.last)} (${p.ovr})`).join(', '); const a = out(nx.opp), b = out(C.team);
           return a || b ? `<p class="fine">Injured: ${[a && `${esc(PB.team(nx.opp).name)} without ${a}`, b && `you are without ${b}`].filter(Boolean).join(' · ')}</p>` : ''; })()}
@@ -991,6 +991,7 @@
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
     scr().querySelectorAll('.ltabs button').forEach(b => b.onclick = () => { ltab = b.dataset.l; hub(); });
+    if ($('#mopp')) $('#mopp').onclick = () => { if (muOpp) rosterCard(muOpp[0], muOpp[1], true); };
     scr().querySelectorAll('.ros[data-pid]').forEach(r => r.onclick = () => { const p = r.dataset.pid === 'me' ? C.me : myRoster().find(x => x.id === r.dataset.pid); if (p) rosterCard(p, PB.team(C.team)); });
     fillHeads();
     $('#menu').onclick = title;
@@ -1157,8 +1158,9 @@
     return `<p class="kick conf">${c}ern Conference</p>` + divs.map(d => `<p class="kick dv">${esc(d || '')}</p><div class="tgrid">${ts.filter(t => t.div === d).map(t =>
       `<button class="trow tt" data-id="${t.id}" style="--tc:${t.c1}"><i></i><span><small>${esc(t.city)}</small><b>${esc(t.name)}</b></span><em>${esc(t.ab || t.id)}</em></button>`).join('')}</div>`).join(''); }).join('');
   let ltab = 'stand';   // the League tab's own two pages
+  let muOpp = null;   // the man you guard next, for his card
   /* a player's card: a sheet from the bottom with the player standing in his uniform, what he is and what he is good at */
-  function rosterCard(p, t) {
+  function rosterCard(p, t, scout) {
     const old = document.querySelector('#plcard'); if (old) old.remove();
     const G4 = [['Scoring', ['close', 'dunk', 'mid', 'three', 'ft']], ['Playmaking', ['handle', 'pass']], ['Athleticism', ['speed', 'vert']], ['Defense', ['perD', 'inD', 'steal', 'block', 'reb']]];
     const avg = ks => Math.round(ks.reduce((a, k) => a + ((p.r || {})[k] || 0), 0) / ks.length);
@@ -1169,7 +1171,14 @@
       <div class="top">${img ? `<img src="${img}" alt="">` : ''}<div><span>${esc(t.name)} · #${p.num}</span><h3>${esc(PB.full(p))}</h3>
         <p>${p.pos}${p.arch ? ' · ' + esc(p.arch) : ''} · ${PB.fmtH(p.ht)} · age ${p.age}</p>${p.from ? `<p>${esc(p.from)}</p>` : ''}<b>${p.ovr}<small>OVR</small></b></div></div>
       ${G4.map(([n, ks]) => `<div class="bar"><span>${n}</span><i><u style="width:${avg(ks)}%"></u></i><b>${avg(ks)}</b></div>`).join('')}
-      <p class="kick">Best at</p><div class="chips">${best.map(([k, n]) => `<span>${n} <b>${(p.r || {})[k] || 0}</b></span>`).join('')}</div></div>`;
+      <p class="kick">Best at</p><div class="chips">${best.map(([k, n]) => `<span>${n} <b>${(p.r || {})[k] || 0}</b></span>`).join('')}</div>
+      ${scout ? (() => { const r = p.r || {}, tips = [];
+        if (r.three >= 78) tips.push('Stay attached: he will shoot the three if you sag.');
+        if (r.close >= 78 || r.dunk >= 78 || r.speed >= 82) tips.push('He wants the rim: get set in front of him early and cut him off.');
+        if (r.handle < 66) tips.push('A loose handle: reach when Steal lights up.'); else if (r.handle >= 84) tips.push('He protects the ball: do not reach, slide.');
+        if (r.mid >= 80 && tips.length < 3) tips.push('Jump on his pull-up: he is dangerous from the elbow.');
+        if (!tips.length) tips.push('No one thing to take away: stay in front and contest.');
+        return `<p class="kick">How to guard him</p>${tips.slice(0, 3).map(x => `<p class="tip">${x}</p>`).join('')}`; })() : ''}</div>`;
     document.body.appendChild(d);
     const close = () => { d.classList.remove('on'); setTimeout(() => d.remove(), 220); };
     d.onclick = e => { if (e.target === d || e.target.classList.contains('x')) close(); };
