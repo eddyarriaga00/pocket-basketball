@@ -49,7 +49,7 @@
     const n = Z.games.length, others = PB.TEAMS.map(t => t.id).filter(id => id !== Z.team), sched = [];
     while (sched.length < n) for (const o of others.slice().sort(() => PB.rand() - 0.5)) if (sched.length < n) sched.push(o);
     for (const t of PB.TEAMS) Z.st[t.id] = { w: 0, l: 0 };
-    Z.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false })); Z.gi = 0; Z.lead = {}; Z.po = null; Z.champ = null; Z.mvp = null;
+    Z.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false })); Z.gi = 0; Z.lead = {}; Z.po = null; Z.champ = null; Z.cf = 0; Z.mvp = null;
     save(); hub();
   }
   function begin(team) {
@@ -79,6 +79,7 @@
     const conf = c => rank(c).map((id, i) => `<tr class="${id === Z.team ? 'me' : ''} ${i === 4 ? 'cut' : ''}"><td>${i + 1}</td><td>${badge(PB.team(id))} ${esc(PB.team(id).name)}</td><td>${Z.st[id].w}</td><td>${Z.st[id].l}</td></tr>`).join('');
     const L = Object.values(Z.lead).filter(x => x.gp).map(x => ({ ...x, ppg: x.pts / x.gp, rpg: (x.reb || 0) / x.gp, apg: (x.ast || 0) / x.gp })).sort((a, b) => b.ppg - a.ppg).slice(0, 5);
     let card;
+    if (Z.champ && Z.champ === Z.team && !Z.cf && PB.confetti) { Z.cf = 1; PB.confetti([PB.team(Z.team).c1, PB.team(Z.team).c2], 7); }
     if (Z.champ) card = `<div class="next"><p class="kick">Champions</p><h3>The ${esc(PB.team(Z.champ).city)} ${esc(PB.team(Z.champ).name)}</h3><p>${Z.champ === Z.team ? 'You did it. A title.' : 'Not this year.'}</p><button class="big" id="next">Next season<small>same team, a year older, a new rookie class</small></button><button class="ghost" id="again">Start over with a new team</button></div>`;
     else if (nx) { const o = PB.team(nx.opp); card = `<div class="next"><p class="kick">${nx.label}</p><div class="vs"><div>${badge(t)}<b>${esc(t.name)}</b><span>${st.w}-${st.l} · ${strength(Z.team)}</span></div><em>vs</em><div>${badge(o)}<b>${esc(o.name)}</b><span>${Z.st[o.id].w}-${Z.st[o.id].l} · ${strength(o.id)}</span></div></div>
       <button class="big" id="play">Play game</button><button class="ghost" id="sim">Sim game</button></div>`; }

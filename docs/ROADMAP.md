@@ -115,7 +115,7 @@ The two node tools need Playwright (`npm i -g playwright`).
 - [x] Awards night: MVP, Rookie of the Year, DPOY, Sixth Man, Most Improved, All-League teams, Finals MVP; All-Star picks at midseason (2026-11-17)
 
 - [x] A real schedule (the division most, then the conference), back-to-backs that start you with heavy legs (2026-11-17)
-- [ ] League leaders from simmed box scores
+- [x] League leaders from simmed box scores (the League tab's Leaders view)
 - [x] All-Star weekend 3-Point Contest: five racks, money balls, against seven of the league's shooters (2026-11-17)
 - [x] The All-Star Game: East against West, the best at every position, an All-Star MVP (2026-11-17)
 - [x] Dunk Contest: two dunks, the top two to a final; Move picks two-hand, tomahawk, reverse, windmill or 360,

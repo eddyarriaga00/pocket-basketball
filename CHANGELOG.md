@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- A shot for the tie or the lead in the last four seconds hangs in the air: time slows and the sound drops until it
+  comes down. Confetti in your team's colors when you win a title (career and season mode).
 - Fixed: during a dunk, and for the first instant of any shot, the ball dropped into a dribble at the player's feet
   while his arms went up. It stays in the hands now; on a dunk it rides in the hand that is up. Opponents stand a
   little further apart so a defender's arms do not pass through the ball handler.

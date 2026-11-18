@@ -494,6 +494,8 @@
     const pts = s.three ? 3 : 2;
     b.state = 'shot'; b.holder = null; b.lastTouch = p.team;
     b.sx = hp.x; b.sy = hp.y; b.sz = hp.z; b.t = 0;
+    /* a shot for the tie or the lead in the last seconds hangs in the air: time slows until it comes down */
+    { const lead = G.score[p.team] - G.score[1 - p.team]; G.slowT = !G.drill && !s.ft && s.kind !== 'dunk' && G.q >= 4 && G.clock < 4 && lead <= 0 && lead >= -pts ? 1 : 0; }
     const rz = hoopZ(p.team);
     if (made) { b.ex = 0; b.ez = rz; b.ey = 10.3; }
     else { const a = rand() * 6.28, m = rr(0.55, 1.0); b.ex = Math.sin(a) * m; b.ez = rz + Math.cos(a) * m - dirOf(p.team) * 0.2; b.ey = 10.1; }
@@ -1978,6 +1980,7 @@
     pollPad();
     raf = requestAnimationFrame(frame);
     let dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now;   // a frame's timestamp can come before the clock we read
+    if (G.slowT) { if (G.ball.state === 'shot' && !G.replay) { dt *= 0.4; if (G.slowT === 1) { G.slowT = 2; AU().muffle(true); } } else { G.slowT = 0; if (!G.paused) AU().muffle(false); } }
     if (G.replay) {
       if (!G.paused) replayFrame(dt);
       R.update(G, G.paused || !G.replay ? 0 : dt * 0.5);

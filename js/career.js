@@ -59,6 +59,19 @@
     for (const [k, n, , ok] of ACH) { let v = false; try { v = !!ok(C); } catch (e) { v = false; } if (v && !got[k]) { got[k] = { t: Date.now(), who: PB.full(C.me) }; fresh.push(n); } }
     if (fresh.length) { store('pbb.ach', got); for (const n of fresh) C.news.unshift(`Achievement: ${n}`); achToast(fresh); }
   }
+  /* paper in the team's colors over whatever screen is up: a title is worth it */
+  PB.confetti = (colors, sec) => {
+    if (document.getElementById('confetti') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    const cv = document.createElement('canvas'); cv.id = 'confetti'; cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:80;pointer-events:none';
+    document.body.appendChild(cv); const W = cv.width = innerWidth, H = cv.height = innerHeight, x = cv.getContext('2d'), cs = (colors || []).concat(['#ffffff', '#ffffff']);
+    const P = []; for (let i = 0; i < 150; i++) P.push({ x: Math.random() * W, y: Math.random() * H * 1.25 - H, vx: (Math.random() - 0.5) * 60, vy: 150 + Math.random() * 200, w: 6 + Math.random() * 6, h: 9 + Math.random() * 9, a: Math.random() * 6.28, va: (Math.random() - 0.5) * 9, c: cs[i % cs.length], ph: Math.random() * 6.28 });
+    const T = (sec || 5) * 1000, t0 = performance.now(); let last = t0;
+    const tick = now => { const dt = Math.min(0.05, (now - last) / 1000); last = now; x.clearRect(0, 0, W, H); x.globalAlpha = Math.max(0, Math.min(1, (T - (now - t0)) / 900));
+      for (const p of P) { p.x += (p.vx + Math.sin(now / 400 + p.ph) * 40) * dt; p.y += p.vy * dt; p.a += p.va * dt; if (p.y > H + 20) { p.y = -20; p.x = Math.random() * W; }
+        x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.w / 2, -p.h / 2 * Math.abs(Math.cos(p.a * 1.7)), p.w, p.h * Math.abs(Math.cos(p.a * 1.7)) + 1); x.restore(); }
+      if (now - t0 < T) requestAnimationFrame(tick); else cv.remove(); };
+    requestAnimationFrame(tick);
+  };
   function achToast(list) {
     let el = document.getElementById('achtoast');
     if (!el) { el = document.createElement('div'); el.id = 'achtoast'; document.body.appendChild(el); }
@@ -1912,7 +1925,7 @@
     } else {
       P.champ = winner(S2[0]);
       C.news.unshift(`The ${tname(PB.team(P.champ))} are champions!`);
-      if (P.champ === C.team) { C.trophies.push(`Champion, season ${C.year}`); C.fans = Math.round(C.fans * 1.4); C.me.sp += 10; banner(C.team, { kind: 'title', text: `Season ${C.year}` }); }
+      if (P.champ === C.team) { PB.confetti([PB.team(C.team).c1, PB.team(C.team).c2], 7); C.trophies.push(`Champion, season ${C.year}`); C.fans = Math.round(C.fans * 1.4); C.me.sp += 10; banner(C.team, { kind: 'title', text: `Season ${C.year}` }); }
     }
     P.round++;
     save();
