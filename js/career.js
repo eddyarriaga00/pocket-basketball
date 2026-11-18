@@ -860,8 +860,10 @@
         const o = PB.team(nx.opp), st = C.standings[C.team], os = C.standings[nx.opp];
         const them = starters(o.id)[PB.POS.indexOf(me.pos)];
         const rivalGame = C.rival && nx.opp === C.rival.team;
+        const dn = C.games.filter(x => x.done), tot = C.games.length || 1, l5 = dn.slice(-5);
         card = `<div class="next">
         <p class="kick">${nx.label}</p>
+        <div class="prog"><i><u style="width:${Math.round(dn.length / tot * 100)}%"></u></i>${l5.length ? `<span>${l5.map(x => `<b class="${x.res && x.res.win ? 'w' : 'l'}">${x.res && x.res.win ? 'W' : 'L'}</b>`).join('')}</span>` : ''}</div>
         <div class="vs"><div>${badge(t)}<b>${t.name}</b><span>${st.w}-${st.l} · ${strength(C.team)}</span></div><em>vs</em>
         <div>${badge(o)}<b>${o.name}</b><span>${os.w}-${os.l} · ${strength(o.id)}</span></div></div>
         ${(() => { const mh = matchShot(them, o), yh = portrait(); return mh && yh ? `<div class="matchup"><div><img alt="" src="${yh}" style="--tc:${t.c1}"><b>${esc(me.last)}</b><span>${me.ovr}</span></div><em>guards</em><div><img alt="" src="${mh}" style="--tc:${o.c1}"><b>${esc(them.last)}</b><span>${them.ovr}</span></div></div>` : ''; })()}

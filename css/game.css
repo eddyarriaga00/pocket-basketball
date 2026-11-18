@@ -553,3 +553,10 @@ details.help.how p b{color:var(--ink)}
 #line{flex:none;font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--mute);white-space:nowrap;font-variant-numeric:tabular-nums}
 #line b{font-family:var(--display);font-size:13px;font-weight:900;color:#fff;margin-left:5px;letter-spacing:0}#line:empty{display:none}
 .sub #grade{min-width:0;justify-content:flex-start;padding-left:4px}.sub #grade span{overflow:hidden;text-overflow:ellipsis}
+/* ---- the season so far, on the next-game card; milestones as tiles ---- */
+.prog{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
+.prog i{flex:1;height:4px;border-radius:2px;background:var(--panel3);overflow:hidden}.prog u{display:block;height:100%;background:#fff;border-radius:2px}
+.prog span{display:flex;gap:3px}.prog b{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10px;font-weight:900;font-family:var(--display)}
+.prog b.w{background:#fff;color:#000}.prog b.l{background:var(--panel3);color:var(--mute)}
+.mile{display:inline-block;vertical-align:top;box-sizing:border-box;width:calc(50% - 4px);margin:3px 1px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font-size:12.5px}
+.mile.got{border-color:rgba(255,255,255,.45);background:var(--panel2)}.mile small{display:block;margin-top:1px;font-size:10.5px}
