@@ -310,7 +310,7 @@
         loadPack();
         buildCrowd().catch(() => {});
       }
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state !== 'running' && ctx.state !== 'closed') { const r = ctx.resume(); if (r && r.catch) r.catch(() => {}); }   // 'interrupted' too: an iPhone after a call, a lock or another app's sound
       if (musicOn && !musicTimer) { musicT = ctx.currentTime + 0.05; musicTick(); }
     },
     play(name, o) {
