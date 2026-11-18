@@ -294,7 +294,7 @@
     const spot = at || { x: G.ball.x, z: G.ball.z };
     dead(0.9, () => inboundOut(giveTo, { x: clamp(spot.x, -24, 24), z: clamp(spot.z, -46, 46) }));
   }
-  function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; subs(); }
+  function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; subs(); if (stintOver() && !G.ftq) G.then = () => sitDown(); }
   /* ---------- the bench: computer players tire as they play and rest on the bench; at a dead ball a tired man comes
      out for a fresh one, and a rested starter goes back in for his reserve. You never come out. ---------- */
   const IDENT = ['d', 'r', 'ht', 'name', 'num', 'st', 'energy'];
@@ -1070,6 +1070,25 @@
     /* on the break the wings fill the lanes: wide and ahead of the ball, toward the corners */
     const h = b.holder;
     if (h && h.team === p.team && h.drive > 0 && G.t < (G.breakUntil || 0) && along(h.z, p.team) > 10 && p.slot !== 4) { const c = toCourt(p.team, (p.slot % 2 ? 1 : -1) * 20, Math.max(4, along(h.z, p.team) - 12)); p.tx = c.x; p.tz = c.z; }
+    /* a teammate is going at the rim: get out of his way and give him somewhere to throw it. The big man slides to
+       the baseline on the far side of the drive (the dump-off), everyone else spaces to the corners and the wings,
+       each to the nearest spot nobody has taken (they used to stand where they were, and the help had no one to leave) */
+    if (h && h.team === p.team && h !== p && attacking(h) && distHoop(h.x, h.z, h.team) < 24 && !(G.t < (G.breakUntil || 0))) {
+      if (p.slot === 4) { const c = toCourt(p.team, h.x >= 0 ? -6.5 : 6.5, 3.5); p.tx = c.x; p.tz = c.z; }
+      else {
+        const K = G.kick && G.kick.n === G.possN && G.t - G.kick.t < 0.5 && G.kick.team === p.team ? G.kick : (G.kick = { n: G.possN, t: G.t, team: p.team, map: new Map() });
+        if (!K.map.size) { const free = [[-21.5, 5], [21.5, 5], [-16.5, 21], [16.5, 21], [0, 26.5]].map(k => toCourt(p.team, k[0], k[1])).filter(c => hyp(c.x - h.x, c.z - h.z) > 9);
+          for (const m of teamOf(p.team).filter(o => o !== h && o.slot !== 4).sort((a, c) => a.slot - c.slot)) { let bi = -1, bd = 1e9; free.forEach((c, i) => { const d = hyp(c.x - m.x, c.z - m.z); if (d < bd) { bd = d; bi = i; } }); if (bi >= 0) { K.map.set(m, free[bi]); free.splice(bi, 1); } } }
+        const c = K.map.get(p); if (c) { p.tx = c.x; p.tz = c.z; }
+      }
+    }
+    /* covered while a teammate looks for someone: a few steps along the arc, away from his man, to get open */
+    else if (h && h.team === p.team && h !== p && !(p.cutT > 0) && (h.hold || 0) > 1.2 && p.slot !== 4) {
+      if (p.reloT > 0) { p.reloT -= dt; p.tx += p.reloX; p.tz += p.reloZ; }
+      else if ((p.reloCd = (p.reloCd || 0) - dt) <= 0) { const nd = nearestDef(p);
+        if (nd.who && nd.d < 3.6) { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, L = hyp(hx, hz) || 1, side = ((nd.who.x - p.x) * -hz + (nd.who.z - p.z) * hx) > 0 ? -1 : 1;
+          p.reloX = -hz / L * side * 6; p.reloZ = hx / L * side * 6; p.reloT = 1.6; p.reloCd = 4 + rand() * 3; } }
+    }
     if (b.state === 'pass' && b.to === p) { p.tx = b.ex; p.tz = b.ez; }
   }
   /* a hand on a driver, a bump in the lane: a non-shooting foul. The fifth team foul of a quarter puts the other
@@ -1087,7 +1106,7 @@
   /* the rest of the quarter on the bench: played out by the teams' strength, then you check back in */
   function sitOut() {
     const left = Math.max(0, G.clock), poss = left / 14;
-    for (const t of [0, 1]) { const str = ((opts.strength && opts.strength[t]) || 75); G.score[t] += Math.max(0, Math.round(poss / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * 1.2)); }
+    for (const t of [0, 1]) { const str = ((opts.strength && opts.strength[t]) || 75), pts = Math.max(0, Math.round(poss / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * 1.2)); G.score[t] += pts; spread(t, pts, left, false); }
     (G.satQ = G.satQ || []).push(G.q); G.sitQ = 0;
     if (G.inb) { G.inb.p.inb = false; G.inb = null; }
     toast('Foul trouble: you sit', 'opp'); B('sit', { prio: 4 }); feed(`Foul trouble · you sit the rest of the ${['', '1st', '2nd', '3rd'][G.q]} quarter`);
@@ -1558,7 +1577,7 @@
       fatigue(dt);
       if (G.sitQ === G.q && G.inb && !G.auto) { sitOut(); return; }
       if (G.inb) inboundStep(dt);
-      if (!G.inb || !G.inb.stop) G.clock = Math.max(0, G.clock - dt);   // it stops at zero while a shot is still in the air
+      if (!G.inb || !G.inb.stop) { G.clock = Math.max(0, G.clock - dt); if (G.user && !G.drill) G.user.st.secs = (G.user.st.secs || 0) + dt; }   // it stops at zero while a shot is still in the air
       if (G.poss !== null && !G.inb && (b.state === 'held' || b.state === 'pass')) G.shotClock -= dt;
       if (G.callT > 0) G.callT -= dt;
       /* the building: louder late in a close game, hushed at the line, and the home crowd chants on defense */
@@ -1977,17 +1996,84 @@
     if (opts.onEnd) opts.onEnd(res);
   }
 
-  /* simulate the rest of a game you leave early: the score moves by both teams' strength */
-  function simRest() {
-    const left = Math.max(0, G.clock) + Math.max(0, 4 - G.q) * G.qlen * 60;
-    const poss = left / 14;
-    for (const t of [0, 1]) {
-      const str = ((opts.strength && opts.strength[t]) || 75);
-      const ppp = 1.08 + (str - 75) * 0.012;
-      G.score[t] += Math.round(poss / 2 * ppp + PB.gauss() * 2);
+  /* ---------- time you do not play: on the bench between your stints, or a game simmed to the end ----------
+     The score moves by both teams' strength, and every point, rebound and assist of it is given to a player: the
+     scorers by their ratings and minutes, so the box score reads like a game and not like one man's night. */
+  const elapsed = () => { const Q = G.qlen * 60; return ((Math.min(G.q, 4) - 1) * Q + (Q - Math.max(0, G.clock))) / (4 * Q) + (G.q > 4 ? 1 : 0); };
+  function spread(t, pts, secs, withUser) {
+    const floor = G.pl.filter(p => p.team === t && (withUser || !p.isUser)), bench = (G.bench && G.bench[t]) || [];
+    /* who would have been out there: the five on the floor most of it, the reserves a share */
+    const cand = floor.map(p => ({ st: p.st, r: p.r, d: p.d, w: 1 })).concat(bench.filter(x => !(G.user && x.d === G.user.d)).slice(0, 4).map((x, i) => ({ st: x.st, r: x.r, d: x.d, w: i < 2 ? 0.45 : 0.2 })));
+    if (!cand.length) return;
+    const mark = c => { if (G.played && !G.played.includes(c.st)) { G.played.push(c.st); G.playedBy.push({ d: c.d, team: t }); } };
+    const pickBy = f => { let tot = 0; const w = cand.map(c => { const v = Math.max(0.01, f(c)) * c.w; tot += v; return v; }); let x = rand() * tot; for (let i = 0; i < cand.length; i++) { x -= w[i]; if (x <= 0) return cand[i]; } return cand[cand.length - 1]; };
+    const off = c => Math.pow(Math.max(40, (c.r.close + c.r.mid + c.r.three) / 3 + ((c.d && c.d.ovr) || 70) * 0.6) / 100, 4);
+    let left = Math.max(0, Math.round(pts)), guard = 0;
+    while (left > 0 && guard++ < 400) {
+      const c = pickBy(off), st = c.st, u = rand(); mark(c);
+      if (left >= 3 && u < 0.2 + Math.max(0, c.r.three - 60) / 160) { st.pts += 3; st.fgm++; st.fga++; st.tpm++; st.tpa++; left -= 3; }
+      else if (u > 0.86 || left === 1) { const n = Math.min(left, 2); st.pts += n; st.ftm += n; st.fta += 2; left -= n; continue; }
+      else { st.pts += 2; st.fgm++; st.fga++; left -= 2; if (c.r.dunk > 75 && rand() < 0.15) st.dunk++; else st.lay += rand() < 0.4 ? 1 : 0; }
+      if (rand() < 0.6) { let a = pickBy(x => x === c ? 0 : Math.pow(Math.max(30, x.r.pass) / 100, 3)); if (a !== c) { a.st.ast++; mark(a); } }
     }
-    if (G.score[0] === G.score[1]) G.score[rand() < 0.5 ? 0 : 1] += 2;
-    G.q = Math.max(G.q, 4);
+    /* the misses that go with those makes (about 46% from the floor), then the boards, steals, blocks and turnovers of that much time */
+    const poss = secs / 14 / 2;
+    for (let i = Math.round(poss * 0.5 + rand()); i > 0; i--) { const c = pickBy(off); c.st.fga++; if (rand() < 0.38) c.st.tpa++; mark(c); }
+    const n = (per, f, k) => { for (let i = Math.floor(poss * per + rand()); i > 0; i--) { const c = pickBy(f); c.st[k]++; mark(c); } };
+    n(0.46, c => Math.pow(Math.max(30, c.r.reb) / 100, 3), 'reb'); n(0.08, c => c.r.steal / 100, 'stl'); n(0.05, c => Math.pow(Math.max(20, c.r.block) / 100, 3), 'blk'); n(0.14, c => 1, 'tov');
+  }
+  /* run the clock ahead by this many seconds of game time, quarter by quarter (never past the end of regulation) */
+  function skipTime(secs, withUser) {
+    const Q = G.qlen * 60; let left = secs;
+    while (left > 0.01 && G.q <= 4) {
+      const c = Math.min(left, G.clock);
+      for (const t of [0, 1]) { const str = ((opts.strength && opts.strength[t]) || 75), pts = Math.max(0, Math.round(c / 14 / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * Math.min(2, Math.sqrt(c / 40)))); G.score[t] += pts; spread(t, pts, c, withUser); }
+      left -= c; G.clock -= c;
+      if (G.flow) G.flow.push([Math.round((G.q - 1) * Q + Q - G.clock), G.score[0] - G.score[1]]);
+      if (G.clock <= 0.01) { if (G.q >= 4) { G.clock = 0; break; } (G.qsc = G.qsc || []).push(G.score.slice()); G.q++; G.clock = Q; G.tf = [0, 0]; }
+    }
+  }
+  const clockTxt = () => `${['', '1st', '2nd', '3rd', '4th'][Math.min(G.q, 4)]} quarter, ${Math.floor(G.clock / 60)}:${String(Math.floor(G.clock % 60)).padStart(2, '0')}`;
+  /* your minutes, the way a coach hands them out: a starter opens and closes, a sixth man is first off the bench,
+     a reserve gets a run in each half. opts.stints is a list of [from, to] in fractions of regulation. */
+  function stintOver() {
+    const S = opts.stints; if (!S || !G.user || G.auto || G.drill || G.switching || G.q > 4 || G.stint === undefined) return false;
+    const cur = S[G.stint]; if (!cur || cur[1] >= 0.999) return false;
+    return elapsed() >= cur[1] - 0.003;
+  }
+  function checkIn(first) {
+    G.phase = 'dead'; G.deadT = 1.6; G.poss = null;
+    const t = G.score[0] > G.score[1] ? 1 : 0;
+    for (const p of G.pl) { p.shoot = null; p.drive = 0; p.pose = ''; p.vx = p.vz = 0; p.y = 0; p.inb = false; const c = toCourt(p.team, SPOTS[p.slot][0][0] * 0.8, p.team === 0 ? 40 : 55); p.x = c.x; p.z = c.z; p.energy = p.isUser ? Math.min(1, (p.energy ?? 1) + 0.5) : 1; }
+    if (G.user) { G.user.x = 24.4; G.user.z = clamp(G.user.z * 0.3, -8, 8); }   // you come on from the scorer's table
+    G.inb = null; G.ftq = null; G.shotClock = 24;
+    G.then = () => { inboundTo(t, toCourt(t, 0, 70)); };
+    setTimeout(() => toast(first ? (elapsed() < 0.01 ? 'You check in' : 'Off the bench: you check in') : 'Back in the game', 'call'), 300);
+  }
+  function sitDown() {
+    const S = opts.stints, from = clockTxt(), sc0 = G.score.slice(), Q4 = G.qlen * 60 * 4, nx = S[G.stint + 1];
+    if (!nx) { feed(`You sit for the rest of the night · ${from}`); toast('Your night is done: the bench watches the finish', 'call'); G.stintDone = true; G.phase = 'dead'; G.deadT = 2.2; G.then = () => simRest(); return; }
+    G.stint++;
+    skipTime(Math.max(0, (nx[0] - elapsed()) * Q4), false);
+    feed(`You sat from the ${from}: ${G.teams[0].ab || G.teams[0].id} ${G.score[0] - sc0[0]}, ${G.teams[1].ab || G.teams[1].id} ${G.score[1] - sc0[1]} while you rested`);
+    feed(`You check back in · ${clockTxt()}`);
+    checkIn(false);
+  }
+  /* simulate the rest of a game you leave early (or the minutes after your last stint) */
+  function simRest() {
+    const Q4 = G.qlen * 60 * 4, S = opts.stints;
+    if (G.q <= 4) {
+      /* the minutes you would still have played count for you too: stint by stint */
+      if (S && G.user && !G.stintDone && G.stint !== undefined) {
+        let e = elapsed(), i = G.stint;
+        while (e < 1 && G.q <= 4) { const cur = S[i]; let to, on;
+          if (cur && e < cur[0]) { to = cur[0]; on = false; } else if (cur && e < cur[1]) { to = cur[1]; on = true; i++; } else if (cur) { i++; continue; } else { to = 1; on = false; }
+          const before = G.user.st.secs || 0; skipTime((Math.min(1, to) - e) * Q4, on); if (on) G.user.st.secs = before + (Math.min(1, to) - e) * Q4; e = Math.min(1, to); if (to >= 1) break; }
+      }
+      else skipTime(Math.max(0, G.clock) + Math.max(0, 4 - G.q) * G.qlen * 60, !G.stintDone && !!G.user && !S);
+    }
+    if (G.score[0] === G.score[1]) { const t = rand() < 0.5 ? 0 : 1; G.score[t] += 2; spread(t, 2, 20, false); }
+    G.q = Math.max(G.q, 4); G.clock = 0;
     finish();
   }
 
@@ -2310,7 +2396,7 @@
       }
       G.ball.state = 'tip';
       /* the opening: a sweep over the arena with the matchup on screen; a tap skips it */
-      if (!o.drill && !o.enterAt && !o.scenario) {
+      if (!o.drill && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario) {
         G.tipT = 8.4; R.setIntro(8.0, G.user);
         const iv = $('#intro');
         iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
@@ -2378,18 +2464,15 @@
       }
       /* the second night of a back-to-back: your legs start heavier */
       if (o.tired && G.user) { G.user.energy = 0.78; setTimeout(() => feed('Second night of a back-to-back: heavy legs'), 600); }
-      /* off the bench: the game before you check in is played out by the teams' strength */
-      if (o.enterAt) {
-        const secs = o.enterAt * G.qlen * 60 * 4;
-        const poss = secs / 14;
-        for (const t of [0, 1]) { const str = ((o.strength && o.strength[t]) || 75); G.score[t] += Math.max(0, Math.round(poss / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * 1.5)); }
-        let left = secs; while (left >= G.clock) { left -= G.clock; G.q++; G.clock = G.qlen * 60; }
-        G.clock -= left;
-        G.phase = 'dead'; G.deadT = 1.6; G.tipWinner = 0;
-        G.then = () => { inboundTo(G.score[0] > G.score[1] ? 1 : 0, toCourt(G.score[0] > G.score[1] ? 1 : 0, 0, 70)); };
-        for (const p of pl) { const c = toCourt(p.team, SPOTS[p.slot][0][0] * 0.8, p.team === 0 ? 40 : 55); p.x = c.x; p.z = c.z; }
-        setTimeout(() => toast(o.enterAt < 0.2 ? 'You check in' : 'Off the bench: you check in', 'call'), 300);
-        feed(`You start on the bench · ${G.q === 1 ? '1st' : '2nd'} quarter, ${Math.floor(G.clock / 60)}:${String(Math.floor(G.clock % 60)).padStart(2, '0')}`);
+      /* your minutes: the game before you check in is played out by the teams' strength, every point of it someone's */
+      if (!o.stints && o.enterAt) opts.stints = o.stints = [[o.enterAt, 1]];
+      if (o.stints && G.user && !o.drill && !o.scenario) {
+        G.stint = 0;
+        if (o.stints[0][0] > 0) {
+          skipTime(o.stints[0][0] * G.qlen * 60 * 4, false); G.tipWinner = 0;
+          checkIn(true);
+          feed(`You start on the bench · ${clockTxt()}`);
+        }
       }
       /* a scenario: a set score, quarter and clock, one side with the ball out of bounds in its frontcourt */
       if (o.scenario) {

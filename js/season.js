@@ -138,12 +138,12 @@
       onEnd: r => result(nx, r.score[0] > r.score[1], r) });
   }
   function result(nx, win, r) {
-    const sc = 12 / (S().qlen || 3);
+    const sc = 1, q = (S().qlen || 3) / 12;   // lines as they were played; a simulated game is played at the same quarter length
     if (!r) {   /* a simulated game: lines for the top eight, shared out by rating */
       const ro = Z.rosters[Z.team].slice().sort((a, b) => b.ovr - a.ovr).slice(0, 8), w = ro.map((p, i) => Math.pow(p.ovr, 3) * (i < 5 ? 1.6 : 0.7)), W = w.reduce((a, x) => a + x, 0);
-      const pts = 112 + PB.gauss() * 9 + (win ? 5 : -5);
+      const pts = (112 + PB.gauss() * 9 + (win ? 5 : -5)) * q;
       ro.forEach((p, i) => { const e = Z.lead[p.id] || (Z.lead[p.id] = { name: PB.full(p), gp: 0, pts: 0, reb: 0, ast: 0 }); const f = w[i] / W;
-        e.gp++; e.pts += Math.max(0, Math.round(pts * f + PB.gauss() * 2)); e.reb += Math.max(0, Math.round(44 * f * (['PF', 'C'].includes(p.pos) ? 1.6 : 0.8) + PB.gauss())); e.ast += Math.max(0, Math.round(26 * f * (p.pos === 'PG' ? 2 : 0.8) + PB.gauss())); });
+        e.gp++; e.pts += Math.max(0, Math.round(pts * f + PB.gauss() * 2 * Math.sqrt(q))); e.reb += Math.max(0, Math.round(44 * q * f * (['PF', 'C'].includes(p.pos) ? 1.6 : 0.8) + PB.gauss() * Math.sqrt(q))); e.ast += Math.max(0, Math.round(26 * q * f * (p.pos === 'PG' ? 2 : 0.8) + PB.gauss() * Math.sqrt(q))); });
     }
     if (r) for (const b of r.box.filter(x => x.team === 0)) { const e = Z.lead[b.d.id] || (Z.lead[b.d.id] = { name: PB.full(b.d), gp: 0, pts: 0, reb: 0, ast: 0 }); e.gp++; e.pts += b.st.pts * sc; e.reb = (e.reb || 0) + b.st.reb * sc; e.ast = (e.ast || 0) + b.st.ast * sc; if (nx.m) { e.ppts = (e.ppts || 0) + b.st.pts * sc; e.pgp = (e.pgp || 0) + 1; } }
     if (!nx.m) {

@@ -656,3 +656,12 @@ svg.pbg text{fill:#c9c9cf;font-size:8.5px;text-anchor:middle;font-family:var(--d
    nothing): on any screen too short to hold the placeholder ball as well, the title is laid out from the start the way
    it will be with the arena */
 @media (max-height:940px){.title .logo{margin:6px 0 auto}.title .logo .ball{display:none}}
+
+/* awards night: the All-League, All-Defensive and All-Rookie teams, and the stat titles */
+.awteam p{display:flex;align-items:baseline;gap:8px;margin:0;padding:7px 0;border-top:1px solid var(--line)}
+.awteam p:first-of-type{border-top:0}
+.awteam p i{font-style:normal;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.awteam p small{color:var(--mute);font-size:12px;white-space:nowrap}
+.awteam p em{font-style:normal;font-variant-numeric:tabular-nums;font-size:12px;color:var(--mute);white-space:nowrap}
+.awteam p.me i,.awteam p.me em{color:var(--green)}
+.awteam.mine{border-color:var(--acc)}

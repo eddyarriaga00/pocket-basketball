@@ -4,6 +4,21 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Awards night is the league's, not just yours: Most Valuable Player, Defensive Player, Rookie, Sixth Man, Most
+  Improved and Clutch Player of the Year, Coach of the Year, three All-League teams, two All-Defensive teams, the
+  All-Rookie team, and the scoring, rebounding, assists, steals and blocks titles, every one with a name from around
+  the league. The League tab has an Awards page: the MVP, Defensive Player and Rookie races as they stand, and who
+  won what in the seasons behind you.
+- Your numbers are the ones you put up. They are no longer scaled up to a full-length game; the rest of the league's
+  lines are kept at the quarter length you play instead, so the leaders and the awards compare like with like.
+- Minutes like a real rotation. A starter opens both halves and closes (about 35 of 48 minutes), a sixth man is first
+  off the bench in each half (about 24), a reserve gets a run in each half (about 13). When your stint is up you sit at
+  the next dead ball, the game plays on without you, and you check back in when the coach calls; your minutes are on
+  the final screen.
+- Time you do not play is somebody's box score: the minutes on the bench and a game simmed to the end give every point,
+  rebound and assist to a player, spread by ratings and minutes, and both box scores add up to the final.
+- Teammates space the floor when you drive: the big man slides to the baseline for the dump-off, the others go to the
+  corners and the wings, and a covered teammate moves along the arc to get open.
 - The defense answers your drives. Help defense, the bump and the charge used to react only to the computer's drives,
   so nobody ever stepped in front of yours. Now the nearest defender steps in when you beat your man, the big man
   drops into the lane to protect the rim, and your own defender slides to where you are going, not where you were.
