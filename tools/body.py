@@ -92,27 +92,70 @@ for S, sg in (('L', 1), ('R', -1)):
         (lg(0.70, hp, kn, 0.004), 0.070, 0.074), (lg(0.93, hp, kn), 0.060, 0.063), (lg(0.03, kn, an), 0.058, 0.061),
         (lg(0.18, kn, an, 0.010), 0.060, 0.066), (lg(0.36, kn, an, 0.014), 0.058, 0.066), (lg(0.62, kn, an, 0.010), 0.047, 0.052),
         (lg(0.86, kn, an, 0.004), 0.038, 0.041), (lg(1.06, kn, an), 0.037, 0.040)]), X, Y, seg=20, k=LIMB))
-    # the sneaker: a toe box, a low mid-foot, a collar round the ankle, a sole that sticks out a touch
-    tip, heel = tail(f'DEF-toe.{S}').y + 0.035, an.y + 0.088
-    sy = lambda t: heel + (tip - heel) * t
-    parts.append(loft('shoe' + S, capped([
-        ((an.x, sy(0.00), 0.060), 0.046, 0.052), ((an.x, sy(0.08), 0.066), 0.056, 0.064), ((an.x, sy(0.22), 0.072), 0.060, 0.070),
-        ((an.x, sy(0.40), 0.062), 0.064, 0.060), ((an.x, sy(0.60), 0.056), 0.068, 0.054), ((an.x, sy(0.80), 0.052), 0.066, 0.050),
-        ((an.x, sy(0.95), 0.046), 0.054, 0.044)]), X, Z, seg=18, power=2.8, k=1.24))
-    parts.append(loft('collar' + S, [((an.x, an.y + 0.012, 0.085), 0.050, 0.060), ((an.x, an.y + 0.010, 0.150), 0.049, 0.056), ((an.x, an.y + 0.008, 0.178), 0.046, 0.052)], X, Y, seg=16, k=1.2))
 
+# ---- the kit, as layers of its own over the body (what the reference games do: clothes are shapes, not paint):
+# a loose jersey with a hem, baggy shorts to the knee, crew socks, sneakers with a sole, a toe cap and a tongue
+G = {'skin': parts, 'jersey': [], 'shorts': [], 'sock': [], 'shoe': []}
+G['jersey'].append(loft('jersey', capped([
+    ((0, 0.014, hz - 0.060), 0.205, 0.132), ((0, 0.012, hz + 0.02), 0.200, 0.130), ((0, 0.008, s1 + 0.05), 0.186, 0.122),
+    ((0, 0.004, s2 + 0.03), 0.190, 0.122), ((0, 0.002, s2 + 0.12), 0.202, 0.124), ((0, 0.006, s3 + 0.045), 0.206, 0.122),
+    ((0, 0.012, shz - 0.045), 0.186, 0.112), ((0, 0.014, shz + 0.004), 0.150, 0.096), ((0, 0.012, shz + 0.032), 0.112, 0.080)]), X, Y, seg=32, power=2.4))
+G['shorts'].append(loft('shortsTop', capped([
+    ((0, 0.016, hz - 0.150), 0.190, 0.120), ((0, 0.014, hz - 0.070), 0.214, 0.134), ((0, 0.012, hz + 0.010), 0.208, 0.134),
+    ((0, 0.010, hz + 0.060), 0.196, 0.128)]), X, Y, seg=32, power=2.6))
+for S, sg in (('L', 1), ('R', -1)):
+    hp, kn, an = head(f'DEF-thigh.{S}'), head(f'DEF-shin.{S}'), head(f'DEF-foot.{S}')
+    lg = lambda t, a, b, dy=0.0, dx=0.0: Vector((a.x + (b.x - a.x) * t + sg * dx, a.y + (b.y - a.y) * t + dy, a.z + (b.z - a.z) * t))
+    # a leg of the shorts: wide, a little wider still at the hem, ending just above the knee
+    G['shorts'].append(loft('shortsLeg' + S, [
+        (lg(-0.04, hp, kn, 0.010, 0.012), 0.108, 0.122), (lg(0.20, hp, kn, 0.010, 0.014), 0.114, 0.126), (lg(0.50, hp, kn, 0.008, 0.016), 0.118, 0.128),
+        (lg(0.80, hp, kn, 0.006, 0.018), 0.124, 0.132), (lg(0.84, hp, kn, 0.006, 0.018), 0.110, 0.118)], X, Y, seg=24, power=2.3))
+    G['sock'].append(loft('sock' + S, [(lg(0.60, kn, an, 0.010), 0.060, 0.066), (lg(0.63, kn, an, 0.010), 0.064, 0.070), (lg(0.80, kn, an, 0.006), 0.056, 0.060), (lg(1.02, kn, an), 0.052, 0.056)], X, Y, seg=18))
+    # the sneaker: a sole that shows all the way round, the upper, a toe cap, a padded collar and a tongue
+    tip, heel = tail(f'DEF-toe.{S}').y + 0.030, an.y + 0.092
+    sy = lambda t: heel + (tip - heel) * t
+    G['shoe'].append(loft('sole' + S, [((an.x, sy(-0.01), 0.004), 0.058, 0.004), ((an.x, sy(0.0), 0.016), 0.066, 0.016), ((an.x, sy(0.30), 0.018), 0.078, 0.018), ((an.x, sy(0.62), 0.016), 0.086, 0.016), ((an.x, sy(0.90), 0.015), 0.078, 0.015), ((an.x, sy(1.01), 0.014), 0.058, 0.012)], X, Z, seg=18, power=3.0))
+    G['shoe'].append(loft('upper' + S, capped([
+        ((an.x, sy(0.02), 0.078), 0.052, 0.058), ((an.x, sy(0.12), 0.090), 0.064, 0.074), ((an.x, sy(0.28), 0.092), 0.068, 0.078),
+        ((an.x, sy(0.44), 0.076), 0.070, 0.062), ((an.x, sy(0.62), 0.066), 0.076, 0.054), ((an.x, sy(0.82), 0.060), 0.074, 0.050),
+        ((an.x, sy(0.95), 0.052), 0.060, 0.042)]), X, Z, seg=20, power=2.8))
+    G['shoe'].append(ball('toecap' + S, (an.x, sy(0.90), 0.050), (0.070, 0.050, 0.040)))
+    G['shoe'].append(loft('ankle' + S, [((an.x, an.y + 0.016, 0.100), 0.066, 0.078), ((an.x, an.y + 0.014, 0.170), 0.066, 0.074), ((an.x, an.y + 0.012, 0.196), 0.060, 0.066)], X, Y, seg=18))
+    G['shoe'].append(ball('tongue' + S, (an.x, an.y - 0.060, 0.150), (0.040, 0.026, 0.058)))
+    # four fingers on the pad of the hand, a little apart at the tips and curling down
+    wr = head(f'DEF-hand.{S}'); h0 = Vector((wr.x + sg * 0.015, wr.y, wr.z))
+    for q, dy in enumerate((-0.042, -0.014, 0.014, 0.042)):
+        ln = 0.115 - 0.012 * abs(q - 1.4)
+        G['skin'].append(loft(f'finger{S}{q}', capped([(h0 + X * sg * 0.125 + Y * dy * 0.92 - Z * 0.004, 0.0150, 0.0150), (h0 + X * sg * (0.125 + ln * 0.55) + Y * dy - Z * 0.012, 0.0145, 0.0140), (h0 + X * sg * (0.125 + ln) + Y * dy * 1.04 - Z * 0.028, 0.0125, 0.0120)]), Y, Z, seg=10, k=1.2))
+
+REGION = {'skin': 0, 'jersey': 1, 'shorts': 2, 'shoe': 3, 'sock': 4}
+BUDGET = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500}
+VOXEL = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009}
+SMOOTH = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2}
+layers = []
+for g, objs in G.items():
+    for o in bpy.data.objects: o.select_set(False)
+    for o in objs: o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    bpy.ops.object.join()
+    o = objs[0]; o.name = 'L_' + g
+    rm = o.modifiers.new('Fuse', 'REMESH'); rm.mode = 'VOXEL'; rm.voxel_size = VOXEL[g]; rm.use_smooth_shade = True
+    bpy.ops.object.modifier_apply(modifier='Fuse')
+    sm = o.modifiers.new('Smooth', 'SMOOTH'); sm.factor, sm.iterations = 0.5, SMOOTH[g]
+    bpy.ops.object.modifier_apply(modifier='Smooth')
+    dc = o.modifiers.new('Light', 'DECIMATE'); dc.ratio = min(1.0, BUDGET[g] / max(1, sum(len(p.vertices) - 2 for p in o.data.polygons)))
+    bpy.ops.object.modifier_apply(modifier='Light')
+    # which layer a vertex belongs to rides along as a vertex color (red = the region number / 8): the game reads it
+    ca = o.data.color_attributes.new('Col', 'BYTE_COLOR', 'CORNER')
+    for d in ca.data: d.color = (REGION[g] / 8.0, 0.0, 0.0, 1.0)
+    mat = bpy.data.materials.new('M_' + g); mat.diffuse_color = {'skin': (0.62, 0.42, 0.30, 1), 'jersey': (0.93, 0.93, 0.95, 1), 'shorts': (0.10, 0.10, 0.12, 1), 'shoe': (0.95, 0.95, 0.96, 1), 'sock': (0.85, 0.85, 0.87, 1)}[g]
+    o.data.materials.append(mat)
+    layers.append(o)
 for o in bpy.data.objects: o.select_set(False)
-for o in parts: o.select_set(True)
-bpy.context.view_layer.objects.active = parts[0]
+for o in layers: o.select_set(True)
+bpy.context.view_layer.objects.active = layers[0]
 bpy.ops.object.join()
-body = parts[0]; body.name = 'PocketBody'
-rm = body.modifiers.new('Fuse', 'REMESH'); rm.mode = 'VOXEL'; rm.voxel_size = 0.0085; rm.use_smooth_shade = True
-bpy.ops.object.modifier_apply(modifier='Fuse')
-sm = body.modifiers.new('Smooth', 'CORRECTIVE_SMOOTH') if False else body.modifiers.new('Smooth', 'SMOOTH')
-sm.factor, sm.iterations = 0.5, 5
-bpy.ops.object.modifier_apply(modifier='Smooth')
-dc = body.modifiers.new('Light', 'DECIMATE'); dc.ratio = min(1.0, 9000 / max(1, sum(len(p.vertices) - 2 for p in body.data.polygons)))
-bpy.ops.object.modifier_apply(modifier='Light')
+body = layers[0]; body.name = 'PocketBody'
 bpy.ops.object.shade_smooth()
 
 # ---- skinning: bone heat on the body's own bones; fingers, toes and the root do not pull on it
@@ -131,8 +174,6 @@ print('BODY verts', len(body.data.vertices), 'tris', tris, 'unweighted', unw, 'g
 
 # ---- a picture, to judge the shape by
 if PREVIEW:
-    mat = bpy.data.materials.new('Clay'); mat.diffuse_color = (0.80, 0.62, 0.50, 1)
-    body.data.materials.append(mat)
     sc = bpy.context.scene
     sc.render.engine = 'BLENDER_WORKBENCH'
     sc.display.shading.light = 'STUDIO'; sc.display.shading.color_type = 'MATERIAL'; sc.display.shading.show_cavity = True
@@ -157,5 +198,5 @@ if PREVIEW:
 # ---- out: the body and the skeleton, no animation (the game already has the clips)
 for o in bpy.data.objects: o.select_set(False)
 body.select_set(True); arm.select_set(True)
-bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=True, export_animations=False, export_skins=True, export_yup=True, export_apply=False, export_materials='NONE', export_normals=True, export_texcoords=False)
+bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=True, export_animations=False, export_skins=True, export_yup=True, export_apply=False, export_materials='NONE', export_normals=True, export_texcoords=False, export_vertex_color='ACTIVE', export_all_vertex_colors=True)
 print('WROTE', OUT)
