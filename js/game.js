@@ -499,13 +499,13 @@
     b.apex = s.kind === 'dunk' ? 0.2 : s.kind === 'layup' ? 2 : s.kind === 'floater' || s.kind === 'hook' ? 5.5 : 3.5 + d * 0.2;
     G.shotLog[G.shotLog.length - 1].made = made;
     b.shot = { oop: !!s.oop, shooter: p, made, pts, foul, kind: s.kind, timing, prob, d: s.d, style: s.style, fade: !!s.fade, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
-    if (foul) { foul.st.pf++; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); checkFoulOut(foul); }
+    if (foul) { foul.st.pf++; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); if (R.refSignal) R.refSignal('sigf', 1.4); checkFoulOut(foul); }
   }
 
   function blockShot(o, p, at) {
     const b = G.ball;
     if (o.isUser) reelMark('block', 2.6, 'Block');
-    o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); }
+    o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); badgePop(o, 'rim'); }
     if (p.isUser) grade(-1, 'Got blocked');
     toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
     AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
@@ -670,6 +670,14 @@
       /* the call: a buzzer-beater, a hot hand, an and-one, or the shot itself */
       if (p.isUser) { G.streak = (G.streak || 0) + 1; if (tkoOn()) G.tko.miss = 0;
         if (G.streak === 3) setTimeout(() => toast('Heating up', 'make'), 900); else if (G.streak === 5) setTimeout(() => toast('On fire', 'make'), 900); }
+      /* the officials: both arms up on a three */
+      if (s.pts === 3 && R.refSignal) R.refSignal('sig3', 1.3);
+      /* a dunk on somebody: said out loud */
+      if (s.kind === 'dunk' && !G.drill) { const v = nearestDef(p); if (v.who && v.d < 3.4) { R.benchJump && R.benchJump(p.team); feed(`${p.name} dunks on ${v.who.name}`);
+        if (p.isUser) { setTimeout(() => toast('POSTERIZED', 'make'), 500); grade(1, 'Poster dunk'); buzz([30, 40, 30]); } else if (v.who.isUser) setTimeout(() => toast('Dunked on', 'opp'), 500); } }
+      /* your badges at work, shown as they fire */
+      if (p.isUser && !G.drill) { const k = s.kind === 'dunk' ? 'poster' : s.fade ? 'fade' : s.kind === 'hook' ? 'post' : s.kind === 'layup' || s.kind === 'floater' ? 'acro' : s.pts === 3 ? (s.caught && bt(p, 'catch') ? 'catch' : 'deep') : 'mid';
+        badgePop(p, clutchTime() && bt(p, 'clutch') ? 'clutch' : k); }
       /* the broadcast's graphic: a scorer's line when he reaches ten, twenty, thirty... or his third three */
       { const full = p.st.pts * 12 / (G.qlen || 3), was = (p.st.pts - s.pts) * 12 / (G.qlen || 3), step = Math.floor(full / 10);
         if (!G.drill && ((step > Math.floor(was / 10) && step >= 1) || (s.pts === 3 && p.st.tpm === 3))) statPop(p, s.pts === 3 && p.st.tpm === 3 && !(step > Math.floor(was / 10)) ? `${p.st.tpm} threes` : null); }
@@ -1052,6 +1060,7 @@
     setTimeout(() => { if (PB.Game.active && G) toast('You check back in', 'call'); }, 3200);
   }
   function contactFoul(def, off) {
+    if (R.refSignal) R.refSignal('sigf', 1.4);   // the fist goes up
     def.st.pf++;
     G.tf[def.team]++;
     checkFoulOut(def);
@@ -1259,6 +1268,12 @@
     if (mv) return mv === 'cross' || mv === 'legs' || mv === 'hesi' ? 1 : 0;
     return ((d.x - h.x) * -Math.cos(h.face) + (d.z - h.z) * Math.sin(h.face)) * (h.dribHand || 1) > 0.6 ? 0.6 : 0;
   }
+  /* a badge you own, flashed as it helps: its name and tier on a small chip */
+  function badgePop(p, k) {
+    const tier = bt(p, k), e = $('#badgepop'); if (!tier || !e || !PB.BADGES) return;
+    const b = PB.BADGES.find(x => x.k === k); if (!b) return;
+    e.innerHTML = `<i>${'◆'.repeat(tier)}</i>${b.name}`; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(badgePop.h); badgePop.h = setTimeout(() => e.classList.remove('on'), 2200);
+  }
   /* a lower-third for a player having a night: his team's color, his name, his line */
   function statPop(p, lead) {
     const e = $('#statpop'); if (!e) return;
@@ -1308,7 +1323,7 @@
       /* a reach is about timing: at an exposed ball it is a real chance, at a protected one mostly a foul */
       const ex = exposed(u, h), ch = clamp((0.06 + (u.r.steal - h.r.handle) * 0.003) * (1 + ex * 3), 0.03, 0.55) + 0.025 * bt(u, 'pick');
       if (rand() < ch) {
-        u.st.stl++; h.st.tov++; grade(3, 'Steal'); buzz(25); toast('STOLEN', 'make'); feed(`Steal · ${u.name}`); give(u);
+        u.st.stl++; h.st.tov++; grade(3, 'Steal'); buzz(25); toast('STOLEN', 'make'); badgePop(u, 'pick'); feed(`Steal · ${u.name}`); give(u);
         AU().play('steal', { x: u.x }); AU().crowd.react(home(0) ? 'roar' : 'ooh', 0.9); B('steal', { prio: 4, follow: 0.4 });
       } else if (rand() < (ex > 0 ? 0.05 : 0.2)) {
         toast('Reach-in foul', 'opp'); contactFoul(u, h);

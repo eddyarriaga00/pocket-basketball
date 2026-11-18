@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- More small things: the officials signal (both arms up on a three, a fist in the air on a foul); a dunk on a
+  defender is called (POSTERIZED, and the bench is up); your badges show as they fire, on a chip with the badge's
+  name and tier, on makes, steals and blocks. A tip card no longer sits under the REPLAY label.
 - Small things from the big game: a broadcast graphic with a scorer's line when he reaches ten, twenty, thirty (or
   his third three); "Heating up" after three straight makes and "On fire" after five; the backboards light red at a
   horn or a shot-clock violation; cameras flash in the stands after a big play; the man bringing the ball up raises

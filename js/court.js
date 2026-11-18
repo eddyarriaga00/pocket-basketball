@@ -944,6 +944,8 @@
       return [[0.45, -0.75 + b, 0.48], [0.3, -0.1 + b * 2, 0.95], [0.86, -0.36 + c, 0.36], [0.72, 0.42 + c * 2, 0.55]]; },
     ready: (k) => { const b = 0.03 * Math.sin(k * 2.2); return [[0.42, -0.72 + b, 0.5], [0.12, 0.28 + b, 0.95], [0.42, -0.72 - b, 0.5], [0.12, 0.28 - b, 0.95]]; },   // hands out in front, a target
     box: (k) => { const b = 0.04 * Math.sin(k * 5); return [[0.8, 0.25 + b, 0.45], [0.35, 0.9, 0.25], [0.8, 0.25 - b, 0.45], [0.35, 0.9, 0.25]]; },   // boxing out: wide, hands up for the board
+    sig3: () => [[0.25, 0.96, 0.12], [0.1, 0.99, 0.05], [0.25, 0.96, 0.12], [0.1, 0.99, 0.05]],   // the officials: a three is good
+    sigf: () => [[0.22, 0.96, 0.14], [0.06, 0.99, 0.08], [0.2, -0.95, 0.2], [0.12, -0.95, 0.28]],   // a foul: the fist goes up
     hold: () => [[0.3, -0.6, 0.6], [-0.35, -0.05, 0.95], [0.3, -0.6, 0.6], [-0.35, -0.05, 0.95]],
     /* the windmill: the ball arm goes down, back, over the top and through; k is the time in the air */
     windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
@@ -1383,6 +1385,8 @@
     }
   };
   R._refs = () => refs;
+  /* an official's signal: 'sig3' both arms up for a three, 'sigf' a fist in the air for a foul */
+  R.refSignal = (pose, sec) => { for (const r of refs) { r.pose = pose; r.sigU = performance.now() + (sec || 1.2) * 1000; } };
   function moveRefs(G, dt) {
     if (!refs.length || !G.ball) return;
     const b = G.ball, end = G.poss === 0 ? 1 : G.poss === 1 ? -1 : Math.sign(b.z) || 1;
@@ -1391,6 +1395,7 @@
     const D = (r, t) => Math.hypot(r.x - t.x, r.z - t.z);
     if (D(refs[0], tg[0]) + D(refs[1], tg[1]) > D(refs[0], tg[1]) + D(refs[1], tg[0])) tg.reverse();
     refs.forEach((r, i) => {
+      if (r.sigU && performance.now() > r.sigU) { r.sigU = 0; r.pose = ''; }
       const dx = tg[i].x - r.x, dz = tg[i].z - r.z, d = Math.hypot(dx, dz), top = d > 12 ? 17 : d > 3 ? 9 : 0;
       const tvx = d > 0.5 ? dx / d * top : 0, tvz = d > 0.5 ? dz / d * top : 0, k = Math.min(1, dt * 3);
       r.vx += (tvx - r.vx) * k; r.vz += (tvz - r.vz) * k;

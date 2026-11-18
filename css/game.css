@@ -595,3 +595,7 @@ table.std tr.me td:first-child{box-shadow:inset 3px 0 0 #fff;color:#fff}
 #statpop div{padding:7px 12px 8px 10px;min-width:0}
 #statpop b{display:block;font-family:var(--display);font-weight:900;font-size:14px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #statpop span{display:block;font-size:11.5px;color:#d0d0d6;font-variant-numeric:tabular-nums;white-space:nowrap}
+#badgepop{position:absolute;left:10px;bottom:calc(47% + 58px);display:flex;align-items:center;gap:7px;padding:5px 11px 5px 9px;border-radius:999px;background:#fff;color:#000;font-family:var(--display);font-weight:900;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+  transform:translateX(-120%);opacity:0;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .2s;pointer-events:none;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+#badgepop.on{transform:none;opacity:1}#badgepop i{font-style:normal;font-size:9px;letter-spacing:1px}
+#game:has(#rp:not([hidden])) #tipcard{visibility:hidden}
