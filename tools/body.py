@@ -137,7 +137,7 @@ for S, sg in (('L', 1), ('R', -1)):
 
 # ---- the head, after the references (Switch Sports' Sportsmates, pocket and chibi sports games): BIG for the body, one
 # smooth shape with no bumps on it, simple dark eyes that sit flat on the face, a small mouth, hair as one chunky volume
-HS = 1.58
+HS = 1.3
 hc = Vector((0, -0.006, head('DEF-head').z + 0.035 + 0.150 * HS))
 hv = lambda dx, dy, dz: hc + Vector((dx, dy, dz)) * HS
 hb = lambda dx, dy, dz, rx, ry, rz, n: ball(n, tuple(hv(dx, dy, dz)), (rx * HS, ry * HS, rz * HS), seg=28)
