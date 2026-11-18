@@ -2279,7 +2279,7 @@
         G.played = pl.map(p => p.st); G.playedBy = pl.map(p => ({ d: p.d, team: p.team }));
       }
       if (!o.drill && R.addRefs) R.addRefs();
-      if (R.setBenches) R.setBenches(o.drill ? null : [k0, k1]);
+      if (R.setBenches) R.setBenches(o.drill ? null : [k0, k1], o.bench);
       R.tag(o.rivalId ? pl.find(p => p.d.id === o.rivalId) || null : null, 'RIVAL');
       $('#a0').textContent = o.teams[0].ab || o.teams[0].id; $('#a1').textContent = o.teams[1].ab || o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;

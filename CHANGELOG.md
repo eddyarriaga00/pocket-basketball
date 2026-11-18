@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The bench is the real thing: your actual reserves sit there in uniform, hands on their knees, and a coach in a
+  dark suit stands at the end of each bench (they were gray blocks). They are set once a game, so they cost nothing
+  to draw each frame beyond their triangles; Graphics: Low keeps the benches empty as before.
 - The referees are dressed as referees: a striped shirt with short sleeves and long black pants, not a striped
   tank top and shorts.
 - A defender sprinting back, far from the ball, runs with his arms pumping instead of spread like wings.

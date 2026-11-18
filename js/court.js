@@ -571,7 +571,7 @@
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
     const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
-      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, kRef: { value: cols.ref ? 1 : 0 }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
+      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, kRef: { value: +cols.ref || 0 }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;');
@@ -585,7 +585,7 @@
   if (vRB.x > rbest) { rbest = vRB.x; vRegion = 4.0; } if (vRB.z > rbest) { rbest = vRB.z; vRegion = 6.0; }
   if (vRegion > 5.5) discard;   // the mannequin's head: a drawn one sits on the bone
   /* a referee: short sleeves (the shirt runs down the upper arm) and long pants (the legs take the shorts' color) */
-  if (kRef > 0.5 && vRB.w > 0.5 && vRegion < 0.5) { if (abs(vRB.y) > 0.05) { if (abs(vRB.y) - 0.05 < 0.34) vRegion = 1.0; } else if (vK.y < 0.95) vRegion = 2.0; else if (vK.y < 1.37) vRegion = 1.0; }
+  if (kRef > 0.5 && vRB.w > 0.5 && vRegion < 0.5) { if (abs(vRB.y) > 0.05) { if (abs(vRB.y) - 0.05 < (kRef > 1.5 ? 0.80 : 0.34)) vRegion = 1.0; } else if (vK.y < 0.95) vRegion = 2.0; else if (vK.y < 1.37) vRegion = 1.0; }
   /* a tank top cut by formula, not by the mesh: armholes (ellipses at each shoulder) and a neckline (deeper in front),
      each with a band of the trim color, so the edges are smooth curves at any distance */
   if (vRB.w < 0.5 && vRegion < 0.5 && abs(vK.x) < 0.05 && vK.y > 1.365) discard;   // the top of the neck: inside the drawn head
@@ -800,7 +800,7 @@
     const d = p.d || p;
     const shorts = kit.shorts || new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, ref: !!kit.ref, sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, ref: kit.ref === true ? 1 : +kit.ref || 0, sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
@@ -1560,9 +1560,32 @@
      of each. Simple shapes in one mesh with vertex colors: one draw for both benches. */
   let benchMesh = [], benchJ = [0, 0], benchT = 0;
   R.benchJump = team => { benchJ[team] = 1.4; };   // a big play: that bench is up on its feet
-  R.setBenches = (kits) => {
-    for (const m of benchMesh) { scene.remove(m); m.geometry.dispose(); }
+  /* a man on the bench: the real model, sat down (or left standing: a coach), then baked into plain meshes. Nothing
+     about him moves again, so there are no bones to work every frame */
+  function baked(d, kit, x, z, faceY, sit) {
+    const p = { d, team: 0, slot: 0, r: d.r || {}, ht: d.ht || 78, num: d.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: 0, pose: '' };
+    const m = skinnedPlayer(p, kit), grp = new T.Group(), B = n => m.bones[bk(n)], dir = (y, z) => V3().set(0, y, z).normalize();
+    m.root.position.set(0, 0, 0); m.root.rotation.set(0, 0, 0); m.mixer.update(0.3 + (d.num || 0) * 0.37); m.root.updateMatrixWorld(true);
+    let dy = 0;
+    if (sit) {
+      for (const S of ['L', 'R']) { const th = B(`DEF-thigh.${S}`), sh = B(`DEF-shin.${S}`), ft = B(`DEF-foot.${S}`);
+        if (th && sh && ft) { aim(th, sh, dir(-0.10, 1), 1); m.root.updateMatrixWorld(true); aim(sh, ft, dir(-1, 0.10), 1); m.root.updateMatrixWorld(true); } }
+      for (const A of [m.R, m.L]) if (A.up && A.fore && A.hand) { aim(A.up, A.fore, dir(-0.80, 0.55), 1); m.root.updateMatrixWorld(true); aim(A.fore, A.hand, dir(-0.30, 0.95), 1); m.root.updateMatrixWorld(true); }
+      const th = B('DEF-thigh.L'); if (th) dy = 1.95 - th.getWorldPosition(V3()).y;
+    }
+    const v = V3(), M = new T.Matrix4().makeRotationY(faceY); M.setPosition(x, dy, z);
+    m.root.traverse(o => { if (!o.isSkinnedMesh || o.material === OUTLINE_MAT || !o.visible || !o.geometry.attributes.skinIndex) return;
+      const g0 = o.geometry, n = g0.attributes.position.count, P = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld).applyMatrix4(M); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; }
+      const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(P, 3));
+      for (const k of ['rA', 'rB', 'kpos', 'color']) if (g0.attributes[k]) g.setAttribute(k, g0.attributes[k]);
+      g.setIndex(g0.index); g.computeVertexNormals(); grp.add(new T.Mesh(g, o.material)); });
+    return grp;
+  }
+  R.setBenches = (kits, rosters) => {
+    for (const m of benchMesh) { scene.remove(m); m.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o !== m && o.material && !o.material.userData.shared) o.material.dispose(); }); }
     benchMesh = [];
+    const real = !!(TPL && TPL.model && !PB.mannequin && !PB.oldBody);
     if (!kits || (PB.settings && PB.settings.gfx === 'Low')) return;
     let parts = [];
     const col = new T.Color();
@@ -1578,6 +1601,7 @@
         const z = side * (15 + i * 2.1), x = 28.4, skin = PB.SKIN[(i * 3 + t * 2) % 6];
         add(new T.BoxGeometry(1.6, 1.5, 1.7), x + 0.5, 0.75, z, '#202530');                      // the chair
         add(new T.BoxGeometry(1.5, 0.5, 1.8), x + 0.6, 2.2, z, '#202530');
+        if (real) continue;
         add(new T.CylinderGeometry(0.55, 0.62, 2.2, 10), x + 0.45, 2.75, z, warm);              // in warmups
         add(new T.SphereGeometry(0.58, 12, 9), x + 0.35, 4.5, z, skin);                          // a pocket-size head
         if (i % 4 !== 2) { const hc = new T.SphereGeometry(0.62, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.42); hc.rotateZ(0.35); add(hc, x + 0.4, 4.55, z, i % 3 ? '#17110d' : '#2b1d12'); }   // hair
@@ -1587,11 +1611,16 @@
         add(new T.BoxGeometry(0.9, 0.3, 0.9), x - 1.3, 0.15, z, '#e9e9e9');                   // shoes
       }
       /* the coach, standing at the end of the bench nearest half court */
-      const cz = side * 12.6, cx = 27.6;
-      add(new T.BoxGeometry(0.7, 3, 1.1), cx, 1.5, cz, '#1d1f24');
-      add(new T.CylinderGeometry(0.55, 0.6, 2.4, 8), cx, 4.2, cz, '#2b2e36');
-      add(new T.SphereGeometry(0.42, 8, 6), cx, 5.85, cz, PB.SKIN[(t * 4 + 1) % 6]);
+      const cz = side * 12.6, cx = real ? 28.3 : 27.6;
+      if (!real) { add(new T.BoxGeometry(0.7, 3, 1.1), cx, 1.5, cz, '#1d1f24');
+        add(new T.CylinderGeometry(0.55, 0.6, 2.4, 8), cx, 4.2, cz, '#2b2e36');
+        add(new T.SphereGeometry(0.42, 8, 6), cx, 5.85, cz, PB.SKIN[(t * 4 + 1) % 6]); }
       const m = new T.Mesh(mergeGeo(parts), new T.MeshLambertMaterial({ vertexColors: true }));
+      if (real) { const ro = (rosters && rosters[t]) || [];
+        for (let i = 0; i < 5; i++) { const d = ro[i] || { id: 'bench' + t + i + (k.name || ''), last: 'B' + i, pos: ['PG', 'SG', 'SF', 'PF', 'C'][i], ht: 75 + i * 2, skin: (i * 3 + t * 2) % 6, num: 20 + i * 3 + t };
+          try { m.add(baked(d, k, 28.15, side * (15 + i * 2.1), -Math.PI / 2, true)); } catch (e) { console.warn('bench', e); } }
+        try { m.add(baked({ id: 'coach' + t + (k.name || ''), last: 'Coach', pos: 'SF', ht: 74, skin: (t * 4 + 1) % 6, look: { hair: t ? 'short' : 'buzz', hairColor: t ? '#17110d' : '#8d8d8d', beard: t ? null : 'stubble', face: 1 + t } },
+          { c1: '#23262d', c2: '#23262d', alt: '#23262d', pat: 0, name: '', shorts: '#1b1d22', sock: '#15171a', shoe: '#111111', ref: 2 }, cx, cz, -Math.PI / 2, false)); } catch (e) { console.warn('coach', e); } }
       scene.add(m); benchMesh.push(m); parts = [];
     });
   };
