@@ -537,3 +537,14 @@ details.help p b{color:var(--ink);font-weight:700}details.help p span{color:var(
 p.pc{text-align:center;margin:0 0 6px}
 #pause .card.set{margin:10px 0}
 #pause{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}#pause .card{margin:auto}#pause h2{margin-top:0}
+/* ---- after the game: your night ---- */
+.night{display:flex;align-items:center;gap:12px;margin:10px 0 14px;padding:12px 14px 12px 12px;border-radius:18px;border:1px solid var(--line);
+  background:linear-gradient(110deg,color-mix(in srgb,var(--tc,#333) 42%,#131315),#131315 62%);overflow:hidden}
+.night.w{border-color:rgba(255,255,255,.55)}
+.night img{flex:none;width:72px;height:72px;border-radius:50%;object-fit:cover;background:var(--tc);box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.night div{flex:1;min-width:0}.night span{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#d0d0d6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.night b{display:block;font-family:var(--display);font-weight:900;font-size:34px;line-height:1.05}.night b small{font-size:13px;letter-spacing:.08em;color:var(--mute)}
+.night p{margin:2px 0 0;font-size:12.5px;color:var(--mute)}
+.night em{flex:none;font-style:normal;font-family:var(--display);font-weight:900;font-size:44px;line-height:1;text-align:center}
+.night em i{display:block;font-style:normal;font-family:var(--body);font-weight:600;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin-top:4px}
+#pause .card .card{width:auto;max-width:none;margin:10px 0}

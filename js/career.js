@@ -1507,7 +1507,7 @@
     const P = pr && PRESS[pr[0]];
     show(`<div class="page post"><p class="kick">${sim ? 'Simulated' : 'Final'}${g.po ? ' · Playoffs' : ''}</p>
       <div class="final"><div>${badge(t)}<b>${r.us}</b></div><em>${r.win ? 'WIN' : 'LOSS'}</em><div><b>${r.them}</b>${badge(o)}</div></div>
-      <div class="gradebig"><b>${r.grade}</b><span>Teammate grade</span></div>
+      <div class="night${r.win ? ' w' : ''}" style="--tc:${t.c1}">${portrait() ? `<img src="${portrait()}" alt="">` : ''}<div><span>${esc(PB.full(C.me))}</span><b>${l.pts} <small>PTS</small></b><p>${l.reb} reb · ${l.ast} ast · ${l.fgm}/${l.fga} FG</p></div><em>${r.grade}<i>Teammate grade</i></em></div>
       <div class="tiles"><div><b>${l.pts}</b><span>PTS</span></div><div><b>${l.reb}</b><span>REB</span></div><div><b>${l.ast}</b><span>AST</span></div>
       <div><b>${l.fgm}/${l.fga}</b><span>FG</span></div><div><b>${l.tpm}/${l.tpa}</b><span>3PT</span></div><div><b>${l.stl}/${l.blk}</b><span>STL/BLK</span></div></div>
       ${sim ? '' : reelBtn()}
