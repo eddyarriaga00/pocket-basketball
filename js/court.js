@@ -1577,7 +1577,7 @@
     { const sh = new T.Shape(); sh.moveTo(0, 1.0); sh.lineTo(0.95, -0.25); sh.lineTo(0.42, -0.25); sh.lineTo(0, 0.42); sh.lineTo(-0.42, -0.25); sh.lineTo(-0.95, -0.25); sh.closePath();
       const g = new T.ShapeGeometry(sh); g.rotateX(Math.PI / 2);   // flat on the floor, pointing down +z
       defArrow = new T.Mesh(g, new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0.8, depthWrite: false, side: T.DoubleSide }));
-      defArrow.position.y = 0.04; defArrow.visible = false; scene.add(defArrow); }
+      defArrow.position.y = 0.04; defArrow.scale.setScalar(1.35); defArrow.visible = false; scene.add(defArrow); }
     flash = new T.Mesh(new T.RingGeometry(1.6, 2.3, 32), new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0, depthWrite: false }));
     flash.rotation.x = -Math.PI / 2; flash.position.y = 0.04; scene.add(flash);
   };
