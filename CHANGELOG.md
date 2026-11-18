@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- A dribbler's off arm hangs loose when nobody is on him and pumps at a run; it comes up as a bar across his body
+  only when a defender crowds him (it was held out stiff all the time).
 - Sharper pictures of players: the Look card, your hub card, the create screen and the Player of the Game are drawn
   at twice the size (they were soft on a phone's screen). The Player of the Game shouts in his picture again.
 - Fixed: a few seconds on the title screen (which runs at thirty frames a second on purpose) made the game think

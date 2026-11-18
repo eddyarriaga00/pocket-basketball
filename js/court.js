@@ -1275,6 +1275,11 @@
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
     let P = POSES[pose](kk);
+    /* the off arm of a dribbler: loose at his side when nobody is on him, pumping a little at a run, and up as a bar
+       across his body only when a defender crowds him (it used to be held out stiff all the time) */
+    if (pose === 'dribble') { const pr = smooth(0.12, 0.6, p.prot || 0), rn = Math.min(1, p.runD || 0), sw = Math.sin(kk * Math.PI * 2);
+      const up = [0.32 - 0.04 * rn, -0.88, 0.22 + 0.22 * rn * sw], fo = [0.08, -0.45 + 0.5 * rn + 0.2 * rn * sw, 0.88], L = (a, b) => a.map((v, j) => v + (b[j] - v) * pr);
+      P = [P[0], P[1], L(up, P[2]), L(fo, P[3])]; }
     if ((pose === 'chest' || pose === 'bpass') && p.passT0 !== undefined && G.t - p.passT0 < 0.6) { P = keyed(pose === 'chest' ? PASSK : BPASSK, Math.min(1, (G.t - p.passT0) / 0.3));
       if (pose === 'chest' && G.ball.lob && G.ball.passer === p) P = P.map(v => [v[0], v[1] + 0.5, v[2]]); }   // a lob goes up and out
     if (pose === 'catch' && G.ball.state === 'pass') { const b = G.ball, d = Math.hypot(b.x - p.x, b.z - p.z) || 1, vy = Math.max(-0.7, Math.min(0.9, ((b.y || 0) - ((p.ht || 78) / 12 * 0.78 + (p.y || 0))) / Math.max(3, d)));   // the hands go to where the ball is coming in
