@@ -1725,7 +1725,7 @@
           p.st.fga++; if (p.shoot.three) p.st.tpa++; p.shoot = null; p.pose = ''; G.possN = (G.possN || 0) + 1;
           blockShot(o, p, { x: b.x, y: b.y, z: b.z }); return; }
       } }   // (a shot never falls through to the dribble below: the ball stays in the hands)
-      else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb || (p.fakeT !== undefined && G.t - p.fakeT < 0.36))) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
+      else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb || (p.fakeT !== undefined && G.t - p.fakeT < 0.36) || p.y > 0.25 /* in the air with it (a rebound): it stays in his hands until he lands */)) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
         const mv = p.mv, ms = mv && H ? (G.t - mv.t0) / mv.T : 2;
         if (ms < 1) {

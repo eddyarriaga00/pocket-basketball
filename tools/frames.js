@@ -26,6 +26,7 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
     window._S = { G, u, d, m8, hz, n: 0 };
     PB.Game.dbg.run(0.05);
     if (SCENE === 'catch') { m8.x = 9; m8.z = u.z + 2 * hz; d.x = -25; }
+    if (SCENE === 'rebound') { u.x = 0.6; u.z = 38.6 * hz; d.x = -3.5; d.z = 37.5 * hz; m8.x = 14; m8.z = 30 * hz; const b = G.ball; b.holder = null; b.state = 'loose'; b.x = 0.4; b.y = 13.5; b.z = 39.4 * hz; b.vx = 0; b.vz = -1 * hz; b.vy = 1; G.reb = { team: d.team, t: G.t }; }
     if (SCENE === 'inbound') { PB.Game.dbg.auto(true); for (let k = 0; k < 2400 && !(G.inb && G.phase === 'live' && G.ball.holder && G.ball.holder.inb); k++) PB.Game.dbg.run(0.1); window._S.ft = G.ball.holder; }
     if (SCENE === 'tip') { /* the opening tip: nothing to set up */ }
     if (SCENE === 'ft') { PB.Game.dbg.auto(true); for (let k = 0; k < 2400 && G.phase !== 'ft'; k++) PB.Game.dbg.run(0.25); window._S.ft = G.ftq && G.ftq.shooter; }
@@ -39,12 +40,13 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
       else if (SCENE === 'pass' || SCENE === 'catch') D.press('B');
       else if (SCENE === 'sizeup') { d.x = 0; d.z = u.z + 8 * hz; u.sizeN = 0.1; }
       else if (SCENE === 'steal') D.press('B'); else if (SCENE === 'jump') { D.press('A', true); D.press('A', false); }
+      else if (SCENE === 'rebound') { /* he goes up on the next step */ }
       else if (SCENE === 'walk') D.stick(0, -0.45);
       else if (SCENE === 'run') D.stick(0, -1); else if (SCENE === 'slide') D.stick(1, 0); else if (SCENE === 'block') { G.ball.holder = d; d.face = Math.atan2(u.x - d.x, u.z - d.z); } }
     if ((SCENE === 'shot' || SCENE === 'contested' || SCENE === 'layup' || SCENE === 'dunk') && u.shoot && u.shoot.t / u.shoot.T > 0.8) D.press('A', false);
     if (n > 0) D.run(DT); window._dt = DT; window._cam(); if (SCENE.startsWith('c-')) { G.ball.holder = m8; m8.x = -25; d.x = 30; u.vx = u.vz = 0; u.celebT = 9; u.pose = u.celebK; }
     if (SCENE === 'hands') { G.shotClock = Math.min(G.shotClock, 1.2); for (const p of G.pl) if (p !== u && p !== d) { p.x = 44; p.z = 44 * hz; } }
-    if (SCENE === 'sizeup') { d.x = 0; d.z = u.z + 8 * hz; d.vx = d.vz = 0; } if (SCENE === 'steal' || SCENE === 'jump') { G.ball.holder = G.ball.holder || d; d.vx = d.vz = 0; G.shotClock = 20; } if (SCENE === 'guard') { G.ball.holder = d; d.x = Math.sin(n * 0.5) * 2.5; d.z = -20 * hz; d.vx = d.vz = 0; G.shotClock = 20; D.stick(Math.cos(n * 0.5) > 0 ? 0.8 : -0.8, 0); } if (SCENE === 'walk' || SCENE === 'stand') { d.x = 20; d.z = u.z; d.vx = d.vz = 0; u.sizeT = 0; }
+    if (SCENE === 'sizeup') { d.x = 0; d.z = u.z + 8 * hz; d.vx = d.vz = 0; } if (SCENE === 'rebound' && n === 3) { D.press('A', true); D.press('A', false); } if (SCENE === 'steal' || SCENE === 'jump') { G.ball.holder = G.ball.holder || d; d.vx = d.vz = 0; G.shotClock = 20; } if (SCENE === 'guard') { G.ball.holder = d; d.x = Math.sin(n * 0.5) * 2.5; d.z = -20 * hz; d.vx = d.vz = 0; G.shotClock = 20; D.stick(Math.cos(n * 0.5) > 0 ? 0.8 : -0.8, 0); } if (SCENE === 'walk' || SCENE === 'stand') { d.x = 20; d.z = u.z; d.vx = d.vz = 0; u.sizeT = 0; }
     return [n, u.pose, u.shoot ? +(u.shoot.t / u.shoot.T).toFixed(2) : null, +u.y.toFixed(1), G.ball.state, +G.ball.y.toFixed(1), d.pose, +d.y.toFixed(1)]; }, [SCENE, n, +DT]);
   require('fs').mkdirSync('.shots', { recursive: true }); const files = [], log = [];
   for (let n = 0; n < +NF; n++) { log.push(await act(n)); await pg.waitForTimeout(350); const f = `.shots/step-${SCENE}-${VIEW}-${String(n).padStart(2, '0')}.png`; await pg.screenshot({ path: f, clip: { x: 0, y: 222, width: 390, height: 400 } }); files.push(f); }

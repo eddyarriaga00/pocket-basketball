@@ -1284,6 +1284,7 @@
     let pose = p.pose;
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
+    if (has && !p.shoot && !p.inb && p.y > 0.25 && p.pose !== 'hang') pose = 'contest';   // he came down with a rebound: the ball stays up in both hands until his feet are back on the floor
     const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back
     if (fk >= 0) pose = 'shoot';
     /* at the line: the ball comes up from the routine to the set point as he gets ready (your meter filling, or the
