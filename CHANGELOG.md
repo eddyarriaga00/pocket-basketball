@@ -4,6 +4,16 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The full box score, on the final screen and in the pause menu while the game is on: minutes, points, rebounds,
+  assists, steals, blocks, turnovers, fouls, field goals, threes, free throws and plus/minus for every man who played,
+  with a team line. On a phone the table slides sideways under the names.
+- Player of the Month in your conference, and Rookie of the Month in your first year (yours to win, or the league's).
+- The League tab has a Schedule page: last night's scores around the league, and your season game by game with the
+  results and your points. The standings show every team's streak.
+- Hot zones on the Player tab: what you shoot from each of ten zones of the floor this season. A zone where you are
+  well above the league (on four tries or more) turns green, and your shot is a little better from it.
+- Career stats season by season on the Log tab: games, minutes, points, rebounds, assists, steals, blocks and the
+  shooting splits, with a career line.
 - Passing. A pass is thrown to the man, not to a spot on the floor: it bends to where he is as it comes, so a receiver
   who keeps moving (you, above all) is hit in the hands instead of watching it go by. Passes have more zip (58 feet a
   second, flatter), the Pass button with the stick held goes where the stick points and never behind you, a teammate

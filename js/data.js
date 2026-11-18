@@ -257,6 +257,12 @@
     if (which === 'city') return { c1: '#141416', c2: t.c1 === '#000000' || !light(t.c2) && false ? t.c2 : t.c1, alt: t.c1, pat: [1, 6, 2, 5][h % 4], name: t.city.toUpperCase(), kind: 'city' };
     return { c1: t.c1, c2: t.c2, alt: t.c2, pat, name: t.name, kind: 'icon' };
   };
+  /* the floor in eleven zones, the way a scouting report cuts it: x across (feet from the middle), a out from the rim */
+  PB.zoneOf = (x, a) => { const d = Math.hypot(x, a), three = d >= 23.4 || (Math.abs(x) >= 21.8 && a < 9.5);
+    if (!three) return d < 5 ? 'rim' : d < 11 && Math.abs(x) < 8.5 ? 'paint' : x < -6 ? 'midL' : x > 6 ? 'midR' : 'midC';
+    return a < 9.5 ? (x < 0 ? 'cornerL' : 'cornerR') : Math.abs(x) < 8 ? 'top3' : x < 0 ? 'wingL' : 'wingR'; };
+  /* each zone: where its label sits on the chart, and what the league shoots from there */
+  PB.ZONES = { rim: [0, 2.5, 62], paint: [0, 8.5, 43], midL: [-14, 9, 40], midC: [0, 17, 41], midR: [14, 9, 40], cornerL: [-23.4, 3, 38], cornerR: [23.4, 3, 38], wingL: [-18.5, 21, 35], top3: [0, 27.5, 35], wingR: [18.5, 21, 35] };
   PB.randName = () => { const n = PB.person(); return n.first + ' ' + n.last; };
   PB.makePlayer = (pos, target, age) => {
     const h = PB.HEIGHT[pos];

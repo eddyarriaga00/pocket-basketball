@@ -146,7 +146,7 @@
     };
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-18c';
+  const NEW_V = '2026-11-18d';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V) return;
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
@@ -157,6 +157,8 @@
       <li>On defense, an arrow shows where your man is going: green while you are in front of him</li>
       <li>The full awards night: MVP, Defensive Player, Sixth Man, Most Improved, Clutch, Coach, All-League, All-Defensive and All-Rookie teams</li>
       <li>Real rotation minutes by your role, and your numbers kept exactly as you put them up</li>
+      <li>The full box score (minutes, plus/minus), hot zones, a schedule with scores around the league, Player of the Month</li>
+      <li>Passes thrown to the man, and nobody jumping from place to place on screen</li>
       <li>A smarter floor: help defense on your drives, teammates who space out and get open</li>
       <li>New moves: a real layup with a finger roll, passes that snap, size-up dribbles, five more celebrations</li>
       <li>Your Look card: an undershirt, tights, tattoos and a sleeve that sit on the arm, dyed hair</li>
@@ -656,7 +658,7 @@
     C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
     if (C.contract) C.earnings = (C.earnings || 0) + C.contract.salary;
     if (C.endorse && C.endorse.pay) C.earnings = (C.earnings || 0) + C.endorse.pay;
-    C.ls = {}; C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 }; C.vote = null; C.wk = null; C.rising = null; if (C.contest === 'invited') C.contest = 'done'; if (C.dunk === 'invited') C.dunk = 'done';   // last year's All-Star invitations do not carry over
+    C.ls = {}; C.adj = { gp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tpm: 0 }; C.vote = null; C.wk = null; C.mo = null; C.scores = []; C.streaks = {}; C.zones = {}; C.rising = null; if (C.contest === 'invited') C.contest = 'done'; if (C.dunk === 'invited') C.dunk = 'done';   // last year's All-Star invitations do not carry over
     C.startOvr = C.me.ovr;
     if (C.rival) C.rival.season = zero();
     C.news.unshift(`Season ${C.year} begins: ${n} games, ${PB.TEAMS.length} teams.`);
@@ -737,11 +739,12 @@
   /* ---------- the league around you ---------- */
   function simLeagueDay(myOpp) {
     const ids = PB.TEAMS.map(t => t.id).filter(id => id !== C.team && id !== myOpp).sort(() => PB.rand() - 0.5);
-    C.dayBest = null;
+    C.dayBest = null; C.scores = [];
     for (let i = 0; i + 1 < ids.length; i += 2) {
       const a = ids[i], b = ids[i + 1];
       const w = PB.rand() < winP(a, b, true) ? a : b, l = w === a ? b : a;
       C.standings[w].w++; C.standings[l].l++;
+      { const base = (106 + PB.gauss() * 9) * QF(), mar = Math.max(1, Math.round(Math.abs(PB.gauss() * 9) * QF())), lo = Math.max(4, Math.round(base - mar / 2)); C.scores.push([w, lo + mar, l, lo, w === a]); }   // the night's finals, for the scores page
       /* streaks around the league */
       C.streaks = C.streaks || {};
       C.streaks[w] = (C.streaks[w] || 0) >= 0 ? (C.streaks[w] || 0) + 1 : 1; C.streaks[l] = (C.streaks[l] || 0) <= 0 ? (C.streaks[l] || 0) - 1 : -1;
@@ -784,6 +787,15 @@
       }
       C.wk = { n: 0, pts: 0, reb: 0, ast: 0, w: 0 };
     }
+    /* the league's month: Player of the Month in your conference, and Rookie of the Month in your first year */
+    { const M2 = C.mo || (C.mo = { n: 0, pts: 0, reb: 0, ast: 0, w: 0 }), per = PB.clamp(Math.round((C.len || 20) / 4), 5, 14);
+      M2.n++; M2.pts += res.line.pts; M2.reb += res.line.reb; M2.ast += res.line.ast; if (res.win) M2.w++;
+      if (M2.n >= per) { const me = C.me, conf = PB.team(C.team).conf, sc = ((M2.pts + M2.reb * 0.6 + M2.ast * 0.8) / M2.n) / QF() + M2.w / M2.n * 8, mon = `the month (games ${C.gi - per + 2}-${C.gi + 1})`;
+        if (sc >= 34) { C.trophies.push(`${conf} Player of the Month, season ${C.year}`); C.fans = Math.round(C.fans * 1.08); me.sp += 2; C.news.unshift(`${me.last} is the ${conf} Player of the Month: ${(M2.pts / M2.n).toFixed(1)} points a game`); C.feed.unshift({ who: '@league', text: `${PB.full(me)}: ${conf} Player of the Month` }); }
+        else { const L = leaders().filter(r => !r.me && PB.team(r.team).conf === conf).sort((a, b) => (b.ptspg + b.rebpg * 0.6 + b.astpg * 0.8) - (a.ptspg + a.rebpg * 0.6 + a.astpg * 0.8))[Math.floor(PB.rand() * 3)]; if (L) C.news.unshift(`${L.name} (${PB.team(L.team).ab}) is the ${conf} Player of the Month`); }
+        if (C.year === 1) { if (sc >= 15) { C.trophies.push(`${conf} Rookie of the Month, season ${C.year}`); me.sp += 1; C.news.unshift(`${me.last} is the ${conf} Rookie of the Month`); }
+          else { const R2 = leaders().filter(r => !r.me && r.rookie && PB.team(r.team).conf === conf).sort((a, b) => b.ptspg - a.ptspg)[0]; if (R2) C.news.unshift(`${R2.name} (${PB.team(R2.team).ab}) is the ${conf} Rookie of the Month`); } }
+        C.mo = { n: 0, pts: 0, reb: 0, ast: 0, w: 0 }; } }
     /* the first returns of the fan vote */
     if (!C.vote && C.len >= 20 && C.gi >= Math.round(C.len * 0.33)) {
       const conf = PB.team(C.team).conf, guard = ['PG', 'SG'].includes(C.me.pos), grp = guard ? ['PG', 'SG'] : ['SF', 'PF', 'C'];
@@ -1017,19 +1029,23 @@
         <div class="card"><h3>Business</h3><p class="fine">${C.endorse && C.endorse.brand ? `Shoe deal: ${C.endorse.brand}, ${M(C.endorse.pay)} a year. ` : ''}${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
         ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>
         <button class="ghost" id="pcard">Share your player card<small>an image of you, your numbers and your trophies</small></button>`;
+      body += zonesCard();
     } else if (tab === 'league') {
       const conf = c => confRank(c).map((id, i) => { const x = PB.team(id), st = C.standings[id];
         const top = C.standings[confRank(c)[0]], gb = ((top.w - st.w) + (st.l - top.l)) / 2;
-        return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${gb ? gb : '–'}</td><td>${strength(id)}</td></tr>`; }).join('');
+        return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${gb ? gb : '–'}</td><td>${(k => k ? (k > 0 ? 'W' : 'L') + Math.abs(k) : '–')((C.streaks || {})[id] || 0)}</td><td>${strength(id)}</td></tr>`; }).join('');
       /* your conference first; the standings and the leaders a tap apart */
       const mine = PB.team(C.team).conf, confs = mine === 'West' ? ['West', 'East'] : ['East', 'West'];
-      body = (C.phase === 'playoffs' ? bracketCard() : '') + `<div class="seg sm ltabs"><button data-l="stand" class="${ltab === 'stand' ? 'on' : ''}">Standings</button><button data-l="lead" class="${ltab === 'lead' ? 'on' : ''}">Leaders</button><button data-l="awards" class="${ltab === 'awards' ? 'on' : ''}">Awards</button></div>`
-        + (ltab === 'lead' ? leadersCard() : ltab === 'awards' ? awardsCard() : confs.map(c => `<div class="card"><h3>${c}${c === mine ? ' <small>your conference</small>' : ''}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>GB</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
+      body = (C.phase === 'playoffs' ? bracketCard() : '') + `<div class="seg sm ltabs"><button data-l="stand" class="${ltab === 'stand' ? 'on' : ''}">Standings</button><button data-l="lead" class="${ltab === 'lead' ? 'on' : ''}">Leaders</button><button data-l="awards" class="${ltab === 'awards' ? 'on' : ''}">Awards</button><button data-l="sched" class="${ltab === 'sched' ? 'on' : ''}">Schedule</button></div>`
+        + (ltab === 'lead' ? leadersCard() : ltab === 'awards' ? awardsCard() : ltab === 'sched' ? scheduleCard() : confs.map(c => `<div class="card"><h3>${c}${c === mine ? ' <small>your conference</small>' : ''}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>GB</th><th>STRK</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
         + `<p class="fine">The top six in each conference make the playoffs (the solid line); seven to ten play in for the last two places (the dashed line).</p>`);
     } else {
       body = seasonCard() + `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => glog(x, i + 1)).join('') || '<p class="mute">No games yet.</p>'}</div>
         ${C.po && C.po.games.length ? `<div class="card"><h3>Playoffs</h3>${C.po.games.map((x, i) => glog(x, 'P' + (i + 1))).join('')}</div>` : ''}
-        ${C.seasons.length ? `<div class="card"><h3>Career</h3>${C.seasons.map(z => `<div class="glog"><span>Y${z.year}</span>${badge(PB.team(z.team))}<b>${z.w}-${z.l}</b><em>${z.ppg} / ${z.rpg} / ${z.apg}</em><i>${z.awards.join(', ') || '–'}</i></div>`).join('')}</div>` : ''}
+        ${C.seasons.length ? `<div class="card"><h3>Career</h3>${C.seasons.map(z => `<div class="glog"><span>Y${z.year}</span>${badge(PB.team(z.team))}<b>${z.w}-${z.l}</b><em>${z.ppg} / ${z.rpg} / ${z.apg}</em><i>${z.awards.join(', ') || '–'}</i></div>`).join('')}</div>
+        <div class="card"><h3>Career stats <small>a game, as you played them</small></h3><div class="bxw"><table class="std bx"><tr><th></th><th>GP</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>FG%</th><th>3P%</th><th>FT%</th></tr>
+        ${C.seasons.map(z => { const d = v => v === null || v === undefined ? '–' : v; return `<tr><td>Y${z.year} <small>${PB.team(z.team).ab}</small></td><td>${d(z.gp)}</td><td>${d(z.mpg)}</td><td><b>${z.ppg}</b></td><td>${z.rpg}</td><td>${z.apg}</td><td>${d(z.spg)}</td><td>${d(z.bpg)}</td><td>${d(z.fg)}</td><td>${d(z.tp)}</td><td>${d(z.ft)}</td></tr>`; }).join('')}
+        ${(T2 => T2 && T2.gp ? `<tr class="tot"><td>Career</td><td>${T2.gp}</td><td>${T2.min ? (T2.min / T2.gp).toFixed(1) : '–'}</td><td><b>${(T2.pts / T2.gp).toFixed(1)}</b></td><td>${(T2.reb / T2.gp).toFixed(1)}</td><td>${(T2.ast / T2.gp).toFixed(1)}</td><td>${(T2.stl / T2.gp).toFixed(1)}</td><td>${(T2.blk / T2.gp).toFixed(1)}</td><td>${T2.fga ? Math.round(T2.fgm / T2.fga * 100) : '–'}</td><td>${T2.tpa ? Math.round(T2.tpm / T2.tpa * 100) : '–'}</td><td>${T2.fta ? Math.round(T2.ftm / T2.fta * 100) : '–'}</td></tr>` : '')(C.totals)}</table></div></div>` : ''}
         <div class="card"><h3>Career highs <small>in the games you play</small></h3><div class="tiles">${[['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST'], ['stl', 'STL'], ['blk', 'BLK'], ['tpm', '3PM']].map(([k, l]) => `<div><b>${(C.highs || {})[k] || 0}</b><span>${l}</span></div>`).join('')}</div>
           <h3>Milestones <small>${Object.keys(C.miles || {}).length} of 12</small></h3>${['First points', 'First dunk', 'First three', '20-point game', '30-point game', 'Double-double', 'Triple-double', '10 assists', '5 blocks', 'A game-winner', 'A playoff win', 'A championship'].map((n, i) => { const k = ['firstpts', 'firstdunk', 'firstthree', 'twenty', 'thirty', 'dd', 'td', 'ten_ast', 'five_blk', 'winner', 'playoffwin', 'title'][i]; const y = (C.miles || {})[k]; return `<p class="mile ${y ? 'got' : ''}">${y ? '★' : '☆'} ${n}${y ? ` <small>season ${y}</small>` : ''}</p>`; }).join('')}</div>
         ${C.trophies.length ? `<div class="card"><h3>Trophy case</h3>${C.trophies.map(x => `<p class="news">🏆 ${esc(x)}</p>`).join('')}</div>` : ''}`;
@@ -1349,7 +1365,7 @@
     const mine5 = liveFive(), benchOf = (id, five) => C.rosters[id].filter(p => !(p.out > 0) && !five.includes(p) && p.id !== C.me.id).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
-      stints: stintsFor(role()), tired: !!g.b2b, callIntro: introCall(g), homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */
@@ -1391,6 +1407,9 @@
     g.done = true; g.res = res;
     const s = g.po ? (C.poStats = C.poStats || zero()) : C.season, T = C.totals;
     for (const k of ['pts', 'reb', 'ast', 'stl', 'blk', 'tov', 'fga', 'fgm', 'tpa', 'tpm', 'fta', 'ftm']) { s[k] += res.line[k]; T[k] += res.line[k]; }
+    /* where your shots come from: the season's makes and attempts in each zone of the floor */
+    if (res.shots && res.shots.length) { const Z1 = C.zones || (C.zones = {}), Z2 = C.zonesAll || (C.zonesAll = {}); for (const [x, a, m] of res.shots) { const k = PB.zoneOf(x, a); for (const Z of [Z1, Z2]) { const e = Z[k] || (Z[k] = [0, 0]); e[1]++; if (m) e[0]++; } } }
+    { const K = C.streaks || (C.streaks = {}), w = res.win ? C.team : g.opp, l = res.win ? g.opp : C.team; if (!g.po) { K[w] = (K[w] || 0) >= 0 ? (K[w] || 0) + 1 : 1; K[l] = (K[l] || 0) <= 0 ? (K[l] || 0) - 1 : -1; } }
     s.gp++; T.gp++; s.grades += res.gscore; T.grades += res.gscore; s.min = (s.min || 0) + (res.line.min || 0); T.min = (T.min || 0) + (res.line.min || 0);
     const o = PB.team(g.opp), me = C.me;
     if (g.po) {
@@ -1794,8 +1813,15 @@
     return out;
   }
   function boxScore(res) {
-    const rows = t => res.box.filter(b => b.team === t).map(b => `<tr class="${b.user ? 'me' : ''}"><td>${esc(b.d.last)}</td><td>${b.st.pts}</td><td>${b.st.reb}</td><td>${b.st.ast}</td><td>${b.st.fgm}-${b.st.fga}</td><td>${b.st.tpm}-${b.st.tpa}</td></tr>`).join('');
-    return [0, 1].map(t => `<div class="card"><h3>${res.teams[t].name}</h3><table class="std"><tr><th></th><th>PTS</th><th>REB</th><th>AST</th><th>FG</th><th>3P</th></tr>${rows(t)}</table></div>`).join('');
+    /* the whole line for every man who played: minutes, the counting stats, the shooting splits, plus/minus; the
+       table slides sideways under the names on a phone */
+    const mm = v => { const m = Math.floor((v || 0) / 60); return `${m}:${String(Math.floor((v || 0) % 60)).padStart(2, '0')}`; };
+    const sg = v => (v > 0 ? '+' : '') + (v || 0);
+    const cols = b => `<td>${mm(b.st.secs)}</td><td><b>${b.st.pts}</b></td><td>${b.st.reb}</td><td>${b.st.ast}</td><td>${b.st.stl || 0}</td><td>${b.st.blk || 0}</td><td>${b.st.tov || 0}</td><td>${b.st.pf || 0}</td><td>${b.st.fgm}-${b.st.fga}</td><td>${b.st.tpm}-${b.st.tpa}</td><td>${b.st.ftm || 0}-${b.st.fta || 0}</td><td>${sg(b.st.pm)}</td>`;
+    const tot = t => { const L = res.box.filter(b => b.team === t), S = k => L.reduce((a, b) => a + (b.st[k] || 0), 0);
+      return `<tr class="tot"><td>Team</td><td></td><td><b>${S('pts')}</b></td><td>${S('reb')}</td><td>${S('ast')}</td><td>${S('stl')}</td><td>${S('blk')}</td><td>${S('tov')}</td><td>${S('pf')}</td><td>${S('fgm')}-${S('fga')}</td><td>${S('tpm')}-${S('tpa')}</td><td>${S('ftm')}-${S('fta')}</td><td></td></tr>`; };
+    const rows = t => res.box.filter(b => b.team === t).sort((a, b) => (b.st.secs || 0) - (a.st.secs || 0)).map(b => `<tr class="${b.user ? 'me' : ''}"><td>${esc(b.d.last)} <small>${b.d.pos || ''}</small></td>${cols(b)}</tr>`).join('');
+    return [0, 1].map(t => `<div class="card"><h3>${res.teams[t].name}</h3><div class="bxw"><table class="std bx"><tr><th></th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>PF</th><th>FG</th><th>3P</th><th>FT</th><th>+/-</th></tr>${rows(t)}${tot(t)}</table></div></div>`).join('');
   }
 
   /* ---------- All-Star ---------- */
@@ -2057,6 +2083,31 @@
   }
   /* a coach for every bench: the same name all career (kept on the save) */
   function coachOf(tid) { const K = C.coaches || (C.coaches = {}); if (!K[tid]) K[tid] = PB.randName(); return K[tid]; }
+  /* hot zones: a spot where you have made a living this season (at least four tries, and six points over what the
+     league shoots there). The shot goes in a little more often from one, the way a shooter trusts his spots. */
+  const zoneHeat = (k, Z) => { const e = (Z || {})[k]; if (!e || e[1] < 4) return 0; const pct = e[0] / e[1] * 100, lg = PB.ZONES[k][2]; return pct >= lg + 6 ? 1 : pct <= lg - 9 ? -1 : 0; };
+  const hotZones = () => Object.keys(PB.ZONES).filter(k => zoneHeat(k, C.zones) > 0);
+  function zonesCard() {
+    const Z = C.zones && Object.keys(C.zones).length ? C.zones : null, ZA = C.zonesAll || {};
+    const X = x => 150 + x * 5.6, Y = a => 20 + a * 5.6;
+    const arc = []; for (let t = -1.18; t <= 1.18; t += 0.04) arc.push(`${X(Math.sin(t) * 23.75).toFixed(1)},${Y(Math.cos(t) * 23.75).toFixed(1)}`);
+    const src = Z || ZA, any = Object.keys(src).length;
+    const lab = k => { const e = src[k], [x, a] = PB.ZONES[k], h = zoneHeat(k, src); if (!e) return `<text x="${X(x)}" y="${Y(a)}" class="zt none">–</text>`;
+      return `<g class="zt ${h > 0 ? 'hot' : h < 0 ? 'cold' : ''}"><circle cx="${X(x)}" cy="${Y(a) - 1}" r="15"/><text x="${X(x)}" y="${Y(a) - 2}">${Math.round(e[0] / e[1] * 100)}%</text><text x="${X(x)}" y="${Y(a) + 8}" class="sm">${e[0]}/${e[1]}</text></g>`; };
+    return `<div class="card"><h3>Hot zones <small>${Z ? 'this season' : any ? 'career' : 'no shots yet'}</small></h3><svg viewBox="0 0 300 200" class="chart zones">
+      <rect x="10" y="0" width="280" height="200" rx="6" class="floor"/><rect x="${X(-8)}" y="0" width="${16 * 5.6}" height="${Y(13.75)}" class="paint"/>
+      <line x1="${X(-22)}" y1="0" x2="${X(-22)}" y2="${Y(8.95)}" class="ln"/><line x1="${X(22)}" y1="0" x2="${X(22)}" y2="${Y(8.95)}" class="ln"/><polyline points="${arc.join(' ')}" class="ln" fill="none"/><circle cx="${X(0)}" cy="${Y(0)}" r="4.5" class="rim"/>
+      ${Object.keys(PB.ZONES).map(lab).join('')}</svg>
+      <p class="fine">Green is a hot zone (well above what the league shoots there, on four tries or more): your shot is a little better from it. Red is a cold one, and costs you nothing.</p></div>`;
+  }
+  /* the League tab's Schedule page: last night's scores around the league, and your season game by game */
+  function scheduleCard() {
+    const rec = id => { const x = C.standings[id]; return x ? `${x.w}-${x.l}` : ''; };
+    const sc = (C.scores || []).length ? `<div class="card awteam"><h3>Around the league <small>last night</small></h3>${C.scores.map(([w, sw, l, sl, wHome]) => `<p><i>${PB.team(w).ab} <b>${sw}</b>, ${PB.team(l).ab} ${sl}</i><small>${wHome ? 'home win' : 'road win'}</small><em>${rec(w)} · ${rec(l)}</em></p>`).join('')}</div>` : '';
+    const rows = (C.games || []).map((g, i) => { const o = PB.team(g.opp), r = g.res;
+      return `<p class="${i === C.gi && !g.done ? 'me' : ''}"><i>${i + 1}. ${g.home ? 'vs' : 'at'} ${o.name}${C.rival && g.opp === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</i><small>${g.done && r ? '' : rec(g.opp) + (g.b2b ? ' · b2b' : '')}</small><em>${g.done && r ? `${r.win ? 'W' : 'L'} ${r.us}-${r.them}${r.ot ? ' OT' : ''}${r.sim ? '' : ' · ' + (r.line ? r.line.pts : 0) + ' pts'}` : i === C.gi ? 'next' : ''}</em></p>`; }).join('');
+    return sc + `<div class="card awteam"><h3>${PB.team(C.team).name} schedule <small>${rec(C.team)}</small></h3>${rows || '<p class="mute">The schedule comes out with the season.</p>'}</div>`;
+  }
   /* the League tab's Awards page: who is leading each race right now, and who won what in the seasons behind you */
   function awardsCard() {
     const q = (S.qlen || 3) / 12, rows = leaders(), wpOf = t => { const x = C.standings[t]; return x.w / Math.max(1, x.w + x.l); };
@@ -2154,7 +2205,8 @@
     const rank = confRank(PB.team(C.team).conf).indexOf(C.team) + 1;
     const aw = (got || []).slice();
     const how = C.po && C.po.champ === C.team ? 'Champions' : C.po && C.po.games.length ? `Playoffs: ${C.poStats.w}-${C.poStats.l}` : 'No playoffs';
-    if (!C.seasons.find(z => z.year === C.year)) C.seasons.push({ year: C.year, team: C.team, w: st.w, l: st.l, ppg: ppg.toFixed(1), rpg: rpg.toFixed(1), apg: apg.toFixed(1), awards: aw });
+    if (!C.seasons.find(z => z.year === C.year)) C.seasons.push({ year: C.year, team: C.team, w: st.w, l: st.l, ppg: ppg.toFixed(1), rpg: rpg.toFixed(1), apg: apg.toFixed(1), awards: aw,
+      gp: s.gp, mpg: s.min ? +(s.min / gp).toFixed(1) : null, spg: +((s.stl || 0) / gp).toFixed(1), bpg: +((s.blk || 0) / gp).toFixed(1), fg: s.fga ? Math.round(s.fgm / s.fga * 100) : null, tp: s.tpa ? Math.round(s.tpm / s.tpa * 100) : null, ft: s.fta ? Math.round(s.ftm / s.fta * 100) : null });
     if (s.gp >= Math.min(10, C.len || 10)) {   // a full season's line, for the record book
       const RB = load('pbb.records') || {}; RB.season = RB.season || {};
       for (const [k, v] of [['ppg', ppg], ['rpg', rpg], ['apg', apg]]) if (v > ((RB.season[k] || {}).v || 0)) RB.season[k] = { v: +v.toFixed(1), name: PB.full(me), team: C.team, year: C.year };

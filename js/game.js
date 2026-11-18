@@ -487,11 +487,14 @@
     if (s.kind === 'dunk') cf = 1 - (1 - cf) * 0.3;   // a hand in the face barely matters above the rim
     else if (s.kind === 'hook') cf = 1 - (1 - cf) * 0.6;   // the hook goes up over the defender
     prob = clamp(prob * cf, 0.01, 0.985);
+    /* one of your hot zones: a spot you have shot well from all season is a spot you shoot a little better from */
+    const hotZ = !!(s.user && !s.ft && opts.hot && PB.zoneOf && opts.hot.includes(PB.zoneOf(p.x, along(p.z, p.team))));
+    if (hotZ) prob = clamp(prob * 1.06 + 0.01, 0.01, 0.985);
     if (p.isUser && tkoOn()) prob = clamp(prob + (1 - prob) * 0.2, 0.01, 0.985);   // Takeover: hot hands
     if (timing === 'Excellent') prob = 1;   // a perfect release goes in: only a block stops it
     const nd = nearestDef(p);
     /* how covered you were, next to the timing: a miss explains itself */
-    if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing === 'Excellent' ? 'Perfect' : timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}`; }
+    if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing === 'Excellent' ? 'Perfect' : timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}${hotZ ? ' · Hot zone' : ''}`; }
     /* your defense on the shot, said out loud: it is how you learn what a good contest is */
     { const u = G.user;
       if (u && p.team !== u.team && !G.drill && s.kind !== 'dunk' && !s.oop && (nd.who === u || u.slot === p.slot)) {
@@ -1551,7 +1554,15 @@
   }
 
   /* ---------- main step ---------- */
+  /* plus/minus: every point scored goes to the ten men on the floor, for or against */
+  function plusMinus() {
+    const L = G.pmLast || (G.pmLast = G.score.slice()), d0 = G.score[0] - L[0], d1 = G.score[1] - L[1];
+    if (!d0 && !d1) return;
+    for (const p of G.pl) p.st.pm = (p.st.pm || 0) + (p.team === 0 ? d0 - d1 : d1 - d0);
+    G.pmLast = G.score.slice();
+  }
   function step(dt) {
+    if (G && !G.drill) plusMinus();
     G.t += dt;
     /* the game's flow: the margin every few seconds, for the chart after the game */
     if (G.phase === 'live' && !G.drill && G.t - (G.flowT || 0) > 4) { G.flowT = G.t; (G.flow = G.flow || []).push([Math.round((G.q - 1) * G.qlen * 60 + (G.qlen * 60 - G.clock)), G.score[0] - G.score[1]]); }
@@ -1604,7 +1615,7 @@
       fatigue(dt);
       if (G.sitQ === G.q && G.inb && !G.auto) { sitOut(); return; }
       if (G.inb) inboundStep(dt);
-      if (!G.inb || !G.inb.stop) { G.clock = Math.max(0, G.clock - dt); if (G.user && !G.drill) G.user.st.secs = (G.user.st.secs || 0) + dt; }   // it stops at zero while a shot is still in the air
+      if (!G.inb || !G.inb.stop) { G.clock = Math.max(0, G.clock - dt); if (!G.drill) for (const p of G.pl) p.st.secs = (p.st.secs || 0) + dt; }   // it stops at zero while a shot is still in the air
       if (G.poss !== null && !G.inb && (b.state === 'held' || b.state === 'pass')) G.shotClock -= dt;
       if (G.callT > 0) G.callT -= dt;
       /* the building: louder late in a close game, hushed at the line, and the home crowd chants on defense */
@@ -2044,6 +2055,7 @@
     /* who would have been out there: the five on the floor most of it, the reserves a share */
     const cand = floor.map(p => ({ st: p.st, r: p.r, d: p.d, w: 1 })).concat(bench.filter(x => !(G.user && x.d === G.user.d)).slice(0, 4).map((x, i) => ({ st: x.st, r: x.r, d: x.d, w: i < 2 ? 0.45 : 0.2 })));
     if (!cand.length) return;
+    for (const c of cand) { const isU = G.user && c.st === G.user.st; if (!isU) c.st.secs = (c.st.secs || 0) + secs * (c.w === 1 ? 0.78 : c.w > 0.3 ? 0.4 : 0.15); }
     const mark = c => { if (G.played && !G.played.includes(c.st)) { G.played.push(c.st); G.playedBy.push({ d: c.d, team: t }); } };
     const pickBy = f => { let tot = 0; const w = cand.map(c => { const v = Math.max(0.01, f(c)) * c.w; tot += v; return v; }); let x = rand() * tot; for (let i = 0; i < cand.length; i++) { x -= w[i]; if (x <= 0) return cand[i]; } return cand[cand.length - 1]; };
     const off = c => Math.pow(Math.max(40, (c.r.close + c.r.mid + c.r.three) / 3 + ((c.d && c.d.ovr) || 70) * 0.6) / 100, 4);
@@ -2066,7 +2078,10 @@
     const Q = G.qlen * 60; let left = secs;
     while (left > 0.01 && G.q <= 4) {
       const c = Math.min(left, G.clock);
-      for (const t of [0, 1]) { const str = ((opts.strength && opts.strength[t]) || 75), pts = Math.max(0, Math.round(c / 14 / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * Math.min(2, Math.sqrt(c / 40)))); G.score[t] += pts; spread(t, pts, c, withUser); }
+      const got = [0, 0];
+      for (const t of [0, 1]) { const str = ((opts.strength && opts.strength[t]) || 75), pts = Math.max(0, Math.round(c / 14 / 2 * (1.08 + (str - 75) * 0.012) + PB.gauss() * Math.min(2, Math.sqrt(c / 40)))); G.score[t] += pts; got[t] = pts; spread(t, pts, c, withUser); }
+      for (const p of G.pl) if (withUser || !p.isUser) p.st.pm = (p.st.pm || 0) + Math.round((p.team === 0 ? got[0] - got[1] : got[1] - got[0]) * 0.8);
+      G.pmLast = G.score.slice();
       left -= c; G.clock -= c;
       if (G.flow) G.flow.push([Math.round((G.q - 1) * Q + Q - G.clock), G.score[0] - G.score[1]]);
       if (G.clock <= 0.01) { if (G.q >= 4) { G.clock = 0; break; } (G.qsc = G.qsc || []).push(G.score.slice()); G.q++; G.clock = Q; G.tf = [0, 0]; }
@@ -2323,6 +2338,14 @@
     window.addEventListener('resize', () => R.resize());
     document.addEventListener('visibilitychange', () => { if (document.hidden && PB.Game.active && !G.paused) pause(true); });
   }
+  /* the box score as it stands, for the pause menu: everyone who has played, the five on the floor first */
+  function liveBox() {
+    const mm = s => { const m = Math.floor((s || 0) / 60); return `${m}:${String(Math.floor((s || 0) % 60)).padStart(2, '0')}`; };
+    return [0, 1].map(t => { const on = G.pl.filter(p => p.team === t).sort((a, b) => a.slot - b.slot).map(p => ({ name: p.name, st: p.st, on: true, user: p.isUser }));
+      const off = ((G.bench && G.bench[t]) || []).filter(x => (x.st.secs || 0) > 0 || x.st.pts || x.st.fga).map(x => ({ name: x.name, st: x.st }));
+      const rows = on.concat(off).map(r => `<tr class="${r.user ? 'me' : ''}"><td>${r.on ? '' : '<small>'}${r.name}${r.on ? '' : '</small>'}</td><td>${mm(r.st.secs)}</td><td><b>${r.st.pts}</b></td><td>${r.st.reb}</td><td>${r.st.ast}</td><td>${r.st.fgm}-${r.st.fga}</td><td>${r.st.pf || 0}</td><td>${(r.st.pm || 0) > 0 ? '+' : ''}${r.st.pm || 0}</td></tr>`).join('');
+      return `<h4>${G.teams[t].name} <small>${G.score[t]}</small></h4><table class="std pbx"><tr><th></th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>FG</th><th>PF</th><th>+/-</th></tr>${rows}</table>`; }).join('');
+  }
   function pause(on) {
     G.paused = on;
     AU().muffle(on);
@@ -2341,6 +2364,7 @@
           <div class="row3"><button class="ghost sm" data-play="iso">Get me the ball</button><button class="ghost sm" data-play="pnr">Pick-and-roll</button><button class="ghost sm" data-play="post">Feed the post</button></div></div>` : ''}
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
+        ${G.drill ? '' : `<details class="help pbox"><summary>Box score</summary>${liveBox()}</details>`}
         <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
         <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
       $('#pr').onclick = () => pause(false);

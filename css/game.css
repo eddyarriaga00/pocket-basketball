@@ -665,3 +665,22 @@ svg.pbg text{fill:#c9c9cf;font-size:8.5px;text-anchor:middle;font-family:var(--d
 .awteam p em{font-style:normal;font-variant-numeric:tabular-nums;font-size:12px;color:var(--mute);white-space:nowrap}
 .awteam p.me i,.awteam p.me em{color:var(--green)}
 .awteam.mine{border-color:var(--acc)}
+
+/* the full box score: slides sideways under a fixed column of names */
+.bxw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -6px}
+table.bx{min-width:560px;font-variant-numeric:tabular-nums}
+table.bx td,table.bx th{white-space:nowrap;text-align:right;padding:6px 6px}
+table.bx td:first-child,table.bx th:first-child{text-align:left;position:sticky;left:0;background:var(--panel,#16161a);z-index:1;min-width:92px}
+table.bx tr.me td:first-child{background:#2a2a30}
+table.bx td small{color:var(--mute);font-size:10px}
+table.bx tr.tot td{border-top:2px solid var(--line);font-weight:700;color:var(--mute)}
+/* the pause menu's box score */
+.pbox h4{margin:10px 0 4px;font-family:var(--display);font-size:13px}.pbox h4 small{color:var(--mute);margin-left:6px}
+table.pbx{font-size:11.5px;font-variant-numeric:tabular-nums}table.pbx td,table.pbx th{padding:4px 3px;text-align:right;white-space:nowrap}table.pbx td:first-child,table.pbx th:first-child{text-align:left}
+table.pbx td small{color:var(--mute)}
+
+/* hot zones on the Player tab */
+.zones .zt circle{fill:rgba(255,255,255,.08);stroke:rgba(255,255,255,.25);stroke-width:1}
+.zones .zt text,.zones text.zt{fill:#fff;font:700 9px var(--display);text-anchor:middle}.zones .zt text.sm{font:500 6.5px var(--body);fill:var(--mute)}
+.zones text.none{fill:rgba(255,255,255,.25)}
+.zones .hot circle{fill:rgba(61,220,132,.28);stroke:#3ddc84}.zones .cold circle{fill:rgba(255,90,107,.22);stroke:#ff5a6b}
