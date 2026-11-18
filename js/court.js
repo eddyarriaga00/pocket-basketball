@@ -571,13 +571,13 @@
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
     const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
-      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, kRef: { value: +cols.ref || 0 }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
+      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, kRef: { value: +cols.ref || 0 }, kTee: { value: cols.tee ? 1 : 0 }, cTee: { value: new T.Color(cols.tee || '#f2f2f2') }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;');
       /* a rim light: the edge of the body catches light, so players pop off the floor */
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
-      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nuniform float kSlv;\nuniform float kRef;\nuniform vec3 cSlv;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nuniform float kSlv;\nuniform float kRef;\nuniform float kTee;\nuniform vec3 cTee;\nuniform vec3 cSlv;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
   /* the strongest region here wins */
   float vRegion = 0.0, rbest = vRA.x;
@@ -585,7 +585,7 @@
   if (vRB.x > rbest) { rbest = vRB.x; vRegion = 4.0; } if (vRB.z > rbest) { rbest = vRB.z; vRegion = 6.0; }
   if (vRegion > 5.5) discard;   // the mannequin's head: a drawn one sits on the bone
   /* a referee: short sleeves (the shirt runs down the upper arm) and long pants (the legs take the shorts' color) */
-  if (kRef > 0.5 && vRB.w > 0.5 && vRegion < 0.5) { if (abs(vRB.y) > 0.05) { if (abs(vRB.y) - 0.05 < (kRef > 1.5 ? 0.80 : 0.34)) vRegion = 1.0; } else if (vK.y < 0.95) vRegion = 2.0; else if (vK.y < 1.37) vRegion = 1.0; }
+  if (kRef > 0.5 && vRB.w > 0.5 && vRegion < 0.5) { if (abs(vRB.y) > 0.05) { if (abs(vRB.y) - 0.05 < (kRef > 1.5 ? 0.80 : 0.34)) vRegion = 1.0; } else if (vK.y < 0.95) vRegion = 2.0; else if (vK.y < 1.392) vRegion = 1.0; }
   /* a tank top cut by formula, not by the mesh: armholes (ellipses at each shoulder) and a neckline (deeper in front),
      each with a band of the trim color, so the edges are smooth curves at any distance */
   if (vRB.w < 0.5 && vRegion < 0.5 && abs(vK.x) < 0.05 && vK.y > 1.365) discard;   // the top of the neck: inside the drawn head
@@ -617,8 +617,10 @@
     if (kTat > 1.5 && kTat < 3.5 && !rgt && at > 0.12 && at < 0.76) ink = max(ink, step(0.55, fract(sin(floor(at * 34.0) * 12.9 + floor((vK.y + vK.z) * 70.0) * 78.2) * 437.5)) * 0.9);
     if (kTat > 3.5 && rgt && at > 0.52 && at < 0.70) ink = step(0.35, fract(at * 26.0 + vK.y * 30.0)) * 0.8;
     rc = mix(rc, vec3(0.06, 0.07, 0.1), clamp(ink, 0.0, 1.0) * 0.55);
+    if (kTee > 0.5 && at < 0.27) rc = cTee;   // a T-shirt under the jersey: its sleeves
     if (kSlv > 0.5 && rgt && at > 0.24 && at < 0.77) rc = cSlv;   // a shooting sleeve, upper arm to wrist
   }
+  else if (vRegion < 0.5 && vRB.w > 0.5 && kTee > 0.5 && vK.y > 0.95 && vK.y < 1.392) rc = cTee;   // and its chest and shoulders, where the tank top is cut away
   else if (vRegion < 0.5 && kTat > 0.5 && abs(vK.y - 1.266) < 0.045) {
     float ax1 = abs(vK.x); bool rgt = vK.x < 0.0;
     float ink = 0.0;
@@ -644,7 +646,7 @@
   if (bot) rc *= mix(0.84, 1.0, smoothstep(0.86, 0.98, vK.y));
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit11';
+    m.customProgramCacheKey = () => 'pb-kit12';
     return m;
   }
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
@@ -787,7 +789,7 @@
     const big = d.pos === 'C' || d.pos === 'PF', bd = (h >> 4) % 8;   // builds: bigs run strong, guards run slim, most are regular
     return { build: big ? [null, null, 'strong', 'strong', 'big', null, 'strong', 'slim'][bd] : [null, null, null, 'slim', 'slim', null, 'strong', null][bd], hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
       beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7],
-      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 5, goggles: (h >> 27) % 23 === 0 ? 'black' : null };
+      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 5, goggles: (h >> 27) % 23 === 0 ? 'black' : null, tee: (h >> 13) % 11 === 0 ? ((h >> 7) % 2 ? '#f2f2f2' : '#111111') : null };
   }
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
@@ -800,7 +802,7 @@
     const d = p.d || p;
     const shorts = kit.shorts || new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, ref: kit.ref === true ? 1 : +kit.ref || 0, sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, ref: kit.ref === true ? 1 : +kit.ref || 0, tee: lk.tee === 'team' ? kit.c2 : lk.tee || null, sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
@@ -1616,9 +1618,9 @@
         add(new T.CylinderGeometry(0.55, 0.6, 2.4, 8), cx, 4.2, cz, '#2b2e36');
         add(new T.SphereGeometry(0.42, 8, 6), cx, 5.85, cz, PB.SKIN[(t * 4 + 1) % 6]); }
       const m = new T.Mesh(mergeGeo(parts), new T.MeshLambertMaterial({ vertexColors: true }));
-      if (real) { const ro = (rosters && rosters[t]) || [];
+      if (real) { const ro = (rosters && rosters[t]) || [], pg = new T.Group(); m.add(pg); m.userData.pl = pg;   // the reserves get up on a big play; the chairs and the coach stay put
         for (let i = 0; i < 5; i++) { const d = ro[i] || { id: 'bench' + t + i + (k.name || ''), last: 'B' + i, pos: ['PG', 'SG', 'SF', 'PF', 'C'][i], ht: 75 + i * 2, skin: (i * 3 + t * 2) % 6, num: 20 + i * 3 + t };
-          try { m.add(baked(d, k, 28.15, side * (15 + i * 2.1), -Math.PI / 2, true)); } catch (e) { console.warn('bench', e); } }
+          try { pg.add(baked(d, k, 28.15, side * (15 + i * 2.1), -Math.PI / 2, true)); } catch (e) { console.warn('bench', e); } }
         try { m.add(baked({ id: 'coach' + t + (k.name || ''), last: 'Coach', pos: 'SF', ht: 74, skin: (t * 4 + 1) % 6, look: { hair: t ? 'short' : 'buzz', hairColor: t ? '#17110d' : '#8d8d8d', beard: t ? null : 'stubble', face: 1 + t } },
           { c1: '#23262d', c2: '#23262d', alt: '#23262d', pat: 0, name: '', shorts: '#1b1d22', sock: '#15171a', shoe: '#111111', ref: 2 }, cx, cz, -Math.PI / 2, false)); } catch (e) { console.warn('coach', e); } }
       scene.add(m); benchMesh.push(m); parts = [];
@@ -1701,7 +1703,7 @@
     shockTick(dt);
     if (!G.replay) moveRefs(G, dt);
     benchT += dt;
-    benchMesh.forEach((m, t) => { if (benchJ[t] > 0) { benchJ[t] = Math.max(0, benchJ[t] - dt); m.position.y = Math.abs(Math.sin(benchT * 11 + t)) * 0.7 * Math.min(1, benchJ[t]); } else m.position.y = 0; });
+    benchMesh.forEach((m0, t) => { const m = m0.userData.pl || m0; if (benchJ[t] > 0) { benchJ[t] = Math.max(0, benchJ[t] - dt); m.position.y = Math.abs(Math.sin(benchT * 11 + t)) * 0.7 * Math.min(1, benchJ[t]); } else m.position.y = 0; });
     let si = 0;
     for (const [p, m] of meshes) {
       if (m.kind === 'skin') {
