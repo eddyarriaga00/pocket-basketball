@@ -519,6 +519,11 @@
     if (s.kind === 'dunk' || s.ft) return;
     for (const o of G.pl) {
       if (o.team === p.team || o.y < 0.3) continue;
+      /* what you see is what happens: a defender's hand on the ball on its way up is a block, every time */
+      if (u < 0.45 && !(s.seen && s.seen.includes(o))) { const H = R.hands(o);
+        if (H) for (const hd of [H.r, H.l]) if (hyp(hd.x - o.x, hd.z - o.z) < 4 && Math.hypot(hd.x - b.x, hd.y - b.y, hd.z - b.z) < 1.15) {
+          if (G.shotLog && G.shotLog.length) G.shotLog[G.shotLog.length - 1].made = false;
+          blockShot(o, p, { x: b.x, y: b.y, z: b.z }); tally('air block'); return; } }
       const reach = o.ht / 12 * 1.33 + o.y + 0.7;
       if (hyp(o.x - b.x, o.z - b.z) > 2 || b.y > reach) continue;
       const seen = s.seen || (s.seen = []);
