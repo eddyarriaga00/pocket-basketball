@@ -14,9 +14,9 @@ const GAMES = +(process.argv[2] || 2);
     await pg.waitForFunction(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().phase === 'live', null, { timeout: 90000 });
     const r = await pg.evaluate(() => {
       PB.Game.dbg.auto(true); const G = PB.Game.dbg.state(), bad = {}, note = (k, d) => { const e = bad[k] || (bad[k] = { n: 0, first: d }); e.n++; };
-      const air = new Map(), still = new Map(); let lastScore = [0, 0], held = 0, deadT = 0, n = 0, loose = 0, lastT = G.t;
+      const air = new Map(), still = new Map(); let lastFeed = '', blockBy = -1; let prevState = '', lastBlk = 0, blockT = -9, lastScore = [0, 0], held = 0, deadT = 0, n = 0, loose = 0, lastT = G.t;
       for (; n < 60000 && G.phase !== 'end'; n++) {
-        PB.Game.dbg.run(0.05);
+        PB.Game.dbg.run(0.05); PB.R.update(G, 0.05);   // the bones too: the ball leaves from the model's hands
         const bl = G.ball, t = +G.t.toFixed(1), q = G.q, ph = G.phase;
         if (![bl.x, bl.y, bl.z].every(Number.isFinite)) note('ball not a number', { t, q, st: bl.state });
         if (bl.y < -0.5) note('ball under the floor', { t, q, y: +bl.y.toFixed(1), st: bl.state });
@@ -31,6 +31,13 @@ const GAMES = +(process.argv[2] || 2);
           if (p.st.fgm > p.st.fga || p.st.tpm > p.st.tpa || p.st.ftm > p.st.fta) note('more makes than attempts', { t, who: p.name });
         }
         for (let i = 0; i < G.pl.length; i++) for (let j = i + 1; j < G.pl.length; j++) { const a = G.pl[i], c = G.pl[j]; if (ph === 'live' && a.y === 0 && c.y === 0 && Math.hypot(a.x - c.x, a.z - c.z) < 0.6) note('two players in one spot', { t, q, a: a.name, b: c.name }); }
+        /* a shot leaves from the hands, up high and in front: never from the knees, never from behind the shooter */
+        if (bl.state === 'shot' && prevState !== 'shot' && bl.sy !== undefined) { const sh = G.lastShot && G.lastShot.shooter;
+          if (sh) { const fwd = (bl.sx - sh.x) * Math.sin(sh.face) + (bl.sz - sh.z) * Math.cos(sh.face); if (bl.sy < sh.y + (sh.ht || 78) / 12 * 0.5) note('shot released low', { t, q, who: sh.name, y: +bl.sy.toFixed(1), py: +sh.y.toFixed(1) }); if (fwd < -0.6) note('shot released behind the shooter', { t, q, who: sh.name, fwd: +fwd.toFixed(1) }); } }
+        prevState = bl.state;
+        /* a blocked shot does not count */
+        { const top = (document.querySelector('#feed').firstChild || {}).textContent || ''; if (top !== lastFeed) { lastFeed = top; const m = /^(?:Chase-down block|Block) · (.+)$/.exec(top); if (m) { const who = G.pl.find(p => p.name === m[1]); if (who) { blockT = G.t; blockBy = who.team; } } }   // the play-by-play says who blocked it (the stat lines swap on a substitution)
+          const sc = G.score[0] > lastScore[0] ? 0 : G.score[1] > lastScore[1] ? 1 : -1; if (sc >= 0 && sc !== blockBy && G.t - blockT < 0.6) note('the blocked team scored right after the block', { t, q }); }
         if (G.score[0] < lastScore[0] || G.score[1] < lastScore[1]) note('score went down', { t, q }); if (G.score[0] - lastScore[0] > 4 || G.score[1] - lastScore[1] > 4) note('more than 4 points at once', { t, q, from: lastScore.join('-'), to: G.score.join('-') }); lastScore = G.score.slice();
         if (bl.state === 'held' && ph === 'live') { held += 0.05; if (bl.holder && held > 26) note('one hold over 26 s', { t, q, who: bl.holder.name }); if (!bl.holder) note('held by nobody', { t, q }); } else held = 0;
         if (bl.state === 'loose' && ph === 'live') { loose += 0.05; if (loose > 6) note('loose ball over 6 s', { t, q, x: +bl.x.toFixed(0), y: +bl.y.toFixed(1), z: +bl.z.toFixed(0) }); } else loose = 0;
