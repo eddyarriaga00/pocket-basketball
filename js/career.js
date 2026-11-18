@@ -1243,7 +1243,11 @@
   function lookEditor(me) {
     me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
     const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${String(me.look[k + 'Pick'] ?? me.look[k] ?? '') === String(v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
-    return row('build', 'Build') + row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('goggles', 'Goggles') + row('sleeve', 'Arm sleeve') + row('tee', 'Undershirt') + row('bicep', 'Bicep band') + row('socks', 'Socks') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + row('celeb', 'Signature celebration') + row('drib', 'Dribble style') + '<p class="fine">Your look on the floor from your next game.</p>';
+    const head = t => `<p class="kick lookh">${t}</p>`;   // the card is long: it reads in four parts
+    return head('Head') + row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('band', 'Headband') + row('goggles', 'Goggles')
+      + head('Body') + row('build', 'Build') + row('tat', 'Tattoos')
+      + head('Gear') + row('sleeve', 'Arm sleeve') + row('tee', 'Undershirt') + row('bicep', 'Bicep band') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('socks', 'Socks') + row('shoe', 'Shoes')
+      + head('Your game') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('drib', 'Dribble style') + row('celeb', 'Signature celebration') + '<p class="fine">Your look on the floor from your next game.</p>';
   }
   function badgeList() {
     return PB.BADGES.map(b => {
