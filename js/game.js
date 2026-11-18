@@ -431,7 +431,7 @@
     p.shoot = null;
     G.possN = (G.possN || 0) + 1;   // a shot ends team control: a long rebound may be taken in the backcourt
     const b = G.ball;
-    const hp = handPos(p);
+    const hp = b.state === 'held' && b.holder === p && p.pose !== 'windmill' ? { x: b.x, y: b.y, z: b.z } : handPos(p);   // from where the ball is: up and in front (ballStep keeps it there)
     let prob = baseProb(p, p.x, p.z, s.kind) * (s.js === 'quick' ? 0.97 : 1) * (s.fade ? 0.9 + 0.025 * bt(p, 'fade') : 1) * (s.kind === 'hook' ? 1 + 0.025 * bt(p, 'post') : 1);
     let timing = '';
     if (s.user) {
@@ -1663,6 +1663,13 @@
       const p = b.holder, hp = handPos(p);
       const H = R.hands && R.hands(p);
       if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : H ? 0 : 0.2); }
+      /* a shot goes up, in front of the shooter: the ball is never carried down by his knees or behind him on the way
+         (the hands lag the pose by a frame, and an arm may swing through a wind-up; a windmill is the one exception) */
+      if (p.shoot && p.pose !== 'windmill') { const fx = Math.sin(p.face), fz = Math.cos(p.face), ht = (p.ht || 78) / 12, k = Math.min(1, p.shoot.t / 0.12);
+        const cx = p.x + fx * 0.9, cz = p.z + fz * 0.9, cy = p.y + ht * 0.62;   // out in front at the chest, where a shot starts
+        b.x = cx + (b.x - cx) * k; b.z = cz + (b.z - cz) * k; b.y = cy + (b.y - cy) * k;
+        const fwd = (b.x - p.x) * fx + (b.z - p.z) * fz; if (fwd < 0.25) { b.x += fx * (0.25 - fwd); b.z += fz * (0.25 - fwd); }
+        if (b.y < p.y + ht * 0.5) b.y = p.y + ht * 0.5; }
       /* stuffed: a jumping defender's hand on the ball while the shooter still has it up in the air is a block too */
       if (p.shoot && p.shoot.kind !== 'dunk' && p.y > 0.4 && G.phase === 'live' && !G.drill) for (const o of G.pl) {
         if (o.team === p.team || o.y < 0.4) continue;

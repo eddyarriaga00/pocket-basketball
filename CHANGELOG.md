@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- A shot goes up, in front of the shooter: the ball is no longer carried down by his knees or behind him on the way
+  (hands a frame behind the pose, the dunk's wind-up), and it leaves from where you see it.
 - The game in numbers, after a stats app: the final screen has the score by quarter, a game-flow chart (who led,
   by how much, lead changes, times tied) and the two teams side by side on seven stats. The Log tab opens on your
   season: averages with their league rank and your points game by game.
