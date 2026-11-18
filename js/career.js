@@ -1214,7 +1214,7 @@
   const LET = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeAvg = v => LET[PB.clamp(Math.round(v), 0, 12)];
   const LOOK = {
-    hair: [['short', 'Short'], ['fade', 'Fade'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['cornrows', 'Cornrows'], ['locs', 'Locs'], ['bun', 'Bun'], ['mohawk', 'Mohawk'], ['curly', 'Curly'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['buzz', 'Buzz'], ['bald', 'Bald']],
+    hair: [['short', 'Short'], ['fade', 'Fade'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['cornrows', 'Cornrows'], ['locs', 'Locs'], ['bun', 'Bun'], ['mohawk', 'Mohawk'], ['curly', 'Curly'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['braids', 'Braids'], ['spiky', 'Spiky'], ['buzz', 'Buzz'], ['bald', 'Bald']],
     face: [[null, 'Classic'], ['1', 'Focused'], ['2', 'Bright'], ['3', 'Calm'], ['4', 'Bold']],
     build: [[null, 'Regular'], ['slim', 'Slim'], ['strong', 'Strong'], ['big', 'Big']],
     hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver'], ['#2f6bd8', 'Blue'], ['#e0489a', 'Pink'], ['#2fa56b', 'Green']],
@@ -1222,7 +1222,7 @@
     sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],
     tee: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     shoe: [[null, 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#e63946', 'Red'], ['#ffd23f', 'Gold']],
-    beard: [[null, 'None'], ['stubble', 'Stubble'], ['goatee', 'Goatee'], ['full', 'Beard']],
+    beard: [[null, 'None'], ['stubble', 'Stubble'], ['goatee', 'Goatee'], ['full', 'Beard'], ['mustache', 'Mustache'], ['chinstrap', 'Chinstrap']],
     jumper: [[null, 'Standard'], ['quick', 'Quick'], ['high', 'High']],
     wrist: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     legs: [[null, 'None'], ['one', 'Leg sleeve'], ['both', 'Both legs'], ['pads', 'Knee pads'], ['tights', 'Tights']],

@@ -186,6 +186,11 @@ part('hair_curly', 5, 14, [cap('h14', 1.05, 1.045), back('h14b', 0.074)] + [hb(x
      + [hb(_m.sin(a) * 0.118, _m.cos(a) * 0.118 + 0.02, 0.045, 0.030, 0.030, 0.032, 'cs') for a in [_m.radians(d) for d in range(60, 301, 24)]])
 part('hair_ponytail', 5, 15, [cap('h15', 1.07, 1.06), back('h15b'), loft('tail', capped([(hv(0, 0.118, 0.070), 0.040 * HS, 0.040 * HS), (hv(0, 0.185, 0.045), 0.036 * HS, 0.036 * HS), (hv(0, 0.222, -0.040), 0.028 * HS, 0.028 * HS), (hv(0, 0.214, -0.135), 0.014 * HS, 0.014 * HS)]), X, Z, seg=12)])
 part('hair_long', 5, 22, [cap('h22', 1.08, 1.07), back('h22b', 0.084)] + [loft('lg', capped([(hv(_m.sin(a) * 0.126, _m.cos(a) * 0.132 + 0.012, 0.080), 0.030 * HS, 0.026 * HS), (hv(_m.sin(a) * 0.140, _m.cos(a) * 0.146 + 0.016, -0.040), 0.030 * HS, 0.024 * HS), (hv(_m.sin(a) * 0.142, _m.cos(a) * 0.150 + 0.020, -0.150), 0.022 * HS, 0.018 * HS)]), X, Y, seg=8) for a in [_m.radians(d) for d in range(-118, 119, 14)]])
+# past 31 the variant number spills into the blue channel: spiky hair, long braids, a mustache, a chinstrap
+part('hair_spiky', 5, 34, [cap('h34', 1.04, 1.035), back('h34b', 0.070)] + [loft('sp', capped([(hv(x, y, skz(y, x) + 0.030), 0.024 * HS, 0.024 * HS), (hv(x * 1.10, y * 1.10 - 0.006, skz(y, x) + 0.075), 0.014 * HS, 0.014 * HS), (hv(x * 1.18, y * 1.18 - 0.012, skz(y, x) + 0.112), 0.004 * HS, 0.004 * HS)]), X, Y, seg=8) for x in (-0.085, -0.043, 0, 0.043, 0.085) for y in (-0.085, -0.040, 0.005, 0.050, 0.095) if (x / 0.12) ** 2 + (y / 0.125) ** 2 < 1.0])
+part('hair_braids', 5, 35, [cap('h35', 1.06, 1.05), back('h35b')] + [loft('br', capped([(hv(_m.sin(a) * 0.126, _m.cos(a) * 0.132 + 0.012, 0.070), 0.013 * HS, 0.013 * HS), (hv(_m.sin(a) * 0.142, _m.cos(a) * 0.148 + 0.016, -0.040), 0.012 * HS, 0.012 * HS), (hv(_m.sin(a) * 0.146, _m.cos(a) * 0.152 + 0.020, -0.150), 0.011 * HS, 0.011 * HS), (hv(_m.sin(a) * 0.150, _m.cos(a) * 0.150 + 0.024, -0.235), 0.008 * HS, 0.008 * HS)]), X, Y, seg=8) for a in [_m.radians(d) for d in range(-116, 117, 13)]])
+part('beard_mustache', 5, 32, [loft('b32', capped([(hv(-0.046, -0.119, -0.070), 0.007 * HS, 0.007 * HS), (hv(-0.022, -0.131, -0.060), 0.010 * HS, 0.009 * HS), (hv(0, -0.135, -0.058), 0.010 * HS, 0.009 * HS), (hv(0.022, -0.131, -0.060), 0.010 * HS, 0.009 * HS), (hv(0.046, -0.119, -0.070), 0.007 * HS, 0.007 * HS)]), Y, Z, seg=8)])
+part('beard_chinstrap', 5, 33, [loft('b33', [(hv(0, -0.005, z), rx * HS * 1.03, ry * HS * 1.03) for z, rx, ry in PROFILE[:2]] + [(hv(0, -0.002, -0.112), 0.104 * HS, 0.110 * HS)], X, Y, seg=40, power=2.35)])
 part('beard_stubble', 5, 11, [loft('b11', [(hv(0, -0.004, z), rx * HS * 1.025, ry * HS * 1.025) for z, rx, ry in PROFILE[:3]] + [(hv(0, 0.004, -0.070), 0.126 * HS, 0.130 * HS)], X, Y, seg=40, power=2.35)])
 part('beard_goatee', 5, 12, [hb(0, -0.090, -0.128, 0.040, 0.034, 0.030, 'b12'), loft('b12m', capped([(hv(-0.040, -0.122, -0.066), 0.007 * HS, 0.006 * HS), (hv(0, -0.134, -0.060), 0.008 * HS, 0.007 * HS), (hv(0.040, -0.122, -0.066), 0.007 * HS, 0.006 * HS)]), Y, Z, seg=8)])
 part('beard_full', 5, 13, [loft('b13', [(hv(0, -0.006, z), rx * HS * 1.06, ry * HS * 1.06) for z, rx, ry in PROFILE[:3]] + [(hv(0, 0.000, -0.064), 0.129 * HS, 0.130 * HS)], X, Y, seg=40, power=2.35)]
@@ -205,9 +210,9 @@ part('shut', 7, 31, [loft('lid', capped([(hv(sg * 0.052 - 0.020, -0.131, -0.010)
 part('band', 5, 24, [loft('band', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((0.034, 1.0), (0.040, 1.045), (0.078, 1.045), (0.084, 1.0))], X, Y, seg=40, power=2.35)])
 part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'lens') for sg in (1, -1)] + [loft('strap', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((-0.014, 1.0), (-0.010, 1.03), (0.008, 1.03), (0.012, 1.0))], X, Y, seg=40, power=2.35)])
 
-B0 = {'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
-V0 = {'hair_twists': 0.0055, 'hair_rows': 0.005, 'hair_curly': 0.0055, 'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
-S0 = {'hair_twists': 1, 'hair_rows': 1, 'hair_curly': 1, 'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
+B0 = {'hair_spiky': 1600, 'hair_braids': 1700, 'beard_mustache': 160, 'beard_chinstrap': 500, 'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
+V0 = {'hair_spiky': 0.0055, 'hair_braids': 0.0045, 'beard_mustache': 0.004, 'hair_twists': 0.0055, 'hair_rows': 0.005, 'hair_curly': 0.0055, 'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
+S0 = {'hair_spiky': 1, 'hair_braids': 1, 'beard_mustache': 1, 'hair_twists': 1, 'hair_rows': 1, 'hair_curly': 1, 'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
 part('yell', 7, 23, [hb(0, -0.127, -0.093, 0.021, 0.010, 0.019, 'yell')])   # an open mouth for a shout: it covers the small one
 kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') or g.startswith('eyes') or g in ('shut', 'yell') else 'glint' if g.startswith('glint') else g
 BUDGET = lambda g: B0.get(g) or {'hair': 800, 'face': 420, 'glint': 60}[kind(g)]
@@ -246,7 +251,7 @@ for g, objs in G.items():
             co = o.data.vertices[o.data.loops[li].vertex_index].co   # under the jersey, the hips and upper thighs under the shorts
             if abs(co.x) < 0.215 and hz - 0.20 < co.z < shz - 0.11: r = 2 if co.z < hz + 0.02 else 1
             elif co.z < hz and pz[li] > CUT and abs(co.x) < 0.26: r = 2
-        d.color = (r / 8.0, VAR.get(g, 0) / 32.0, 0.0, 1.0)
+        d.color = (r / 8.0, (VAR.get(g, 0) % 32) / 32.0, (VAR.get(g, 0) // 32) / 8.0, 1.0)   # the variant: green is its low five bits, blue the rest
     mat = bpy.data.materials.new('M_' + g); mat.diffuse_color = {0: (0.62, 0.42, 0.30, 1), 1: (0.93, 0.93, 0.95, 1), 2: (0.10, 0.10, 0.12, 1), 3: (0.95, 0.95, 0.96, 1), 4: (0.85, 0.85, 0.87, 1), 5: (0.06, 0.05, 0.05, 1), 6: (0.97, 0.97, 0.97, 1), 7: (0.05, 0.04, 0.04, 1)}[REGION[g]]
     o['show'] = 1 if g in SHOW else 0
     o.data.materials.append(mat)

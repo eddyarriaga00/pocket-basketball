@@ -475,7 +475,7 @@
         if (D === A) { const r = reg[i]; for (let c = 0; c < 4; c++) D.RA.push(r === c ? 1 : 0); D.RB.push(r === 4 ? 1 : 0, r === 0 ? armT(i, w) : 0, 0, 1); D.KP.push(w.x / H, (w.y - box.min.y) / H, w.z / H); }
         else D.KC.push(reg[i] - 5);
         return k; };
-      for (let t = 0; t < ix.length; t += 3) { const D = reg[ix[t]] >= 5 ? F : A; D.IX.push(push(D, ix[t]), push(D, ix[t + 1]), push(D, ix[t + 2])); if (D === F) F.TV.push(Math.round(col.getY(ix[t]) * 32)); }   // which hairstyle, beard, face or accessory a triangle belongs to
+      for (let t = 0; t < ix.length; t += 3) { const D = reg[ix[t]] >= 5 ? F : A; D.IX.push(push(D, ix[t]), push(D, ix[t + 1]), push(D, ix[t + 2])); if (D === F) F.TV.push(Math.round(col.getY(ix[t]) * 32) + 32 * Math.round(col.getZ(ix[t]) * 8)); }   // which hairstyle, beard, face or accessory a triangle belongs to
       const mk = D => { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(D.P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(D.N, 3));
         g.setAttribute('skinIndex', new T.Uint16BufferAttribute(D.SI, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(D.SW, 4)); g.setIndex(D.IX); g.userData.shared = true; return g; };
       const body = mk(A); body.setAttribute('rA', new T.Float32BufferAttribute(A.RA, 4)); body.setAttribute('rB', new T.Float32BufferAttribute(A.RB, 4)); body.setAttribute('kpos', new T.Float32BufferAttribute(A.KP, 3));
@@ -779,7 +779,7 @@
     for (const sx of [-1, 1]) { const ex = sx * R * 0.37, ey = R * 0.02, ez = surfZ(R, ex, ey); blink.push(prep(new T.SphereGeometry(R * 0.215 * F.eye, 12, 8), 1, 1.1, 0.82, ex, ey, ez + R * 0.01)); }
     return { skin: merge(skin, false), face: merge(face, true), blink: merge(blink, false) };
   }
-    const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short', 'twists', 'short', 'fade', 'fade', 'cornrows', 'bun', 'locs', 'fade', 'mohawk', 'curly', 'curly', 'ponytail', 'long'];
+    const HAIRS = ['short', 'short', 'high', 'afro', 'buzz', 'bald', 'buzz', 'short', 'twists', 'short', 'fade', 'fade', 'cornrows', 'bun', 'locs', 'fade', 'mohawk', 'curly', 'curly', 'ponytail', 'long', 'braids', 'spiky'];
   const HAIRC = ['#17110d', '#17110d', '#2b1d12', '#17110d', '#4a3020', '#c9a46a', '#17110d', '#6b4a2b'];
   function autoLook(d) {
     let h = 0; const id = String(d.id || d.last || 'x'); for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
@@ -787,11 +787,12 @@
     let hair = HAIRS[h % HAIRS.length], hairColor = HAIRC[(h >> 3) % HAIRC.length];
     if (sk >= 3 && hairColor !== '#17110d' && hairColor !== '#2b1d12') hairColor = '#17110d';   /* blond and light brown on fair skin only */
     if (sk <= 1 && (hair === 'afro' || hair === 'twists' || hair === 'cornrows' || hair === 'locs')) hair = 'short';
-    if (sk >= 4 && (hair === 'long' || hair === 'ponytail')) hair = 'curly';
+    if (sk >= 4 && (hair === 'long' || hair === 'ponytail' || hair === 'spiky')) hair = 'curly';
+    if (sk <= 1 && hair === 'braids') hair = 'spiky';
     if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
     const big = d.pos === 'C' || d.pos === 'PF', bd = (h >> 4) % 8;   // builds: bigs run strong, guards run slim, most are regular
     return { build: big ? [null, null, 'strong', 'strong', 'big', null, 'strong', 'slim'][bd] : [null, null, null, 'slim', 'slim', null, 'strong', null][bd], hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
-      beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7],
+      beard: [null, null, null, 'full', 'stubble', 'goatee', null, null, 'mustache', 'chinstrap', null][(h >> 12) % 11],
       wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 5, goggles: (h >> 27) % 23 === 0 ? 'black' : null, tee: (h >> 13) % 11 === 0 ? ((h >> 7) % 2 ? '#f2f2f2' : '#111111') : null };
   }
   function skinnedPlayer(p, kit) {
@@ -828,7 +829,7 @@
       if (bodyMesh && TPL.model && TPL.faceGeo && !PB.mannequin) {
         /* the model's hair, beard, face, headband and goggles: the parts this player's look asks for, in his colors */
         const dd = p.d || p, lk = dd.look || autoLook(dd), F0 = TPL.faceGeo, tv = F0.userData.tv;
-        const HV = { short: 1, buzz: 2, high: 3, afro: 4, twists: 5, fade: 6, cornrows: 7, bun: 8, mohawk: 9, locs: 10, curly: 14, ponytail: 15, long: 22 }, BV = { stubble: 11, goatee: 12, full: 13 };
+        const HV = { short: 1, buzz: 2, high: 3, afro: 4, twists: 5, fade: 6, cornrows: 7, bun: 8, mohawk: 9, locs: 10, curly: 14, ponytail: 15, long: 22, spiky: 34, braids: 35 }, BV = { stubble: 11, goatee: 12, full: 13, mustache: 32, chinstrap: 33 };
         const base = [HV[lk.hair] || 0, lk.hair === 'cornrows' ? 21 : 0, BV[lk.beard] || 0, 26 + (+lk.face || 0), lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean);
         const setOf = want => { const key = want.join(','); let ixs = F0.userData.sets[key];
           if (!ixs) { const src = F0.index.array, out = []; for (let t = 0; t < tv.length; t++) if (want.includes(tv[t])) out.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]); ixs = F0.userData.sets[key] = F0.attributes.position.count > 65535 ? new T.Uint32BufferAttribute(out, 1) : new T.Uint16BufferAttribute(out, 1); }
