@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Small things from the big game: a broadcast graphic with a scorer's line when he reaches ten, twenty, thirty (or
+  his third three); "Heating up" after three straight makes and "On fire" after five; the backboards light red at a
+  horn or a shot-clock violation; cameras flash in the stands after a big play; the man bringing the ball up raises
+  a hand to call the set as he crosses half court.
 - The dunk has a wind-up: the ball cocked back behind the head on the way up, thrown down through the rim, knees
   tucked. Runners lean into it: forward as they take off, back as they stop, banked into a cut.
 - Tap anyone on the Team tab for his card: a sheet with the player standing in his uniform, his ratings by group and

@@ -86,7 +86,19 @@
   /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
   let boardMsg = null;
   R.board = (text, secs) => { boardMsg = { text, t: secs || 3 }; };   // the scoreboard shows a message for a few seconds
-  R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk) shake = Math.max(shake, shk); };
+  R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk) shake = Math.max(shake, shk); if ((power || 1) >= 0.9) camFlash = Math.max(camFlash, 0.9 * (power || 1)); };
+  /* small things an arena does: the backboards light red at a horn; cameras flash in the stands after a big play */
+  const leds = []; let hornT = 0, camFlash = 0, flashPts = null;
+  R.horn = sec => { hornT = Math.max(hornT, sec || 1.5); };
+  function arenaBits(dt) {
+    if (hornT > 0 || (leds[0] && leds[0].material.opacity > 0)) { hornT = Math.max(0, hornT - dt); for (const l of leds) l.material.opacity = hornT > 0 ? 0.9 : 0; }
+    if (!flashPts && T.Points) { const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(new Float32Array(14 * 3), 3));
+      flashPts = new T.Points(g, new T.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending })); flashPts.frustumCulled = false; scene.add(flashPts); }
+    if (flashPts) { if (camFlash > 0) { camFlash = Math.max(0, camFlash - dt); const a = flashPts.geometry.attributes.position;
+        for (let i = 0; i < a.count; i++) { if (Math.random() < 0.35) { const side = Math.random() < 0.5, sg = Math.random() < 0.5 ? 1 : -1, u = Math.random() * 2 - 1, up = 7 + Math.random() * 16;
+          if (side) a.setXYZ(i, sg * (33 + up * 0.9), up, u * 55); else a.setXYZ(i, u * 34, up, sg * (54 + up * 0.9)); } else if (Math.random() < 0.5) a.setY(i, -50); }
+        a.needsUpdate = true; flashPts.material.opacity = Math.min(1, camFlash * 2); } else if (flashPts.material.opacity > 0) flashPts.material.opacity = 0; }
+  }
   let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [], tkoBeam = null, tkoSparks = null;
 
   const PX = 20;  // court texture pixels per foot
@@ -204,6 +216,10 @@
       new T.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.8 }));
     net.position.set(0, 9.25, s * 41.75); g.add(net);
     nets.push({ mesh: net, s, swish: 0 });
+    /* the red light round the backboard: on at the horn */
+    { const lm = new T.MeshBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0, depthWrite: false }), led = new T.Group(); led.material = lm;
+      for (const [w, h, x, y] of [[6.3, 0.16, 0, 1.83], [6.3, 0.16, 0, -1.83], [0.16, 3.82, 3.07, 0], [0.16, 3.82, -3.07, 0]]) { const e = new T.Mesh(new T.BoxGeometry(w, h, 0.14), lm); e.position.set(x, y, 0); led.add(e); }
+      led.position.set(0, 11.25, s * 43); g.add(led); leds.push(led); }
     return g;
   }
 
@@ -1122,6 +1138,7 @@
       if (m.lay && (pose === 'shoot' || pose === 'follow')) { const e = pose === 'follow' ? 1 : smooth(0, 1, kk), L = (a, b) => a.map((v, j) => v + (b[j] - v) * e);
         P = m.lay === 2 ? [L([0.9, -0.1, 0.3], [0.35, 0.93, 0.1]), L([0.85, 0.3, 0.3], [0.15, 0.98, 0.1]), [0.6, -0.1, 0.7], [-0.2, 0.25, 0.9]]
           : [L([0.25, -0.2, 0.9], [0.12, 0.93, 0.34]), L([0.1, 0.55, 0.8], [0.06, 0.98, 0.2]), [0.6, -0.5, 0.5], [-0.35, 0.3, 0.85]]; } }
+    if (pose === 'dribble' && p.sigT !== undefined && G.t - p.sigT < 1.3 && !(ms < 1)) { const e = Math.sin(Math.PI * Math.min(1, (G.t - p.sigT) / 1.3)); const L = (a, b) => a.map((v, j) => v + (b[j] - v) * Math.min(1, e * 1.6)); P = [P[0], P[1], L(P[2], [0.3, 0.86, 0.35]), L(P[3], [0.12, 0.97, 0.2])]; }   // calling the set: the off hand goes up
     /* at a run the ball is pushed out in front at the waist, not carried up by the shoulder */
     if (pose === 'dribble' && p.runD > 0.05) { const e = 0.7 * p.runD, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], [0.1, -0.88, 0.45]), L(P[1], [0.2, -0.5, 0.84]), [0.3, -0.75, -0.2 + 0.5 * Math.sin(kk * 6.28)], [0.1, -0.3, 0.9]]; }
     if (pose === 'guard' && m.gd < 0.98) { const R0 = [[0.42, -0.8, 0.42], [0.4, -0.3, 0.86]], e = 1 - m.gd, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], R0[0]), L(P[1], R0[1]), L(P[2], R0[0]), L(P[3], R0[1])]; }
@@ -1590,6 +1607,7 @@
       if (manTarget) { manRing.position.x = manTarget.x; manRing.position.z = manTarget.z; }
       if (flashT > 0 && G.user) { flashT -= dt; const k = 1 - flashT / 0.6; flash.position.x = G.user.x; flash.position.z = G.user.z; flash.scale.setScalar(1 + k * 1.2); flash.material.opacity = 0.85 * (1 - k); } else flash.material.opacity = 0;
     }
+    arenaBits(dt);
     if (hype > 0) { hype = Math.max(0, hype - dt); const j = Math.abs(Math.sin(G.t * 14)) * 0.035 * Math.min(1, hype); for (const m of crowdMaps) m.offset.y = j; }
     /* a glowing trail behind the ball on your shots */
     if (!trail) {

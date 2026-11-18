@@ -668,7 +668,11 @@
       if (home(p.team) || s.kind === 'dunk') R.hype(s.kind === 'dunk' ? 1.4 : s.pts === 3 ? 1 : 0.6, s.kind === 'dunk' ? 0.9 : 0); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.pts === 3 ? 0.8 : 0.5);
       if (s.foul) { AU().crowd.react('roar', 1.1); }
       /* the call: a buzzer-beater, a hot hand, an and-one, or the shot itself */
-      if (p.isUser) { G.streak = (G.streak || 0) + 1; if (tkoOn()) G.tko.miss = 0; }
+      if (p.isUser) { G.streak = (G.streak || 0) + 1; if (tkoOn()) G.tko.miss = 0;
+        if (G.streak === 3) setTimeout(() => toast('Heating up', 'make'), 900); else if (G.streak === 5) setTimeout(() => toast('On fire', 'make'), 900); }
+      /* the broadcast's graphic: a scorer's line when he reaches ten, twenty, thirty... or his third three */
+      { const full = p.st.pts * 12 / (G.qlen || 3), was = (p.st.pts - s.pts) * 12 / (G.qlen || 3), step = Math.floor(full / 10);
+        if (!G.drill && ((step > Math.floor(was / 10) && step >= 1) || (s.pts === 3 && p.st.tpm === 3))) statPop(p, s.pts === 3 && p.st.tpm === 3 && !(step > Math.floor(was / 10)) ? `${p.st.tpm} threes` : null); }
       const run = G.run && G.run.team === p.team ? G.run : (G.run = { team: p.team, pts: 0, said: false });
       run.pts += s.pts;
       if ((s.kind === 'dunk' || s.pts === 3) && home(p.team) && R.board) R.board(s.kind === 'dunk' ? 'SLAM!' : 'SPLASH!', 2.2);
@@ -1255,6 +1259,13 @@
     if (mv) return mv === 'cross' || mv === 'legs' || mv === 'hesi' ? 1 : 0;
     return ((d.x - h.x) * -Math.cos(h.face) + (d.z - h.z) * Math.sin(h.face)) * (h.dribHand || 1) > 0.6 ? 0.6 : 0;
   }
+  /* a lower-third for a player having a night: his team's color, his name, his line */
+  function statPop(p, lead) {
+    const e = $('#statpop'); if (!e) return;
+    const t = G.teams[p.team], st = p.st;
+    e.innerHTML = `<i style="background:${t.c1}"></i><div><b>${p.num !== undefined ? '#' + p.num + ' ' : ''}${p.name}</b><span>${lead ? lead + ' · ' : ''}${st.pts} PTS · ${st.fgm}/${st.fga} FG${st.tpa ? ` · ${st.tpm}/${st.tpa} 3PT` : ''}${st.ast >= 3 ? ` · ${st.ast} AST` : ''}</span></div>`;
+    e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 3600);
+  }
   function handsUp(u) {
     if (u.y > 0) return;
     const sh = G.pl.find(o => o.team !== u.team && o.shoot && o.shoot.kind !== 'dunk');
@@ -1463,7 +1474,7 @@
       /* the clock is running down on you: say so, once a possession */
       if (G.shotClock < 6 && G.shotClock > 0 && b.holder && b.holder.isUser && !b.holder.shoot && G.scWarn !== G.possN && !G.auto && !G.drill) { G.scWarn = G.possN; toast('Shot clock: shoot or pass', 'opp'); buzz([20, 40, 20]); }
       if (G.shotClock <= 0 && (b.state === 'held' || b.state === 'pass')) {
-        const t = G.poss; toast('SHOT CLOCK', 'opp'); AU().play('buzzer'); AU().play('whistle', { delay: 0.5 }); B('shotclock', { prio: 3 });
+        const t = G.poss; toast('SHOT CLOCK', 'opp'); AU().play('buzzer'); if (R.horn) R.horn(1.2); AU().play('whistle', { delay: 0.5 }); B('shotclock', { prio: 3 });
         turnover(b.holder || b.from, 'Shot clock violation', 1 - t);
       }
       if (violations(dt)) return;
@@ -1491,6 +1502,7 @@
         const rate = (1 + 0.28 * p.prot - 0.2 * p.runD) * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1);
         p.dph = (p.dph === undefined ? G.t * 7.4 : p.dph) + dt * 7.4 * rate;
         if (p.handCd > 0) p.handCd -= dt;
+        if (G.sigN !== G.possN && Math.abs(p.z) < 7 && spd > 3 && tight < 0.3 && G.phase === 'live' && !G.drill) { G.sigN = G.possN; p.sigT = G.t; }   // calling the set: a hand up as he crosses half court
         const busy = p.mv && G.t - p.mv.t0 < p.mv.T + 0.15;
         if (nd.who && nd.d < 5 && !busy && !(p.handCd > 0) && !(p.move > 0) && !(p.postUp > 0)) {
           const fx = Math.sin(p.face), fz = Math.cos(p.face), side = (nd.who.x - p.x) * -fz + (nd.who.z - p.z) * fx;   // > 0: he is on my right
@@ -1762,7 +1774,7 @@
       /* the final horn: a moment on the floor first, the winners celebrating, the losers hands on knees */
       if (g.drill) { finish(); return; }
       g.phase = 'buzzer'; g.buzzT = 2.8; g.buzzed = true;
-      AU().play('horn', { len: 2 }); AU().crowd.react(g.score[g.home] > g.score[1 - g.home] ? 'roar' : 'applause', 1);
+      AU().play('horn', { len: 2 }); if (R.horn) R.horn(2.2); AU().crowd.react(g.score[g.home] > g.score[1 - g.home] ? 'roar' : 'applause', 1);
       const w = g.score[0] > g.score[1] ? 0 : 1, kinds = ['celebrate', 'flex', 'roar', 'three', 'point', 'chest'];
       for (const p of g.pl) { p.shoot = null; p.drive = 0; p.vx *= 0.3; p.vz *= 0.3; p.pose = p.team === w ? (p.d && p.d.look && p.d.look.celeb) || kinds[Math.floor(rand() * kinds.length)] : 'sad'; }
       if (R.benchJump) R.benchJump(w);
@@ -1771,7 +1783,7 @@
     g.q++;
     g.clock = g.q > 4 ? Math.max(60, g.qlen * 60 * 5 / 12) : g.qlen * 60;
     toast(g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, '');
-    AU().play('horn'); AU().crowd.react('applause', 0.7);
+    AU().play('horn'); if (R.horn) R.horn(1.6); AU().crowd.react('applause', 0.7);
     setTimeout(() => AU().organ && AU().organ(g.q === 3 ? 'walk' : 'letsgo'), 2200);
     setTimeout(() => B(g.q === 3 ? 'half' : g.q > 4 ? 'ot' : 'end_q', { prio: 3, follow: g.q === 3 ? 0.6 : 0 }), 900);
     if (g.q === 3 && !g.drill) halftime();
@@ -1807,7 +1819,7 @@
   function finish() {
     G.phase = 'end';
     cancelAnimationFrame(raf);
-    if (!G.buzzed) { AU().play('horn', { len: 2 }); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1); }
+    if (!G.buzzed) { AU().play('horn', { len: 2 }); if (R.horn) R.horn(2.2); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1); }
     if (AU().pulse) AU().pulse(false);
     if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
     const box = G.played ? G.playedBy.map((x, i) => ({ d: x.d, team: x.team, st: G.played[i], user: !!(G.user && x.d === G.user.d) })) : G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
