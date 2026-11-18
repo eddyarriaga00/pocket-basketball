@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal' }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake' }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   /* careers: up to six kept on this device, one of them current. A career saved by an older build (one slot) moves
@@ -327,7 +327,8 @@
       ${opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')}</div>
       <p class="kick">Controls</p><div class="card set">
       ${opt('hand', ['Right-handed', 'Left-handed'], 'Buttons')}
-      ${opt('btnSize', ['Normal', 'Large'], 'Button size')}</div>
+      ${opt('btnSize', ['Normal', 'Large'], 'Button size')}
+      ${opt('tapShoot', ['Pump fake', 'Shoot'], 'A quick tap on Shoot', 'a fake, or the shot let go at once')}</div>
       <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>
       <p class="fine">Settings are kept on this device.</p></div>`);
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();

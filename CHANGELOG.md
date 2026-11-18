@@ -14,7 +14,8 @@ What changed, newest first. The full list is the git log; the order of work is [
   jar, a terrible car commercial ...), none repeated until you have seen the rest, and five more questions from the
   press (a triple-double, a game that came down to the last possession, a rout, a night of defense, a night of assists).
   The fans online have more to say after a game, and your rival's posts depend on who has been winning.
-- The first few pump fakes say what happened ("hold Shoot to shoot"), for anyone who taps the button to shoot.
+- The first few pump fakes say what happened ("hold Shoot to shoot"), for anyone who taps the button to shoot. Settings › Controls
+  can make a quick tap shoot at once instead.
 - A dunk is carried all the way to the rim: he arrives as the ball goes down, the hand at the iron (he used to let
   it go from two or three feet out). It pulls the rim down and lets it go: it springs back, the net with it. The
   rim shivers when a shot comes off the iron.

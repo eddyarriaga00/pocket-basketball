@@ -1322,7 +1322,7 @@
         { const h = G.ball.holder; if (h && h.team !== u.team && !h.shoot && h.fakeT !== undefined && G.t - h.fakeT < 0.5 && hyp(h.x - u.x, h.z - u.z) < 6) { toast('You bit on the fake', 'opp'); grade(-0.3, 'Bit on a pump fake'); } }
       }
     } else if (u.shoot && u.shoot.user) {
-      if (u.shoot.kind === 'jumper' && u.shoot.t < 0.14 && !G.drill && !(u.fakeCd > G.t)) pumpFake(u);   // a quick tap is a pump fake
+      if (u.shoot.kind === 'jumper' && u.shoot.t < 0.14 && !G.drill && !(u.fakeCd > G.t) && !(PB.settings && PB.settings.tapShoot === 'Shoot')) pumpFake(u);   // a quick tap is a pump fake
       else release(u, u.shoot.t / u.shoot.T);
     }
   }
