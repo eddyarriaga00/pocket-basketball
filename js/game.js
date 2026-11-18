@@ -2064,6 +2064,9 @@
     feed(`You sat from the ${from}: ${G.teams[0].ab || G.teams[0].id} ${G.score[0] - sc0[0]}, ${G.teams[1].ab || G.teams[1].id} ${G.score[1] - sc0[1]} while you rested`);
     feed(`You check back in · ${clockTxt()}`);
     checkIn(false);
+    /* the broadcast's card: when you are back, and what happened while you sat */
+    { const e = $('#statpop'), a = G.teams[0], c = G.teams[1]; if (e) { e.innerHTML = `<i style="background:${G.teams[G.user.team].c1}"></i><div><b>Back in · ${clockTxt()}</b><span>While you sat: ${a.ab || a.id} ${G.score[0] - sc0[0]}, ${c.ab || c.id} ${G.score[1] - sc0[1]} · now ${G.score[0]}-${G.score[1]}</span></div>`;
+      e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 4600); } }
   }
   /* simulate the rest of a game you leave early (or the minutes after your last stint) */
   function simRest() {
