@@ -1656,6 +1656,7 @@
         const h = b.holder && b.holder.team !== p.team ? b.holder : null, tgt = h && hyp(h.x - p.x, h.z - p.z) < 14 ? h : b;
         want = Math.atan2(tgt.x - p.x, tgt.z - p.z);
       }
+      else if ((p.pose === 'contest' || p.y > 0.3) && b.holder !== p && !p.shoot) want = Math.atan2(b.x - p.x, b.z - p.z);   // up for a block or a board: he faces the ball, whichever way he was drifting
       else if (sp > 2.5) want = Math.atan2(p.vx, p.vz);
       else want = Math.atan2(b.x - p.x, b.z - p.z);
       let da = want - p.face; while (da > Math.PI) da -= 6.2832; while (da < -Math.PI) da += 6.2832;
