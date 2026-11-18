@@ -1350,7 +1350,7 @@
       sc.add(new T.HemisphereLight(0xffffff, 0x303034, 1.15)); const k = new T.DirectionalLight(0xffffff, 0.85); k.position.set(3, 6, o.back ? -8 : 8); sc.add(k);
       const rim = new T.DirectionalLight(0xffffff, 0.35); rim.position.set(-4, 3, o.back ? 6 : -6); sc.add(rim);
       const p = { d: player, team: 0, slot: 0, r: player.r, ht: player.ht, num: player.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: 0, pose: '' };
-      const m = skinnedPlayer(p, PB.kit ? PB.kit(team, o.kit || 'icon') : { c1: team.c1, c2: team.c2, name: team.name });
+      const m = skinnedPlayer(p, o.kitObj || (PB.kit ? PB.kit(team, o.kit || 'icon') : { c1: team.c1, c2: team.c2, name: team.name }));
       sc.add(m.root); m.shadow.visible = false; if (o.yell && m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = true; if (o.yell && m.hg && m.hg.userData.faceM) m.hg.userData.faceM.geometry.setIndex(m.hg.userData.faceM.userData.yell); if (o.blink && m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = true;
       m.mixer.update(0.3); m.body.updateMatrixWorld(true); abduct(m, 0, ABD);
       const H = (player.ht || 78) / 12;

@@ -1294,7 +1294,10 @@
   function statPop(p, lead) {
     const e = $('#statpop'); if (!e) return;
     const t = G.teams[p.team], st = p.st;
-    e.innerHTML = `<i style="background:${t.c1}"></i><div><b>${p.num !== undefined ? '#' + p.num + ' ' : ''}${p.name}</b><span>${lead ? lead + ' · ' : ''}${st.pts} PTS · ${st.fgm}/${st.fga} FG${st.tpa ? ` · ${st.tpm}/${st.tpa} 3PT` : ''}${st.ast >= 3 ? ` · ${st.ast} AST` : ''}</span></div>`;
+    /* his face next to his line, drawn the first time he earns one and kept for the game */
+    let hd = '';
+    if (!(PB.settings && PB.settings.gfx === 'Low') && R.portrait && !PB.noGL) { const H = G.heads || (G.heads = {}); if (!(p.d.id in H)) { try { H[p.d.id] = R.portrait(p.d, t, 96, { close: true, kitObj: G.kits && G.kits[p.team] }) || ''; } catch (err) { H[p.d.id] = ''; } } hd = H[p.d.id]; }
+    e.innerHTML = `${hd ? `<img alt="" src="${hd}" style="background:${t.c1}">` : ''}<i style="background:${t.c1}"></i><div><b>${p.num !== undefined ? '#' + p.num + ' ' : ''}${p.name}</b><span>${lead ? lead + ' · ' : ''}${st.pts} PTS · ${st.fgm}/${st.fga} FG${st.tpa ? ` · ${st.tpm}/${st.tpa} 3PT` : ''}${st.ast >= 3 ? ` · ${st.ast} AST` : ''}</span></div>`;
     e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 3600);
   }
   function handsUp(u) {
