@@ -18,6 +18,7 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
     const far = SCENE === 'shot' || SCENE === 'contested' || SCENE === 'fake' || SCENE === 'pass' || SCENE === 'steal';
     u.x = 0; u.z = (far ? 22 : SCENE === 'dunk' ? 34 : 33) * hz; d.x = 0.5; d.z = u.z + 3.2 * hz; d.y = 0; m8.x = -16; m8.z = u.z - 6 * hz;
     if (SCENE === 'layup' || SCENE === 'dunk') { d.x = 30; u.vz = 12 * hz; if (SCENE === 'dunk') { u.r.dunk = 99; u.r.vert = 95; } }
+    if (SCENE === 'post') { u.d.pos = 'C'; u.x = 5; u.z = 32 * hz; d.x = 4; d.z = 34.6 * hz; }
     if (SCENE === 'hook') { u.d.pos = 'C'; u.x = 3; u.z = 33.5 * hz; d.x = 2.6; d.z = 36.3 * hz; u.face = Math.atan2(-3, 8 * hz); }
     if (SCENE === 'fade') { u.x = 0; u.z = 26 * hz; u.vz = -8 * hz; d.x = 0.4; d.z = 29 * hz; }
     if (SCENE === 'floater') { u.x = 0; u.z = 30.5 * hz; u.vz = 11 * hz; d.x = 0.5; d.z = 39 * hz; }
@@ -45,6 +46,7 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
       else if (SCENE === 'sizeup') { d.x = 0; d.z = u.z + 8 * hz; u.sizeN = 0.1; }
       else if (SCENE === 'steal') D.press('B'); else if (SCENE === 'jump') { D.press('A', true); D.press('A', false); }
       else if (SCENE === 'rebound') { /* he goes up on the next step */ }
+      else if (SCENE === 'post') { u.moveCd = 0; D.press('C', true, 'step', 0); }
       else if (SCENE === 'walk') D.stick(0, -0.45);
       else if (SCENE === 'run') D.stick(0, -1); else if (SCENE === 'slide') D.stick(1, 0); else if (SCENE === 'block') { G.ball.holder = d; d.face = Math.atan2(u.x - d.x, u.z - d.z); } }
     if (['shot', 'contested', 'layup', 'dunk', 'hook', 'fade', 'floater'].includes(SCENE) && u.shoot && u.shoot.t / u.shoot.T > 0.8) D.press('A', false);
