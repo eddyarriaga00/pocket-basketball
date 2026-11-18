@@ -7,7 +7,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A new player model, sculpted in Blender for this game (tools/body.py builds it; models/body.glb): tall and lean with
   longer legs, a tank jersey with a scoop neck, baggy shorts, crew socks, sneakers with a sole and a tongue, hands with
   fingers, and a smooth head with simple eyes and a cap of hair. Joints bend smoothly instead of hinging. It wears
-  every team's kit, numbers and names. For now every player shares the one hairstyle and face.
+  every team's kit, numbers and names.
+- The model is yours to change: ten hairstyles (or bald) in five colors, three beards, five faces, a headband,
+  goggles, and a build (slim, regular, strong, big). Heights run wider at every position (a 5'9" point guard to a 7'5"
+  center), and a seven-footer's head is no bigger than a guard's. Every player in the league gets a look of his own.
 
 ## 2026-11-17 · the pocket look
 

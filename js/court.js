@@ -456,7 +456,7 @@
       const g0 = src.geometry, p = g0.attributes.position, nr = g0.attributes.normal, col = g0.attributes.color, sj = g0.attributes.skinIndex, sw = g0.attributes.skinWeight, ix = g0.index.array;
       const map = src.skeleton.bones.map(b => Math.max(0, idxOf(b.name)));
       const Mx = m0.matrixWorld.clone().invert().multiply(src.matrixWorld), nm = new T.Matrix3().getNormalMatrix(Mx), Wm = src.matrixWorld, v = V3(), n = V3(), w = V3();
-      const A = { P: [], N: [], SI: [], SW: [], RA: [], RB: [], KP: [], IX: [], id: new Int32Array(p.count).fill(-1) }, F = { P: [], N: [], SI: [], SW: [], KC: [], IX: [], id: new Int32Array(p.count).fill(-1) };
+      const A = { P: [], N: [], SI: [], SW: [], RA: [], RB: [], KP: [], IX: [], id: new Int32Array(p.count).fill(-1) }, F = { P: [], N: [], SI: [], SW: [], KC: [], IX: [], TV: [], id: new Int32Array(p.count).fill(-1) };
       let top = -1e9, bot = 1e9; const reg = new Uint8Array(p.count);
       for (let i = 0; i < p.count; i++) { reg[i] = Math.round(col.getX(i) * 8); w.fromBufferAttribute(p, i).applyMatrix4(Wm); if (w.y > top) top = w.y; if (w.y < bot) bot = w.y; }
       const push = (D, i) => { if (D.id[i] >= 0) return D.id[i]; const k = D.P.length / 3; D.id[i] = k;
@@ -467,11 +467,11 @@
         if (D === A) { const r = reg[i]; for (let c = 0; c < 4; c++) D.RA.push(r === c ? 1 : 0); D.RB.push(r === 4 ? 1 : 0, 0, 0, 1); D.KP.push(w.x / H, (w.y - box.min.y) / H, w.z / H); }
         else D.KC.push(reg[i] - 5);
         return k; };
-      for (let t = 0; t < ix.length; t += 3) { const D = reg[ix[t]] >= 5 ? F : A; D.IX.push(push(D, ix[t]), push(D, ix[t + 1]), push(D, ix[t + 2])); }
+      for (let t = 0; t < ix.length; t += 3) { const D = reg[ix[t]] >= 5 ? F : A; D.IX.push(push(D, ix[t]), push(D, ix[t + 1]), push(D, ix[t + 2])); if (D === F) F.TV.push(Math.round(col.getY(ix[t]) * 32)); }   // which hairstyle, beard, face or accessory a triangle belongs to
       const mk = D => { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(D.P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(D.N, 3));
         g.setAttribute('skinIndex', new T.Uint16BufferAttribute(D.SI, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(D.SW, 4)); g.setIndex(D.IX); g.userData.shared = true; return g; };
       const body = mk(A); body.setAttribute('rA', new T.Float32BufferAttribute(A.RA, 4)); body.setAttribute('rB', new T.Float32BufferAttribute(A.RB, 4)); body.setAttribute('kpos', new T.Float32BufferAttribute(A.KP, 3));
-      const face = mk(F); face.setAttribute('kc', new T.Float32BufferAttribute(F.KC, 1));
+      const face = mk(F); face.setAttribute('kc', new T.Float32BufferAttribute(F.KC, 1)); face.userData.tv = F.TV; face.userData.sets = {};
       return { body, face, height: top - bot };
     }
     function simpleBody() {
@@ -766,7 +766,8 @@
     if (sk >= 3 && hairColor !== '#17110d' && hairColor !== '#2b1d12') hairColor = '#17110d';   /* blond and light brown on fair skin only */
     if (sk <= 1 && (hair === 'afro' || hair === 'twists' || hair === 'cornrows' || hair === 'locs')) hair = 'short';
     if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
-    return { hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
+    const big = d.pos === 'C' || d.pos === 'PF', bd = (h >> 4) % 8;   // builds: bigs run strong, guards run slim, most are regular
+    return { build: big ? [null, null, 'strong', 'strong', 'big', null, 'strong', 'slim'][bd] : [null, null, null, 'slim', 'slim', null, 'strong', null][bd], hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
       beard: [null, null, null, 'full', 'stubble', 'goatee', null][(h >> 12) % 7],
       wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 5, goggles: (h >> 27) % 23 === 0 ? 'black' : null };
   }
@@ -775,7 +776,7 @@
     const root = new T.Group(), body = A.SkeletonUtils.clone(TPL.scene);
     const sc = (p.ht || 78) / 12 / (TPL.Hs || TPL.H);
     /* builds: bigs carry more width, guards less */
-    const wide = ({ PG: 0.95, SG: 0.97, SF: 1.0, PF: 1.06, C: 1.11 }[(p.d || p).pos] || 1) * (TPL.model && !PB.mannequin ? 1.06 : 1);   // the model is tall and lean: a little more of him at game size
+    const bld = ((p.d || p).look || {}).build, wide = ({ PG: 0.95, SG: 0.97, SF: 1.0, PF: 1.06, C: 1.11 }[(p.d || p).pos] || 1) * (TPL.model && !PB.mannequin ? 1.06 : 1) * (bld === 'slim' ? 0.92 : bld === 'strong' ? 1.1 : bld === 'big' ? 1.2 : 1);   // the model is tall and lean: a little more of him at game size
     body.scale.set(sc * wide, sc, sc * wide);
     root.add(body);
     const d = p.d || p;
@@ -800,9 +801,20 @@
         if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; bodyMesh.parent.add(ol);
           ol.position.copy(bodyMesh.position); ol.quaternion.copy(bodyMesh.quaternion); ol.scale.copy(bodyMesh.scale); ol.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
       }
-      if (bodyMesh && TPL.model && TPL.faceGeo && !PB.mannequin) {   // the model's hair, the whites of its eyes, its brows, pupils and mouth
-        const fg = TPL.faceGeo.clone(), kc = fg.attributes.kc, fc = [new T.Color((((p.d || {}).look || {}).hairCol) || '#17110d'), new T.Color('#f4f4f4'), new T.Color('#141011')], cl = new Float32Array(kc.count * 3);
-        for (let i = 0; i < kc.count; i++) { const c = fc[Math.max(0, Math.min(2, kc.getX(i)))]; cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
+      if (bodyMesh && TPL.model && TPL.faceGeo && !PB.mannequin) {
+        /* the model's hair, beard, face, headband and goggles: the parts this player's look asks for, in his colors */
+        const dd = p.d || p, lk = dd.look || autoLook(dd), F0 = TPL.faceGeo, tv = F0.userData.tv;
+        const HV = { short: 1, buzz: 2, high: 3, afro: 4, twists: 5, fade: 6, cornrows: 7, bun: 8, mohawk: 9, locs: 10 }, BV = { stubble: 11, goatee: 12, full: 13 };
+        const want = [HV[lk.hair] || 0, BV[lk.beard] || 0, 16 + (+lk.face || 0), lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean), key = want.join(',');
+        let ixs = F0.userData.sets[key];
+        if (!ixs) { const src = F0.index.array, out = []; for (let t = 0; t < tv.length; t++) if (want.includes(tv[t])) out.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]); ixs = F0.userData.sets[key] = new T.Uint16BufferAttribute(out, 1); if (F0.attributes.position.count > 65535) ixs = F0.userData.sets[key] = new T.Uint32BufferAttribute(out, 1); }
+        const fg = new T.BufferGeometry(); for (const a of ['position', 'normal', 'skinIndex', 'skinWeight']) fg.setAttribute(a, F0.attributes[a]); fg.setIndex(ixs);
+        const team = kit.c1, pick = v => v === 'team' ? team : v, hairC = new T.Color(lk.hairColor || '#17110d'), skinC = new T.Color(PB.SKIN[dd.skin == null ? 3 : dd.skin] || '#8d5a3b');
+        const cOf = { 11: hairC.clone().lerp(skinC, 0.55), 24: new T.Color(pick(lk.band) || '#f2f2f2'), 25: new T.Color(lk.goggles === 'team' ? team : /^#/.test(lk.goggles || '') ? lk.goggles : '#141414') }, white = new T.Color('#f4f4f4'), dark = new T.Color('#141011');
+        /* a color a vertex: by the part it belongs to (its triangles' variant), else by its layer */
+        const kc = F0.attributes.kc, vv = new Uint8Array(kc.count), src = F0.index.array; for (let t = 0; t < tv.length; t++) { vv[src[t * 3]] = tv[t]; vv[src[t * 3 + 1]] = tv[t]; vv[src[t * 3 + 2]] = tv[t]; }
+        const cl = new Float32Array(kc.count * 3);
+        for (let i = 0; i < kc.count; i++) { const r = kc.getX(i), c = cOf[vv[i]] || (r < 0.5 ? hairC : r < 1.5 ? white : dark); cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
         fg.setAttribute('color', new T.BufferAttribute(cl, 3));
         const fm = new T.SkinnedMesh(fg, new T.MeshLambertMaterial({ vertexColors: true })); fm.frustumCulled = false; bodyMesh.parent.add(fm);
         fm.position.copy(bodyMesh.position); fm.quaternion.copy(bodyMesh.quaternion); fm.scale.copy(bodyMesh.scale); fm.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
@@ -932,8 +944,9 @@
     }
     act.Idle_Loop.setEffectiveWeight(1);
     const arm = s => ({ up: bones[bk(`DEF-upper_arm.${s}`)], fore: bones[bk(`DEF-forearm.${s}`)], hand: bones[bk(`DEF-hand.${s}`)] });
-    const headB = bones[bk('DEF-head')]; if (headB) headB.scale.setScalar(HEAD);
-    return { kind: 'skin', root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
+    const headS = TPL.model && !PB.mannequin ? Math.max(0.9, Math.min(1.1, ((78 / 12) / (TPL.Hs || TPL.H)) / sc)) : HEAD;   // the model's head is its own size; a seven-footer's is no bigger than a guard's
+    const headB = bones[bk('DEF-head')]; if (headB) headB.scale.setScalar(headS);
+    return { kind: 'skin', headS, root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
   }
 
   /* turn a bone so the segment from it to `tip` points along `dir` (world), by `w` of the way */
@@ -1123,7 +1136,7 @@
     if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
     if (m.head) { if (!m.headRest) m.headRest = m.head.quaternion.clone(); else m.head.quaternion.copy(m.headRest); }   // the turn below is fresh each frame
     m.mixer.update(dt);
-    if (m.head) m.head.scale.setScalar(HEAD);
+    if (m.head) m.head.scale.setScalar(m.headS || HEAD);
     /* down in a stance: the back flat and leaning in from the hips, the head up */
     { const bl = G.ball, rb = bl.state === 'loose' && bl.y > 5 && !p.ref && p.team !== undefined && Math.hypot(bl.x - p.x, bl.z - p.z) < 11 && G.phase === 'live'; m.rb = (m.rb || 0) + ((rb && !air ? 1 : 0) - (m.rb || 0)) * Math.min(1, dt * 8);
       const g = (p.pose === 'guard' || p.pose === 'reach' || p.pose === 'contest' || rb) && !air && G.ball.holder !== p ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);

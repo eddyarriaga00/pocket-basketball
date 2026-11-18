@@ -160,19 +160,51 @@ PROFILE = [(-0.150, 0.046, 0.050), (-0.132, 0.086, 0.092), (-0.096, 0.114, 0.120
 G['head'] = [loft('skull', [(hv(0, 0, z), rx * HS, ry * HS) for z, rx, ry in PROFILE], X, Y, seg=40, power=2.35)]
 G['head'] += [hb(sg * 0.134, 0.012, -0.024, 0.014, 0.024, 0.032, 'ear' + str(sg)) for sg in (1, -1)]
 G['head'].append(hb(0, -0.137, -0.040, 0.011, 0.009, 0.009, 'nose'))
-# hair: a cap a touch bigger than the skull, sitting high and back, so its edge makes a clean hairline across the forehead
-G['hair'] = [loft('cap', [(hv(0, 0.022, z + 0.044), rx * HS * 1.09, ry * HS * 1.075) for z, rx, ry in PROFILE[3:]], X, Y, seg=40, power=2.35),
-             hb(0, 0.080, -0.010, 0.128, 0.078, 0.110, 'back')]
-G['dark'] = [hb(sg * 0.052, -0.129, -0.006, 0.021, 0.010, 0.033, 'eye' + str(sg)) for sg in (1, -1)]
-G['eye'] = [hb(sg * 0.052 + 0.008, -0.138, 0.008, 0.0065, 0.004, 0.009, 'glint' + str(sg)) for sg in (1, -1)]
-for sg in (1, -1):
-    G['dark'].append(loft('brow' + str(sg), capped([(hv(sg * 0.026, -0.134, 0.046), 0.007 * HS, 0.005 * HS), (hv(sg * 0.054, -0.132, 0.053), 0.007 * HS, 0.005 * HS), (hv(sg * 0.080, -0.120, 0.047), 0.006 * HS, 0.004 * HS)]), Y, Z, seg=8))
-G['dark'].append(loft('mouth', capped([(hv(-0.030, -0.124, -0.078), 0.006 * HS, 0.004 * HS), (hv(-0.014, -0.130, -0.086), 0.006 * HS, 0.004 * HS), (hv(0.014, -0.130, -0.086), 0.006 * HS, 0.004 * HS), (hv(0.030, -0.124, -0.078), 0.006 * HS, 0.004 * HS)]), Y, Z, seg=8))
+# ---- what a player can change: hair, a beard, the set of his face, a headband, goggles. Each is its own part, tagged
+# with a variant number (the green of its vertex color / 32); the game draws the ones a player's look asks for
+VAR = {}
+def part(name, region, variant, objs):
+    G[name] = objs; REGION[name] = region; VAR[name] = variant
+REGION = {'skin': 0, 'jersey': 1, 'shorts': 2, 'shoe': 3, 'sock': 4, 'head': 0}
+cap = lambda n, kx, ky, start=3, dz=0.044, dy=0.022: loft(n, [(hv(0, dy, z + dz), rx * HS * kx, ry * HS * ky) for z, rx, ry in PROFILE[start:]], X, Y, seg=40, power=2.35)
+back = lambda n, ry=0.078: hb(0, 0.080, -0.010, 0.128, ry, 0.110, n)
+skz = lambda y, x=0.0: 0.150 * max(0.0, 1 - (y / 0.142) ** 2 - (x / 0.140) ** 2) ** 0.5     # the top of the skull over a point
+part('hair_short', 5, 1, [cap('h1', 1.09, 1.075), back('h1b')])
+part('hair_buzz', 5, 2, [cap('h2', 1.04, 1.035), back('h2b', 0.070)])
+part('hair_high', 5, 3, [cap('h3', 1.08, 1.07), back('h3b'), loft('h3t', capped([(hv(0, 0.012, 0.105), 0.118 * HS, 0.126 * HS), (hv(0, 0.012, 0.165), 0.122 * HS, 0.130 * HS), (hv(0, 0.012, 0.215), 0.118 * HS, 0.126 * HS)]), X, Y, seg=28, power=3.4)])
+part('hair_afro', 5, 4, [hb(0, 0.016, 0.066, 0.178, 0.180, 0.158, 'h4')])
+part('hair_twists', 5, 5, [cap('h5', 1.04, 1.035), back('h5b', 0.070)] + [hb(x, y, skz(y, x) + 0.012, 0.027, 0.027, 0.034, 'tw') for x in (-0.084, -0.042, 0, 0.042, 0.084) for y in (-0.070, -0.022, 0.026, 0.074) if abs(x) + abs(y) < 0.15])
+part('hair_fade', 5, 6, [cap('h6', 1.07, 1.06, start=5, dz=0.030, dy=0.010), hb(0, 0.0, 0.118, 0.112, 0.118, 0.050, 'h6t')])
+part('hair_cornrows', 5, 7, [cap('h7', 1.035, 1.03), back('h7b', 0.068)] + [loft('row', capped([(hv(x, y, skz(y, x) + 0.010), 0.011 * HS, 0.010 * HS) for y in (-0.100, -0.060, -0.010, 0.040, 0.085, 0.118)]), X, Z, seg=8) for x in (-0.076, -0.038, 0, 0.038, 0.076)])
+part('hair_bun', 5, 8, [cap('h8', 1.07, 1.06), back('h8b'), hb(0, 0.108, 0.122, 0.052, 0.050, 0.050, 'bun')])
+part('hair_mohawk', 5, 9, [loft('h9', capped([(hv(0, y, skz(y) + 0.020), 0.030 * HS, 0.034 * HS) for y in (-0.112, -0.070, -0.020, 0.030, 0.080, 0.120)]), X, Z, seg=12)])
+import math as _m
+part('hair_locs', 5, 10, [cap('h10', 1.07, 1.06), back('h10b')] + [loft('loc', capped([(hv(_m.sin(a) * 0.128, _m.cos(a) * 0.134 + 0.012, 0.070), 0.017 * HS, 0.017 * HS), (hv(_m.sin(a) * 0.140, _m.cos(a) * 0.146 + 0.014, -0.030), 0.016 * HS, 0.016 * HS), (hv(_m.sin(a) * 0.138, _m.cos(a) * 0.144 + 0.016, -0.130), 0.013 * HS, 0.013 * HS)]), X, Y, seg=8) for a in [_m.radians(d) for d in range(-110, 111, 20)]])
+part('beard_stubble', 5, 11, [loft('b11', [(hv(0, -0.004, z), rx * HS * 1.025, ry * HS * 1.025) for z, rx, ry in PROFILE[:3]] + [(hv(0, 0.004, -0.070), 0.126 * HS, 0.130 * HS)], X, Y, seg=40, power=2.35)])
+part('beard_goatee', 5, 12, [hb(0, -0.090, -0.128, 0.040, 0.034, 0.030, 'b12'), loft('b12m', capped([(hv(-0.040, -0.122, -0.066), 0.007 * HS, 0.006 * HS), (hv(0, -0.134, -0.060), 0.008 * HS, 0.007 * HS), (hv(0.040, -0.122, -0.066), 0.007 * HS, 0.006 * HS)]), Y, Z, seg=8)])
+part('beard_full', 5, 13, [loft('b13', [(hv(0, -0.006, z), rx * HS * 1.06, ry * HS * 1.06) for z, rx, ry in PROFILE[:3]] + [(hv(0, 0.000, -0.064), 0.129 * HS, 0.130 * HS)], X, Y, seg=40, power=2.35)]
+     + [hb(sg * 0.122, 0.0, -0.040, 0.016, 0.050, 0.060, 'burn') for sg in (1, -1)] + [loft('b13m', capped([(hv(-0.044, -0.120, -0.064), 0.008 * HS, 0.007 * HS), (hv(0, -0.134, -0.058), 0.009 * HS, 0.008 * HS), (hv(0.044, -0.120, -0.064), 0.008 * HS, 0.007 * HS)]), Y, Z, seg=8)])
+# faces: (eye half-width, half-height, brow inner height, brow outer height, brow thickness, the mouth's corners up, its width)
+FACE = {16: (0.021, 0.033, 0.046, 0.047, 0.007, 0.008, 0.030), 17: (0.020, 0.027, 0.036, 0.054, 0.008, 0.000, 0.026), 18: (0.024, 0.039, 0.058, 0.056, 0.006, 0.014, 0.038),
+        19: (0.022, 0.019, 0.044, 0.044, 0.006, 0.004, 0.022), 20: (0.021, 0.031, 0.040, 0.050, 0.011, 0.006, 0.030)}
+for vid, (ew, eh, bi, bo, bt, up, mw) in FACE.items():
+    dk = [hb(sg * 0.052, -0.129, -0.006, ew, 0.010, eh, 'eye') for sg in (1, -1)]
+    for sg in (1, -1): dk.append(loft('brow', capped([(hv(sg * 0.026, -0.134, bi), bt * HS, 0.005 * HS), (hv(sg * 0.054, -0.132, (bi + bo) / 2 + 0.006), bt * HS, 0.005 * HS), (hv(sg * 0.080, -0.120, bo), bt * 0.85 * HS, 0.004 * HS)]), Y, Z, seg=8))
+    sm = 0.004 if vid == 20 else 0.0     # the bold face smirks: one corner higher
+    dk.append(loft('mouth', capped([(hv(-mw, -0.124, -0.086 + up - sm), 0.006 * HS, 0.004 * HS), (hv(-mw * 0.45, -0.130, -0.086), 0.006 * HS, 0.004 * HS), (hv(mw * 0.45, -0.130, -0.086), 0.006 * HS, 0.004 * HS), (hv(mw, -0.124, -0.086 + up + sm), 0.006 * HS, 0.004 * HS)]), Y, Z, seg=8))
+    part(f'face{vid}', 7, vid, dk)
+    part(f'glint{vid}', 6, vid, [hb(sg * 0.052 + 0.008, -0.138, min(0.008, eh * 0.4 - 0.004), 0.0065, 0.004, 0.009 if eh > 0.022 else 0.005, 'glint') for sg in (1, -1)])
+part('band', 5, 24, [loft('band', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((0.034, 1.0), (0.040, 1.045), (0.078, 1.045), (0.084, 1.0))], X, Y, seg=40, power=2.35)])
+part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'lens') for sg in (1, -1)] + [loft('strap', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((-0.014, 1.0), (-0.010, 1.03), (0.008, 1.03), (0.012, 1.0))], X, Y, seg=40, power=2.35)])
 
-REGION = {'skin': 0, 'jersey': 1, 'shorts': 2, 'shoe': 3, 'sock': 4, 'head': 0, 'hair': 5, 'eye': 6, 'dark': 7}
-BUDGET = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200, 'hair': 1100, 'eye': 300, 'dark': 600}
-VOXEL = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065, 'hair': 0.008, 'eye': 0.003, 'dark': 0.004}
-SMOOTH = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6, 'hair': 4, 'eye': 1, 'dark': 1}
+B0 = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
+V0 = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
+S0 = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
+kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') else 'glint' if g.startswith('glint') else g
+BUDGET = lambda g: B0.get(g) or {'hair': 800, 'face': 420, 'glint': 60}[kind(g)]
+VOXEL = lambda g: V0.get(g) or {'hair': 0.0075, 'face': 0.004, 'glint': 0.003}[kind(g)]
+SMOOTH = lambda g: S0.get(g) if g in S0 else {'hair': 3, 'face': 1, 'glint': 1}[kind(g)]
+SHOW = ('skin', 'jersey', 'shorts', 'shoe', 'sock', 'head', 'hair_short', 'face16', 'glint16')   # what the preview picture wears
 layers = []
 for g, objs in G.items():
     for o in bpy.data.objects: o.select_set(False)
@@ -180,18 +212,29 @@ for g, objs in G.items():
     bpy.context.view_layer.objects.active = objs[0]
     bpy.ops.object.join()
     o = objs[0]; o.name = 'L_' + g
-    rm = o.modifiers.new('Fuse', 'REMESH'); rm.mode = 'VOXEL'; rm.voxel_size = VOXEL[g]; rm.use_smooth_shade = True
+    rm = o.modifiers.new('Fuse', 'REMESH'); rm.mode = 'VOXEL'; rm.voxel_size = VOXEL(g); rm.use_smooth_shade = True
     bpy.ops.object.modifier_apply(modifier='Fuse')
-    sm = o.modifiers.new('Smooth', 'SMOOTH'); sm.factor, sm.iterations = 0.5, SMOOTH[g]
+    sm = o.modifiers.new('Smooth', 'SMOOTH'); sm.factor, sm.iterations = 0.5, SMOOTH(g)
     bpy.ops.object.modifier_apply(modifier='Smooth')
-    dc = o.modifiers.new('Light', 'DECIMATE'); dc.ratio = min(1.0, BUDGET[g] / max(1, sum(len(p.vertices) - 2 for p in o.data.polygons)))
+    dc = o.modifiers.new('Light', 'DECIMATE'); dc.ratio = min(1.0, BUDGET(g) / max(1, sum(len(p.vertices) - 2 for p in o.data.polygons)))
     bpy.ops.object.modifier_apply(modifier='Light')
     # which layer a vertex belongs to rides along as a vertex color (red = the region number / 8): the game reads it
     ca = o.data.color_attributes.new('Col', 'BYTE_COLOR', 'CORNER')
-    for d in ca.data: d.color = (REGION[g] / 8.0, 0.0, 0.0, 1.0)
-    mat = bpy.data.materials.new('M_' + g); mat.diffuse_color = {'skin': (0.62, 0.42, 0.30, 1), 'jersey': (0.93, 0.93, 0.95, 1), 'shorts': (0.10, 0.10, 0.12, 1), 'shoe': (0.95, 0.95, 0.96, 1), 'sock': (0.85, 0.85, 0.87, 1), 'head': (0.62, 0.42, 0.30, 1), 'hair': (0.06, 0.05, 0.05, 1), 'eye': (0.97, 0.97, 0.97, 1), 'dark': (0.05, 0.04, 0.04, 1)}[g]
+    for d in ca.data: d.color = (REGION[g] / 8.0, VAR.get(g, 0) / 32.0, 0.0, 1.0)
+    mat = bpy.data.materials.new('M_' + g); mat.diffuse_color = {0: (0.62, 0.42, 0.30, 1), 1: (0.93, 0.93, 0.95, 1), 2: (0.10, 0.10, 0.12, 1), 3: (0.95, 0.95, 0.96, 1), 4: (0.85, 0.85, 0.87, 1), 5: (0.06, 0.05, 0.05, 1), 6: (0.97, 0.97, 0.97, 1), 7: (0.05, 0.04, 0.04, 1)}[REGION[g]]
+    o['show'] = 1 if g in SHOW else 0
     o.data.materials.append(mat)
     layers.append(o)
+# the picture's player: one hairstyle and one face, not all of them at once
+pv = []
+for o in layers:
+    if o.get('show'):
+        c = o.copy(); c.data = o.data.copy(); bpy.context.scene.collection.objects.link(c); pv.append(c)
+for o in bpy.data.objects: o.select_set(False)
+for o in pv: o.select_set(True)
+bpy.context.view_layer.objects.active = pv[0]
+bpy.ops.object.join()
+preview = pv[0]; preview.name = 'Preview'; bpy.ops.object.shade_smooth(); preview.hide_render = True
 for o in bpy.data.objects: o.select_set(False)
 for o in layers: o.select_set(True)
 bpy.context.view_layer.objects.active = layers[0]
@@ -227,9 +270,7 @@ if PREVIEW:
     sc.world = bpy.data.worlds.new('W'); sc.world.color = (0.03, 0.03, 0.035)
     views = []
     for k, ang in enumerate((0, 40, 90)):
-        d = body.copy(); d.data = body.data; sc.collection.objects.link(d)
-        d.parent = None; d.matrix_world.identity()
-        for mdf in list(d.modifiers): d.modifiers.remove(mdf)
+        d = preview.copy(); d.data = preview.data; sc.collection.objects.link(d); d.hide_render = False
         d.location = ((k - 1) * 1.95 + (0.25 if k == 2 else 0), 0, 0); d.rotation_euler = (0, 0, math.radians(ang)); views.append(d)
     body.hide_render = True; arm.hide_render = True
     cam = bpy.data.objects.new('Cam', bpy.data.cameras.new('Cam')); sc.collection.objects.link(cam); sc.camera = cam

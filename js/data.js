@@ -178,7 +178,7 @@
   PB.POS = ['PG', 'SG', 'SF', 'PF', 'C'];
   PB.POS_NAME = { PG: 'Point guard', SG: 'Shooting guard', SF: 'Small forward', PF: 'Power forward', C: 'Center' };
   /* height range in inches */
-  PB.HEIGHT = { PG: [72, 77], SG: [75, 79], SF: [77, 81], PF: [79, 83], C: [81, 86] };
+  PB.HEIGHT = { PG: [69, 79], SG: [72, 81], SF: [75, 83], PF: [77, 85], C: [79, 89] };   // a wide range each: a 5'9" point guard to a 7'5" center
   PB.fmtH = inch => `${Math.floor(inch / 12)}'${inch % 12}"`;
 
   /* How much each attribute counts toward the overall at each position. */
@@ -262,7 +262,7 @@
     const h = PB.HEIGHT[pos];
     const n = PB.person();
     const p = { id: 'p' + (pid++) + '_' + Math.floor(PB.rand() * 1e6), first: n.first, last: n.last, from: n.from, org: n.org, pos,
-      ht: PB.ri(h[0], h[1]), age: age || PB.ri(20, 34), num: PB.ri(0, 55), r: PB.makeRatings(pos, target), skin: n.skin };
+      ht: Math.round((PB.ri(h[0], h[1]) + PB.ri(h[0], h[1])) / 2), age: age || PB.ri(20, 34), num: PB.ri(0, 55), r: PB.makeRatings(pos, target), skin: n.skin };
     p.ovr = PB.ovr(p.r, pos);
     return p;
   };

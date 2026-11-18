@@ -1203,6 +1203,7 @@
   const LOOK = {
     hair: [['short', 'Short'], ['fade', 'Fade'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['cornrows', 'Cornrows'], ['locs', 'Locs'], ['bun', 'Bun'], ['mohawk', 'Mohawk'], ['buzz', 'Buzz'], ['bald', 'Bald']],
     face: [[null, 'Classic'], ['1', 'Focused'], ['2', 'Bright'], ['3', 'Calm'], ['4', 'Bold']],
+    build: [[null, 'Regular'], ['slim', 'Slim'], ['strong', 'Strong'], ['big', 'Big']],
     hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver']],
     band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],
@@ -1219,7 +1220,7 @@
   function lookEditor(me) {
     me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
     const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(me.look[k + 'Pick'] ?? me.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
-    return row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('goggles', 'Goggles') + row('sleeve', 'Arm sleeve') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + row('celeb', 'Signature celebration') + row('drib', 'Dribble style') + '<p class="fine">Your look on the floor from your next game.</p>';
+    return row('build', 'Build') + row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('band', 'Headband') + row('goggles', 'Goggles') + row('sleeve', 'Arm sleeve') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('tat', 'Tattoos') + row('shoe', 'Shoes') + row('celeb', 'Signature celebration') + row('drib', 'Dribble style') + '<p class="fine">Your look on the floor from your next game.</p>';
   }
   function badgeList() {
     return PB.BADGES.map(b => {
