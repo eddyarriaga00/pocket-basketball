@@ -13,6 +13,8 @@ The order of work. [PLAN.md](PLAN.md) is the design. Update this file after ever
 
 (newest first)
 
+- `464dbda`, the pocket player night as it stood at 09:20, before the morning's fixes (post-up facing, half-court line, replay bystanders, unique names, the Safari-engine tests) (2026-11-18).
+- `1906848`, before the night of the pocket player: the pump fake, the Look card, benches and coaches, adaptive quality, the model's hair, faces and beards (2026-11-18).
 - `79c453b`, before the 240-clip booth pack (if the booth misbehaves, roll back `audio/vo.pack` and `js/vo.js` only) (2026-11-17).
 - `9f22d5c`, team interviews in, before the badge colors and the highlight reels (2026-11-17).
 - `5ad04d5`, before the second half of the night: mocap dribble, violations, inbounds, the Dunk Contest, training camp (2026-11-17).
