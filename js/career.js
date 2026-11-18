@@ -975,7 +975,7 @@
       const fb = bodyShot();
       const hero = fb ? `<div class="card potg hero" style="--tc:${t.c1}"><img alt="" src="${fb}"><div class="pi"><p class="kick">${esc(t.name)} · ${me.pos} · ${esc(me.arch || '')}</p>
         <b class="nm">${esc(me.first || '')}<br>${esc(me.last || '')}</b><div class="ovr"><b>${me.ovr}</b><span>OVR</span></div>
-        <span class="fg">${role()} · ${s.gp ? `${avg('pts')} pts · ${avg('reb')} reb · ${avg('ast')} ast` : 'no games yet'}</span></div></div>` : '';
+        <span class="fg">${role()} · ${s.gp ? `${s.min ? (s.min / s.gp).toFixed(1) + ' min · ' : ''}${avg('pts')} pts · ${avg('reb')} reb · ${avg('ast')} ast` : 'no games yet'}</span></div></div>` : '';
       body = hero + card + voteCard + (C.phase === 'playoffs' ? bracketCard() : '') + `
         <div class="tiles">
           <div><b>${avg('pts')}</b><span>PTS</span></div><div><b>${avg('reb')}</b><span>REB</span></div><div><b>${avg('ast')}</b><span>AST</span></div>
@@ -2332,8 +2332,9 @@
   }
   function hallOfFame() {
     const T = C.totals, gp = T.gp || 1;
-    const score = T.pts / 1000 * 2 + T.reb / 1000 + T.ast / 1000 * 1.3 + C.trophies.filter(t => /MVP/.test(t)).length * 4 + C.trophies.filter(t => /Champion,/.test(t)).length * 3
-      + C.trophies.filter(t => /All-Star/.test(t)).length * 1.2 + C.trophies.filter(t => /All-League/.test(t)).length * 1.5 + C.seasons.length * 0.3;
+    const fq = QF();   // the voters weigh a career as full-length games (your totals are shown as you put them up)
+    const score = T.pts / fq / 1000 * 2 + T.reb / fq / 1000 + T.ast / fq / 1000 * 1.3 + C.trophies.filter(t => /MVP/.test(t)).length * 4 + C.trophies.filter(t => /Champion,/.test(t)).length * 3
+      + C.trophies.filter(t => /All-Star/.test(t)).length * 1.2 + C.trophies.filter(t => /All-League/.test(t)).length * 1.5 + C.trophies.filter(t => /Defensive Player of the Year|Finals MVP/.test(t)).length * 2 + C.trophies.filter(t => /All-Defensive|Sixth Man|Clutch Player|Scoring champion/.test(t)).length * 0.8 + C.seasons.length * 0.3;
     const inHall = score >= 22, jersey = inHall || score >= 14;
     C.retired = { year: C.year, hof: inHall, score: +score.toFixed(1) };
     if (jersey) banner(C.team, { kind: 'jersey', num: C.me.num, name: C.me.last });
