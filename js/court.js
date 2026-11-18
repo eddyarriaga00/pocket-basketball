@@ -1025,6 +1025,7 @@
     goggles: () => [[0.75, 0.35, 0.55], [-0.5, 0.82, 0.25], [0.75, 0.35, 0.55], [-0.5, 0.82, 0.25]],
     three: (k) => { const b = 0.05 * Math.sin(k * 8); return [[0.3, 0.94 + b, 0.15], [0.12, 0.99, 0.05], [0.2, -0.97, 0.1], [0.15, -0.95, 0.25]]; },
     point: () => [[0.35, 0.75, 0.55], [0.25, 0.8, 0.55], [0.25, -0.9, 0.3], [0.2, -0.6, 0.75]],
+    ugh: () => [[0.62, 0.52, 0.42], [-0.72, 0.66, -0.12], [0.62, 0.52, 0.42], [-0.72, 0.66, -0.12]],   // a miss he should have made, a pass thrown away: both hands to the head
     call: (k) => { const b = 0.07 * Math.sin(k * 8); return [[0.28, 0.9, 0.3], [0.12 + b, 0.98, 0.12], [0.35, -0.7, 0.6], [0.0, 0.3, 0.95]]; },   // open: a hand up for the ball, the other ready to catch
     /* more of them: the shrug (palms up), too small (a hand held low and patted down), night night (both hands a pillow by the
        head), the shush (a finger to the lips), ice in the veins (two fingers tapped on the forearm) */

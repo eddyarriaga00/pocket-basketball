@@ -750,6 +750,7 @@
         return;
       }
       AU().play(rand() < 0.3 ? 'board' : 'rim', { x: b.ex, power: rr(0.5, 1) });
+      if (G.lastShot && G.lastShot.prob > 0.72 && !G.drill && rand() < 0.7) { p.celebK = 'ugh'; p.celebT = 1.1; }   // he had that one: hands to the head
       if (p.isUser) G.streak = 0;
       if (p.isUser && tkoOn() && ++G.tko.miss >= 2) tkoEnd('Cooled off');
       if (rand() < 0.22) B('miss', { prio: 1, follow: 0.3 });
@@ -1747,7 +1748,7 @@
         if (u >= f && !b.bn) { b.bn = true; AU().play('bounce', { x: b.x, vol: 0.6 }); } }
       if (b.pick && u >= b.pick.f) {
         const o = b.pick.who, p = b.from;
-        o.st.stl++; p.st.tov++; G.picks = (G.picks || 0) + 1;
+        o.st.stl++; p.st.tov++; G.picks = (G.picks || 0) + 1; p.celebK = 'ugh'; p.celebT = 1.2;
         if (o.isUser) grade(3, 'Picked it off'); if (p.isUser) grade(-3, 'Intercepted');
         toast(o.team === 0 ? 'PICKED OFF' : 'Intercepted', o.team === 0 ? 'make' : 'opp'); feed(`Steal · ${o.name}`);
         give(o); AU().play('steal', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'groan', 0.7); B('steal', { prio: 3, follow: 0.35 }); return;
