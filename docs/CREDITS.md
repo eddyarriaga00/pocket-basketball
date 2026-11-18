@@ -14,11 +14,14 @@ which asks for no credit; they are listed here anyway, with thanks. `tools/sfx.p
 
 ## Player model
 
-The players' body and its running, jumping and stance animations are the mannequin from
+The player you see is this game's own: `tools/body.py` builds it in Blender (the body, the kit, shoes, the head,
+ten hairstyles, beards, faces, a headband, goggles) and writes `models/body.glb`. It is ours to use any way we like.
+
+Its skeleton and its running, jumping and stance animations are the mannequin's from
 [Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) by
 [Quaternius](https://quaternius.com) (CC0 1.0; [OpenGameArt](https://opengameart.org/content/universal-animation-library)).
-`tools/model.mjs` trims it to the clips the game uses (`models/player.glb`, 417 kB). The kit, numbers, hair and the
-other basketball arm poses are added in code.
+`tools/model.mjs` trims it to the clips the game uses (`models/player.glb`, 417 kB). The basketball moves on top of
+those clips (the jump shot, layup, dunk, passes, the pump fake, defense, celebrations) are keyed in code in `js/court.js`.
 
 ## Motion capture
 

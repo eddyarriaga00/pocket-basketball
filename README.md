@@ -95,7 +95,8 @@ Then open http://localhost:8000. Tests (they need Playwright): `node tools/smoke
 
 ## Built with
 
-Plain JavaScript and three.js (r159), no build step. The player body and its animations are Quaternius's
-public-domain mannequin; the arena, kits, faces and basketball poses are made in code. Most sound is made in code;
+Plain JavaScript and three.js (r159), no build step. The player model is the game's own, built in Blender by
+`tools/body.py`, on the skeleton and the running clips of Quaternius's public-domain mannequin; the arena, kits and
+basketball moves are made in code. Most sound is made in code;
 a few effects are public-domain recordings, and the booth is recorded with Chatterbox from original synthetic
 voices ([credits](docs/CREDITS.md)).
