@@ -146,18 +146,18 @@
     };
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-17';
+  const NEW_V = '2026-11-18';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V) return;
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
     const el = document.createElement('div'); el.className = 'card whatsnew';
     el.innerHTML = `<h3>New in PocketBasketball</h3><ul>
-      <li>The Dunk Contest, a Daily challenge, a shoot-around in Practice</li>
-      <li>Call a pick or a play; post up as a big; hooks and fadeaways; pick your jump shot</li>
-      <li>The rules: eight seconds, backcourt, three seconds, goaltending, inbounds, foul trouble</li>
-      <li>The bench plays; referees, coaches, fans in the home colors; a booth of 274 calls and players talking</li>
-      <li>Training camp, team interviews, Player of the Week, the fan vote, injuries, trades, rookies</li>
-      <li>Your highlights after every game, saved as a vertical video; a player card to share; achievements</li></ul>
+      <li>A new player model, sculpted for this game: hairstyles, beards, faces, builds, and it blinks and shouts</li>
+      <li>The pump fake: tap Shoot quickly. A defender who jumps at it is out of the play</li>
+      <li>New moves: a real layup with a finger roll, passes that snap, size-up dribbles, five more celebrations</li>
+      <li>Your Look card: an undershirt, tights, tattoos and a sleeve that sit on the arm, dyed hair</li>
+      <li>Your reserves on the bench, coaches in suits, referees in stripes and long pants</li>
+      <li>Slow motion on a last-second shot, a beat on blocks and dunks, confetti for a title</li></ul>
       <button class="big" id="newok">Let's go</button>`;
     const t = scr().querySelector('.title'); if (!t) return; t.insertBefore(el, t.querySelector('.logo').nextSibling);
     $('#newok').onclick = () => { store('pbb.seen', NEW_V); el.remove(); };
