@@ -267,8 +267,17 @@
     return p;
   };
 
+  /* A newcomer to a team: not a teammate's first or last name, not a full name the league already has, not a real player's */
+  PB.freshName = (p, roster, rosters) => {
+    const taken = new Set(); for (const id in rosters || {}) for (const q of rosters[id]) if (q !== p) taken.add(q.first + ' ' + q.last);
+    const o = PB.origin(p.org), mates = roster.filter(q => q !== p);
+    for (let k = 0; k < 30 && (mates.some(q => q.last === p.last) || taken.has(p.first + ' ' + p.last) || PB.REAL.has(p.first + ' ' + p.last)); k++) p.last = PB.pick(o.last);
+    for (let k = 0; k < 30 && (mates.some(q => q.first === p.first) || taken.has(p.first + ' ' + p.last) || PB.REAL.has(p.first + ' ' + p.last)); k++) p.first = PB.pick(o.first);
+    return p;
+  };
+
   /* A roster: five starters and five reserves, with a talent level set by the team's strength. */
-  PB.makeRoster = strength => {
+  PB.makeRoster = (strength, taken) => {   // taken: a Set of full names shared across a league, so no two players in it carry the same one
     const out = [], used = new Set();
     const tiers = [strength + 6, strength + 2, strength, strength - 2, strength - 4, strength - 8, strength - 9, strength - 11, strength - 13, strength - 15];
     const pos = ['PG', 'SG', 'SF', 'PF', 'C', 'PG', 'SG', 'SF', 'PF', 'C'];
@@ -278,6 +287,10 @@
       used.add(p.num);
       for (let k = 0; k < 20 && (out.some(q => q.last === p.last) || PB.REAL.has(p.first + ' ' + p.last)); k++) p.last = PB.pick(PB.origin(p.org).last);   // no two Harmons on one bench
       for (let k = 0; k < 20 && (out.some(q => q.first === p.first) || PB.REAL.has(p.first + ' ' + p.last)); k++) p.first = PB.pick(PB.origin(p.org).first);   // nor two Lonnies
+      if (taken) { for (let k = 0; k < 30 && taken.has(p.first + ' ' + p.last); k++) { const o = PB.origin(p.org), f = PB.pick(o.first), l = PB.pick(o.last);
+        if (k % 2 ? !out.some(q => q.last === l) : !out.some(q => q.first === f)) { if (k % 2) p.last = l; else p.first = f; }
+        if (PB.REAL.has(p.first + ' ' + p.last)) p.last = PB.pick(o.last); }
+        taken.add(p.first + ' ' + p.last); }
       out.push(p);
     });
     return out;

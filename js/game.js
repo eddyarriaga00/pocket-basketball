@@ -2313,6 +2313,7 @@
       const kh = PB.kit ? PB.kit(homeT, o.homeKit || (o.drill ? 'icon' : (r => r < 0.15 ? 'city' : r < 0.27 ? 'statement' : 'icon')(rand()))) : { c1: homeT.c1, c2: homeT.c2, name: homeT.name };
       let ka = PB.kit ? PB.kit(awayT, 'icon') : { c1: awayT.c1, c2: awayT.c2, name: awayT.name };
       if (cd(kh.c1, ka.c1) < 120) ka = PB.kit ? PB.kit(awayT, 'assoc') : { c1: '#f2f2f2', c2: awayT.c1, name: awayT.name };
+      if (PB.kit && cd(kh.c1, ka.c1) < 120) ka = ['statement', 'city', 'icon'].map(k => PB.kit(awayT, k)).sort((a, c) => cd(kh.c1, c.c1) - cd(kh.c1, a.c1))[0];   // white looks like the home side too (a pale home kit): whichever of their others is furthest from it
       const k0 = hi === 0 ? kh : ka, k1 = hi === 0 ? ka : kh;
       for (const p of pl) R.addPlayer(p, p.team === 0 ? k0 : k1);
       G.kits = [k0, k1];

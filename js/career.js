@@ -237,7 +237,7 @@
       <button class="big" id="go">Play it</button></div>`);
     $('#bk').onclick = title;
     $('#go').onclick = () => {
-      const fa = PB.makeRoster(80), fb = PB.makeRoster(80), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
+      const tk = new Set(), fa = PB.makeRoster(80, tk), fb = PB.makeRoster(80, tk), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
       const me = ra[PB.POS.indexOf(sp.pos)]; me.r = PB.makeRatings(sp.pos, 85); me.ovr = PB.ovr(me.r, sp.pos); { const n = youName(); me.first = n[0]; me.last = n[1]; }
       const score = [sp.base + Math.max(0, sp.diff), sp.base + Math.max(0, -sp.diff)];
       scr().hidden = true;
@@ -407,7 +407,7 @@
     $('#go').onclick = () => {
       const a = PB.team($('#qa').value), b = PB.team($('#qb').value);
       if (a === b) { alert('Pick two different teams.'); return; }
-      const fa = PB.makeRoster(78), fb = PB.makeRoster(78), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
+      const tk = new Set(), fa = PB.makeRoster(78, tk), fb = PB.makeRoster(78, tk), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
       const team = slot === 'team'; if (!team) { const n = youName(); ra[slot].first = n[0]; ra[slot].last = n[1]; }
       scr().hidden = true;
       PB.Game.start({ teams: [a, b], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: ra[team ? 0 : slot].id, switching: team, qlen: S.qlen, level: S.level,
@@ -478,7 +478,7 @@
   function begin(st) {
     const strengths = {};
     const rosters = {};
-    for (const t of PB.TEAMS) { strengths[t.id] = Math.round(PB.rr(70, 82)); rosters[t.id] = PB.makeRoster(strengths[t.id]); }
+    { const taken = new Set(); for (const t of PB.TEAMS) { strengths[t.id] = Math.round(PB.rr(70, 82)); rosters[t.id] = PB.makeRoster(strengths[t.id], taken); } }
     const r = startRatings(st);
     const me = { id: 'me', first: st.first, last: st.last, from: st.from || '', pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {}, look: Object.assign({}, st.look) };
     me.ovr = PB.ovr(r, st.pos);
@@ -614,7 +614,7 @@
     const rt = opts[Math.floor(PB.rand() * opts.length)].id;
     const p = PB.makePlayer(C.me.pos, C.me.ovr + PB.ri(0, 3) + (C.path === 'undrafted' ? 7 : 0), 19);
     p.rookie = true;
-    C.rosters[rt].push(p);
+    C.rosters[rt].push(p); PB.freshName(p, C.rosters[rt], C.rosters);
     C.rival = { id: p.id, team: rt, pick: PB.clamp(pick + PB.ri(-4, 4), 1, 30), season: zero(), totals: zero(), h2h: [0, 0] };
   }
   const rivalP = () => C.rival && C.rosters[C.rival.team].find(p => p.id === C.rival.id);
@@ -795,7 +795,7 @@
         gone.push([p, t.id]);
         const r = PB.makePlayer(p.pos, Math.round(PB.rr(60, 74)), PB.ri(19, 22)); r.rookie = true;
         while (nums.has(r.num)) r.num = PB.ri(0, 55);
-        nums.add(r.num); ro[i] = r;
+        nums.add(r.num); ro[i] = r; PB.freshName(r, ro, C.rosters);
       }
     }
     /* free agency around the league: good players trade places between teams (yours keeps its men) */

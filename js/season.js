@@ -45,7 +45,7 @@
         const p = ro[i];
         const d = p.age < 24 ? 2 : p.age < 29 ? 0.5 : p.age < 32 ? -1 : -3;
         p.age++; for (const k in p.r) p.r[k] = PB.clamp(Math.round(p.r[k] + d + PB.gauss()), 25, 99); p.ovr = PB.ovr(p.r, p.pos);
-        if (p.age >= 36 || (p.age >= 33 && PB.rand() < 0.35)) { const r = PB.makePlayer(p.pos, Math.round(PB.rr(62, 75)), PB.ri(19, 22)); r.num = p.num; ro[i] = r; }
+        if (p.age >= 36 || (p.age >= 33 && PB.rand() < 0.35)) { const r = PB.makePlayer(p.pos, Math.round(PB.rr(62, 75)), PB.ri(19, 22)); r.num = p.num; ro[i] = r; PB.freshName(r, ro, Z.rosters); }
       }
     }
     const n = Z.games.length, others = PB.TEAMS.map(t => t.id).filter(id => id !== Z.team), sched = [];
@@ -56,7 +56,7 @@
   }
   function begin(team) {
     const rosters = {}, st = {};
-    for (const t of PB.TEAMS) { rosters[t.id] = PB.makeRoster(Math.round(PB.rr(70, 82))); st[t.id] = { w: 0, l: 0 }; }
+    { const taken = new Set(); for (const t of PB.TEAMS) { rosters[t.id] = PB.makeRoster(Math.round(PB.rr(70, 82)), taken); st[t.id] = { w: 0, l: 0 }; } }
     const n = S().season || 20, others = PB.TEAMS.map(t => t.id).filter(id => id !== team), sched = [];
     while (sched.length < n) for (const o of others.slice().sort(() => PB.rand() - 0.5)) if (sched.length < n) sched.push(o);
     Z = { team, rosters, st, games: sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false })), gi: 0, lead: {}, po: null, champ: null };
