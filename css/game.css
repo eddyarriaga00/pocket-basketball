@@ -652,3 +652,7 @@ svg.pbg text{fill:#c9c9cf;font-size:8.5px;text-anchor:middle;font-family:var(--d
 .sub #grade.why{flex:1}.sub #grade.why~#line{display:none}
 @media (max-width:380px){.sub #grade{flex:0 0 auto;padding:0 6px 0 4px}.sub #grade span:not(.up):not(.dn){display:none}.sub #line{flex:1;min-width:0}.sub #grade.why{flex:1}}
 @media (max-width:350px){#energy{width:26px}#line{letter-spacing:0}}
+/* the title's buttons must not move when the arena arrives behind them (a tap aimed at one landed on another, or on
+   nothing): on any screen too short to hold the placeholder ball as well, the title is laid out from the start the way
+   it will be with the arena */
+@media (max-height:940px){.title .logo{margin:6px 0 auto}.title .logo .ball{display:none}}
