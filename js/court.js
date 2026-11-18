@@ -99,6 +99,7 @@
           if (side) a.setXYZ(i, sg * (33 + up * 0.9), up, u * 55); else a.setXYZ(i, u * 34, up, sg * (54 + up * 0.9)); } else if (Math.random() < 0.5) a.setY(i, -50); }
         a.needsUpdate = true; flashPts.material.opacity = Math.min(1, camFlash * 2); } else if (flashPts.material.opacity > 0) flashPts.material.opacity = 0; }
   }
+  let staRing = null;
   let ballMesh, ballShadow, userRing, handRing, courtMat, nets = [], tkoBeam = null, tkoSparks = null;
 
   const PX = 20;  // court texture pixels per foot
@@ -1348,6 +1349,9 @@
     ballShadow.rotation.x = -Math.PI / 2; scene.add(ballShadow);
     userRing = new T.Mesh(new T.RingGeometry(1.35, 1.75, 28), new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0.9, depthWrite: false }));
     userRing.rotation.x = -Math.PI / 2; userRing.position.y = 0.04; scene.add(userRing);
+    /* your legs, as an arc round your ring: full when fresh, shorter as you tire, red when you are spent */
+    staRing = new T.Mesh(new T.RingGeometry(1.95, 2.12, 48, 1, Math.PI / 2, Math.PI * 2), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false }));
+    staRing.rotation.x = -Math.PI / 2; staRing.position.y = 0.045; scene.add(staRing);
     /* Takeover: a column of white light around you, fading up from the floor */
     { const cv = document.createElement('canvas'); cv.width = 4; cv.height = 64; const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 64, 0, 0);
       gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.18)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 4, 64);
@@ -1560,6 +1564,8 @@
     ballShadow.position.set(b.x, 0.03, b.z);
     const u = G.user;
     userRing.visible = !!u;
+    if (staRing) { const e = u && u.energy !== undefined && !G.drill ? Math.max(0, Math.min(1, u.energy)) : -1; staRing.visible = e >= 0 && e < 0.995;
+      if (staRing.visible) { staRing.position.x = u.x; staRing.position.z = u.z; staRing.geometry.setDrawRange(0, 6 * Math.max(1, Math.round(48 * e))); staRing.material.color.setHex(e < 0.3 ? 0xff5a6b : 0xffffff); } }
     if (u) { userRing.position.x = u.x; userRing.position.z = u.z; userRing.material.opacity = 0.65 + 0.3 * Math.sin(G.t * 5); }
     const tk = !!(u && G.tko && G.tko.on);
     if (tkoSparks) { tkoSparks.visible = tk; if (tk) { const P = tkoSparks.geometry.attributes.position, S = tkoSparks.userData.seed;
