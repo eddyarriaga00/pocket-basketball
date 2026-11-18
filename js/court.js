@@ -943,7 +943,7 @@
       const a = mixer.clipAction(c); a.play(); a.setEffectiveWeight(0); a.time = PB.rand() * c.duration; act[name] = a;
     }
     act.Idle_Loop.setEffectiveWeight(1);
-    const arm = s => ({ up: bones[bk(`DEF-upper_arm.${s}`)], fore: bones[bk(`DEF-forearm.${s}`)], hand: bones[bk(`DEF-hand.${s}`)] });
+    const arm = s => ({ up: bones[bk(`DEF-upper_arm.${s}`)], fore: bones[bk(`DEF-forearm.${s}`)], hand: bones[bk(`DEF-hand.${s}`)], fing: bones[bk(`DEF-f_middle.01.${s}`)] });
     const headS = TPL.model && !PB.mannequin ? Math.max(0.9, Math.min(1.1, ((78 / 12) / (TPL.Hs || TPL.H)) / sc)) : HEAD;   // the model's head is its own size; a seven-footer's is no bigger than a guard's
     const headB = bones[bk('DEF-head')]; if (headB) headB.scale.setScalar(headS);
     return { kind: 'skin', headS, root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
@@ -987,8 +987,11 @@
       const L = (x, y) => x.map((v, j) => v + (y[j] - v) * f);
       const up = L(a[0], b[0]); up[0] += 0.12;   // a little off the hip: this body is wider than the subject's
       return [up, L(a[1], b[1]), [0.5, -0.62, 0.42], [-0.12, 0.18, 0.95]]; },   // the off arm: a bar in front of him
-    shoot: (k) => [[0.12, 0.62 + 0.3 * k, 0.7 - 0.4 * k], [0.02, 0.75 + 0.2 * k, 0.55 - 0.3 * k], [0.32, 0.6 + 0.25 * k, 0.6], [-0.35, 0.85, 0.35]],
-    follow: () => [[0.08, 0.9, 0.42], [0.02, 0.35, 0.95], [0.32, 0.8, 0.4], [-0.2, 0.7, 0.6]],
+    /* the jump shot, keyed: the dip (ball at the waist, both hands), up past the chest, the set point (ball over the
+       forehead, the elbow under it, the guide hand on the side), the release (the arm goes up and out, the guide hand
+       comes off), and the follow-through held. k runs 0 to 1 at the release */
+    shoot: (k) => keyed(SHOT, k),
+    follow: () => [[0.08, 0.88, 0.47], [0.03, 0.72, 0.69], [0.46, 0.32, 0.83], [0.08, 0.78, 0.62]],
     contest: () => [[0.25, 0.96, 0.15], [0.12, 0.99, 0.05], [0.25, 0.96, 0.15], [0.12, 0.99, 0.05]],
     celebrate: () => [[0.5, 0.86, 0.1], [0.3, 0.95, 0.05], [0.5, 0.86, 0.1], [0.3, 0.95, 0.05]],
     /* celebrations; k is the clock, for the beat of a chest thump or a pump of the fist */
@@ -1019,6 +1022,17 @@
     windmill: (k) => { const a = Math.min(1, k * 1.15) * Math.PI * 1.7, d = [0.25, -Math.cos(a), -Math.sin(a)];
       return [d, d, [0.45, 0.5, 0.6], [0.3, 0.7, 0.6]]; },
   };
+  const SHOT = [
+    [0.00, [[0.26, -0.74, 0.62], [-0.26, 0.10, 0.96], [0.30, -0.70, 0.65], [-0.30, 0.16, 0.94]]],
+    [0.38, [[0.20, -0.18, 0.96], [-0.10, 0.86, 0.50], [0.34, -0.14, 0.93], [-0.30, 0.82, 0.48]]],
+    [0.76, [[0.12, 0.56, 0.82], [-0.02, 0.97, -0.22], [0.34, 0.50, 0.80], [-0.30, 0.92, 0.10]]],
+    [1.00, [[0.10, 0.80, 0.59], [0.03, 0.86, 0.51], [0.40, 0.55, 0.73], [-0.10, 0.95, 0.28]]]];
+  /* a pose between the keys of a keyed move, eased */
+  function keyed(K, k) {
+    let i = 0; while (i < K.length - 2 && k > K[i + 1][0]) i++;
+    const a = K[i], b = K[i + 1], u = Math.min(1, Math.max(0, (k - a[0]) / (b[0] - a[0]))), e = u * u * (3 - 2 * u);
+    return a[1].map((v, j) => v.map((x, c) => x + (b[1][j][c] - x) * e));
+  }
   /* dribble moves: [upper, forearm] of the hand the ball leaves (F) and the other arm (O), at the start, middle and end */
   const GD = [[0.5, -0.62, 0.42], [-0.12, 0.18, 0.95]], DR = [[0.36, -0.9, 0.23], [0.4, -0.85, 0.2]];
   const MOVES = {
@@ -1090,7 +1104,8 @@
     /* a fadeaway leans back in the air */
     const lean = p.shoot && p.shoot.kind === 'dunk' && p.y > 0.3 ? (p.shoot.t / p.shoot.T < 0.6 ? -0.16 : 0.16) : p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     const plean = p.passT0 !== undefined && G.t - p.passT0 < 0.3 ? 0.16 * Math.sin(Math.PI * (G.t - p.passT0) / 0.3) : 0;
-    const dlean = plean + (drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0);   // over the ball; more at a run
+    const jk = p.shoot && p.shoot.kind === 'jumper' && !p.shoot.fade ? Math.min(1, p.shoot.t / (p.shoot.T * 0.82)) : -1, slean = jk < 0 ? 0 : jk < 0.4 ? 0.12 * (1 - jk / 0.4) + 0.02 : jk < 0.8 ? 0.02 : -0.05;
+    const dlean = slean + plean + (drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0);   // over the ball; more at a run
     /* a runner leans into it: forward as he takes off, back as he stops, and banked into a cut */
     if (dt > 0) { const ax = (p.vx - (m.pvx === undefined ? p.vx : m.pvx)) / dt, az = (p.vz - (m.pvz === undefined ? p.vz : m.pvz)) / dt, f = p.face; m.pvx = p.vx; m.pvz = p.vz;
       const run = smooth(4, 9, Math.hypot(p.vx, p.vz)) * (p.y > 0.2 ? 0 : 1), fw = ax * Math.sin(f) + az * Math.cos(f), lat = ax * -Math.cos(f) + az * Math.sin(f);
@@ -1234,6 +1249,13 @@
     aim(m.R.fore, m.R.hand, dirOf(p.face, Af[0], Af[1] + hi, Af[2] - hi, s), w);
     aim(m.L.up, m.L.fore, dirOf(p.face, Bu[0], Bu[1], Bu[2], -s), w);
     aim(m.L.fore, m.L.hand, dirOf(p.face, Bf[0], Bf[1], Bf[2], -s), w);
+    /* the shooter's wrists: cocked back under the ball at the set point, snapped through at the release and left
+       hanging on the follow-through; the guide hand's fingers point up */
+    if ((pose === 'shoot' || pose === 'follow') && !m.lay && m.R.fing && m.L.fing) {
+      const e = pose === 'follow' ? 2 : kk, wr = e >= 2 ? [0, -0.62, 0.78] : e > 0.76 ? [0, 0.75 - 0.15 * (e - 0.76) / 0.24, -0.6 + 1.4 * (e - 0.76) / 0.24] : [0, 0.5 + 0.25 * e / 0.76, 0.85 - 1.45 * e / 0.76];
+      aim(m.R.hand, m.R.fing, dirOf(p.face, wr[0], wr[1], wr[2], s), w);
+      aim(m.L.hand, m.L.fing, dirOf(p.face, -0.25, 0.94, 0.22, -s), w * (pose === 'follow' ? 0.5 : 1));
+    }
   }
   /* where a player's hands are, in feet, for the ball (null for the simple figures) */
   const _h = V3();
