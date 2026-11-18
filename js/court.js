@@ -291,17 +291,32 @@
   R.loadModel = () => {
     const A = window.THREE_ADDONS;
     if (TPL || !A) return Promise.resolve(TPL);
-    if (!tplLoading) tplLoading = new A.GLTFLoader().loadAsync('models/player.glb').then(g => (TPL = R._tpl = template(g))).catch(e => { console.warn('player model', e); return null; });
+    if (!tplLoading) tplLoading = Promise.all([new A.GLTFLoader().loadAsync('models/player.glb'), PB.oldBody ? null : new A.GLTFLoader().loadAsync('models/body.glb').catch(e => { console.warn('body model', e); return null; })]).then(([g, gb]) => (TPL = R._tpl = template(g, gb))).catch(e => { console.warn('player model', e); return null; });
     return tplLoading;
   };
   R.modelReady = () => !!TPL;
   R._tpl = () => TPL;
   const V3 = (x, y, z) => new T.Vector3(x, y, z), Q4 = () => new T.Quaternion();
   const bk = n => n.replace(/[.\[\]:/]/g, '');
-  function template(g) {
+  function template(g, gb) {
     const scene = g.scene;
     scene.updateMatrixWorld(true);
     const meshes = []; scene.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
+    /* the pocket player (models/body.glb, built by tools/body.py) stands on this skeleton with longer legs: the
+       skeleton takes the model's rest pose, bone by bone, before anything is measured from it */
+    let model = null, legK = 1;
+    if (gb) try {
+      const src = {}; gb.scene.updateMatrixWorld(true); gb.scene.traverse(o => { if (o.isBone) src[bk(o.name)] = o; });
+      const th = meshes[0].skeleton.bones.find(b => bk(b.name) === 'DEF-thighL'), y0 = th.getWorldPosition(new T.Vector3()).y;
+      for (const b of meshes[0].skeleton.bones) { const q = src[bk(b.name)]; if (q) b.position.copy(q.position); }
+      scene.updateMatrixWorld(true);
+      for (const m of meshes) m.skeleton.calculateInverses();
+      legK = th.getWorldPosition(new T.Vector3()).y / y0;
+      /* the hips ride higher by the same amount in every clip */
+      for (const c of g.animations) for (const tr of c.tracks) if (/DEF-hips\.position$/.test(tr.name)) { const v = tr.values, r0 = [v[0], v[1], v[2]], hb = meshes[0].skeleton.bones.find(b => bk(b.name) === 'DEF-hips');
+        for (let i = 0; i < v.length; i += 3) { v[i] = hb.position.x + (v[i] - r0[0]); v[i + 1] = hb.position.y + (v[i + 1] - r0[1]) * legK; v[i + 2] = hb.position.z + (v[i + 2] - r0[2]); } }
+      gb.scene.traverse(o => { if (o.isSkinnedMesh && !model) model = o; });
+    } catch (e) { console.warn('body model', e); model = null; }
     for (const m of meshes) m.skeleton.update();
     /* three.js drops the dots from node names as it loads them (DEF-shin.L becomes DEF-shinL): look bones up that way */
     const bones = {}; meshes[0].skeleton.bones.forEach(b => { bones[bk(b.name)] = b; });
@@ -414,8 +429,15 @@
     { const hj = at('DEF-thigh.L'), kn = at('DEF-shin.L'), r1 = H * 0.068, o = Math.sign(hj.x - hipsC.x) || 1, nrm = V3(0.55 * o, 0, 0.83).normalize();
       decals.shorts = local(bones[bk('DEF-thigh.L')], V3(hj.x + nrm.x * r1 * 1.04, hj.y + H * 0.03 - (hj.y - kn.y) * 0.45, hj.z + nrm.z * r1 * 1.04), new T.Quaternion().setFromUnitVectors(V3(0, 0, 1), nrm)); }
     let simpleGeo = null;
-    try { simpleGeo = simpleBody(); } catch (e) { console.warn('simple body', e); }
-    if (simpleGeo) {
+    let faceGeo = null, Hs = 0;
+    if (model) try { const r = modelBody(model); simpleGeo = r.body; faceGeo = r.face; Hs = r.height; } catch (e) { console.warn('body model', e); simpleGeo = null; }
+    if (!simpleGeo) { model = null; try { simpleGeo = simpleBody(); } catch (e) { console.warn('simple body', e); } }
+    if (simpleGeo && model) {
+      /* the lettering sits on the modelled jersey: its front and back are near flat there */
+      const put2 = (y, front, q) => local(spine, new T.Vector3(0, y, front ? 0.166 : -0.162), q);
+      decals.back = put2(chestY - H * 0.02, false, backQ); decals.nameBack = put2(chestY + H * 0.052, false, backQ);
+      decals.front = put2(chestY - H * 0.035, true, new T.Quaternion()); decals.chest = put2(chestY + H * 0.02, true, new T.Quaternion());
+    } else if (simpleGeo) {
       /* the lettering sits on the simple torso's surface */
       const zAt = (y, front) => { const R = simpleBody.ring; for (let i = 1; i < R.length; i++) if (y <= R[i][0]) { const f = (y - R[i - 1][0]) / (R[i][0] - R[i - 1][0]), k = front ? 2 : 3; return -0.012 + (front ? 1 : -1) * (R[i - 1][k] + (R[i][k] - R[i - 1][k]) * f); } return 0; };
       const put2 = (y, front, q) => local(spine, new T.Vector3(0, y, zAt(y, front) + (front ? 0.022 : -0.012)), q);
@@ -426,6 +448,32 @@
        so every animation still drives it. Built in the rest pose (a T-pose, feet at y = 0) from a lofted torso, tapered
        capsules for the limbs, mitten hands and chunky shoes; each vertex rides one bone (the torso blends along the
        spine). Carries the same attributes as the mannequin (rA/rB regions, kpos) so the kit shader paints it. */
+    /* The pocket player from models/body.glb: its vertices carry their layer as a color (red = the region / 8: 0 skin,
+       1 jersey, 2 shorts, 3 shoe, 4 sock, 5 hair, 6 the whites of the eyes, 7 the dark of the face). The body goes to
+       the kit shader (rB.w = 1 says the kit is modelled, so nothing is cut by formula); the hair and face are their own
+       small mesh, colored per player. */
+    function modelBody(src) {
+      const g0 = src.geometry, p = g0.attributes.position, nr = g0.attributes.normal, col = g0.attributes.color, sj = g0.attributes.skinIndex, sw = g0.attributes.skinWeight, ix = g0.index.array;
+      const map = src.skeleton.bones.map(b => Math.max(0, idxOf(b.name)));
+      const Mx = m0.matrixWorld.clone().invert().multiply(src.matrixWorld), nm = new T.Matrix3().getNormalMatrix(Mx), Wm = src.matrixWorld, v = V3(), n = V3(), w = V3();
+      const A = { P: [], N: [], SI: [], SW: [], RA: [], RB: [], KP: [], IX: [], id: new Int32Array(p.count).fill(-1) }, F = { P: [], N: [], SI: [], SW: [], KC: [], IX: [], id: new Int32Array(p.count).fill(-1) };
+      let top = -1e9, bot = 1e9; const reg = new Uint8Array(p.count);
+      for (let i = 0; i < p.count; i++) { reg[i] = Math.round(col.getX(i) * 8); w.fromBufferAttribute(p, i).applyMatrix4(Wm); if (w.y > top) top = w.y; if (w.y < bot) bot = w.y; }
+      const push = (D, i) => { if (D.id[i] >= 0) return D.id[i]; const k = D.P.length / 3; D.id[i] = k;
+        v.fromBufferAttribute(p, i).applyMatrix4(Mx); n.fromBufferAttribute(nr, i).applyMatrix3(nm).normalize(); w.fromBufferAttribute(p, i).applyMatrix4(Wm);
+        D.P.push(v.x, v.y, v.z); D.N.push(n.x, n.y, n.z);
+        let ws = 0; for (let c = 0; c < 4; c++) ws += sw.getComponent(i, c);
+        for (let c = 0; c < 4; c++) { D.SI.push(map[sj.getComponent(i, c)] || 0); D.SW.push(ws > 0 ? sw.getComponent(i, c) / ws : c ? 0 : 1); }
+        if (D === A) { const r = reg[i]; for (let c = 0; c < 4; c++) D.RA.push(r === c ? 1 : 0); D.RB.push(r === 4 ? 1 : 0, 0, 0, 1); D.KP.push(w.x / H, (w.y - box.min.y) / H, w.z / H); }
+        else D.KC.push(reg[i] - 5);
+        return k; };
+      for (let t = 0; t < ix.length; t += 3) { const D = reg[ix[t]] >= 5 ? F : A; D.IX.push(push(D, ix[t]), push(D, ix[t + 1]), push(D, ix[t + 2])); }
+      const mk = D => { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(D.P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(D.N, 3));
+        g.setAttribute('skinIndex', new T.Uint16BufferAttribute(D.SI, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(D.SW, 4)); g.setIndex(D.IX); g.userData.shared = true; return g; };
+      const body = mk(A); body.setAttribute('rA', new T.Float32BufferAttribute(A.RA, 4)); body.setAttribute('rB', new T.Float32BufferAttribute(A.RB, 4)); body.setAttribute('kpos', new T.Float32BufferAttribute(A.KP, 3));
+      const face = mk(F); face.setAttribute('kc', new T.Float32BufferAttribute(F.KC, 1));
+      return { body, face, height: top - bot };
+    }
     function simpleBody() {
       const P = [], N = [], SI = [], SW = [], RA = [], RB = [], KP = [], IX = [];
       const bi = n => idxOf(n), Am = {};
@@ -507,7 +555,7 @@
     /* the sole's normal in each foot bone's own frame, to keep planted shoes flat on the floor */
     const footUp = {}; for (const sd of ['L', 'R']) { const fb = bones[bk(`DEF-foot.${sd}`)]; if (fb) footUp[sd] = V3(0, 1, 0).applyQuaternion(fb.getWorldQuaternion(Q4()).invert()); }
     { const d = at('DEF-toe.L').sub(at('DEF-foot.L')); footUp.slope = d.y / Math.hypot(d.x, d.z); }   // the foot bone runs down from the ankle to the ball of the foot
-    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR, simpleGeo, footUp };
+    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR, simpleGeo, footUp, model: !!model, faceGeo, Hs: model ? Hs : 0 };
   }
   /* the kit: colors by body region, and a design on the jersey and shorts. Designs (cols.pat):
      0 plain, 1 side panels (down the jersey and the shorts), 2 pinstripes, 3 a chest band, 4 a fade to dark,
@@ -530,9 +578,9 @@
   if (vRegion > 5.5) discard;   // the mannequin's head: a drawn one sits on the bone
   /* a tank top cut by formula, not by the mesh: armholes (ellipses at each shoulder) and a neckline (deeper in front),
      each with a band of the trim color, so the edges are smooth curves at any distance */
-  if (vRegion < 0.5 && abs(vK.x) < 0.05 && vK.y > 1.365) discard;   // the top of the neck: inside the drawn head
+  if (vRB.w < 0.5 && vRegion < 0.5 && abs(vK.x) < 0.05 && vK.y > 1.365) discard;   // the top of the neck: inside the drawn head
   bool neckSkin = false;   // the mannequin's neck reaches down into the jersey
-  if ((vRegion > 0.5 && vRegion < 1.5) || neckSkin) {
+  if (vRB.w < 0.5 && ((vRegion > 0.5 && vRegion < 1.5) || neckSkin)) {
     float ax0 = abs(vK.x), arm = length(vec2((ax0 - 0.108) / 0.04, (vK.y - 1.30) / 0.09));
     float nk = length(vec2(vK.x / 0.04, (vK.y - 1.335) / (vK.z > 0.0 ? 0.05 : 0.03)));
     float cut = min(arm - 1.0, nk - 1.0);
@@ -725,9 +773,9 @@
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
     const root = new T.Group(), body = A.SkeletonUtils.clone(TPL.scene);
-    const sc = (p.ht || 78) / 12 / TPL.H;
+    const sc = (p.ht || 78) / 12 / (TPL.Hs || TPL.H);
     /* builds: bigs carry more width, guards less */
-    const wide = { PG: 0.95, SG: 0.97, SF: 1.0, PF: 1.06, C: 1.11 }[(p.d || p).pos] || 1;
+    const wide = ({ PG: 0.95, SG: 0.97, SF: 1.0, PF: 1.06, C: 1.11 }[(p.d || p).pos] || 1) * (TPL.model && !PB.mannequin ? 1.06 : 1);   // the model is tall and lean: a little more of him at game size
     body.scale.set(sc * wide, sc, sc * wide);
     root.add(body);
     const d = p.d || p;
@@ -752,7 +800,13 @@
         if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; bodyMesh.parent.add(ol);
           ol.position.copy(bodyMesh.position); ol.quaternion.copy(bodyMesh.quaternion); ol.scale.copy(bodyMesh.scale); ol.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
       }
-      if (bodyMesh) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
+      if (bodyMesh && TPL.model && TPL.faceGeo && !PB.mannequin) {   // the model's hair, the whites of its eyes, its brows, pupils and mouth
+        const fg = TPL.faceGeo.clone(), kc = fg.attributes.kc, fc = [new T.Color((((p.d || {}).look || {}).hairCol) || '#17110d'), new T.Color('#f4f4f4'), new T.Color('#141011')], cl = new Float32Array(kc.count * 3);
+        for (let i = 0; i < kc.count; i++) { const c = fc[Math.max(0, Math.min(2, kc.getX(i)))]; cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
+        fg.setAttribute('color', new T.BufferAttribute(cl, 3));
+        const fm = new T.SkinnedMesh(fg, new T.MeshLambertMaterial({ vertexColors: true })); fm.frustumCulled = false; bodyMesh.parent.add(fm);
+        fm.position.copy(bodyMesh.position); fm.quaternion.copy(bodyMesh.quaternion); fm.scale.copy(bodyMesh.scale); fm.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
+      if (bodyMesh && !(TPL.model && !PB.mannequin)) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
     }
     /* the number on the back and front, and hair */
     /* lettering that reads on any design: on a dark jersey the numbers are white (or a light second color) edged in
@@ -780,7 +834,7 @@
     const R = TPL.headR;
     const fi = (d.look && d.look.face != null ? +d.look.face : look.face || 0) % FACES.length; TPL.headGeos = TPL.headGeos || [];
     const HG = TPL.headGeos[fi] || (TPL.headGeos[fi] = headGeometries(R, FACES[fi]));
-    const hg = new T.Group(); put(head, TPL.decals.headC, hg);
+    const hg = new T.Group(); put(head, TPL.decals.headC, hg); if (TPL.model && !PB.mannequin) hg.visible = false;   // the model has its own head
     hg.add(new T.Mesh(HG.skin, skinMat(d.skin || 0)));
     hg.add(new T.Mesh(HG.face, FACE_MAT));
     { const bl = new T.Mesh(HG.blink, skinMat(d.skin || 0)); bl.visible = false; hg.add(bl); hg.userData.blink = bl; hg.userData.bph = Math.random() * 4; }
@@ -1199,7 +1253,8 @@
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
       if (o.body) { const z = o.back ? -1 : 1, d = o.tight ? 12 : 14.5; c.position.set(0.6 * z, H * 0.55, d * z); c.lookAt(0, H * 0.5, 0); }
-      else { const hp = m.hg.getWorldPosition(V3()); hp.y -= 0.22; const dz = o.close ? 3.15 : 4.1; hp.y += o.close ? 0.3 : 0.12; c.position.set(hp.x + dz * 0.1, hp.y + 0.12, hp.z + dz); c.lookAt(hp); }
+      else { const mdl = TPL.model && !PB.mannequin && m.head, hp = mdl ? m.head.getWorldPosition(V3()) : m.hg.getWorldPosition(V3()); if (mdl) hp.y += 0.218 * (m.sc || 1) + 0.22;   // the model's head sits above its bone
+        hp.y -= 0.22; const dz = (o.close ? 3.15 : 4.1) * (mdl ? 1.22 : 1); hp.y += mdl ? (o.close ? 0.06 : -0.05) : o.close ? 0.3 : 0.12; c.position.set(hp.x + dz * 0.1, hp.y + 0.12, hp.z + dz); c.lookAt(hp); }
       rr.render(sc, c);
       const url = cv.toDataURL('image/png');
       freeTree(m.root);

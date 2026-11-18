@@ -2,6 +2,13 @@
 
 What changed, newest first. The full list is the git log; the order of work is [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 2026-11-18 · the pocket player
+
+- A new player model, sculpted in Blender for this game (tools/body.py builds it; models/body.glb): tall and lean with
+  longer legs, a tank jersey with a scoop neck, baggy shorts, crew socks, sneakers with a sole and a tongue, hands with
+  fingers, and a smooth head with simple eyes and a cap of hair. Joints bend smoothly instead of hinging. It wears
+  every team's kit, numbers and names. For now every player shares the one hairstyle and face.
+
 ## 2026-11-17 · the pocket look
 
 - Bug pass: a replay that began at the end of the half no longer sits on top of the halftime card (tapping "Second
