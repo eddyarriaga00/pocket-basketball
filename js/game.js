@@ -509,7 +509,9 @@
     if (o.isUser) reelMark('block', 2.6, 'Block');
     o.st.blk++; if (o.isUser) { grade(3, 'Block'); buzz(30); badgePop(o, 'rim'); }
     if (p.isUser) grade(-1, 'Got blocked');
-    toast('BLOCKED', 'blk'); feed(`Block · ${o.name}`);
+    /* from behind at a run: the chase-down */
+    { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, hl = hyp(hx, hz) || 1, behind = ((o.x - p.x) * hx + (o.z - p.z) * hz) / hl < -0.6, chase = behind && hyp(o.vx, o.vz) > 9;
+      toast(chase ? 'CHASE-DOWN BLOCK' : 'BLOCKED', 'blk'); feed(`${chase ? 'Chase-down block' : 'Block'} · ${o.name}`); if (chase) { R.benchJump && R.benchJump(o.team); if (o.isUser) grade(1, 'Chase-down block'); } }
     AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
     b.state = 'loose'; b.holder = null; b.lastTouch = o.team; b.shot = null;
     G.reb = { team: p.team, t: G.t };   // a blocked shot is a missed shot: whoever comes up with it gets the rebound
