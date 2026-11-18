@@ -146,7 +146,7 @@
   /* ---------- first-game tips: shown once each, the first time the moment comes up ---------- */
   const TIPS = {
     ball: 'You have the ball. Hold SHOOT, let go at the top of the jump (green band). PASS finds the open man; swipe MOVE to break your man down.',
-    def: 'Defense. Slide to stay between your man and the rim: get set in front and you cut him off. STEAL when the button lights up (the ball is on your side, or he crosses over). JUMP as he shoots.',
+    def: 'Defense. Stay between your man and the rim. STEAL when the button lights up. JUMP as he shoots.',
     mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
     ft: 'Free throw: hold SHOOT and let go in the green band.',
     pick: 'PICK brings your big over to screen your man. Pause (top left) to call a play for the next three trips.',
