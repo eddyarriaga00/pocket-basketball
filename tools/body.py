@@ -202,11 +202,12 @@ part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'len
 B0 = {'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
 V0 = {'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
 S0 = {'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
-kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') or g.startswith('eyes') or g == 'shut' else 'glint' if g.startswith('glint') else g
+part('yell', 7, 23, [hb(0, -0.127, -0.093, 0.021, 0.010, 0.019, 'yell')])   # an open mouth for a shout: it covers the small one
+kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') or g.startswith('eyes') or g in ('shut', 'yell') else 'glint' if g.startswith('glint') else g
 BUDGET = lambda g: B0.get(g) or {'hair': 800, 'face': 420, 'glint': 60}[kind(g)]
 VOXEL = lambda g: V0.get(g) or {'hair': 0.0075, 'face': 0.004, 'glint': 0.003}[kind(g)]
 SMOOTH = lambda g: S0.get(g) if g in S0 else {'hair': 3, 'face': 1, 'glint': 1}[kind(g)]
-SHOW = ('skin', 'jersey', 'shorts', 'shoe', 'sock', 'head', 'hair_short', 'face16', 'eyes16', 'glint16')   # what the preview picture wears
+SHOW = ('skin', 'jersey', 'shorts', 'shoe', 'sock', 'head', 'hair_short', 'face26', 'eyes16', 'glint16')   # what the preview picture wears
 KNEEZ = head('DEF-shin.L').z
 layers = []
 for g, objs in G.items():
@@ -223,12 +224,22 @@ for g, objs in G.items():
     bpy.ops.object.modifier_apply(modifier='Light')
     # which layer a vertex belongs to rides along as a vertex color (red = the region number / 8): the game reads it
     ca = o.data.color_attributes.new('Col', 'BYTE_COLOR', 'CORNER')
+    CUT = KNEEZ + (hz - KNEEZ) * 0.24
+    if g == 'skin':   # a clean line where the under-shorts color ends, not a jagged one along the triangles
+        import bmesh
+        bm = bmesh.new(); bm.from_mesh(o.data)
+        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, CUT), plane_no=(0, 0, 1), clear_inner=False, clear_outer=False)
+        bmesh.ops.triangulate(bm, faces=bm.faces[:]); bm.to_mesh(o.data); bm.free(); o.data.update()
+        ca = o.data.color_attributes.get('Col') or ca
+    pz = {}
+    for pl in o.data.polygons:
+        for li in pl.loop_indices: pz[li] = pl.center.z
     for li, d in enumerate(ca.data):
         r = REGION[g]
         if g == 'skin':   # the body under the clothes takes their color, so nothing shows through when he bends: the trunk
             co = o.data.vertices[o.data.loops[li].vertex_index].co   # under the jersey, the hips and upper thighs under the shorts
             if abs(co.x) < 0.215 and hz - 0.20 < co.z < shz - 0.11: r = 2 if co.z < hz + 0.02 else 1
-            elif co.z < hz and co.z > KNEEZ + (hz - KNEEZ) * 0.24 and abs(co.x) < 0.26: r = 2
+            elif co.z < hz and pz[li] > CUT and abs(co.x) < 0.26: r = 2
         d.color = (r / 8.0, VAR.get(g, 0) / 32.0, 0.0, 1.0)
     mat = bpy.data.materials.new('M_' + g); mat.diffuse_color = {0: (0.62, 0.42, 0.30, 1), 1: (0.93, 0.93, 0.95, 1), 2: (0.10, 0.10, 0.12, 1), 3: (0.95, 0.95, 0.96, 1), 4: (0.85, 0.85, 0.87, 1), 5: (0.06, 0.05, 0.05, 1), 6: (0.97, 0.97, 0.97, 1), 7: (0.05, 0.04, 0.04, 1)}[REGION[g]]
     o['show'] = 1 if g in SHOW else 0

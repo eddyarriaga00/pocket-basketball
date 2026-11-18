@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The model shouts after a big play (an open mouth part), and the line where the shorts end on the thigh is clean
+  instead of jagged.
 - Passes snap: the ball loads at the chest, the arms shoot out at the target and hold a beat (down for a bounce pass,
   up for a lob). A receiver's hands go to the height the ball is coming in at.
 - The layup is its own keyed move now: the ball comes up past the chest with the knee, the arm reaches full length
