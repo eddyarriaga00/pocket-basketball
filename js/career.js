@@ -155,7 +155,7 @@
       <li>A new player model, sculpted for this game: hairstyles, beards, faces, builds, and it blinks and shouts</li>
       <li>The pump fake: tap Shoot quickly. A defender who jumps at it is out of the play</li>
       <li>On defense, an arrow shows where your man is going: green while you are in front of him</li>
-      <li>A defense that answers your drives: help steps in, a big man guards the rim, and a perfect release is a sure thing only when you are open</li>
+      <li>A defense that answers your drives: help steps in and a big man guards the rim</li>
       <li>New moves: a real layup with a finger roll, passes that snap, size-up dribbles, five more celebrations</li>
       <li>Your Look card: an undershirt, tights, tattoos and a sleeve that sit on the arm, dyed hair</li>
       <li>Your reserves on the bench, coaches in suits, referees in stripes and long pants</li>

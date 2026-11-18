@@ -7,14 +7,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 - The defense answers your drives. Help defense, the bump and the charge used to react only to the computer's drives,
   so nobody ever stepped in front of yours. Now the nearest defender steps in when you beat your man, the big man
   drops into the lane to protect the rim, and your own defender slides to where you are going, not where you were.
-- At the rim: a body between you and the basket turns a dunk into a layup (unless you are a poster dunker), a crowd
-  of defenders takes more off the finish, and a perfect release is automatic only when you had room to shoot. With a
-  man on you it is a big help, not a promise. The green trail is kept for the ones that cannot miss.
 - Bringing the ball up is the point guard's job: unless you play the point, the computer no longer hands you the ball
   in the backcourt. With the ball there you get a warning at four seconds, and if you are standing still at six you
   give it to the nearest teammate instead of being whistled (a new player used to lose trip after trip to the count).
-- A hand in your face narrows the green band on the shot meter: the release is harder to time with a defender on you.
-- The third dribble move of a possession fools a defender less than the first two.
 - A screener plants with his arms crossed. The goggles celebration frames the eyes; the chest thump is back (the
   chest pass had taken its pose). In a replay, a bystander standing in front of the lens steps out of the shot.
 - The title's buttons no longer jump when the arena loads behind them (up to 158 px on a phone).
