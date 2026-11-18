@@ -356,7 +356,10 @@
     let kind = 'jumper';
     if (G.drill && G.drill.kind === 'dunk') return dunkJump(p, d);
     if (d < 9) {
-      const dunkOk = p.r.dunk >= 55 && d < 7.5 && (sp > 5 || p.ht >= 82) && rand() < 0.35 + (p.r.dunk - 55) / 60 + 0.12 * bt(p, 'poster');
+      /* a body between him and the rim: it is a layup over him, unless he is the kind who dunks on people */
+      const hx = 0 - p.x, hzz = hoopZ(p.team) - p.z, hl = hyp(hx, hzz) || 1;
+      const wall = G.pl.some(o => o.team !== p.team && o.y < 1 && (() => { const ox = o.x - p.x, oz = o.z - p.z, f = (ox * hx + oz * hzz) / hl; return f > 0.2 && f < 4.6 && Math.abs(ox * hzz - oz * hx) / hl < 2.4; })());
+      const dunkOk = p.r.dunk >= 55 && d < 7.5 && (sp > 5 || p.ht >= 82) && rand() < 0.35 + (p.r.dunk - 55) / 60 + 0.12 * bt(p, 'poster') && (!wall || rand() < 0.12 + 0.2 * bt(p, 'poster') + Math.max(0, p.r.dunk - 85) * 0.012);
       kind = dunkOk ? 'dunk' : 'layup';
     } else if (d < 13 && sp > 7 && !isThree(p.x, p.z, p.team)) kind = 'floater';   // a runner on the move: lofted over the bigs
     if (force) kind = force;
@@ -459,12 +462,17 @@
     }
     if (p.energy !== undefined && p.energy < 0.35) prob *= 0.88 + p.energy * 0.34;   // tired legs, short shots
     if (G.drill && G.drill.kind === 'dunk') prob = clamp(0.97 * STYLES[s.style || 0][3] * (0.82 + ((p.r.dunk || 70) - 60) / 220) - Math.max(0, s.d - 9) * 0.035, 0.2, 0.99) * (timing === 'Excellent' ? 1.06 : /Slightly/.test(timing) ? 1 : /Very/.test(timing) ? 0.55 : 0.8);
-    let cf = contest(p);
-    if (s.kind === 'dunk') cf = 1 - (1 - cf) * 0.3;   // a hand in the face barely matters above the rim
+    let cf = contest(p); const cfRaw = cf;
+    if (s.kind === 'dunk') cf = 1 - (1 - cf) * (s.user ? 0.5 : 0.3);   // a hand in the face matters less above the rim (your own timing already helps you)
+    /* a crowd at the rim: every body past the first one within reach takes a little more off a layup, a floater or a dunk */
+    if (s.user && s.kind !== 'jumper' && !s.ft) { const n = G.pl.filter(o => o.team !== p.team && hyp(o.x - p.x, o.z - p.z) < 4.5).length; if (n > 1) cf *= Math.pow(0.93, n - 1); }
     else if (s.kind === 'hook') cf = 1 - (1 - cf) * 0.6;   // the hook goes up over the defender
     prob = clamp(prob * cf, 0.01, 0.985);
     if (p.isUser && tkoOn()) prob = clamp(prob + (1 - prob) * 0.2, 0.01, 0.985);   // Takeover: hot hands
-    if (timing === 'Excellent') prob = 1;   // a perfect release goes in: only a block stops it
+    /* a perfect release goes in when you had room to shoot it; with a defender on you it is a big help, not a promise
+       (it used to be automatic even through a man standing at the rim, so every drive was two points) */
+    if (timing === 'Excellent') prob = cfRaw >= 0.9 ? 1 : clamp(prob + (1 - prob) * 0.28, 0.01, 0.97);
+    if (timing === 'Excellent' && prob < 1) G.greenShot = false;   // the green trail is for the ones that cannot miss
     const nd = nearestDef(p);
     /* how covered you were, next to the timing: a miss explains itself */
     if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing === 'Excellent' ? 'Perfect' : timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}`; }
@@ -1094,6 +1102,16 @@
     if (G.tf[def.team] >= 5) { G.ftq = { shooter: off, n: 2, total: 2 }; dead(1.0, startFT); }
     else { G.poss = null; dead(0.9, () => { give(off); G.shotClock = Math.max(G.shotClock, 14); }); }
   }
+  /* going at the rim: the computer's drive, or you with the ball coming downhill inside 20 feet (or already up for a layup or a dunk).
+     The help, the bump and the charge used to answer only the computer's drives: nobody ever stepped in front of yours. */
+  function attacking(h) {
+    if (!h) return false;
+    if (h.drive > 0) return true;
+    if (!h.isUser || G.auto || G.ball.holder !== h) return false;
+    if (h.shoot) return h.shoot.kind !== 'jumper';
+    const d = distHoop(h.x, h.z, h.team);
+    return d < 20 && hyp(h.vx, h.vz) > maxSpeed(h) * 0.5 && (0 - h.x) * h.vx + (hoopZ(h.team) - h.z) * h.vz > 0;
+  }
   function defAI(p, dt) {
     const offT = 1 - p.team;
     if (p.switchT > 0) p.switchT -= dt;
@@ -1101,7 +1119,7 @@
     const man = p.switchT > 0 && p.switchOn && G.ball.holder === p.switchOn ? p.switchOn : G.pl.find(o => o.team === offT && o.slot === p.slot);
     /* help: a driver who has beaten his man into the paint draws the nearest defender, who steps in front of him */
     const drv = G.ball.holder;
-    if (!p.isUser && drv && drv.team === offT && drv !== man && drv.drive > 0 && distHoop(drv.x, drv.z, offT) < 15) {
+    if (!p.isUser && drv && drv.team === offT && drv !== man && attacking(drv) && distHoop(drv.x, drv.z, offT) < 15) {
       const own = G.pl.find(o => o.team === p.team && o.slot === drv.slot);
       const beaten = own && distHoop(own.x, own.z, offT) > distHoop(drv.x, drv.z, offT) + 1;
       if (beaten) {
@@ -1114,6 +1132,13 @@
           return;
         }
       }
+    }
+    /* the rim protector: with the ball coming downhill at the basket, the big man leaves his own man and stands in the
+       lane between the ball and the rim, so a drive ends against a body and not at an empty basket */
+    if (!p.isUser && p.slot === 4 && drv && drv.team === offT && drv !== man && G.phase === 'live' && attacking(drv) && distHoop(drv.x, drv.z, offT) < 19 && p.contestT === undefined) {
+      const hz = hoopZ(offT), dx = drv.x - 0, dz = drv.z - hz, L = hyp(dx, dz) || 1, out = Math.min(4.5, L * 0.5);
+      p.tx = dx / L * out; p.tz = hz + dz / L * out; p.pose = 'guard'; p.protT = G.t;
+      return;
     }
     const H = { x: 0, z: hoopZ(offT) };
     const b = G.ball;
@@ -1146,9 +1171,9 @@
         G.tf[p.team] = Math.max(G.tf[p.team], 5);   // late in a quarter every team is in the penalty
         toast('Foul to stop the clock', ''); contactFoul(p, man); return;
       }
-      if (!p.isUser && man.drive > 0 && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * 1.05 * (1.3 - p.r.perD / 140)) { contactFoul(p, man); return; }
+      if (!p.isUser && (man.drive > 0 || attacking(man) && !man.shoot) && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * (man.drive > 0 ? 1.05 : 0.45) * (1.3 - p.r.perD / 140)) { contactFoul(p, man); return; }
       /* a driver who runs into a defender set in his path: the charge */
-      if (!p.isUser && man.drive > 0 && p.stun <= 0 && hyp(p.vx, p.vz) < 3 && hyp(man.x - p.x, man.z - p.z) < 2.4 && G.phase === 'live' && rand() < dt * 0.35) {
+      if (!p.isUser && (man.drive > 0 || attacking(man) && !man.shoot) && p.stun <= 0 && hyp(p.vx, p.vz) < 3 && hyp(man.x - p.x, man.z - p.z) < 2.4 && G.phase === 'live' && rand() < dt * (man.drive > 0 ? 0.35 : 0.2)) {
         man.st.tov++; man.st.pf++; if (man.isUser) grade(-2, 'Charge'); checkFoulOut(man);
         AU().play('whistle'); toast('Offensive foul', man.team === 0 ? 'opp' : ''); feed(`Charge · ${man.name}`); B('turnover', { prio: 2 });
         for (const o of G.pl) { o.shoot = null; o.drive = 0; }
@@ -1430,7 +1455,9 @@
       const L = hyp(dx, dz) || 1;
       u.vx = dx / L * sp; u.vz = dz / L * sp;
       if (nd.who && nd.d < 6) {
-        const ch = clamp(shake + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.62) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0);
+        /* a defender reads the same trick: the first two moves of a trip work as they should, each one after that less */
+        const nth = u.mvPoss === G.possN ? ++u.mvCnt : (u.mvPoss = G.possN, u.mvCnt = 1);
+        const ch = (clamp(shake + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.62) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0)) * (nth <= 2 ? 1 : Math.pow(0.6, nth - 2));
         if (rand() < ch) { nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else toast(kind === 'step' ? 'Created space' : 'Shook him', 'make'); grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
