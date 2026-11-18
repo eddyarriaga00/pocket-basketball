@@ -335,6 +335,7 @@
     const H = R.hands && R.hands(p);
     /* a layup, a floater or a hook goes up off one hand */
     if (H && p.shoot && (p.shoot.kind === 'layup' || p.shoot.kind === 'floater' || p.shoot.kind === 'hook')) { const h = p.dribHand < 0 ? H.l : H.r; return { x: h.x, y: h.y + 0.3, z: h.z }; }
+    if (H && p.shoot && p.shoot.kind === 'dunk') { const h = H.r.y > H.l.y ? H.r : H.l; return { x: h.x, y: h.y + 0.25, z: h.z }; }   // a dunk: the ball rides in the hand that is up
     if (H) return p.shoot || p.pose === 'shoot' ? { x: (H.r.x + H.l.x) / 2, y: Math.max(H.r.y, H.l.y) + 0.35, z: (H.r.z + H.l.z) / 2 } : p.dribHand < 0 ? { x: H.l.x, y: H.l.y, z: H.l.z } : { x: H.r.x, y: H.r.y, z: H.r.z };
     const fx = Math.sin(p.face), fz = Math.cos(p.face);
     return { x: p.x + fx * 0.6 + fz * 0.5, y: p.ht / 12 * 0.95 + p.y + 1.5, z: p.z + fz * 0.6 - fx * 0.5 };
@@ -1643,7 +1644,7 @@
     const n = G.pl.length;
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
       const a = G.pl[i], c = G.pl[j];
-      const dx = c.x - a.x, dz = c.z - a.z, d = hyp(dx, dz), m = 2.3;
+      const dx = c.x - a.x, dz = c.z - a.z, d = hyp(dx, dz), m = a.team !== c.team ? 2.65 : 2.3;   // a defender's arms and chest need a little more room than a teammate's shoulder
       if (d < m && d > 0.001) {
         const push = (m - d) / 2, ux = dx / d, uz = dz / d;
         a.x -= ux * push; a.z -= uz * push; c.x += ux * push; c.z += uz * push;
@@ -1662,7 +1663,7 @@
     if (b.state === 'held') {
       const p = b.holder, hp = handPos(p);
       const H = R.hands && R.hands(p);
-      if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? 0.6 : H ? 0 : 0.2); }
+      if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? (H ? 0.1 : 0.6) : H ? 0 : 0.2); }
       /* a shot goes up, in front of the shooter: the ball is never carried down by his knees or behind him on the way
          (the hands lag the pose by a frame, and an arm may swing through a wind-up; a windmill is the one exception) */
       if (p.shoot && p.pose !== 'windmill') { const fx = Math.sin(p.face), fz = Math.cos(p.face), ht = (p.ht || 78) / 12, k = Math.min(1, p.shoot.t / 0.12);
@@ -1671,13 +1672,13 @@
         const fwd = (b.x - p.x) * fx + (b.z - p.z) * fz; if (fwd < 0.25) { b.x += fx * (0.25 - fwd); b.z += fz * (0.25 - fwd); }
         if (b.y < p.y + ht * 0.5) b.y = p.y + ht * 0.5; }
       /* stuffed: a jumping defender's hand on the ball while the shooter still has it up in the air is a block too */
-      if (p.shoot && p.shoot.kind !== 'dunk' && p.y > 0.4 && G.phase === 'live' && !G.drill) for (const o of G.pl) {
+      if (p.shoot) { if (p.shoot.kind !== 'dunk' && p.y > 0.4 && G.phase === 'live' && !G.drill) for (const o of G.pl) {
         if (o.team === p.team || o.y < 0.4) continue;
         const Ho = R.hands && R.hands(o); if (!Ho) continue;
         if ([Ho.r, Ho.l].some(hd => hyp(hd.x - o.x, hd.z - o.z) < 4 && Math.hypot(hd.x - b.x, hd.y - b.y, hd.z - b.z) < 1.0)) {
           p.st.fga++; if (p.shoot.three) p.st.tpa++; p.shoot = null; p.pose = ''; G.possN = (G.possN || 0) + 1;
           blockShot(o, p, { x: b.x, y: b.y, z: b.z }); return; }
-      }
+      } }   // (a shot never falls through to the dribble below: the ball stays in the hands)
       else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb)) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
         const mv = p.mv, ms = mv && H ? (G.t - mv.t0) / mv.T : 2;
