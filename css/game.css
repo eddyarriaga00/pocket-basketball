@@ -569,19 +569,19 @@ table.std tr.me td:first-child{box-shadow:inset 3px 0 0 #fff;color:#fff}
 .leaders p{position:relative;padding-bottom:8px}
 .leaders p[style]::after{content:"";position:absolute;left:24px;bottom:2px;height:2px;border-radius:1px;width:calc((100% - 24px) * var(--w,0));background:linear-gradient(90deg,#6a6a72,#fff)}
 /* ---- a player's card: a sheet from the bottom ---- */
-#pcard{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,0);transition:background .2s;display:flex;align-items:flex-end;justify-content:center}
-#pcard.on{background:rgba(0,0,0,.6)}
-#pcard .sheet{position:relative;width:100%;max-width:480px;box-sizing:border-box;padding:16px 18px calc(22px + var(--sb));border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.2);
+#plcard{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,0);transition:background .2s;display:flex;align-items:flex-end;justify-content:center}
+#plcard.on{background:rgba(0,0,0,.6)}
+#plcard .sheet{position:relative;width:100%;max-width:480px;box-sizing:border-box;padding:16px 18px calc(22px + var(--sb));border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.2);
   background:linear-gradient(180deg,color-mix(in srgb,var(--tc,#333) 38%,#141416),#141416 46%);transform:translateY(100%);transition:transform .24s cubic-bezier(.2,.8,.2,1)}
-#pcard.on .sheet{transform:none}
-#pcard .x{position:absolute;right:12px;top:10px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);font-size:22px;line-height:1}
-#pcard .top{display:flex;gap:12px;align-items:flex-end;margin-bottom:12px}
-#pcard .top img{flex:none;width:112px;height:179px;object-fit:contain;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5))}
-#pcard .top div{flex:1;min-width:0;padding-bottom:6px}
-#pcard .top span{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#d6d6dc}
-#pcard h3{margin:2px 0 4px;font-family:var(--display);font-weight:900;font-size:24px;line-height:1.05;text-transform:uppercase}
-#pcard .top p{margin:0;font-size:12.5px;color:var(--mute)}
-#pcard .top b{display:block;margin-top:8px;font-family:var(--display);font-weight:900;font-size:44px;line-height:1}#pcard .top b small{font-size:12px;letter-spacing:.1em;color:var(--mute);margin-left:6px}
-#pcard .kick{margin:14px 0 6px}
+#plcard.on .sheet{transform:none}
+#plcard .x{position:absolute;right:12px;top:10px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);font-size:22px;line-height:1}
+#plcard .top{display:flex;gap:12px;align-items:flex-end;margin-bottom:12px}
+#plcard .top img{flex:none;width:112px;height:179px;object-fit:contain;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5))}
+#plcard .top div{flex:1;min-width:0;padding-bottom:6px}
+#plcard .top span{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#d6d6dc}
+#plcard h3{margin:2px 0 4px;font-family:var(--display);font-weight:900;font-size:24px;line-height:1.05;text-transform:uppercase}
+#plcard .top p{margin:0;font-size:12.5px;color:var(--mute)}
+#plcard .top b{display:block;margin-top:8px;font-family:var(--display);font-weight:900;font-size:44px;line-height:1}#plcard .top b small{font-size:12px;letter-spacing:.1em;color:var(--mute);margin-left:6px}
+#plcard .kick{margin:14px 0 6px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}.chips span{background:var(--panel3);border-radius:999px;padding:5px 11px;font-size:12.5px}.chips b{font-family:var(--display);margin-left:3px}
 .ros[data-pid]{cursor:pointer}.ros[data-pid]:active{background:rgba(255,255,255,.06)}

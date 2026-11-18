@@ -1159,12 +1159,12 @@
   let ltab = 'stand';   // the League tab's own two pages
   /* a player's card: a sheet from the bottom with the player standing in his uniform, what he is and what he is good at */
   function playerCard(p, t) {
-    const old = document.querySelector('#pcard'); if (old) old.remove();
+    const old = document.querySelector('#plcard'); if (old) old.remove();
     const G4 = [['Scoring', ['close', 'dunk', 'mid', 'three', 'ft']], ['Playmaking', ['handle', 'pass']], ['Athleticism', ['speed', 'vert']], ['Defense', ['perD', 'inD', 'steal', 'block', 'reb']]];
     const avg = ks => Math.round(ks.reduce((a, k) => a + ((p.r || {})[k] || 0), 0) / ks.length);
     const best = PB.ATTRS.slice().sort((a, b) => ((p.r || {})[b[0]] || 0) - ((p.r || {})[a[0]] || 0)).slice(0, 3);
     let img = null; try { img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(p, t, 200, { body: true }) : null; } catch (e) { img = null; }
-    const d = document.createElement('div'); d.id = 'pcard';
+    const d = document.createElement('div'); d.id = 'plcard';
     d.innerHTML = `<div class="sheet" style="--tc:${t.c1}" role="dialog" aria-label="${esc(PB.full(p))}"><button class="x" aria-label="Close">×</button>
       <div class="top">${img ? `<img src="${img}" alt="">` : ''}<div><span>${esc(t.name)} · #${p.num}</span><h3>${esc(PB.full(p))}</h3>
         <p>${p.pos}${p.arch ? ' · ' + esc(p.arch) : ''} · ${PB.fmtH(p.ht)} · age ${p.age}</p>${p.from ? `<p>${esc(p.from)}</p>` : ''}<b>${p.ovr}<small>OVR</small></b></div></div>
