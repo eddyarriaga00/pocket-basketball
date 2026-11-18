@@ -831,7 +831,7 @@
     const put = (bone, dcl, obj) => { obj.position.copy(dcl.pos); obj.quaternion.copy(dcl.quat); bone.add(obj); };
     put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
     put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
-    if (TPL.decals.shorts) put(bones[bk('DEF-thigh.L')], TPL.decals.shorts, new T.Mesh(new T.PlaneGeometry(H * 0.045, H * 0.045), numMat));
+    if (TPL.decals.shorts && !(TPL.model && !PB.mannequin)) put(bones[bk('DEF-thigh.L')], TPL.decals.shorts, new T.Mesh(new T.PlaneGeometry(H * 0.045, H * 0.045), numMat));
     /* the team's name across the chest, over the number */
     const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', ink, edge), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     /* and his name across the back, over the number */
