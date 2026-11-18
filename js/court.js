@@ -1771,6 +1771,7 @@
   let introFocus = null;
   R.setIntro = (sec, focus) => { intro = sec; if (sec > 0) introT = sec; introFocus = sec > 0 ? focus || null : null; };
   let replayD = 1;
+  const hidNear = [];
   R.setReplay = on => { replay = on; replayA = null; replayD = PB.rand() < 0.5 ? -1 : 1; };
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
   R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
@@ -1792,7 +1793,8 @@
       if (m.kind === 'skin') {
         updateSkinned(p, m, G, dt);
         const k = 1 - Math.min(p.y / 8, 0.5);
-        if (m.inst && shadowIM && si < shadowIM.instanceMatrix.count) { _sm.makeScale(k, 1, k).setPosition(p.x, 0.02, p.z); shadowIM.setMatrixAt(si++, _sm); }
+        if (!m.root.visible) { /* stepped out of a replay's shot: no shadow either */ }
+        else if (m.inst && shadowIM && si < shadowIM.instanceMatrix.count) { _sm.makeScale(k, 1, k).setPosition(p.x, 0.02, p.z); shadowIM.setMatrixAt(si++, _sm); }
         else { m.shadow.position.set(0, 0.02, 0); m.shadow.scale.setScalar(k); }
         continue;
       }
@@ -1934,6 +1936,7 @@
       if (intro === 0) R.snap();
       return;
     }
+    if (hidNear.length) { for (const m of hidNear) m.root.visible = true; hidNear.length = 0; }
     if (replay) {
       /* replay: low, close, circling the ball */
       const bx = PB.clamp(b.x, -20, 20), bz = PB.clamp(b.z, -44, 44);
@@ -1944,6 +1947,8 @@
       const rr = 18, cx = PB.clamp(bx + Math.sin(replayA) * rr, -29, 29), cz = PB.clamp(bz + Math.cos(replayA) * rr, -52, 52);
       cam.position.set(cx, 9, cz);
       cam.lookAt(bx, Math.max(4.5, b.y * 0.6), bz);
+      /* a bystander standing right in front of the lens (the back of his head filled the picture) steps out of the shot */
+      for (const [p, m] of meshes) if (p !== b.holder && !p.shoot && p !== b.shooter && Math.hypot(p.x - cx, p.z - cz) < 12 && Math.hypot(p.x - bx, p.z - bz) > 6) { m.root.visible = false; hidNear.push(m); }
       return;
     }
     if (camMode === 'lock') {
