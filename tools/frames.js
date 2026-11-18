@@ -26,7 +26,8 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
     window._S = { G, u, d, m8, hz, n: 0 };
     PB.Game.dbg.run(0.05);
     if (SCENE === 'catch') { m8.x = 9; m8.z = u.z + 2 * hz; d.x = -25; }
-    window._cam = () => { const w = SCENE === 'catch' ? m8 : SCENE === 'contested' ? d : u, a = VIEW === 'front' ? 0 : VIEW === 'back' ? Math.PI : Math.PI / 2, fx = Math.sin(w.face + a), fz = Math.cos(w.face + a), h = (w.ht || 78) / 12;
+    if (SCENE === 'ft') { PB.Game.dbg.auto(true); for (let k = 0; k < 2400 && G.phase !== 'ft'; k++) PB.Game.dbg.run(0.25); window._S.ft = G.ftq && G.ftq.shooter; }
+    window._cam = () => { const w = SCENE === 'ft' && window._S.ft ? window._S.ft : SCENE === 'catch' ? m8 : SCENE === 'contested' ? d : u, a = VIEW === 'front' ? 0 : VIEW === 'back' ? Math.PI : Math.PI / 2, fx = Math.sin(w.face + a), fz = Math.cos(w.face + a), h = (w.ht || 78) / 12;
       PB.R.studio = [w.x + fx * 13, h * 0.8 + 1.5 + w.y * 0.6, w.z + fz * (SCENE === 'contested' ? 16 : 13), w.x, h * 0.62 + w.y * 0.8, w.z]; };
     window._cam();
   }, [SCENE, VIEW]);

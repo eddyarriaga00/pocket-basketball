@@ -1286,6 +1286,12 @@
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' || p.inb ? 'hold' : 'dribble';
     const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back
     if (fk >= 0) pose = 'shoot';
+    /* at the line: the ball comes up from the routine to the set point as he gets ready (your meter filling, or the
+       last beat of the computer's wait), and the follow-through is held while it is in the air */
+    let ftk = -1;
+    if (G.ftq && G.ftq.shooter === p && !p.shoot) {
+      if (G.phase === 'ft' && has) ftk = G.ftMeter > 0 ? Math.min(0.74, G.ftMeter * 0.9) : (!p.isUser || G.auto) && G.ftWait !== undefined && G.ftWait <= 0.35 ? Math.min(0.74, (1 - Math.max(0, G.ftWait) / 0.35) * 0.74) : -1;
+      if (ftk >= 0) pose = 'shoot'; else if (G.phase === 'ftflight') pose = 'follow'; }
     if ((pose === 'guard' || pose === 'ready' || !pose) && !has && p.y > 0.35 && !p.shoot && p.pose !== 'hang') pose = 'contest';   // off the floor without the ball: the hands go up (a block try, a rebound)
     if (pose === 'guard' && !has) { const h = G.ball.holder; if (Math.hypot(p.vx, p.vz) > 10 && (!h || Math.hypot(h.x - p.x, h.z - p.z) > 9)) pose = ''; }   // sprinting back, far from the ball: he runs, arms pumping, not spread like wings
     if (!pose && m.rw > 0.3 && !has) pose = 'ready';
@@ -1298,6 +1304,7 @@
     if (pose === 'dribble') kk = ((p.dph !== undefined ? p.dph : G.t * 7.4 * dsf) / Math.PI) % 1;   // the ball's own bounce (game.js), so hand and ball agree
     else if (pose === 'shoot' && p.shoot) kk = Math.min(1, p.shoot.t / (p.shoot.T * 0.82));
     else if (pose === 'shoot' && fk >= 0) kk = 0.16 + 0.34 * Math.sin(Math.PI * Math.min(1, fk * 1.15));
+    else if (pose === 'shoot' && ftk >= 0) kk = ftk;
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     else if (pose === 'dunk1') kk = p.shoot ? Math.min(1, p.shoot.t / p.shoot.T) : 1;
     else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'call' || pose === 'shrug' || pose === 'toosmall' || pose === 'ice' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));

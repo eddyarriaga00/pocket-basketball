@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The free throw is shot: the ball comes up from the routine to the set point as the meter fills, goes, and the
+  follow-through is held while it is in the air (the ball used to leave from hands held still at the chest).
 - Fixed: every game left its floor, stands, players and skeletons behind in graphics memory (about 170
   geometries and 60 textures a game, the floor's seven-megabyte picture among them). A long session could fill a
   phone's memory and take the page down. A new game now lets go of the last one first; four games in a row hold
