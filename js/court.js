@@ -1406,6 +1406,7 @@
   }
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
   R.build = (home) => {
+    drillYaw = null;
     for (const m of meshes.values()) scene.remove(m.root);
     meshes.clear(); refs = []; benchMesh = []; tags.me = tags.ball = null;
     while (scene.children.length > 2) scene.remove(scene.children[2]);
@@ -1671,6 +1672,7 @@
 
   R.setZoom = z => { zoom = PB.clamp(z, 0.7, 1.5); };
   let replay = false, replayA = 0;
+  let drillYaw = null;
   let intro = 0, introT = 3.2;   // seconds left of the opening flyover, and its length
   /* the showcase: you alone at center court in your team's uniform, the camera circling slowly; draft night and
      awards night draw it behind their cards */
@@ -1877,7 +1879,9 @@
       if (G.poss === 0) lockDir = 1; else if (G.poss === 1) lockDir = -1;
       const me0 = G.user || b.holder || b;
       /* in a drill the camera stands behind you facing the rim, wherever you are on the arc */
-      const want = G.drill ? Math.atan2(0 - me0.x, 41.75 - me0.z) : lockDir > 0 ? 0 : Math.PI;
+      /* (close to the rim, or past it, that angle would spin: there it keeps the last one it had from farther out) */
+      if (G.drill && (Math.hypot(me0.x, 41.75 - me0.z) > 8 || drillYaw === null)) drillYaw = Math.atan2(0 - me0.x, 41.75 - Math.min(me0.z, 41));
+      const want = G.drill ? drillYaw : lockDir > 0 ? 0 : Math.PI;
       let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
       if (Math.abs(Math.abs(dy) - Math.PI) < 0.01) dy = Math.PI * 0.999;   // a half turn always swings the same way
       yaw += dy * Math.min(1, dt * 4);

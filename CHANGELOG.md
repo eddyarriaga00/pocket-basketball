@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- In the dunk contest and the drills the camera no longer whips around when you get under the rim or past it.
 - On defense, a reach goes at the ball (down for a low dribble), and anyone off the floor without the ball has his
   hands up: a block try or a rebound no longer goes up with the arms held out in front.
 - Faces change with the moment: a grin in a celebration, a scowl after a shot he should have made or a pass thrown
