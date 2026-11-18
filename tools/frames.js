@@ -31,10 +31,12 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
     if (n === 1) { if (SCENE === 'fake') { D.press('A', true); D.run(0.08); D.press('A', false); } else if (SCENE === 'shot' || SCENE === 'layup' || SCENE === 'dunk') { D.press('A', true); }
       else if (SCENE.startsWith('m-')) { u.moveCd = 0; D.press('C', true, SCENE.slice(2), SCENE.slice(2) === 'cross' ? 1 : 0); }
       else if (SCENE === 'pass') D.press('B');
+      else if (SCENE === 'sizeup') { d.x = 0; d.z = u.z + 8 * hz; u.sizeN = 0.1; }
       else if (SCENE === 'run') D.stick(0, -1); else if (SCENE === 'slide') D.stick(1, 0); else if (SCENE === 'block') { G.ball.holder = d; d.face = Math.atan2(u.x - d.x, u.z - d.z); } }
     if ((SCENE === 'shot' || SCENE === 'layup' || SCENE === 'dunk') && u.shoot && u.shoot.t / u.shoot.T > 0.8) D.press('A', false);
     if (n > 0) D.run(DT); window._dt = DT; window._cam(); if (SCENE.startsWith('c-')) { G.ball.holder = m8; m8.x = -25; d.x = 30; u.vx = u.vz = 0; u.celebT = 9; u.pose = u.celebK; }
     if (SCENE === 'hands') { G.shotClock = Math.min(G.shotClock, 1.2); for (const p of G.pl) if (p !== u && p !== d) { p.x = 44; p.z = 44 * hz; } }
+    if (SCENE === 'sizeup') { d.x = 0; d.z = u.z + 8 * hz; d.vx = d.vz = 0; }
     return [n, u.pose, u.shoot ? +(u.shoot.t / u.shoot.T).toFixed(2) : null, +u.y.toFixed(1), G.ball.state, +G.ball.y.toFixed(1), d.pose, +d.y.toFixed(1)]; }, [SCENE, n, +DT]);
   require('fs').mkdirSync('.shots', { recursive: true }); const files = [], log = [];
   for (let n = 0; n < +NF; n++) { log.push(await act(n)); await pg.waitForTimeout(350); const f = `.shots/step-${SCENE}-${VIEW}-${String(n).padStart(2, '0')}.png`; await pg.screenshot({ path: f, clip: { x: 0, y: 222, width: 390, height: 400 } }); files.push(f); }

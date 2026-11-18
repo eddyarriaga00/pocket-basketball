@@ -1278,7 +1278,7 @@
   function exposed(d, h) {
     if (!h || h.team === d.team || h.shoot || h.inb || G.ball.state !== 'held' || hyp(h.x - d.x, h.z - d.z) > 5) return 0;
     const mv = h.mv && G.t - h.mv.t0 < h.mv.T ? h.mv.k : null;
-    if (mv) return mv === 'cross' || mv === 'legs' || mv === 'hesi' ? 1 : 0;
+    if (mv && !h.mv.idle) return mv === 'cross' || mv === 'legs' || mv === 'hesi' ? 1 : 0;
     return ((d.x - h.x) * -Math.cos(h.face) + (d.z - h.z) * Math.sin(h.face)) * (h.dribHand || 1) > 0.6 ? 0.6 : 0;
   }
   /* a badge you own, flashed as it helps: its name and tier on a small chip */
@@ -1560,6 +1560,12 @@
           const want = Math.abs(side) < 0.7 ? 0 : side > 0 ? -1 : 1, cur = p.dribHand || 1;
           if (want && want !== cur) { p.dribHand = want; startMv(p, nd.d < 3 && spd < 6 ? 'legs' : 'cross', cur, want); p.handCd = 0.9; }
         }
+        /* sizing him up: standing with the ball and room to work, he keeps it moving (between the legs, behind the
+           back, a crossover). Rhythm only: it opens nothing, and it is no more open to a steal than a plain dribble */
+        if (!busy && spd < 1.2 && G.phase === 'live' && !G.drill && !p.inb && !(p.postUp > 0) && !(p.move > 0) && nd.d > 4.6 && nd.d < 15) {
+          p.sizeT = (p.sizeT || 0) + dt;
+          if (p.sizeT > (p.sizeN || 1.2)) { const cur = p.dribHand || 1; p.dribHand = -cur; startMv(p, ['legs', 'btb', 'cross', 'legs'][Math.floor(rand() * 4)], cur, -cur); p.mv.idle = true; p.sizeT = 0; p.sizeN = rr(0.8, 2.0); p.handCd = 0.6; }
+        } else p.sizeT = 0;
       } else { p.prot = 0; p.runD = 0; }
       if (p.moveCd > 0) p.moveCd -= dt;
       if (p.reachCd > 0) p.reachCd -= dt;
