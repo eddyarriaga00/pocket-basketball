@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- A substitute checks in at the scorer's table and runs on (he used to appear where the other man stood).
 - The opening tip is won at the top of the jump, at the two centers' fingertips, and tapped back to the point guard
   (the ball used to drop between them and jump into a guard's hands).
 - Fixed: a rebound caught in the air went straight into a dribble, bouncing on the floor under a man still two feet

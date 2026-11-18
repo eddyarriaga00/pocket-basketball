@@ -17,7 +17,8 @@
   const CH = (k, p) => { if (PB.booth && PB.booth.chat && p && !G.drill) PB.booth.chat(k, p.x, p); };   // a player talking on the floor
   const bt = (p, k) => (p && p.d && p.d.badges && p.d.badges[k]) || 0;   // a badge's tier, 0 to 3
   /* a short buzz in the hand, where the phone allows it (Android; iPhones do not let web pages vibrate) */
-  const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
+  const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;   // (a browser refuses, loudly, before the first touch)
+    try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
   /* Settings › Shot timing: how wide the green band is */
   const timingEase = () => ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1);
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
@@ -318,6 +319,8 @@
         if (G.starters[t][p.slot].d === out.d) G.starters[t][p.slot] = out; else if (G.starters[t][p.slot].d === p.d) G.starters[t][p.slot] = inn;
         if (!G.played.includes(p.st)) G.played.push(p.st), G.playedBy.push({ d: p.d, team: t });
         R.removePlayer && R.removePlayer(p); R.addPlayer(p, G.kits[t]);
+        /* he checks in at the scorer's table and runs on (he used to appear where the other man stood) */
+        if (G.phase !== 'live') { p.x = 24.4; p.z = clamp(p.z * 0.3, -9, 9); p.vx = p.vz = 0; p.face = -Math.PI / 2; }
         if (t === 0 || rand() < 0.3) feed(`${t === 0 ? '' : G.teams[1].name + ': '}${p.name} in for ${out.name}`);
         if (t === 0 && n === 0 && rand() < 0.3) B('subs_ana', { prio: 1 });
         n++;

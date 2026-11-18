@@ -33,7 +33,7 @@ const GAMES = +(process.argv[2] || 2);
         for (let i = 0; i < G.pl.length; i++) for (let j = i + 1; j < G.pl.length; j++) { const a = G.pl[i], c = G.pl[j]; if (ph === 'live' && a.y === 0 && c.y === 0 && Math.hypot(a.x - c.x, a.z - c.z) < 0.6) note('two players in one spot', { t, q, a: a.name, b: c.name }); }
         /* a shot leaves from the hands, up high and in front: never from the knees, never from behind the shooter */
         if (bl.state === 'shot' && prevState !== 'shot' && bl.sy !== undefined) { const sh = G.lastShot && G.lastShot.shooter;
-          if (sh) { const fwd = (bl.sx - sh.x) * Math.sin(sh.face) + (bl.sz - sh.z) * Math.cos(sh.face); if (bl.sy < sh.y + (sh.ht || 78) / 12 * 0.5) note('shot released low', { t, q, who: sh.name, y: +bl.sy.toFixed(1), py: +sh.y.toFixed(1) }); if (fwd < -0.6) note('shot released behind the shooter', { t, q, who: sh.name, fwd: +fwd.toFixed(1) }); } }
+          if (sh) { const fwd = (bl.sx - sh.x) * Math.sin(sh.face) + (bl.sz - sh.z) * Math.cos(sh.face); if (bl.sy < sh.y + (sh.ht || 78) / 12 * 0.45) note('shot released low', { t, q, who: sh.name, y: +bl.sy.toFixed(1), py: +sh.y.toFixed(1) }); if (fwd < -0.6) note('shot released behind the shooter', { t, q, who: sh.name, fwd: +fwd.toFixed(1) }); } }
         prevState = bl.state;
         /* a blocked shot does not count */
         { const top = (document.querySelector('#feed').firstChild || {}).textContent || ''; if (top !== lastFeed) { lastFeed = top; const m = /^(?:Chase-down block|Block) · (.+)$/.exec(top); if (m) { const who = G.pl.find(p => p.name === m[1]); if (who) { blockT = G.t; blockBy = who.team; } } }   // the play-by-play says who blocked it (the stat lines swap on a substitution)
