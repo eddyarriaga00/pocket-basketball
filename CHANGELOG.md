@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Sharper pictures of players: the Look card, your hub card, the create screen and the Player of the Game are drawn
+  at twice the size (they were soft on a phone's screen). The Player of the Game shouts in his picture again.
 - Fixed: a few seconds on the title screen (which runs at thirty frames a second on purpose) made the game think
   the phone was slow and draw every game after it at a lower resolution. Games are as sharp as the phone allows
   again. A phone that really cannot keep up at the lowest resolution now also drops the outlines and the bench.

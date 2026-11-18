@@ -422,7 +422,7 @@
       const bars = PB.ATTRS.map(([k, n]) => `<div class="bar"><span>${n}</span><i><u style="width:${r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${r[k]}</b></div>`).join('');
       /* you, as you build him: in a plain practice jersey */
       const pv = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait({ id: 'me', first: st.first || 'You', last: st.last || '', pos: st.pos, ht: st.ht, skin: st.skin, num: st.num ?? 1, r: {}, look: st.look },
-        { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' }, 220, { body: true }) : null;
+        { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' }, 400, { body: true }) : null;
       show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Create your player</h2>
         ${pv ? `<div class="createpv"><img alt="" src="${pv}"><p>${PB.fmtH(st.ht)} · ${st.pos} · ${esc(st.arch)}</p></div>` : ''}
         <div class="field"><label>Name</label><div class="row2"><input id="fn" maxlength="14" placeholder="First" value="${esc(st.first || '')}"><input id="ln" maxlength="16" placeholder="Last" value="${esc(st.last || '')}"></div></div>
@@ -1025,7 +1025,7 @@
     if ($('#trade')) $('#trade').onclick = requestTrade;
     if ($('#pcard')) $('#pcard').onclick = playerCard;
     scr().querySelectorAll('img[data-kit]').forEach(img => { const k = img.dataset.kit, key = `${C.team}|${k}|${C.me.num}|${JSON.stringify(C.me.look || {})}`;
-      kitCache[key] = kitCache[key] || (!PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(C.me, PB.team(C.team), 150, { body: true, kit: k, back: k === 'assoc' }) : null); if (kitCache[key]) img.src = kitCache[key]; });
+      kitCache[key] = kitCache[key] || (!PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(C.me, PB.team(C.team), 300, { body: true, kit: k, back: k === 'assoc' }) : null); if (kitCache[key]) img.src = kitCache[key]; });
     scr().querySelectorAll('.kitpick').forEach(b => b.onclick = () => { C.homeKit = b.dataset.k; save(); hub(); });
     if ($('#sim5')) $('#sim5').onclick = () => simMany(5);
     if ($('#simall')) $('#simall').onclick = () => simMany(999);
@@ -1118,7 +1118,7 @@
   function portrait() {
     if (PB.noGL || !PB.R.modelReady || !PB.R.modelReady()) return null;
     const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num;
-    if (portraitCache.key !== key) portraitCache = { key, url: PB.R.portrait(C.me, PB.team(C.team), 160, { close: true }) };
+    if (portraitCache.key !== key) portraitCache = { key, url: PB.R.portrait(C.me, PB.team(C.team), 320, { close: true }) };
     return portraitCache.url;
   }
   const matchCache = new Map();
@@ -1132,7 +1132,7 @@
   function bodyShot() {
     if (PB.noGL || !PB.R.modelReady || !PB.R.modelReady()) return null;
     const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num + (C.homeKit || '');
-    if (bodyCache.key !== key) bodyCache = { key, url: PB.R.portrait(C.me, PB.team(C.team), 170, { body: true, tight: true, kit: C.homeKit || 'icon' }) };
+    if (bodyCache.key !== key) bodyCache = { key, url: PB.R.portrait(C.me, PB.team(C.team), 340, { body: true, tight: true, kit: C.homeKit || 'icon' }) };
     return bodyCache.url;
   }
   /* your player card: a 1080 by 1350 image for a feed, in your team's colors */
@@ -1180,7 +1180,7 @@
     const G4 = [['Scoring', ['close', 'dunk', 'mid', 'three', 'ft']], ['Playmaking', ['handle', 'pass']], ['Athleticism', ['speed', 'vert']], ['Defense', ['perD', 'inD', 'steal', 'block', 'reb']]];
     const avg = ks => Math.round(ks.reduce((a, k) => a + ((p.r || {})[k] || 0), 0) / ks.length);
     const best = PB.ATTRS.slice().sort((a, b) => ((p.r || {})[b[0]] || 0) - ((p.r || {})[a[0]] || 0)).slice(0, 3);
-    let img = null; try { img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(p, t, 200, { body: true }) : null; } catch (e) { img = null; }
+    let img = null; try { img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(p, t, 360, { body: true }) : null; } catch (e) { img = null; }
     const d = document.createElement('div'); d.id = 'plcard';
     d.innerHTML = `<div class="sheet" style="--tc:${t.c1}" role="dialog" aria-label="${esc(PB.full(p))}"><button class="x" aria-label="Close">×</button>
       <div class="top">${img ? `<img src="${img}" alt="">` : ''}<div><span>${esc(t.name)} · #${p.num}</span><h3>${esc(PB.full(p))}</h3>
@@ -1663,7 +1663,7 @@
     const w = res.score[0] >= res.score[1] ? 0 : 1, v = b => b.st.pts + b.st.reb * 0.8 + b.st.ast + (b.st.stl + b.st.blk) * 1.5 - (b.st.fga - b.st.fgm) * 0.4;
     const b = res.box.filter(x => x.team === w).sort((a, c) => v(c) - v(a))[0]; if (!b || v(b) < 6) return '';   // nobody had a game: no award
     /* a card the way the console games do it: the player in his uniform, his line in big numbers */
-    const tm = res.teams[w], img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(b.d, tm, 150, { body: true, tight: true, yell: true, kit: w === 0 ? 'icon' : 'assoc' }) : null;
+    const tm = res.teams[w], img = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(b.d, tm, 300, { body: true, tight: true, yell: true, kit: w === 0 ? 'icon' : 'assoc' }) : null;
     return `<div class="card potg" style="--tc:${tm.c1}">${img ? `<img alt="" src="${img}">` : ''}<div class="pi"><p class="kick">Player of the game${b.user ? ' · you' : ''}</p>
       <b class="nm">${esc(b.d.first || '')}<br>${esc(b.d.last || '')}</b><span class="tm">${esc(tm.name)} · #${b.d.num ?? ''}</span>
       <div class="ln"><div><b>${b.st.pts}</b><span>PTS</span></div><div><b>${b.st.reb}</b><span>REB</span></div><div><b>${b.st.ast}</b><span>AST</span></div></div>
