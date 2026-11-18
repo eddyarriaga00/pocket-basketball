@@ -1038,6 +1038,15 @@
     [0.40, [[0.30, -0.10, 0.95], [0.00, 0.80, 0.60], [0.30, -0.20, 0.93], [-0.42, 0.60, 0.68]]],
     [0.74, [[0.16, 0.74, 0.65], [0.08, 0.95, 0.30], [0.42, -0.74, 0.50], [-0.05, 0.30, 0.95]]],
     [1.00, [[0.12, 0.93, 0.34], [0.06, 0.98, 0.20], [0.40, -0.82, 0.38], [0.02, 0.36, 0.93]]]];
+  /* a pass is a snap: the ball loaded at the chest, the arms shot straight out, then the hands turned out and held */
+  const PASSK = [
+    [0.00, [[0.34, -0.72, 0.42], [-0.05, 0.30, 0.95], [0.34, -0.72, 0.42], [-0.05, 0.30, 0.95]]],
+    [0.32, [[0.20, -0.10, 0.97], [0.00, 0.04, 1.00], [0.20, -0.10, 0.97], [0.00, 0.04, 1.00]]],
+    [1.00, [[0.30, -0.22, 0.93], [0.12, -0.10, 0.99], [0.30, -0.22, 0.93], [0.12, -0.10, 0.99]]]];
+  const BPASSK = [
+    [0.00, [[0.34, -0.72, 0.42], [-0.05, 0.30, 0.95], [0.34, -0.72, 0.42], [-0.05, 0.30, 0.95]]],
+    [0.32, [[0.22, -0.55, 0.80], [0.03, -0.62, 0.78], [0.22, -0.55, 0.80], [0.03, -0.62, 0.78]]],
+    [1.00, [[0.30, -0.60, 0.74], [0.14, -0.66, 0.74], [0.30, -0.60, 0.74], [0.14, -0.66, 0.74]]]];
   /* a pose between the keys of a keyed move, eased */
   function keyed(K, k) {
     let i = 0; while (i < K.length - 2 && k > K[i + 1][0]) i++;
@@ -1230,6 +1239,10 @@
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
     let P = POSES[pose](kk);
+    if ((pose === 'chest' || pose === 'bpass') && p.passT0 !== undefined && G.t - p.passT0 < 0.6) { P = keyed(pose === 'chest' ? PASSK : BPASSK, Math.min(1, (G.t - p.passT0) / 0.3));
+      if (pose === 'chest' && G.ball.lob && G.ball.passer === p) P = P.map(v => [v[0], v[1] + 0.5, v[2]]); }   // a lob goes up and out
+    if (pose === 'catch' && G.ball.state === 'pass') { const b = G.ball, d = Math.hypot(b.x - p.x, b.z - p.z) || 1, vy = Math.max(-0.7, Math.min(0.9, ((b.y || 0) - ((p.ht || 78) / 12 * 0.78 + (p.y || 0))) / Math.max(3, d)));   // the hands go to where the ball is coming in
+      P = [[0.30, vy * 0.5 - 0.1, 0.90], [0.10, vy + 0.15, 0.95], [0.30, vy * 0.5 - 0.1, 0.90], [0.10, vy + 0.15, 0.95]]; }
     /* off one hand: a layup reaches up for the glass, the off arm keeping the defender away; a hook sweeps up from the side */
     { const sk = p.shoot && p.shoot.kind; m.lay = p.shoot ? (sk === 'layup' || sk === 'floater' ? 1 : sk === 'hook' ? 2 : 0) : (p.y > 0.2 ? m.lay : 0);
       if (m.lay && (pose === 'shoot' || pose === 'follow')) { const e = pose === 'follow' ? 1 : smooth(0, 1, kk), L = (a, b) => a.map((v, j) => v + (b[j] - v) * e);

@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Passes snap: the ball loads at the chest, the arms shoot out at the target and hold a beat (down for a bounce pass,
+  up for a lob). A receiver's hands go to the height the ball is coming in at.
 - The layup is its own keyed move now: the ball comes up past the chest with the knee, the arm reaches full length
   and the fingers roll through it, the off arm stays loose. The new model blinks (its eyes are a separate part).
 - A new player model, sculpted in Blender for this game (tools/body.py builds it; models/body.glb): tall and lean with
