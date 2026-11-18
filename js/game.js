@@ -420,7 +420,7 @@
     /* still standing there with six of the eight seconds gone and no hand on the stick: you give it to the nearest
        teammate, who brings it up (someone learning the controls is not whistled every trip; a player who is moving
        keeps the ball and the count) */
-    if (!V.crossed && h && h.isUser && !G.auto && !G.switching && !V.bail && V.start - G.shotClock > 6 && !stickWorld() && !h.shoot && G.phase === 'live') {
+    if (!V.crossed && h && h.isUser && !G.auto && !G.switching && !V.bail && V.start - G.shotClock > 6 && !stickWorld() && !h.shoot && G.phase === 'live' && !(G.q >= 4 && G.clock < 45 && G.score[h.team] > G.score[1 - h.team])) {   // (not while you are ahead late and running the clock down on purpose)
       const r = teamOf(h.team).filter(o => o !== h && !o.inb).sort((a, c) => hyp(a.x - h.x, a.z - h.z) - hyp(c.x - h.x, c.z - h.z))[0];
       if (r) { V.bail = true; passTo(h, r); toast(`To ${r.name}`, ''); }
     }
