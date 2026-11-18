@@ -1496,7 +1496,7 @@
         G.tipWinner = t; G.phase = 'live';
         const pg = teamOf(t).find(o => o.slot === 0);
         /* the winner taps it back to his point guard (the ball used to jump into the guard's hands from mid-air) */
-        { const c = teamOf(t).find(o => o.slot === 4); if (c && pg && c !== pg) { give(c); passTo(c, pg); if (b.state !== 'pass') give(pg); else c.pose = 'contest'; } else give(pg); }
+        { const c = teamOf(t).find(o => o.slot === 4); if (c && pg && c !== pg) { give(c); passTo(c, pg); if (b.state !== 'pass') give(pg); else { c.pose = 'contest'; b.pick = null; } } else give(pg); }   // (a tip is not a pass anyone picks off)
         feed(`${G.teams[t].name} win the tip`); AU().play('whistle', { vol: 0.7 }); B('tip', { prio: 1 });
       }
       b.x = 0; b.z = 0; b.y = 7 + Math.max(0, Math.sin((1.3 - G.tipT) * 2.5)) * 6;
