@@ -982,6 +982,12 @@
     if (G.clock < 1.6) { startShot(p); return; }
     if (G.shotClock < 2.5 || (d < 5.5 && p.hold > 0.15)) { startShot(p); return; }
     const need = (p.team === 1 ? G.diff.oppShootEV : 0.98) - (three ? 0.01 : 0);
+    /* your pass found him open: he lets it fly on the catch instead of holding it until his man recovers */
+    if (p.caughtFrom && p.caughtFrom.isUser && !G.auto && G.t - (p.caughtT || -9) < 0.9 && p.hold > 0.16 && nd > 4.2 && d < 27 && ev > need * 0.9 && !(three && p.r.three < 62)) { p.caughtFrom = null; startShot(p); return; }
+    /* drive and kick: the lane has closed on a driver, and a teammate stands open: the ball goes out to him (or down to the big on the baseline) */
+    if (p.drive > 0 && d < 15 && d > 5 && p.hold > 0.35 && lane(p) < 1.8 && rand() < 0.4) {
+      const r = bestPass(p); if (r && nearestDef(r).d > 6 && (distHoop(r.x, r.z, p.team) < 8 || r.r.three >= 68 || r.isUser)) { p.drive = 0; tally('kick'); passTo(p, r); return; }
+    }
     if (p.hold > 0.5 && ev > need && nd > 4.2 && rand() < 0.62) { startShot(p); return; }
     /* with you on him he may show the ball first: jump at the fake and he goes by you or shoots over you coming down */
     { const u = G.user; if (u && !G.auto && u.team !== p.team && d > 9 && p.hold > 0.7 && !(p.fakeCd > G.t) && u.y === 0 && hyp(u.x - p.x, u.z - p.z) < 5 && rand() < 0.004) { p.fakeT = G.t; p.fakeCd = G.t + 6; p.hold = 0.45; return; } }
@@ -1841,12 +1847,12 @@
         const r = b.to;
         if (b.lob && hyp(r.x - b.x, r.z - b.z) < 6) {
           /* caught above the rim: thrown down in one motion */
-          give(r); r.caughtT = G.t; r.x += (b.x - r.x) * 0.6; r.z += (b.z - r.z) * 0.6;
+          give(r); r.caughtT = G.t; r.caughtFrom = b.from; r.x += (b.x - r.x) * 0.6; r.z += (b.z - r.z) * 0.6;
           r.jg = GRAV * 1.2; r.vy = 6; r.y = Math.max(r.y, 2.6); r.pose = 'celebrate';
           r.shoot = { t: 0, T: 0.14, kind: 'dunk', user: false, three: false, d: distHoop(r.x, r.z, r.team), aiRel: 0.82, oop: true };
           toast('ALLEY-OOP', r.team === 0 ? 'make' : 'opp'); AU().crowd.react('ooh', 1);
         }
-        else if (hyp(r.x - b.x, r.z - b.z) < 4) { give(r); r.caughtT = G.t; r.pose = 'hold'; r.holdPoseT = 0.3; AU().play('catch', { x: r.x, vol: 0.7 }); }
+        else if (hyp(r.x - b.x, r.z - b.z) < 4) { give(r); r.caughtT = G.t; r.caughtFrom = b.from; r.pose = 'hold'; r.holdPoseT = 0.3; AU().play('catch', { x: r.x, vol: 0.7 }); }
         else { b.state = 'loose'; b.vx = (b.ex - b.sx) / b.dur * 0.5; b.vz = (b.ez - b.sz) / b.dur * 0.5; b.vy = 0; b.lastTouch = b.from.team; G.reb = null; }
       }
       return;
