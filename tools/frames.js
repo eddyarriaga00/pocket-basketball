@@ -8,10 +8,15 @@ const [SCENE = 'fake', VIEW = 'side', NF = '8', DT = '0.05', COLS = '4'] = proce
   const srv = await require('./serve-test').serve(); await pg.goto(srv.url);
   await pg.waitForFunction(() => window.PB && PB.R && PB.R.modelReady && PB.R.modelReady(), null, { timeout: 60000 });
   await pg.click('#qg'); await pg.waitForTimeout(400); await pg.click('#go');
-  await pg.waitForFunction(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().phase === 'live', null, { timeout: 90000 });
+  if (SCENE === 'tip') await pg.waitForFunction(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().phase === 'tip', null, { timeout: 90000 });
+  else await pg.waitForFunction(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().phase === 'live', null, { timeout: 90000 });
   await pg.evaluate(([SCENE, VIEW]) => {
     const st = document.createElement('style'); st.textContent = 'body *{visibility:hidden!important} canvas{visibility:visible!important}'; document.head.appendChild(st);
     const G = PB.Game.dbg.state(), u = G.user, hz = u.team === 0 ? 1 : -1; PB.R.lock.fov = 60; PB.R.resize(); PB.settings = PB.settings || {}; PB.settings.replays = false;
+    if (SCENE === 'tip') {   // the opening tip as the game sets it up: nothing is moved
+      G.paused = true; { const o = PB.R.update; PB.R.update = (g, dt) => { const k = window._dt || 0; window._dt = 0; return o(g, k); }; }
+      if (PB.R.setIntro) PB.R.setIntro(0); const iv = document.querySelector('#intro'); if (iv) iv.hidden = true; G.tipT = 1.1;
+      window._S = { G, u, d: G.pl.find(p => p.team !== u.team), m8: u, hz, n: 0 }; window._cam = () => { PB.R.studio = [13, 8.5, -3, 0, 6.2, 0]; }; window._cam(); return; }
     G.paused = true; { const o = PB.R.update; PB.R.update = (g, dt) => { const k = window._dt || 0; window._dt = 0; return o(g, k); }; } const d = G.pl.find(p => p.team !== u.team), m8 = G.pl.find(p => p.team === u.team && p !== u);
     for (const p of G.pl) if (p !== u && p !== d && p !== m8) { p.x = 44; p.z = -44 * hz; }
     G.phase = 'live'; G.ball.holder = u; G.ball.state = 'held'; G.poss = u.team; u.shoot = null; u.y = 0; u.vy = 0; u.vx = u.vz = 0; G.clock = 300; G.shotClock = 20; u.inb = false; u.face = Math.atan2(0, hz);

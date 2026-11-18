@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The opening tip is won at the top of the jump, at the two centers' fingertips, and tapped back to the point guard
+  (the ball used to drop between them and jump into a guard's hands).
 - Fixed: a rebound caught in the air went straight into a dribble, bouncing on the floor under a man still two feet
   up. He comes down with it in both hands now, and dribbles once his feet are back on the floor.
 - The free throw is shot: the ball comes up from the routine to the set point as the meter fills, goes, and the

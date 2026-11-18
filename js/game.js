@@ -1489,13 +1489,15 @@
     if (G.phase === 'tip') {
       G.tipT -= dt;
       /* the two centers go up for it */
-      if (G.tipT < 0.5 && !G.tipJump) { G.tipJump = true; for (const p of G.pl) if (p.slot === 4) { p.jg = GRAV * 1.4; p.vy = Math.sqrt(2 * p.jg * (2.4 + p.r.vert * 0.02)); p.pose = 'contest'; } }
+      if (G.tipT < 0.64 && !G.tipJump) { G.tipJump = true; for (const p of G.pl) if (p.slot === 4) { p.jg = GRAV * 1.4; p.vy = Math.sqrt(2 * p.jg * (2.4 + p.r.vert * 0.02)); p.pose = 'contest'; } }
       for (const p of G.pl) if (p.y > 0 || p.vy) { p.y += p.vy * dt; p.vy -= p.jg * dt; if (p.y <= 0) { p.y = 0; p.vy = 0; p.pose = ''; } }
-      if (G.tipT <= 0) {
+      if (G.tipT <= 0.28) {   // the ball is at their fingertips, the two of them at the top of the jump: one of them gets a hand on it
         const t = rand() < 0.5 ? 0 : 1;
         G.tipWinner = t; G.phase = 'live';
         const pg = teamOf(t).find(o => o.slot === 0);
-        give(pg); feed(`${G.teams[t].name} win the tip`); AU().play('whistle', { vol: 0.7 }); B('tip', { prio: 1 });
+        /* the winner taps it back to his point guard (the ball used to jump into the guard's hands from mid-air) */
+        { const c = teamOf(t).find(o => o.slot === 4); if (c && pg && c !== pg) { give(c); passTo(c, pg); if (b.state !== 'pass') give(pg); else c.pose = 'contest'; } else give(pg); }
+        feed(`${G.teams[t].name} win the tip`); AU().play('whistle', { vol: 0.7 }); B('tip', { prio: 1 });
       }
       b.x = 0; b.z = 0; b.y = 7 + Math.max(0, Math.sin((1.3 - G.tipT) * 2.5)) * 6;
       return;
