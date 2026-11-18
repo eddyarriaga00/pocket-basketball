@@ -6,3 +6,4 @@ __pycache__/
 .voice/
 .models/
 node_modules
+.shots/
