@@ -1656,6 +1656,7 @@
       const sp = hyp(p.vx, p.vz);
       let want;
       if (p.passA !== undefined && G.t - p.passT0 < 0.4) want = p.passA;
+      else if (!p.shoot && b.holder === p && (p.postUp > 0 || p.post !== undefined)) want = Math.atan2(p.x - 0, p.z - hoopZ(p.team));   // backing his man down: his back is to the basket (this used to pull him round to face it, against the post-up turning him away, and he shook)
       else if (p.shoot || b.holder === p && sp < 3) want = Math.atan2(0 - p.x, hoopZ(p.team) - p.z);
       else if (p.pose === 'guard' && sp < maxSpeed(p) * 0.92) {
         /* in a stance you face your man and slide, you don't turn and run (until he is gone) */
