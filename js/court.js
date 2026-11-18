@@ -1051,7 +1051,7 @@
     /* celebrations; k is the clock, for the beat of a chest thump or a pump of the fist */
     flex: (k) => { const b = 0.08 * Math.sin(k * 9); return [[0.97, 0.05 + b, 0.15], [0.15, 0.97, 0.2], [0.97, 0.05 + b, 0.15], [0.15, 0.97, 0.2]]; },
     roar: (k) => { const b = 0.1 * Math.sin(k * 7); return [[0.75, -0.55 + b, 0.35], [0.35, 0.3 + b, 0.9], [0.75, -0.55 + b, 0.35], [0.35, 0.3 + b, 0.9]]; },
-    chest: (k) => { const b = Math.max(0, Math.sin(k * 10)) * 0.35; return [[0.45, -0.35, 0.82], [-0.85, 0.2, 0.45 + b], [0.75, -0.6, 0.25], [0.3, -0.6, 0.75]]; },
+    thump: (k) => { const b = Math.max(0, Math.sin(k * 10)) * 0.35; return [[0.45, -0.35, 0.82], [-0.85, 0.2, 0.45 + b], [0.75, -0.6, 0.25], [0.3, -0.6, 0.75]]; },
     goggles: () => [[0.75, 0.35, 0.55], [-0.5, 0.82, 0.25], [0.75, 0.35, 0.55], [-0.5, 0.82, 0.25]],
     three: (k) => { const b = 0.05 * Math.sin(k * 8); return [[0.3, 0.94 + b, 0.15], [0.12, 0.99, 0.05], [0.2, -0.97, 0.1], [0.15, -0.95, 0.25]]; },
     point: () => [[0.35, 0.75, 0.55], [0.25, 0.8, 0.55], [0.25, -0.9, 0.3], [0.2, -0.6, 0.75]],
@@ -1286,6 +1286,7 @@
     let pose = p.pose;
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' ? 'hold' : p.inb ? 'over' : 'dribble';
+    if (pose === 'chest' && !(p.reachT > 0) && !(p.passT0 !== undefined && G.t - p.passT0 < 0.6)) pose = 'thump';   // the celebration (the chest pass had taken its name, and with it its arms)
     if (has && !p.shoot && !p.inb && p.y > 0.25 && p.pose !== 'hang') pose = 'contest';   // he came down with a rebound: the ball stays up in both hands until his feet are back on the floor
     const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back
     if (fk >= 0) pose = 'shoot';
@@ -1310,7 +1311,7 @@
     else if (pose === 'shoot' && ftk >= 0) kk = ftk;
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
     else if (pose === 'dunk1') kk = p.shoot ? Math.min(1, p.shoot.t / p.shoot.T) : 1;
-    else if (pose === 'flex' || pose === 'roar' || pose === 'chest' || pose === 'three' || pose === 'call' || pose === 'shrug' || pose === 'toosmall' || pose === 'ice' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
+    else if (pose === 'flex' || pose === 'roar' || pose === 'thump' || pose === 'three' || pose === 'call' || pose === 'shrug' || pose === 'toosmall' || pose === 'ice' || pose === 'guard' || pose === 'ready' || pose === 'box') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose
        gives x as outward for that arm, so the left arm mirrors it */
