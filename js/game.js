@@ -308,7 +308,14 @@
     e.style.transition = 'none'; e.style.opacity = '1'; void e.offsetWidth;
     clearTimeout(cut.h); cut.h = setTimeout(() => { e.style.transition = 'opacity .3s ease-out'; e.style.opacity = '0'; }, 170);
   }
-  function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; subs(); if (stintOver() && !G.ftq) G.then = () => sitDown(); }
+  function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; subs();
+    /* a coach stops a run: a timeout called from the bench (yours or theirs). Legs come back, and the run is over */
+    if (G.coachTO !== undefined && !G.ftq && G.q <= 4) { const tc = G.coachTO; G.coachTO = undefined;
+      if (G.to[tc] > 0) { G.to[tc]--; G.deadT = Math.max(t, 3.4); G.run = null;
+        for (const p of G.pl) { if (p.energy !== undefined) p.energy = Math.min(1, p.energy + 0.35); }
+        AU().play('whistle'); toast(tc === 0 && G.user ? 'Timeout: your coach stops the run' : `Timeout · ${G.teams[tc].name}`, tc === 0 ? 'call' : 'opp'); feed(`Timeout · ${G.teams[tc].name}`);
+        B('timeout', { prio: 3, follow: 0.4 }); if (AU().organ) setTimeout(() => AU().organ('walk'), 800); } }
+    if (stintOver() && !G.ftq) G.then = () => sitDown(); }
   /* ---------- the bench: computer players tire as they play and rest on the bench; at a dead ball a tired man comes
      out for a fresh one, and a rested starter goes back in for his reserve. You never come out. ---------- */
   const IDENT = ['d', 'r', 'ht', 'name', 'num', 'st', 'energy'];
@@ -744,7 +751,7 @@
       else if (s.kind === 'hook') B('hookshot', { prio: 3 });
       else if (s.kind === 'dunk' && p.showoff) B('showoff', { prio: 5 });
       else B(s.kind === 'dunk' ? 'dunk' : s.pts === 3 ? 'three' : s.kind === 'layup' ? 'layup' : 'jumper', { prio: s.kind === 'dunk' || s.pts === 3 ? 3 : 2, follow: s.pts === 3 ? 0.3 : s.kind === 'dunk' ? 0.35 : 0.15 });
-      if (run.pts >= 8 && !run.said) { run.said = true; setTimeout(() => B('run', { prio: 1 }), 2600); const tm = G.teams[p.team], n = run.pts; setTimeout(() => { const e = $('#statpop'); if (!e || G.drill) return; e.innerHTML = `<i style="background:${tm.c1}"></i><div><b>${tm.name}</b><span>on a ${n}-0 run</span></div>`; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 3200); }, 4200); }
+      if (run.pts >= 8 && !run.said) { run.said = true; if (!G.drill && G.to && G.to[1 - p.team] > 0 && !(G.q >= 4 && G.clock < 20)) G.coachTO = 1 - p.team;   /* the other bench has seen enough: a timeout at the next whistle */ setTimeout(() => B('run', { prio: 1 }), 2600); const tm = G.teams[p.team], n = run.pts; setTimeout(() => { const e = $('#statpop'); if (!e || G.drill) return; e.innerHTML = `<i style="background:${tm.c1}"></i><div><b>${tm.name}</b><span>on a ${n}-0 run</span></div>`; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 3200); }, 4200); }
       /* assist: a pass that set it up in the last few seconds */
       let ast = null;
       if (b.passer && b.passer.team === p.team && b.passer !== p && G.t - b.passT < 3.2 && (p.hold || 0) < 2.4) { ast = b.passer; ast.st.ast++; }

@@ -12,6 +12,7 @@ What changed, newest first. The full list is the git log; the order of work is [
   results and your points. The standings show every team's streak.
 - Hot zones on the Player tab: what you shoot from each of ten zones of the floor this season. A zone where you are
   well above the league (on four tries or more) turns green, and your shot is a little better from it.
+- Coaches call timeouts: a bench that has watched an 8-0 run stops the game at the next whistle (yours or theirs).
 - Career stats season by season on the Log tab: games, minutes, points, rebounds, assists, steals, blocks and the
   shooting splits, with a career line.
 - Passing. A pass is thrown to the man, not to a spot on the floor: it bends to where he is as it comes, so a receiver
