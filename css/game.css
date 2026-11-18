@@ -605,6 +605,7 @@ table.std tr.me td:first-child{box-shadow:inset 3px 0 0 #fff;color:#fff}
 #badgepop.on{transform:none;opacity:1}#badgepop i{font-style:normal;font-size:9px;letter-spacing:1px}
 #game:has(#rp:not([hidden])) #tipcard{visibility:hidden}
 #game:has(#rp:not([hidden])) #feed{visibility:hidden}
+#game:has(#tipcard:not([hidden])) #feed{visibility:hidden}   /* a first-game tip covers the play-by-play line: one or the other */
 #game:has(#pause:not([hidden])) :is(#intro,#statpop,#badgepop,#tipcard){visibility:hidden}   /* nothing from the broadcast sits on top of the pause menu */   /* the play-by-play line sat under the REPLAY label */
 .bug.clutch .mid b{color:#ff5a6b;animation:blink 1s infinite}
 @keyframes wob{0%,100%{transform:translate(0,0)}25%{transform:translate(-3px,1px)}50%{transform:translate(2px,-2px)}75%{transform:translate(3px,2px)}}
