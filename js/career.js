@@ -1679,7 +1679,7 @@
     const col = t => lum(T[t].c1) < 0.16 ? (lum(T[t].c2) < 0.16 ? '#d8d8de' : T[t].c2) : T[t].c1;
     let out = '';
     if (res.line && res.line.length > 1) { const q = res.line.map((v, i) => [v[0] - (i ? res.line[i - 1][0] : 0), v[1] - (i ? res.line[i - 1][1] : 0)]);
-      out += `<div class="card"><h3>By quarter</h3><table class="std lsc"><tr><th></th>${q.map((_, i) => `<th>${i < 4 ? i + 1 : 'OT'}</th>`).join('')}<th>T</th></tr>${[0, 1].map(t => `<tr class="${res.score[t] > res.score[1 - t] ? 'me' : ''}"><td>${badge(T[t])} ${ab(t)}</td>${q.map(v => `<td>${v[t]}</td>`).join('')}<td><b>${res.score[t]}</b></td></tr>`).join('')}</table></div>`; }
+      out += `<div class="card"><h3>By quarter</h3><table class="std lsc"><tr><th></th>${q.map((_, i) => `<th>${q.length < 4 && i === q.length - 1 ? (i + 1) + '–4' : i < 4 ? i + 1 : 'OT'}</th>`).join('')}<th>T</th></tr>${[0, 1].map(t => `<tr class="${res.score[t] > res.score[1 - t] ? 'me' : ''}"><td>${badge(T[t])} ${ab(t)}</td>${q.map(v => `<td>${v[t]}</td>`).join('')}<td><b>${res.score[t]}</b></td></tr>`).join('')}</table></div>`; }
     if (res.flow && res.flow.length > 3) { const F = res.flow, W = 320, H = 96, tot = F[F.length - 1][0] || 1, pk = Math.max(6, ...F.map(p => Math.abs(p[1]))), X = t => (t / tot * W).toFixed(1), Y = m => (H / 2 - m / pk * (H / 2 - 6)).toFixed(1);
       const d = F.map((p, i) => `${i ? 'L' : 'M'}${X(p[0])} ${Y(p[1])}`).join(' '), big = F.reduce((a, p) => Math.abs(p[1]) > Math.abs(a[1]) ? p : a, F[0]);
       let ch = 0, ties = 0; for (let i = 1; i < F.length; i++) { if (Math.sign(F[i][1]) && Math.sign(F[i - 1][1]) && Math.sign(F[i][1]) !== Math.sign(F[i - 1][1])) ch++; if (F[i][1] === 0 && F[i - 1][1] !== 0) ties++; }
@@ -2210,7 +2210,7 @@
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 
-  PB.Career = { title, hub, get: () => C };
+  PB.Career = { title, hub, get: () => C, gameStats };
   PB.boot = () => {
     /* without WebGL the menus and the career still work; only the court cannot be drawn */
     try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }

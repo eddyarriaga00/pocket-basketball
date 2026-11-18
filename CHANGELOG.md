@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-17 · the pocket look
 
+- Bug pass: a replay that began at the end of the half no longer sits on top of the halftime card (tapping "Second
+  half" only skipped the replay); season games get the score by quarter, game flow and team stats too; a game simmed
+  to the end labels its last quarters as one column. New test: tools/human.js plays whole games the way a sensible
+  person would and counts everything the game says.
 - Chat, from the title screen: one global room (the same one as Pocket Football's, on the same free service), a name
   you pick, a word filter, one line every two and a half seconds, mute and report on every line. Nothing touches
   the network until you open it.

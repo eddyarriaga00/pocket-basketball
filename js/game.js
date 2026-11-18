@@ -1851,6 +1851,7 @@
   function halftime() {
     const tot = t => { const r = { pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, reb: 0, tov: 0 }; for (const p of G.pl) if (p.team === t) for (const k in r) r[k] += p.st[k]; return r; };
     const a = tot(0), c = tot(1), pc = (m, n) => n ? Math.round(m / n * 100) + '%' : '–', u = G.user && G.user.st;
+    G.replayAt = 0; if (G.replay) endReplay();   // the halftime card is not shown under a replay: tapping it would only skip the replay
     G.paused = true; AU().muffle(true);
     const ov = $('#pause'); ov.hidden = false;
     ov.innerHTML = `<div class="card half"><p class="kick">Halftime</p>

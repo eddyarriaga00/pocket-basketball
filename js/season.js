@@ -129,6 +129,7 @@
     const o = PB.team(nx.opp);
     show(`<div class="page post"><p class="kick">${r ? 'Final' : 'Simulated'}</p>
       <div class="final"><div>${badge(PB.team(Z.team))}<b>${r ? r.score[0] : win ? 'W' : ''}</b></div><em>${win ? 'WIN' : 'LOSS'}</em><div><b>${r ? r.score[1] : win ? '' : 'L'}</b>${badge(o)}</div></div>
+      ${r && PB.Career.gameStats ? PB.Career.gameStats(r) : ''}
       ${r ? `<div class="card"><h3>${esc(PB.team(Z.team).name)}</h3><table class="std"><tr><th></th><th>PTS</th><th>REB</th><th>AST</th></tr>${r.box.filter(x => x.team === 0).map(b => `<tr><td>${esc(b.d.last)}</td><td>${b.st.pts}</td><td>${b.st.reb}</td><td>${b.st.ast}</td></tr>`).join('')}</table></div>` : ''}
       ${r && r.reels && r.reels.length ? `<button class="ghost" id="reel">▶ Your highlights <small>${r.reels.length} from tonight</small></button>` : ''}
       <button class="big" id="go">Continue</button></div>`);
