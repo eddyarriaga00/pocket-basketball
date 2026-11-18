@@ -571,13 +571,13 @@
   function kitMaterial(cols) {
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
     const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
-      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, kRef: { value: +cols.ref || 0 }, kTee: { value: cols.tee ? 1 : 0 }, cTee: { value: new T.Color(cols.tee || '#f2f2f2') }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
+      cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, kRef: { value: +cols.ref || 0 }, kTights: { value: cols.tights ? 1 : 0 }, kTee: { value: cols.tee ? 1 : 0 }, cTee: { value: new T.Color(cols.tee || '#f2f2f2') }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;');
       /* a rim light: the edge of the body catches light, so players pop off the floor */
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
-      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nuniform float kSlv;\nuniform float kRef;\nuniform float kTee;\nuniform vec3 cTee;\nuniform vec3 cSlv;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
+      sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nuniform float kSlv;\nuniform float kRef;\nuniform float kTee;\nuniform float kTights;\nuniform vec3 cTee;\nuniform vec3 cSlv;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
         sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
   /* the strongest region here wins */
   float vRegion = 0.0, rbest = vRA.x;
@@ -620,7 +620,8 @@
     if (kTee > 0.5 && at < 0.27) rc = cTee;   // a T-shirt under the jersey: its sleeves
     if (kSlv > 0.5 && rgt && at > 0.24 && at < 0.77) rc = cSlv;   // a shooting sleeve, upper arm to wrist
   }
-  else if (vRegion < 0.5 && vRB.w > 0.5 && kTee > 0.5 && vK.y > 0.95 && vK.y < 1.392) rc = cTee;   // and its chest and shoulders, where the tank top is cut away
+  else if (vRegion < 0.5 && vRB.w > 0.5 && kTee > 0.5 && vK.y > 0.95 && vK.y < 1.392) rc = cTee;
+  if (vRegion < 0.5 && vRB.w > 0.5 && kTights > 0.5 && abs(vRB.y) < 0.05 && vK.y < 0.95) rc = vec3(0.006, 0.006, 0.008);   // compression tights: the legs under the shorts, down to the socks   // and its chest and shoulders, where the tank top is cut away
   else if (vRegion < 0.5 && kTat > 0.5 && abs(vK.y - 1.266) < 0.045) {
     float ax1 = abs(vK.x); bool rgt = vK.x < 0.0;
     float ink = 0.0;
@@ -646,7 +647,7 @@
   if (bot) rc *= mix(0.84, 1.0, smoothstep(0.86, 0.98, vK.y));
   vec4 diffuseColor = vec4( rc, opacity );`);
     };
-    m.customProgramCacheKey = () => 'pb-kit12';
+    m.customProgramCacheKey = () => 'pb-kit13';
     return m;
   }
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
@@ -802,7 +803,7 @@
     const d = p.d || p;
     const shorts = kit.shorts || new T.Color(kit.c1).multiplyScalar(0.9).getStyle();
     const lk = d.look || autoLook(d);
-    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, ref: kit.ref === true ? 1 : +kit.ref || 0, tee: lk.tee === 'team' ? kit.c2 : lk.tee || null, sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
+    const mat = kitMaterial({ skin: PB.SKIN[d.skin || 0], jersey: kit.c1, shorts, shoe: lk.shoe || kit.shoe || '#f2f2f2', sock: kit.sock || '#f7f7f7', trim: kit.c2, alt: kit.alt || kit.c2, pat: kit.pat || 0, tat: +lk.tat || 0, ref: kit.ref === true ? 1 : +kit.ref || 0, tee: lk.tee === 'team' ? kit.c2 : lk.tee || null, tights: lk.legs === 'tights', sleeve: TPL.model && !PB.mannequin && !PB.oldBody ? lk.sleeve : null });
     const bones = {};
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
