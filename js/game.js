@@ -2377,6 +2377,7 @@
     reel(list, done, o) {
       if (!G || !list || !list.length) { if (done) done(); return; }
       const el = $('#game'), rp = $('#rp');
+      { const sp = $('#statpop'); if (sp) sp.classList.remove('on'); }   // a stat card left over from the game's last seconds is not part of the reel
       /* o.record: film the canvas while it plays and hand back a video file */
       let rec = null, chunks = [], comp = null, cg = null;
       if (o && o.record && window.MediaRecorder && $('#gl').captureStream) {
