@@ -1,5 +1,5 @@
 /* a contact sheet of looks, drawn with the game's own portrait function:
-   node tools/looks.js <out.png> <mode: hair (styles, beards, headband, goggles) | face (the eight faces) | body (builds, sleeve, pads, tattoos) | arm (sleeve and tattoos, large)> */
+   node tools/looks.js <out.png> <mode: hair (styles, beards, headband, goggles) | face (the eight faces) | body (builds, sleeve, pads, tattoos) | arm (sleeve and tattoos, large) | shoes (the four cuts)> */
 const { chromium } = require('playwright');
 require('fs').mkdirSync('.shots', { recursive: true }); const [OUT = '.shots/looks.png', MODE = 'hair'] = process.argv.slice(2);
 (async () => {
@@ -14,9 +14,10 @@ require('fs').mkdirSync('.shots', { recursive: true }); const [OUT = '.shots/loo
     else if (MODE === 'body') looks = [['plain', {}], ['slim', { build: 'slim' }], ['strong', { build: 'strong' }], ['big', { build: 'big' }], ['sleeve', { sleeve: '#111111' }], ['wrist', { wrist: '#f2f2f2' }], ['one', { legs: 'one' }], ['pads', { legs: 'pads' }], ['both', { legs: 'both' }], ['tights', { legs: 'tights' }], ['high socks', { socks: 'high' }], ['low socks', { socks: 'low' }], ['bicep', { bicep: '#f2f2f2' }], ['pink', { hair: 'mohawk', hairColor: '#e0489a' }], ['tat1', { tat: 1 }], ['tat2', { tat: 2 }], ['tat3', { tat: 3 }], ['tat4', { tat: 4 }], ['back', {}, 3, { back: true }], ['ponytail', { hair: 'ponytail' }, 2, { back: true, tight: true }], ['long', { hair: 'long', hairColor: '#4a3020' }, 1, { back: true, tight: true }], ['curly', { hair: 'curly' }, 4, { back: true, tight: true }], ['bun', { hair: 'bun' }, 3, { back: true, tight: true }]].map(l => [l[0], Object.assign({ hair: 'short' }, l[1]), l[2] == null ? 3 : l[2], l[3]]);
     if (MODE === 'arm') looks = [['sleeve', { hair: 'short', sleeve: '#111111' }, 1], ['tat1', { hair: 'short', tat: 1 }, 1], ['tat3', { hair: 'short', tat: 3 }, 1], ['tat4', { hair: 'short', tat: 4 }, 1], ['tee', { hair: 'short', tee: '#f2f2f2' }, 3], ['tee+sleeve', { hair: 'fade', tee: '#111111', sleeve: '#111111' }, 2]];
     if (MODE === 'face') looks = [0, 1, 2, 3, 4, 5, 6, 7].map(f => ['face ' + f, { hair: 'short', face: f }, f % 6]);
+    if (MODE === 'shoes') looks = [['low', {}], ['high-top', { shoeStyle: 1 }], ['two-tone', { shoeStyle: 2 }], ['gum sole', { shoeStyle: 3 }], ['high + black', { shoeStyle: 1, shoe: '#111111' }], ['two-tone red', { shoeStyle: 2, shoe: '#e63946' }]].map(l => [l[0], Object.assign({ hair: 'short' }, l[1]), 2]);
     const team = PB.TEAMS ? PB.TEAMS[3] : PB.team(0);
     const host = document.createElement('div'); host.style.cssText = 'position:fixed;inset:0;background:#26262b;z-index:99999;display:flex;flex-wrap:wrap;align-content:flex-start;gap:4px;padding:6px;font:12px sans-serif;color:#fff';
-    for (const [name, look, skin, o] of looks) { const url = PB.R.portrait({ id: 'x' + name, first: 'A', last: 'B', pos: 'SG', ht: 78, skin, num: 7, r: {}, look }, team, MODE === 'body' ? 150 : MODE === 'arm' ? 300 : 200, Object.assign(MODE === 'body' ? { body: true } : MODE === 'arm' ? { body: true, tight: true } : { close: true }, o || {}));
+    for (const [name, look, skin, o] of looks) { const url = PB.R.portrait({ id: 'x' + name, first: 'A', last: 'B', pos: 'SG', ht: 78, skin, num: 7, r: {}, look }, team, MODE === 'body' ? 150 : MODE === 'arm' || MODE === 'shoes' ? 300 : 200, Object.assign(MODE === 'body' ? { body: true } : MODE === 'arm' || MODE === 'shoes' ? { body: true, tight: true } : { close: true }, o || {}));
       const d = document.createElement('div'); d.innerHTML = `<img src="${url}" style="display:block;background:#3a3a40"><div style="text-align:center">${name}</div>`; host.appendChild(d); }
     document.body.appendChild(host);
   }, MODE);

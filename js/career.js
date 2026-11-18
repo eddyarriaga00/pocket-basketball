@@ -1230,6 +1230,7 @@
     tee: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     bicep: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     socks: [[null, 'Crew'], ['high', 'High'], ['low', 'Low']],
+    shoeStyle: [[null, 'Low'], ['1', 'High-top'], ['2', 'Two-tone'], ['3', 'Gum sole']],
     shoe: [[null, 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#e63946', 'Red'], ['#ffd23f', 'Gold']],
     beard: [[null, 'None'], ['stubble', 'Stubble'], ['goatee', 'Goatee'], ['full', 'Beard'], ['mustache', 'Mustache'], ['chinstrap', 'Chinstrap']],
     jumper: [[null, 'Standard'], ['quick', 'Quick'], ['high', 'High']],
@@ -1246,7 +1247,7 @@
     const head = t => `<p class="kick lookh">${t}</p>`;   // the card is long: it reads in four parts
     return head('Head') + row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('band', 'Headband') + row('goggles', 'Goggles')
       + head('Body') + row('build', 'Build') + row('tat', 'Tattoos')
-      + head('Gear') + row('sleeve', 'Arm sleeve') + row('tee', 'Undershirt') + row('bicep', 'Bicep band') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('socks', 'Socks') + row('shoe', 'Shoes')
+      + head('Gear') + row('sleeve', 'Arm sleeve') + row('tee', 'Undershirt') + row('bicep', 'Bicep band') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('socks', 'Socks') + row('shoe', 'Shoes') + row('shoeStyle', 'Shoe cut')
       + head('Your game') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('drib', 'Dribble style') + row('celeb', 'Signature celebration') + '<p class="fine">Your look on the floor from your next game.</p>';
   }
   function badgeList() {
