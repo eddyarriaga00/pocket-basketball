@@ -476,6 +476,10 @@
         else D.KC.push(reg[i] - 5);
         return k; };
       for (let t = 0; t < ix.length; t += 3) { const D = reg[ix[t]] >= 5 ? F : A; D.IX.push(push(D, ix[t]), push(D, ix[t + 1]), push(D, ix[t + 2])); if (D === F) F.TV.push(Math.round(col.getY(ix[t]) * 32) + 32 * Math.round(col.getZ(ix[t]) * 8)); }   // which hairstyle, beard, face or accessory a triangle belongs to
+      /* is the body rigged? A model whose body hangs off one or two bones would stand stiff with its arms out: better
+         the old body than that (the catch above falls back to it), and loud enough for the tests to see */
+      { const lead = new Set(); for (let k = 0; k < A.SI.length; k += 4) { let b = 0; for (let c = 1; c < 4; c++) if (A.SW[k + c] > A.SW[k + b]) b = c; lead.add(A.SI[k + b]); }
+        R._rig = lead.size; if (lead.size < 12) { console.error('PocketBasketball: models/body.glb is badly rigged (' + lead.size + ' bones move the body); using the old body'); throw new Error('body.glb rig'); } }
       const mk = D => { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(D.P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(D.N, 3));
         g.setAttribute('skinIndex', new T.Uint16BufferAttribute(D.SI, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(D.SW, 4)); g.setIndex(D.IX); g.userData.shared = true; return g; };
       const body = mk(A); body.setAttribute('rA', new T.Float32BufferAttribute(A.RA, 4)); body.setAttribute('rB', new T.Float32BufferAttribute(A.RB, 4)); body.setAttribute('kpos', new T.Float32BufferAttribute(A.KP, 3));
