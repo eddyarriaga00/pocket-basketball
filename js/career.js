@@ -575,11 +575,12 @@
     const o = C.me.ovr, npcs = parkNpcs = ['PG', 'SG', 'SF', 'PF', 'C'].map(pos => parkGuy(pos, o));
     const nx = nextLive(), gymLeft = ['contest', 'combine', 'world', 'dunk', 'free'].filter(k => (C.gym || {})[k] !== today()).length;
     const info = { career: careerLine(), players: `${slots().length} player${slots().length === 1 ? '' : 's'} on this device`, daily: dailyDone() ? 'done today ✓' : 'today\'s late-game spot',
-      gym: gymLeft ? `${gymLeft} workout${gymLeft > 1 ? 's' : ''} left today` : 'all of today\'s workouts done', court: `park record ${(C.park || { w: 0 }).w}-${(C.park || { l: 0 }).l}` };
+      gym: gymLeft ? `${gymLeft} workout${gymLeft > 1 ? 's' : ''} left today` : 'all of today\'s workouts done', court: `park record ${(C.park || { w: 0 }).w}-${(C.park || { l: 0 }).l}`,
+      wheel: C.wheel === today() ? 'spun today: back tomorrow' : 'a spin a day: skill points or followers', wheelBtn: C.wheel === today() ? 'See it' : 'Spin' };
     scr().hidden = true;
     PB.Game.start({ teams: [parkTeam(), PB.TEAMS[(PB.TEAMS.indexOf(parkTeam()) + 7) % PB.TEAMS.length]], rosters: [[C.me], npcs], userId: C.me.id, drill: 'free', park: true, qlen: 1, level: S.level,
       floor: parkFloor(), parkAt: from, tutorial: !load('pbb.tut'), tutAt: load('pbb.tutAt') || 0, parkInfo: info, parkNext: nx ? `Play: vs ${PB.team(nx.opp).name}` : null,
-      menu: parkMenu, onTut: done => { store('pbb.tut', done ? 1 : 2); store('pbb.tutAt', 0); }, onTutStep: i => store('pbb.tutAt', i), onEnd: r => parkGo(r.parkGo) });
+      menu: parkMenu, inPark: { wheel: prizeWheel }, onTut: done => { store('pbb.tut', done ? 1 : 2); store('pbb.tutAt', 0); }, onTutStep: i => store('pbb.tutAt', i), onEnd: r => parkGo(r.parkGo) });
   }
   function parkGo(id) {
     id = id || 'career';
@@ -595,6 +596,30 @@
       how, settings, chat: () => { if (PB.online) PB.online.open(); else park(); } };
     if (pages[id]) { pages[id](); return; }
     tab = 'home'; hub();
+  }
+  /* the prize wheel by the park's gate: one spin a day */
+  const PRIZES = [['+1 SP', 'sp', 1, 26], ['+500', 'fans', 500, 18], ['+2 SP', 'sp', 2, 18], ['+2,000', 'fans', 2000, 12], ['+3 SP', 'sp', 3, 10], ['+5,000', 'fans', 5000, 8], ['+5 SP', 'sp', 5, 5], ['+20,000', 'fans', 20000, 3]];
+  function prizeWheel(ov, done) {
+    const spun = C.wheel === today(), n = PRIZES.length, seg = 360 / n;
+    ov.innerHTML = `<div class="card wheel"><p class="kick">The park</p><h2>Prize wheel</h2><p class="mute">${spun ? `You spun today: ${esc(C.wheelWon || '')}. Back tomorrow.` : 'One spin a day: skill points or followers.'}</p>
+      <div class="whl"><i class="ptr"></i><div class="wd" id="wd" style="--n:${n}">${PRIZES.map(([l, k], i) => `<span style="--a:${i * seg + seg / 2}deg" class="${k}">${l}${k === 'fans' ? '<small>followers</small>' : ''}</span>`).join('')}</div><b class="hub0"></b></div>
+      <p class="won" id="won"></p>
+      ${spun ? '' : '<button class="big" id="spin">Spin</button>'}<button class="ghost" id="wx">Back to the park</button></div>`;
+    $('#wx').onclick = () => done(C.wheel === today() ? { wheel: 'spun today: back tomorrow', wheelBtn: 'See it' } : null);
+    if (spun) return;
+    $('#spin').onclick = () => {
+      if (C.wheel === today()) return;
+      let r = PB.rand() * PRIZES.reduce((a, x) => a + x[3], 0), i = 0; while (r > PRIZES[i][3]) { r -= PRIZES[i][3]; i++; }
+      const [l, k, v] = PRIZES[i];
+      C.wheel = today(); C.wheelWon = k === 'sp' ? `${l}` : `${l} followers`;
+      if (k === 'sp') C.me.sp += v; else C.fans = Math.round(C.fans + v);
+      rankUp(); save();
+      $('#spin').disabled = true; $('#spin').textContent = 'Spinning…';
+      const wd = $('#wd'), end = 360 * 5 + (360 - (i * seg + seg / 2)) + (PB.rand() - 0.5) * seg * 0.6;
+      wd.style.transition = 'transform 3.4s cubic-bezier(.12,.62,.16,1)'; wd.style.transform = `rotate(${end}deg)`;
+      if (PB.audio) PB.audio.play('squeak');
+      setTimeout(() => { $('#won').innerHTML = `<b>${esc(C.wheelWon)}</b>${k === 'sp' ? 'Spend them in the Player tab.' : 'They count toward your rank.'}`; $('#spin').remove(); if (PB.audio) PB.audio.play('swish'); }, 3500);
+    };
   }
   /* the menu, over the park: you, your next game, your career's pages, the park's map (tap a ring to go there),
      every mode, and the rest */

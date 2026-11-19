@@ -709,6 +709,7 @@
     { id: 'pick2', label: '2 ON 2', sub: 'pick-up to 21', x: -30, z: -12, r: 3.2, color: '#4cffb0' },
     { id: 'pick3', label: '3 ON 3', sub: 'pick-up to 21', x: -30, z: 12, r: 3.2, color: '#4cffb0' },
     { id: 'court', label: 'PRO-AM', sub: '5 on 5, full court', x: -30, z: 36, r: 3.2, color: '#7cc4ff' },
+    { id: 'wheel', label: 'PRIZE WHEEL', sub: 'a spin a day', x: -14, z: -55, r: 3.0, color: '#ffffff', here: 1 },
   ];
   /* the first visit: a walk-through, one thing at a time, each step done by doing it */
   const TUT = [
@@ -827,6 +828,10 @@
         const info = (opts.parkInfo || {})[near.id], nx = near.id === 'career' && opts.parkNext;
         c.innerHTML = `<div class="pci" style="--sc:${near.color}"><b>${near.label}</b><span>${info || near.sub}</span></div><div class="pcb">${nx ? `<button class="big" id="parknx">${nx}</button><button class="ghost" id="parkgo">Career menu</button>` : `<button class="big" id="parkgo">${near.id.startsWith('pick') || near.id === 'court' ? 'Play' : near.id === 'daily' || near.id === 'quick' || near.id === 'blacktop' ? 'Set it up' : 'Go in'}</button>`}</div>`;
         c.hidden = false; placeCard(); $('#parkgo').onclick = () => { G.parkGo = near.id; finish(); };
+        /* some rings open right here, over the park */
+        if (near.here && opts.inPark && opts.inPark[near.id]) { const b0 = $('#parkgo'); b0.textContent = (opts.parkInfo || {})[near.id + 'Btn'] || 'Open';
+          b0.onclick = () => { const ov = $('#pause'); G.paused = true; ov.hidden = false; ov.classList.add('pmenu');
+            opts.inPark[near.id](ov, info => { ov.hidden = true; ov.classList.remove('pmenu'); G.paused = false; AU().muffle(false); if (info) Object.assign(opts.parkInfo || (opts.parkInfo = {}), info); G.parkAt = undefined; }); }; }
         if ($('#parknx')) $('#parknx').onclick = () => { G.parkGo = 'next'; finish(); };
       }
       else c.hidden = true; }

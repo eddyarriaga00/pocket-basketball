@@ -16,6 +16,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
   door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
   through that door.
+- The prize wheel by the park's gate: one spin a day, for skill points (1 to 5) or followers (500 to 20,000). It
+  opens right over the park.
 - Two regulars shoot around, one at each rim, with balls of their own: they walk to a spot, rise up, and chase it
   down, through the net or off the iron and away.
 - The regulars talk: a word when you come by ("You got next?", "Run it?"), something when you score near them or
