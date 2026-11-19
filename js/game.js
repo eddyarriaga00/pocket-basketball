@@ -803,6 +803,12 @@
       }
     }
   }
+  /* through a door: the picture fades out, then the page behind it */
+  function leavePark(id) {
+    if (G.leaving) return; G.leaving = true; G.parkGo = id; buzz(8);
+    const g = $('#game'); g.style.transition = 'opacity .26s ease-in'; g.style.opacity = '0';
+    setTimeout(() => { finish(); g.style.transition = 'none'; g.style.opacity = ''; }, 280);
+  }
   /* the ring's card sits at the top, under the walk-through when that is up: the player and the controls stay clear */
   function placeCard() {
     const c = $('#parkcard'), t = $('#tut'); if (!c) return;
@@ -820,19 +826,19 @@
     if (key !== G.parkAt && guy && !near) {
       G.parkAt = key; R.stationLit && R.stationLit(null); const c = $('#parkcard');
       c.innerHTML = `<div class="pci" style="--sc:#4cffb0"><b>${guy.name}</b><span>park regular · ${guy.d.pos} · ${guy.d.ovr} overall</span></div><div class="pcb"><button class="big" id="parkgo">1 on 1</button></div>`;
-      c.hidden = false; placeCard(); $('#parkgo').onclick = () => { G.parkGo = key; finish(); };
+      c.hidden = false; placeCard(); $('#parkgo').onclick = () => leavePark(key);
       guy.npcW = 0; guy.npcT = 3; if (R.say && G.t - (guy.saidT || -99) > 3) { guy.saidT = G.t; R.say(guy, ['You want this smoke?', 'Check it up', 'First to 11?', 'You sure?', 'Bet. Let\'s go'][Math.floor(rand() * 5)], 2.4); }
     }
     else if (key !== G.parkAt) { G.parkAt = key; R.stationLit && R.stationLit(G.parkAt); const c = $('#parkcard');
       if (near) {
         const info = (opts.parkInfo || {})[near.id], nx = near.id === 'career' && opts.parkNext;
         c.innerHTML = `<div class="pci" style="--sc:${near.color}"><b>${near.label}</b><span>${info || near.sub}</span></div><div class="pcb">${nx ? `<button class="big" id="parknx">${nx}</button><button class="ghost" id="parkgo">Career menu</button>` : `<button class="big" id="parkgo">${near.id.startsWith('pick') || near.id === 'court' ? 'Play' : near.id === 'daily' || near.id === 'quick' || near.id === 'blacktop' ? 'Set it up' : 'Go in'}</button>`}</div>`;
-        c.hidden = false; placeCard(); $('#parkgo').onclick = () => { G.parkGo = near.id; finish(); };
+        c.hidden = false; placeCard(); $('#parkgo').onclick = () => leavePark(near.id);
         /* some rings open right here, over the park */
         if (near.here && opts.inPark && opts.inPark[near.id]) { const b0 = $('#parkgo'); b0.textContent = (opts.parkInfo || {})[near.id + 'Btn'] || 'Open';
           b0.onclick = () => { const ov = $('#pause'); G.paused = true; ov.hidden = false; ov.classList.add('pmenu');
             opts.inPark[near.id](ov, info => { ov.hidden = true; ov.classList.remove('pmenu'); G.paused = false; AU().muffle(false); if (info) Object.assign(opts.parkInfo || (opts.parkInfo = {}), info); G.parkAt = undefined; }); }; }
-        if ($('#parknx')) $('#parknx').onclick = () => { G.parkGo = 'next'; finish(); };
+        if ($('#parknx')) $('#parknx').onclick = () => leavePark('next');
       }
       else c.hidden = true; }
     if (G.t - (G.hiT || 0) > rr(7, 12)) { G.hiT = G.t; parkSay('hi', 14); }
@@ -2591,7 +2597,7 @@
     /* in the park, pause is the menu: every mode, your career, settings, and the map */
     if (on && G.park && opts.menu) {
       if (G.tut) G.tut.menu = true;
-      opts.menu(ov, { close: () => pause(false), go: id => { ov.hidden = true; G.paused = false; G.parkGo = id; finish(); },
+      opts.menu(ov, { close: () => pause(false), go: id => { ov.hidden = true; G.paused = false; leavePark(id); },
         travel: id => { pause(false); parkTravel(id); }, stations: PARK, me: { x: G.user.x, z: G.user.z }, at: G.parkAt,
         tutorial: () => { pause(false); G.tut = { i: 0 }; const e = $('#tut'); if (e) e.hidden = false; } });
       return;
