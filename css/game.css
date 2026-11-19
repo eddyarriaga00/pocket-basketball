@@ -728,8 +728,8 @@ table.pbx td small{color:var(--mute)}
 .pcard.cur{border-color:#fff}
 .pcard .pplay{display:flex;flex-direction:column;align-items:stretch;padding:0 10px 10px;text-align:left}
 .pcard img,.pcard .noimg{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:50% 12%;margin:0 0 6px}
-.pcard b{font-family:var(--display);font-size:15px;line-height:1.1;text-transform:uppercase;padding-right:34px}
-.pcard em{position:absolute;right:10px;top:calc(100% - 92px);font-style:normal;font-family:var(--display);font-weight:900;font-size:24px}
+.pcard b{font-family:var(--display);font-size:15px;line-height:1.1;text-transform:uppercase}
+.pcard em{position:absolute;right:8px;top:8px;font-style:normal;font-family:var(--display);font-weight:900;font-size:22px;line-height:1;padding:5px 8px;border-radius:10px;background:rgba(0,0,0,.55)}
 .pcard span{font-size:11px;color:var(--ink);opacity:.8;margin-top:3px}.pcard small{font-size:10.5px;color:var(--mute);margin-top:2px}
 .pcard .pman{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0 8px 8px}.pcard .pman .sm{height:30px;font-size:11px;padding:0}
 .pcard.pnew{align-items:center;justify-content:center;min-height:260px;background:var(--panel);border:1px dashed var(--mute);gap:6px}

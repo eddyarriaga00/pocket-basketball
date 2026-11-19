@@ -700,10 +700,12 @@
       scr().querySelectorAll('.arch button[data-v]').forEach(b => b.onclick = () => stay(() => { st.arch = b.dataset.v; }));
       scr().querySelectorAll('[data-path]').forEach(b => b.onclick = () => stay(() => { st.path = b.dataset.path; }));
       scr().querySelectorAll('.skins button').forEach(b => b.onclick = () => stay(() => { st.skin = +b.dataset.v; }));
-      scr().querySelectorAll('[data-cl] button').forEach(b => b.onclick = () => stay(() => { st.look[b.parentElement.dataset.cl] = b.dataset.v || null; }));
+      scr().querySelectorAll('[data-cl] button').forEach(b => b.onclick = () => stay(() => { st.look[b.parentElement.dataset.cl] = b.dataset.v || null; if (b.parentElement.dataset.cl === 'build') st.frameSet = true; }));
       /* the sliders redraw the preview when you let go (dragging only moves the label) */
       const slide = (id, k, lbl) => { const e = $('#' + id); if (!e) return; e.oninput = () => { st[k] = +e.value; const l = e.previousElementSibling; if (l) l.textContent = lbl(); }; e.onchange = () => stay(() => {}); };
-      slide('hgt', 'ht', () => `Height · ${PB.fmtH(st.ht)}`); slide('wgt', 'wt', () => `Weight · ${st.wt} lb`); slide('wsp', 'ws', () => `Wingspan · ${PB.fmtH(st.ht + st.ws)} (${st.ws >= 0 ? '+' : ''}${st.ws}")`);
+      slide('hgt', 'ht', () => `Height · ${PB.fmtH(st.ht)}`); slide('wgt', 'wt', () => `Weight · ${st.wt} lb`);
+      /* the frame follows the weight until you pick one yourself */
+      if ($('#wgt')) $('#wgt').addEventListener('change', () => { if (st.frameSet) return; const f = (st.wt - wr[0]) / (wr[1] - wr[0]); st.look.build = f < 0.2 ? 'slim' : f > 0.85 ? 'big' : f > 0.6 ? 'strong' : null; draw(); }, { capture: true }); slide('wsp', 'ws', () => `Wingspan · ${PB.fmtH(st.ht + st.ws)} (${st.ws >= 0 ? '+' : ''}${st.ws}")`);
       $('#go').onclick = () => { keep(); if (!st.first || !st.last) { alert('Give your player a first and last name.'); return; } if (!last) { st.step++; draw(); scr().scrollTop = 0; return; } begin(st); };
     };
     draw();
