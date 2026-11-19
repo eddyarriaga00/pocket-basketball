@@ -150,7 +150,7 @@
     };
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-18e';
+  const NEW_V = '2026-11-18f';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V) return;
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
@@ -162,6 +162,7 @@
       <li>The full awards night: MVP, Defensive Player, Sixth Man, Most Improved, Clutch, Coach, All-League, All-Defensive and All-Rookie teams</li>
       <li>Real rotation minutes by your role, and your numbers kept exactly as you put them up</li>
       <li>Blacktop: 1v1, 2v2 and 3v3 on a half court, to 11, 15 or 21</li>
+      <li>Rank up for new gear, quests, a daily reward, the Playoff Picker, Around the World, and Watch mode</li>
       <li>Classics: replay the league's great nights, for up to three stars each</li>
       <li>The full box score (minutes, plus/minus), hot zones, a schedule with scores around the league, Player of the Month</li>
       <li>Passes thrown to the man, and nobody jumping from place to place on screen</li>
@@ -278,17 +279,19 @@
       <p class="mute">${cur && cur.me ? `As ${esc(PB.full(me))}, with your ratings and badges.` : 'As a practice shooter (80 overall).'}</p>
       <button class="big" id="p3">3-Point Contest<small>five racks, money balls, 60 seconds</small></button>
       <button class="ghost" id="pc">Spot-up drill<small>the combine's fifteen shots in 45 seconds</small></button>
+      <button class="ghost" id="pw">Around the World<small>make one from each of ten spots before 60 seconds run out</small></button>
       <button class="ghost" id="pd">Dunk Contest<small>three dunks, five judges; Style picks the dunk</small></button>
       <button class="ghost" id="pf">Shoot-around<small>shoot from anywhere, no clock; pause to finish</small></button></div>`);
     $('#bk').onclick = title;
     const go = kind => { scr().hidden = true; PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: me.id, drill: kind, dunks: 3, qlen: 1, level: S.level, floor: t,
       onEnd: r => { const d = r.drill || { score: 0, made: 0, att: 0 };
         const best = load('pbb.best') || {}; const k = kind; const nb = !best[k] || d.score > best[k]; if (nb) { best[k] = d.score; store('pbb.best', best); }
-        show(`<div class="page post"><p class="kick">${kind === 'contest' ? '3-Point Contest' : kind === 'dunk' ? 'Dunk Contest' : kind === 'free' ? 'Shoot-around' : 'Spot-up drill'}</p><div class="gradebig"><b>${d.score}</b><span>${kind === 'dunk' ? (d.scores || []).join(' · ') : `${d.made} of ${d.att} made`}</span></div>
+        show(`<div class="page post"><p class="kick">${kind === 'contest' ? '3-Point Contest' : kind === 'dunk' ? 'Dunk Contest' : kind === 'free' ? 'Shoot-around' : kind === 'world' ? 'Around the World' : 'Spot-up drill'}</p><div class="gradebig"><b>${d.score}</b><span>${kind === 'dunk' ? (d.scores || []).join(' · ') : `${d.made} of ${d.att} made`}</span></div>
           <p class="mute">${nb ? 'A new best on this device.' : `Your best: ${best[k]}`}</p><button class="big" id="again">Again</button><button class="ghost" id="done">Done</button></div>`);
         $('#again').onclick = () => go(kind); $('#done').onclick = title; } }); };
     $('#p3').onclick = () => go('contest');
     $('#pc').onclick = () => go('combine');
+    $('#pw').onclick = () => go('world');
     $('#pd').onclick = () => go('dunk');
     $('#pf').onclick = () => go('free');
   }
@@ -448,6 +451,52 @@
         } });
     };
   }
+  /* ---------- your rank: the console game's rep, by followers. Each rank pays skill points and unlocks gear ---------- */
+  const RANKS = [['Rookie', 0], ['Rotation', 1e4], ['Starter', 2.5e4], ['Fan favorite', 6e4], ['All-Star', 1.5e5], ['Superstar', 4e5], ['MVP', 1e6], ['Legend', 2.5e6], ['GOAT', 6e6]];
+  const RANK_GIFT = ['', 'Volt shoes', 'Gold headband, sleeve and wristbands', 'Royal shoes', 'Infrared shoes and sleeve', 'Chrome shoes and headband', 'MVP purple shoes', 'Platinum hair', 'Diamond shoes'];
+  const rankOf = f => { let i = 0; for (let k = 0; k < RANKS.length; k++) if ((f || 0) >= RANKS[k][1]) i = k; const nx = RANKS[i + 1]; return { i, name: RANKS[i][0], next: nx ? nx[0] : null, frac: nx ? Math.min(1, ((f || 0) - RANKS[i][1]) / (nx[1] - RANKS[i][1])) : 1, need: nx ? nx[1] : 0 }; };
+  function rankUp() {
+    const r = rankOf(C.fans), was = C.rank ?? r.i; C.rank = Math.max(was, r.i);
+    for (let i = was + 1; i <= r.i; i++) { const sp = 2 + Math.floor(i / 2); C.me.sp += sp; C.news.unshift(`Rank up: ${RANKS[i][0]}. +${sp} skill points, and ${RANK_GIFT[i]} in your Look card`); C.feed.unshift({ who: '@league', text: `${PB.full(C.me)} is now a ${RANKS[i][0]}` }); C.rankNew = i; }
+  }
+  /* ---------- quests (the Neighborhood's, the daily ones): three at a time, over the next few games ----------
+     Counted as you play them (or sim them), sized to your minutes and the quarter length; one done, another comes */
+  const QUESTS = [
+    ['pts', 'Score {n} points', 26, 3], ['reb', 'Grab {n} rebounds', 12, 2], ['ast', 'Hand out {n} assists', 9, 2], ['tpm', 'Make {n} threes', 5, 3], ['stl', 'Get {n} steals', 4, 2],
+    ['blk', 'Block {n} shots', 3, 2], ['win', 'Win {n} games', 3, 3], ['road', 'Win {n} on the road', 2, 3], ['grade', 'Earn a B+ or better {n} times', 2, 3], ['dd', 'Have {n} big scoring nights', 2, 3],
+  ];
+  function newQuest(skip) {
+    const f = Math.max(0.12, Math.pow((S.qlen || 3) / 12, 0.85)) * ({ Starter: 1, 'Sixth man': 0.7, Bench: 0.45 }[role()] || 1);
+    const have = (C.quests || []).map(q => q.k).concat(skip || []), pool = QUESTS.filter(q => !have.includes(q[0])), q = pool[Math.floor(PB.rand() * pool.length)] || QUESTS[0];
+    const scaled = ['pts', 'reb', 'ast', 'tpm', 'stl', 'blk'].includes(q[0]), n = Math.max(1, Math.round(q[2] * (scaled ? f * 4 : 1) / (scaled ? 4 : 1)));
+    return { k: q[0], n, got: 0, text: q[1].replace('{n}', n).replace(/ 1 (\w+)s\b/, ' 1 $1'), sp: q[3], fans: 600 + q[3] * 400 };
+  }
+  function questTick(res, g) {
+    C.quests = C.quests || [newQuest(), newQuest(), newQuest()];
+    const l = res.line || {}, done = [];
+    for (const q of C.quests) {
+      const add = { pts: l.pts, reb: l.reb, ast: l.ast, tpm: l.tpm, stl: l.stl, blk: l.blk, win: res.win ? 1 : 0, road: res.win && !g.home ? 1 : 0, grade: res.gscore >= 9 ? 1 : 0, dd: l.pts >= Math.max(4, Math.round(10 * Math.max(0.25, (S.qlen || 3) / 12))) ? 1 : 0 }[q.k] || 0;
+      q.got = Math.min(q.n, q.got + add); if (q.got >= q.n) done.push(q);
+    }
+    for (const q of done) { C.me.sp += q.sp; C.fans = Math.round(C.fans + q.fans); C.news.unshift(`Quest done: ${q.text}. +${q.sp} skill points, +${q.fans.toLocaleString()} followers`); C.questsDone = (C.questsDone || 0) + 1; }
+    if (done.length) { const keep = C.quests.filter(q => !done.includes(q)); C.quests = keep; while (C.quests.length < 3) C.quests.push(newQuest(done.map(q => q.k))); }
+  }
+  function questsCard() {
+    C.quests = C.quests || [newQuest(), newQuest(), newQuest()];
+    const r = rankOf(C.fans);
+    return `<div class="card quests"><h3>Rank <small>${C.questsDone || 0} quests done</small></h3>
+      <div class="rank"><b>${r.name}</b><i><u style="width:${Math.round(r.frac * 100)}%"></u></i><span>${r.next ? `${fmtFans(C.fans)} of ${fmtFans(r.need)} followers to ${r.next}: ${RANK_GIFT[r.i + 1]}` : 'The top of the ladder'}</span></div>
+      <h3>Quests</h3>${C.quests.map(q => `<div class="qst"><span>${esc(q.text)}</span><i><u style="width:${Math.round(q.got / q.n * 100)}%"></u></i><b>${q.got}/${q.n}</b><small>+${q.sp} SP</small></div>`).join('')}</div>`;
+  }
+  /* ---------- the daily reward: come back each day, a little more each day of a seven-day run ---------- */
+  function loginReward() {
+    const d = new Date(), key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; const L = C.login || (C.login = { last: null, day: 0 });
+    if (L.last === key) return null;
+    const y = new Date(d); y.setDate(d.getDate() - 1); const yk = `${y.getFullYear()}-${y.getMonth() + 1}-${y.getDate()}`;
+    L.day = L.last === yk ? L.day % 7 + 1 : 1; L.last = key;
+    const sp = L.day === 7 ? 4 : L.day >= 4 ? 2 : 1, fans = 250 * L.day; C.me.sp += sp; C.fans = Math.round(C.fans + fans);
+    return { day: L.day, sp, fans };
+  }
   function blacktop(again) {
     const B = Object.assign({ n: 3, target: 21, ones: false, mitt: false, a: 'LAK', b: 'BOS', mine: true }, load('pbb.blacktop') || {});
     const cur = loadCur(), me = cur && cur.me && cur.team ? cur.me : null;
@@ -492,8 +541,8 @@
     const opts = PB.TEAMS.map(t => `<option value="${t.id}">${tname(t)}</option>`).join('');
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Quick game</h2>
       <div class="qvs">${['qa', 'qb'].map((id, i) => `<div class="qt" data-s="${id}"><span class="kick">${i ? 'Opponent' : 'Your team'}</span><div class="qc"><button class="ar" data-d="-1" aria-label="Previous team">‹</button><i class="qb"></i><button class="ar" data-d="1" aria-label="Next team">›</button></div><b></b><small></small><select id="${id}" aria-label="${i ? 'Opponent' : 'Your team'}">${opts}</select></div>`).join('<em>vs</em>')}</div>
-      <div class="field"><label>You play</label><div class="seg" id="qp">${PB.POS.map((p, i) => `<button data-v="${i}" class="${i === 0 ? 'on' : ''}">${p}</button>`).join('')}<button data-v="team">Whole team</button></div></div>
-      <p class="fine">One player with your teammates around you, or the whole team: whoever has the ball, and on defense the man guarding it.</p>
+      <div class="field"><label>You play</label><div class="seg" id="qp">${PB.POS.map((p, i) => `<button data-v="${i}" class="${i === 0 ? 'on' : ''}">${p}</button>`).join('')}<button data-v="team">Whole team</button><button data-v="watch">Watch</button></div></div>
+      <p class="fine">One player with your teammates around you, the whole team (whoever has the ball, and on defense the man guarding it), or sit back and watch the two of them play it.</p>
       <div class="field"><label>Difficulty</label><div class="seg sm qo" data-k="level">${['Rookie', 'Pro', 'All-Star', 'Legend'].map(v => `<button class="${S.level === v ? 'on' : ''}" data-v="${v}">${v}</button>`).join('')}</div></div>
       <div class="field"><label>Quarter length</label><div class="seg sm qo" data-k="qlen">${[2, 3, 5, 12].map(v => `<button class="${S.qlen == v ? 'on' : ''}" data-v="${v}">${v} min</button>`).join('')}</div></div>
       <button class="big" id="go">Tip off</button>
@@ -515,15 +564,15 @@
     setSide('qa');
     paintQ();
     let slot = 0;
-    scr().querySelectorAll('#qp button').forEach(b => b.onclick = () => { slot = b.dataset.v === 'team' ? 'team' : +b.dataset.v; scr().querySelectorAll('#qp button').forEach(x => x.classList.toggle('on', x === b)); });
+    scr().querySelectorAll('#qp button').forEach(b => b.onclick = () => { slot = b.dataset.v === 'team' || b.dataset.v === 'watch' ? b.dataset.v : +b.dataset.v; scr().querySelectorAll('#qp button').forEach(x => x.classList.toggle('on', x === b)); });
     $('#bk').onclick = title;
     $('#go').onclick = () => {
       const a = PB.team($('#qa').value), b = PB.team($('#qb').value);
       if (a === b) { alert('Pick two different teams.'); return; }
       const tk = new Set(), fa = PB.makeRoster(78, tk), fb = PB.makeRoster(78, tk), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
-      const team = slot === 'team'; if (!team) { const n = youName(); ra[slot].first = n[0]; ra[slot].last = n[1]; }
+      const team = slot === 'team', watch = slot === 'watch'; if (!team && !watch) { const n = youName(); ra[slot].first = n[0]; ra[slot].last = n[1]; }
       scr().hidden = true;
-      PB.Game.start({ teams: [a, b], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: ra[team ? 0 : slot].id, switching: team, qlen: S.qlen, level: S.level,
+      PB.Game.start({ teams: [a, b], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: watch ? null : ra[team ? 0 : slot].id, switching: team, watch, qlen: S.qlen, level: S.level,
         strength: [PB.teamOvr(fa), PB.teamOvr(fb)], onEnd: r => result(r, null) });
     };
   }
@@ -1015,6 +1064,7 @@
     if (C.phase === 'awards') { awardsNight(); return; }
     if (C.phase === 'offseason') { seasonEnd(C.lastGot); return; }
     const t = PB.team(C.team), me = C.me;
+    if (C.phase === 'regular' || C.phase === 'playoffs') { const lr = loginReward(); if (lr) { rankUp(); save(); C.loginShow = lr; } }
     const s = C.season, gp = s.gp || 1;
     const avg = k => (s[k] / gp).toFixed(1);
     const tabs = ['home', 'team', 'player', 'league', 'log'];
@@ -1104,6 +1154,9 @@
           ${C.injury ? `<div class="wide"><span>Questionable</span><b class="inj">${esc(C.injury.what)} · ${C.injury.games} game${C.injury.games > 1 ? 's' : ''}</b></div>` : ''}
           <div><span>Role</span><b class="tag">${role()}</b></div><div><span>Followers</span><b>${fmtFans(C.fans)}</b></div>
           ${C.contract ? `<div class="wide"><span>Contract</span><b>${C.contract.years} yr${C.contract.years === 1 ? '' : 's'} · ${M(C.contract.salary)}</b></div>` : ''}</div>
+        ${C.loginShow ? `<div class="card login"><b>Daily reward · day ${C.loginShow.day} of 7</b><span>+${C.loginShow.sp} skill point${C.loginShow.sp > 1 ? 's' : ''}, +${C.loginShow.fans} followers. Come back tomorrow for day ${C.loginShow.day % 7 + 1}${C.loginShow.day === 6 ? ' (the big one)' : ''}.</span></div>` : ''}
+        ${C.rankNew ? `<div class="card login rk"><b>Rank up: ${RANKS[C.rankNew][0]}</b><span>${RANK_GIFT[C.rankNew]} unlocked in your Look card (Player tab).</span></div>` : ''}
+        ${questsCard()}
         <div class="card rival"><h3>Rival <small>${esc(PB.team(C.rival.team).name)}</small></h3>
           <div class="rv"><div><b>${esc(PB.full(me))}</b><span>${avg('pts')} / ${avg('reb')} / ${avg('ast')}</span></div><em>${C.rival.h2h[0]}–${C.rival.h2h[1]}</em>
           <div><b>${esc(PB.full(rv))}</b><span>${(rs.pts / rg).toFixed(1)} / ${(rs.reb / rg).toFixed(1)} / ${(rs.ast / rg).toFixed(1)}</span></div></div>
@@ -1165,6 +1218,7 @@
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
     scr().querySelectorAll('.ltabs button').forEach(b => b.onclick = () => { ltab = b.dataset.l; hub(); });
+    scr().querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { const sr = C.po && C.po.series[+b.dataset.pick]; if (sr && !sr.pick) { sr.pick = b.dataset.t; save(); const y = scr().scrollTop; hub(); scr().scrollTop = y; } });
     if ($('#mopp')) $('#mopp').onclick = () => { if (muOpp) rosterCard(muOpp[0], muOpp[1], true); };
     scr().querySelectorAll('.ros[data-pid]').forEach(r => r.onclick = () => { const p = r.dataset.pid === 'me' ? C.me : myRoster().find(x => x.id === r.dataset.pid); if (p) rosterCard(p, PB.team(C.team)); });
     fillHeads();
@@ -1378,17 +1432,17 @@
     hair: [['short', 'Short'], ['fade', 'Fade'], ['high', 'High-top'], ['afro', 'Afro'], ['twists', 'Twists'], ['cornrows', 'Cornrows'], ['locs', 'Locs'], ['bun', 'Bun'], ['mohawk', 'Mohawk'], ['curly', 'Curly'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['braids', 'Braids'], ['spiky', 'Spiky'], ['buzz', 'Buzz'], ['bald', 'Bald']],
     face: [[null, 'Classic'], ['1', 'Focused'], ['2', 'Bright'], ['3', 'Calm'], ['4', 'Bold'], ['5', 'Happy'], ['6', 'Stern'], ['7', 'Sleepy']],
     build: [[null, 'Regular'], ['slim', 'Slim'], ['strong', 'Strong'], ['big', 'Big']],
-    hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver'], ['#2f6bd8', 'Blue'], ['#e0489a', 'Pink'], ['#2fa56b', 'Green']],
-    band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
-    sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team']],
+    hairColor: [['#17110d', 'Black'], ['#4a3020', 'Brown'], ['#c9a46a', 'Blond'], ['#9a3b1c', 'Red'], ['#d8d8d8', 'Silver'], ['#2f6bd8', 'Blue'], ['#e0489a', 'Pink'], ['#2fa56b', 'Green'], ['#f2efe6', 'Platinum', 7]],
+    band: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#ffd23f', 'Gold', 2], ['#c9ced6', 'Chrome', 5]],
+    sleeve: [[null, 'None'], ['#111111', 'Black'], ['#f2f2f2', 'White'], ['team', 'Team'], ['#ffd23f', 'Gold', 2], ['#ff3b5c', 'Infrared', 4]],
     tee: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     bicep: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
     socks: [[null, 'Crew'], ['high', 'High'], ['low', 'Low']],
     shoeStyle: [[null, 'Low'], ['1', 'High-top'], ['2', 'Two-tone'], ['3', 'Gum sole']],
-    shoe: [[null, 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#e63946', 'Red'], ['#ffd23f', 'Gold']],
+    shoe: [[null, 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#e63946', 'Red'], ['#ffd23f', 'Gold'], ['#c6f432', 'Volt', 1], ['#2f4fd8', 'Royal', 3], ['#ff3b5c', 'Infrared', 4], ['#c9ced6', 'Chrome', 5], ['#6b3fd8', 'MVP purple', 6], ['#9fe7ff', 'Diamond', 8]],
     beard: [[null, 'None'], ['stubble', 'Stubble'], ['goatee', 'Goatee'], ['full', 'Beard'], ['mustache', 'Mustache'], ['chinstrap', 'Chinstrap']],
     jumper: [[null, 'Standard'], ['quick', 'Quick'], ['high', 'High']],
-    wrist: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team']],
+    wrist: [[null, 'None'], ['#f2f2f2', 'White'], ['#111111', 'Black'], ['team', 'Team'], ['#ffd23f', 'Gold', 2]],
     legs: [[null, 'None'], ['one', 'Leg sleeve'], ['both', 'Both legs'], ['pads', 'Knee pads'], ['tights', 'Tights']],
     goggles: [[null, 'None'], ['black', 'Black'], ['team', 'Team']],
     tat: [[null, 'None'], [1, 'Arm band'], [2, 'Sleeve'], [3, 'Both'], [4, 'Forearm']],
@@ -1397,7 +1451,8 @@
   };
   function lookEditor(me) {
     me.look = me.look || { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null };
-    const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${String(me.look[k + 'Pick'] ?? me.look[k] ?? '') === String(v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
+    const rk = C && C.me === me ? rankOf(C.fans).i : 9;   // (rank rewards unlock in a career; anywhere else everything is open)
+    const row = (k, lbl) => `<div class="field"><label>${lbl}</label><div class="seg" data-look="${k}">${LOOK[k].map(([v, n, need]) => need && rk < need ? `<button class="lock" disabled title="Rank ${RANKS[need][0]}">🔒 ${n}<small>${RANKS[need][0]}</small></button>` : `<button data-v="${v === null ? '' : v}" class="${String(me.look[k + 'Pick'] ?? me.look[k] ?? '') === String(v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
     const head = t => `<p class="kick lookh">${t}</p>`;   // the card is long: it reads in four parts
     return head('Head') + row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('band', 'Headband') + row('goggles', 'Goggles')
       + head('Body') + row('build', 'Build') + row('tat', 'Tattoos')
@@ -1520,6 +1575,8 @@
     /* where your shots come from: the season's makes and attempts in each zone of the floor */
     if (res.shots && res.shots.length) { const Z1 = C.zones || (C.zones = {}), Z2 = C.zonesAll || (C.zonesAll = {}); for (const [x, a, m] of res.shots) { const k = PB.zoneOf(x, a); for (const Z of [Z1, Z2]) { const e = Z[k] || (Z[k] = [0, 0]); e[1]++; if (m) e[0]++; } } }
     { const K = C.streaks || (C.streaks = {}), w = res.win ? C.team : g.opp, l = res.win ? g.opp : C.team; if (!g.po) { K[w] = (K[w] || 0) >= 0 ? (K[w] || 0) + 1 : 1; K[l] = (K[l] || 0) <= 0 ? (K[l] || 0) - 1 : -1; } }
+    C.loginShow = null; C.rankNew = null;
+    questTick(res, g);
     s.gp++; T.gp++; s.grades += res.gscore; T.grades += res.gscore; s.min = (s.min || 0) + (res.line.min || 0); T.min = (T.min || 0) + (res.line.min || 0);
     const o = PB.team(g.opp), me = C.me;
     if (g.po) {
@@ -1610,6 +1667,7 @@
     C.news.unshift(hl);
     C.news = C.news.slice(0, 30);
     feedAfter(g, res);
+    rankUp();
     /* endorsements: past a following, a shoe company calls */
     const tiers = [[25e3, 0.4], [1e5, 1.2], [5e5, 4], [2e6, 10]];
     C.endorse = C.endorse || { tier: 0 };
@@ -1851,9 +1909,9 @@
       const u = res.user || {};
       show(`<div class="page post"><p class="kick">${res.half ? `Blacktop · ${res.half.n}v${res.half.n} to ${res.half.target}${res.half.ones ? ' by 1s and 2s' : ''}` : 'Final' + (res.line && res.line.length > 4 ? ' · ' + (res.line.length > 5 ? res.line.length - 4 : '') + 'OT' : '')}</p>
         <div class="final"><div>${badge(res.teams[0])}<b>${res.score[0]}</b></div><em>${res.score[0] > res.score[1] ? 'WIN' : 'LOSS'}</em><div><b>${res.score[1]}</b>${badge(res.teams[1])}</div></div>
-        <div class="gradebig"><b>${res.grade || '–'}</b><span>Teammate grade</span></div>
+        ${res.user ? `<div class="gradebig"><b>${res.grade || '–'}</b><span>Teammate grade</span></div>
         <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div>
-        <div><b>${u.fgm || 0}/${u.fga || 0}</b><span>FG</span></div><div><b>${u.tpm || 0}/${u.tpa || 0}</b><span>3PT</span></div><div><b>${u.stl || 0}/${u.blk || 0}</b><span>STL/BLK</span></div></div>
+        <div><b>${u.fgm || 0}/${u.fga || 0}</b><span>FG</span></div><div><b>${u.tpm || 0}/${u.tpa || 0}</b><span>3PT</span></div><div><b>${u.stl || 0}/${u.blk || 0}</b><span>STL/BLK</span></div></div>` : ''}
         ${potg(res)}${reelBtn()}
         ${gameStats(res)}${boxScore(res)}
         ${res.half ? '<button class="big" id="again">Run it back</button><button class="ghost" id="go">Main menu</button>' : '<button class="big" id="go">Main menu</button>'}</div>`);
@@ -2118,6 +2176,9 @@
   function nextRound() {
     const P = C.po, S2 = P.series;
     const r = P.round;
+    { const picked = S2.filter(sr => sr.pick && done(sr)), right = picked.filter(sr => winner(sr) === sr.pick).length;
+      if (picked.length) { const K = C.picker || (C.picker = { n: 0, right: 0 }); K.n += picked.length; K.right += right; C.me.sp += right; C.fans = Math.round(C.fans + right * 300);
+        C.news.unshift(`Playoff Picker: ${right} of ${picked.length} right this round${right ? `, +${right} skill point${right > 1 ? 's' : ''}` : ''}`); } }
     if (r === 0) {
       P.series = [];
       for (const c of ['East', 'West']) {
@@ -2153,8 +2214,12 @@
   }
   function bracketCard() {
     const P = C.po; if (!P) return '';
-    const row = sr => `<div class="sr ${sr.a === C.team || sr.b === C.team ? 'me' : ''}">${badge(PB.team(sr.a))}<b>${sr.wa}</b><em>–</em><b>${sr.wb}</b>${badge(PB.team(sr.b))}<span>${done(sr) ? PB.team(winner(sr)).name + (sr.bo > 1 ? ' win' : ' advance') : sr.bo > 1 ? 'best of ' + sr.bo : 'one game'}</span></div>`;
-    return `<div class="card bracket"><h3>${P.champ ? 'Champions: ' + esc(tname(PB.team(P.champ))) : esc(P.series[0] ? P.series[0].tag : 'Playoffs')}</h3>${P.series.map(row).join('')}</div>`;
+    /* the Playoff Picker: before a series starts, pick who wins it; every right pick pays when the round is over */
+    const pk = (sr, i, side) => { const id = side ? sr.b : sr.a, open = !done(sr) && sr.wa + sr.wb === 0 && !sr.pick; return open ? `<button class="pick" data-pick="${i}" data-t="${id}">${badge(PB.team(id))}</button>` : `<span class="pk ${sr.pick === id ? (done(sr) ? (winner(sr) === id ? 'ok' : 'no') : 'on') : ''}">${badge(PB.team(id))}</span>`; };
+    const row = (sr, i) => `<div class="sr ${sr.a === C.team || sr.b === C.team ? 'me' : ''}">${pk(sr, i, 0)}<b>${sr.wa}</b><em>–</em><b>${sr.wb}</b>${pk(sr, i, 1)}<span>${done(sr) ? PB.team(winner(sr)).name + (sr.bo > 1 ? ' win' : ' advance') : sr.bo > 1 ? 'best of ' + sr.bo : 'one game'}</span></div>`;
+    const open = !P.champ && P.series.some(sr => !done(sr) && sr.wa + sr.wb === 0 && !sr.pick);
+    return `<div class="card bracket"><h3>${P.champ ? 'Champions: ' + esc(tname(PB.team(P.champ))) : esc(P.series[0] ? P.series[0].tag : 'Playoffs')}${C.picker ? ` <small>Picker ${C.picker.right} of ${C.picker.n}</small>` : ''}</h3>${P.series.map(row).join('')}
+      ${open ? '<p class="fine">Playoff Picker: tap the team you think wins each series. A right pick is worth a skill point when the round ends.</p>' : ''}</div>`;
   }
 
   /* ---------- awards night and the end of a season ---------- */

@@ -4,6 +4,17 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Rank (the console game's rep, by followers): Rookie, Rotation, Starter, Fan favorite, All-Star, Superstar, MVP, Legend
+  and GOAT. Each rank pays skill points and unlocks new gear in the Look card: Volt, Royal, Infrared, Chrome, MVP purple
+  and Diamond shoes, gold and chrome headbands, sleeves and wristbands, platinum hair. Nothing you already had is
+  locked.
+- Quests on the career hub, three at a time, over the next few games: score, rebound, assist, threes, steals, blocks,
+  wins, road wins, good grades. Each one done pays skill points and followers, and another takes its place. Sized to
+  your role's minutes and the quarter length.
+- A daily reward for coming back: a skill point and followers each day, more on a seven-day run.
+- The Playoff Picker: before each playoff series, pick who wins it; every right pick is a skill point.
+- Around the World in Practice: a make from each of ten spots, in order, before 60 seconds run out.
+- Watch a quick game: the two teams play it out on the broadcast, no controls.
 - Blacktop (from the phone versions of the console game): half court, one rim, 1 on 1, 2 on 2 or 3 on 3, first to 11,
   15 or 21, win by two. Scored by 2s and 3s or by 1s and 2s; after a basket the other side checks it up at the top of
   the key, or the scorer keeps it (make it, take it). After a stop the ball has to be taken back past the arc, or the

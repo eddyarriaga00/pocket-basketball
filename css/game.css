@@ -689,3 +689,23 @@ table.pbx td small{color:var(--mute)}
 .stars{color:var(--ink);letter-spacing:2px;font-style:normal;white-space:nowrap}.stars i{font-style:normal;color:rgba(255,255,255,.18)}
 .mode.clsc em.stars{font-size:14px}
 .gradebig b.stars{font-size:40px;letter-spacing:6px}
+
+/* watching a game: the scoreboard and the broadcast, no controls */
+#game.watching #btns,#game.watching #stickzone,#game.watching #energy,#game.watching #grade,#game.watching #tko,#game.watching #meter{display:none!important}
+
+/* rank, quests and the daily reward on the career hub */
+.quests h3{margin-top:2px}.quests h3+h3,.quests .rank+h3{margin-top:14px}
+.quests .rank{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center}
+.quests .rank b{font-family:var(--display);font-size:18px;text-transform:uppercase}
+.quests .rank i,.quests .qst i{display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.quests .rank i u,.quests .qst i u{display:block;height:100%;background:var(--green);border-radius:3px}
+.quests .rank span{grid-column:1/-1;font-size:12px;color:var(--mute)}
+.quests .qst{display:grid;grid-template-columns:1fr 70px auto auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.quests .qst b{font-variant-numeric:tabular-nums;font-size:12px}.quests .qst small{color:var(--green);font-size:11px;font-weight:700}
+.card.login{display:flex;flex-direction:column;gap:3px;border-color:var(--green)}.card.login b{font-family:var(--display);text-transform:uppercase}.card.login span{font-size:13px;color:var(--mute)}
+.card.login.rk{border-color:var(--acc)}
+.seg button.lock{opacity:.45;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}.seg button.lock small{font-size:9px;color:var(--mute)}
+
+/* the Playoff Picker in the bracket */
+.bracket .pick{padding:2px;border-radius:8px;border:1px dashed var(--mute)}.bracket .pk{padding:2px;border-radius:8px;border:1px solid transparent;opacity:.75}
+.bracket .pk.on{border-color:#fff;opacity:1}.bracket .pk.ok{border-color:var(--green);opacity:1}.bracket .pk.no{border-color:var(--bad);opacity:.5}

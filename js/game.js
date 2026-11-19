@@ -635,6 +635,8 @@
      ball of a rack you jog to the next spot. In the contest the last ball of each rack is the money ball, worth two. */
   const DRILLS = {
     contest: { secs: 60, spots: [[-22, 3], [-15.5, 18], [0, 25], [15.5, 18], [22, 3]], balls: 5, money: true, title: '3-Point Contest' },
+    /* around the world: a make from each spot in order before the clock runs out; a miss stays at that spot */
+    world: { secs: 60, spots: [[-22, 3], [-16, 6], [-8, 9], [0, 10], [8, 9], [16, 6], [22, 3], [-15.5, 18], [0, 25], [15.5, 18]], balls: 1, money: false, mustMake: true, title: 'Around the World' },
     combine: { secs: 45, spots: [[-22, 3], [-9, 14], [0, 25], [9, 14], [22, 3]], balls: 3, money: false, title: 'Combine · spot-up shooting' },
     dunk: { secs: 0, spots: [[17, 24], [0, 32], [-17, 24], [23, 5]], dunks: 2, title: 'Dunk Contest' },
     free: { secs: 0, spots: [[0, 18]], title: 'Shoot-around' },
@@ -704,11 +706,10 @@
     if (G.drill.kind === 'free') { freeLands(s); return; }
     const D = G.drill, b = G.ball, money = D.def.money && D.ball === D.def.balls - 1;
     D.att++;
-    if (s.made) { D.made++; D.score += money ? 2 : 1; R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); AU().crowd.react(money ? 'roar' : 'applause', money ? 0.9 : 0.5); if (money) { toast('MONEY BALL', 'make'); B('moneyball', { prio: 3 }); } buzz([15, 30, 15]); }
+    if (s.made) { D.made++; D.score += money ? 2 : 1; if (D.def.mustMake && D.rack + 1 >= D.def.spots.length) { D.score += Math.floor(D.t); toast(`Around the world! +${Math.floor(D.t)} for the time left`, 'make'); } R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); AU().crowd.react(money ? 'roar' : 'applause', money ? 0.9 : 0.5); if (money) { toast('MONEY BALL', 'make'); B('moneyball', { prio: 3 }); } buzz([15, 30, 15]); }
     else { AU().play('rim', { x: b.ex, power: 0.6 }); }
     b.state = 'drop'; b.t = 0;
-    D.ball++;
-    if (D.ball >= D.def.balls) { D.ball = 0; D.rack++; }
+    if (!(D.def.mustMake && !s.made)) { D.ball++; if (D.ball >= D.def.balls) { D.ball = 0; D.rack++; } }
     D.next = D.rack >= D.def.spots.length ? -1 : 0.45;
     if (D.next < 0) D.over = true;
   }
@@ -721,7 +722,7 @@
     const sp = D.rack < D.def.spots.length ? drillSpot() : { x: u.x, z: u.z };
     if (!u.shoot) { u.tx = sp.x; u.tz = sp.z; seek(u, dt, 1); }
     if (D.next > 0) { D.next -= dt; if (D.next <= 0 && !D.over) { D.next = 0; give(u); u.hold = 0; } }
-    const left = D.rack < D.def.spots.length ? `Rack ${D.rack + 1} · ball ${D.ball + 1}${D.def.money && D.ball === D.def.balls - 1 ? ' (money)' : ''}` : 'Done';
+    const left = D.rack < D.def.spots.length ? (D.def.mustMake ? `Spot ${D.rack + 1} of ${D.def.spots.length} · ${Math.ceil(D.t)}s` : `Rack ${D.rack + 1} · ball ${D.ball + 1}${D.def.money && D.ball === D.def.balls - 1 ? ' (money)' : ''}`) : 'Done';
     $('#ftmsg').hidden = false; $('#ftmsg').textContent = `${left} · ${D.score} pts`;
     if (R.rackLeft) R.rackLeft(D.rack, D.ball + (G.ball.holder === u || G.ball.state === 'shot' ? 1 : 0));
     if (D.over && G.ball.state !== 'shot') { D.endT = (D.endT || 0) + dt; if (D.endT > 1.2) finish(); }
@@ -2496,6 +2497,7 @@
       /* the blacktop: half court, one rim, first to the target; no quarters, no free throws, no bench */
       if (o.half) { G.half = true; G.target = o.target || 21; G.ones = !!o.ones; G.mitt = !!o.mitt; G.by2 = o.by2 !== false; G.scLen = 20; G.shotClock = 20; G.qlen = 99; G.clock = 99 * 60; G.to = [0, 0]; }
       G.user = pl.find(p => p.isUser) || null;
+      $('#game').classList.toggle('watching', !G.user && !o.drill);   // spectating: the broadcast without the controls
       G.tko = !o.drill && !o.switching && G.user ? { m: 0, on: false, until: 0, miss: 0 } : null; tkoHud();
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
