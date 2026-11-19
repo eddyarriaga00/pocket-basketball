@@ -2108,7 +2108,7 @@
       /* player lock, the way career modes on consoles play it: low behind your own player, looking down the floor
          at the rim being attacked. The view swings around (it doesn't cut) when the ball changes hands. */
       if (G.half) lockDir = 1; else if (G.poss === 0) lockDir = 1; else if (G.poss === 1) lockDir = -1;
-      const me0 = G.user || b.holder || b;
+      const me0 = (G.horse && G.drill && G.drill.shooter) || G.user || b.holder || b;   // H-O-R-S-E: whoever is shooting
       /* in a drill the camera stands behind you facing the rim, wherever you are on the arc */
       /* (close to the rim, or past it, that angle would spin: there it keeps the last one it had from farther out) */
       if (G.drill && (Math.hypot(me0.x, 41.75 - me0.z) > 8 || drillYaw === null)) drillYaw = Math.atan2(0 - me0.x, 41.75 - Math.min(me0.z, 41));

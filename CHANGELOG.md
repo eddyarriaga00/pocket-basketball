@@ -16,6 +16,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
   door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
   through that door.
+- H-O-R-S-E: walk up to a regular and his card offers it next to the 1 on 1. Set a shot from anywhere; he has to
+  make the same one from the same spot, or take a letter (and you have to match his). Whoever sets keeps going until
+  he misses. Spell it and you are out. It counts in your park record.
 - The park has the beat playing and a few voices around the court, and walking out of it is quiet (it used to
   sound the end-of-game horn, the crowd and the booth's sign-off).
 - A green chevron on the ground points the way to the MY CAREER door on the walk-through's last step, and for a

@@ -590,9 +590,10 @@
   }
   function parkGo(id) {
     id = id || 'career';
-    parkFrom = id === 'next' || id.startsWith('hub:') ? 'career' : id.startsWith('npc:') ? 'pick1' : id;
+    parkFrom = id === 'next' || id.startsWith('hub:') ? 'career' : id.startsWith('npc:') || id.startsWith('horse:') ? 'pick1' : id;
     if (id === 'pick1' || id === 'pick2' || id === 'pick3') { pickup(+id.slice(-1)); return; }
     if (id.startsWith('npc:')) { const d = parkNpcs.find(x => x.id === id.slice(4)); pickup(1, d || null); return; }
+    if (id.startsWith('horse:')) { const d = parkNpcs.find(x => x.id === id.slice(6)); if (d) { horse(d); return; } }
     if (id === 'court') { proAm(); return; }
     if (id === 'gym') { practice(() => park()); return; }
     if (id === 'closet') { tab = 'player'; hub(); setTimeout(() => { const e = scr().querySelector('.lookh') || scr().querySelector('[data-look]'); if (e) e.scrollIntoView({ block: 'start' }); }, 60); return; }
@@ -690,6 +691,23 @@
       ${potg(r)}${boxScore(r)}
       <button class="big" id="again">Run it back</button><button class="ghost" id="back">Back to the park</button></div>`);
     $('#again').onclick = again; $('#back').onclick = park;
+  }
+  /* H-O-R-S-E against a regular you walked up to: a shot each, match it or take a letter */
+  function horse(foe) {
+    const f = Object.assign({}, foe, { first: '', last: foe.handle || foe.last }), opp = PB.TEAMS[(PB.TEAMS.indexOf(parkTeam()) + 7) % PB.TEAMS.length];
+    scr().hidden = true;
+    PB.Game.start({ teams: [parkTeam(), opp], rosters: [[C.me], [f]], userId: C.me.id, drill: 'horse', qlen: 1, level: S.level, floor: parkFloor(),
+      onEnd: r => {
+        const his = r.score[0], mine = r.score[1], done = his >= 5 || mine >= 5, win = his >= 5, P = C.park || (C.park = { w: 0, l: 0 }), L = n => n ? 'HORSE'.slice(0, n).split('').join('-') : 'no letters';
+        let line = 'Called off before anybody spelled it.';
+        if (done) { if (win) P.w++; else P.l++; P.streak = win ? (P.streak || 0) + 1 : 0; P.best = Math.max(P.best || 0, P.streak); const fans = win ? 300 : 80; C.fans = Math.round(C.fans + fans); rankUp(); save(); line = `Park record ${P.w}-${P.l} · +${fans} followers`; }
+        show(`<div class="page post"><p class="kick">H-O-R-S-E · the park</p>
+          <div class="gradebig"><b>${done ? (win ? 'WIN' : 'LOSS') : '–'}</b><span>vs ${esc(f.last)}</span></div>
+          <div class="tiles"><div><b>${L(mine)}</b><span>YOU</span></div><div><b>${L(his)}</b><span>${esc(f.last)}</span></div></div>
+          <p class="mute">${line}</p>
+          <button class="big" id="again">Run it back</button><button class="ghost" id="back">Back to the park</button></div>`);
+        $('#again').onclick = () => horse(foe); $('#back').onclick = () => park();
+      } });
   }
   /* foe: a regular you walked up to in the park (1 on 1 against him, under his handle) */
   function pickup(n, foe) {

@@ -9,8 +9,8 @@
   const $ = s => document.querySelector(s);
   const RIM = 41.75, GRAV = 32;
   const parkSide = () => (G.user && G.user.z < 0 ? -1 : 1);
-  const hoopZ = team => G && G.park ? RIM * parkSide() : G && G.half ? RIM : team === 0 ? RIM : -RIM;      // the hoop a team attacks (on the blacktop both attack the same one)
-  const dirOf = team => G && G.park ? parkSide() : G && G.half ? 1 : team === 0 ? 1 : -1;
+  const hoopZ = team => G && G.park ? RIM * parkSide() : G && (G.half || G.horse) ? RIM : team === 0 ? RIM : -RIM;      // the hoop a team attacks (on the blacktop both attack the same one)
+  const dirOf = team => G && G.park ? parkSide() : G && (G.half || G.horse) ? 1 : team === 0 ? 1 : -1;
   const hyp = Math.hypot;
   const AU = () => PB.audio || { play() {}, crowd: { react() {}, level() {}, on() {} }, muffle() {}, music() {} };
   const home = t => G && t === G.home;   // the crowd is the home team's
@@ -205,7 +205,7 @@
   function hud() {
     highCheck(); radar();
     $('#game').classList.toggle('drill', !!(G && G.drill));
-    $('#game').classList.toggle('dunk', !!(G && G.drill && (G.drill.kind === 'dunk' || G.drill.kind === 'free')));
+    $('#game').classList.toggle('dunk', !!(G && G.drill && (G.drill.kind === 'dunk' || G.drill.kind === 'free' || G.drill.kind === 'horse')));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
     $('#game').classList.toggle('bigbtn', !!(PB.settings && PB.settings.btnSize === 'Large'));
     const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;
@@ -654,6 +654,7 @@
     combine: { secs: 45, spots: [[-22, 3], [-9, 14], [0, 25], [9, 14], [22, 3]], balls: 3, money: false, title: 'Combine · spot-up shooting' },
     dunk: { secs: 0, spots: [[17, 24], [0, 32], [-17, 24], [23, 5]], dunks: 2, title: 'Dunk Contest' },
     free: { secs: 0, spots: [[0, 18]], title: 'Shoot-around' },
+    horse: { secs: 0, spots: [[0, 18]], title: 'H-O-R-S-E' },
   };
   /* the dunk contest: [name, arms, how hard (the judges' bonus), how often it goes down, the turn in the air] */
   const STYLES = [['Two-hand', 'celebrate', 0, 1, 0], ['Tomahawk', 'dunk1', 0.45, 0.96, 0], ['Reverse', 'dunk1', 0.75, 0.92, Math.PI],
@@ -827,8 +828,8 @@
     const key = near ? near.id : guy ? 'npc:' + guy.d.id : undefined;
     if (key !== G.parkAt && guy && !near) {
       G.parkAt = key; R.stationLit && R.stationLit(null); const c = $('#parkcard');
-      c.innerHTML = `<div class="pci" style="--sc:#4cffb0"><b>${guy.name}</b><span>park regular · ${guy.d.pos} · ${guy.d.ovr} overall</span></div><div class="pcb"><button class="big" id="parkgo">1 on 1</button></div>`;
-      c.hidden = false; placeCard(); $('#parkgo').onclick = () => leavePark(key);
+      c.innerHTML = `<div class="pci" style="--sc:#4cffb0"><b>${guy.name}</b><span>park regular · ${guy.d.pos} · ${guy.d.ovr} overall</span></div><div class="pcb"><button class="big" id="parkgo">1 on 1</button><button class="ghost" id="parkhs">H-O-R-S-E</button></div>`;
+      c.hidden = false; placeCard(); $('#parkgo').onclick = () => leavePark(key); $('#parkhs').onclick = () => leavePark('horse:' + guy.d.id);
       guy.npcW = 0; guy.npcT = 3; if (R.say && G.t - (guy.saidT || -99) > 3) { guy.saidT = G.t; R.say(guy, ['You want this smoke?', 'Check it up', 'First to 11?', 'You sure?', 'Bet. Let\'s go'][Math.floor(rand() * 5)], 2.4); }
     }
     else if (key !== G.parkAt) { G.parkAt = key; R.stationLit && R.stationLit(G.parkAt); const c = $('#parkcard');
@@ -886,10 +887,66 @@
     D.n++;
     if (D.n >= D.def.dunks) D.over = true; else D.next = 2.8;
   }
+  /* ---------- H-O-R-S-E, against a park regular ----------
+     Take turns setting a shot from anywhere. Make it and he has to make the same one, from the same spot; miss the
+     match and it is a letter. The one setting keeps going until he misses; then the other one sets. Five letters,
+     H-O-R-S-E, and you are out. Your shots are your own (walk anywhere to set one; to match, you are walked to the spot). */
+  const HORSE = 'HORSE';
+  const letters = n => n ? HORSE.slice(0, n).split('').join('-') : '–';
+  function horseStart() {
+    const D = G.drill, foe = G.pl.find(p => p.team === 1);
+    Object.assign(D, { foe, lead: G.user, shooter: G.user, mode: 'set', spot: null, L: [0, 0], next: 0.6, ready: false, free: true });
+    foe.npc = true; foe.x = 18; foe.z = 30; foe.face = -Math.PI / 2;
+  }
+  const other = p => p === G.user ? G.drill.foe : G.user;
+  function horseLands(s) {
+    const D = G.drill, b = G.ball, p = s.shooter, me = p === G.user;
+    if (s.made) { R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); } else AU().play('rim', { x: b.ex, power: 0.6 });
+    b.state = 'drop'; b.t = 0;
+    if (D.mode === 'set') {
+      if (s.made) { D.spot = D.from; D.mode = 'match'; D.shooter = other(p); toast(me ? 'Match that' : `${p.name} hits. Match it`, me ? 'make' : 'call'); }
+      else { D.lead = other(p); D.shooter = D.lead; D.spot = null; toast(me ? 'Missed: his turn to set one' : `${p.name} misses: your shot`, me ? 'opp' : 'make'); }
+    } else {
+      const k = me ? 0 : 1;
+      if (s.made) toast(me ? 'Matched' : `${p.name} matches it`, me ? 'make' : 'opp');
+      else { D.L[k]++; toast(me ? `Letter: ${letters(D.L[0])}` : `${p.name} takes a letter: ${letters(D.L[1])}`, me ? 'opp' : 'make'); buzz(me ? [30, 40, 30] : 12); }
+      D.mode = 'set'; D.shooter = D.lead; D.spot = null;
+      if (D.L[k] >= 5) { D.over = true; D.won = !me; }
+    }
+    D.next = 1.2; D.ready = false; D.from = null;
+  }
+  function horseStep(dt) {
+    const D = G.drill, u = G.user, f = D.foe, b = G.ball;
+    G.score[0] = D.L[1]; G.score[1] = D.L[0]; G.clock = 0; G.shotClock = 24;
+    if (D.over) { if (b.state !== 'shot') { D.endT = (D.endT || 0) + dt; if (D.endT > 1.8) finish(); } }
+    const sh = D.shooter, wait = other(sh);
+    /* the one not shooting stands off to the side, out of the way */
+    const wx = sh.x > 0 ? -16 : 16;
+    if (!wait.shoot) { wait.tx = wx; wait.tz = 30; if (hyp(wait.tx - wait.x, wait.tz - wait.z) > 1) seek(wait, dt, 0.5); else { steer(wait, dt, 0, 0); wait.face = Math.atan2(sh.x - wait.x, sh.z - wait.z); } }
+    D.free = sh === u && D.mode === 'set';
+    if (D.next > 0) { D.next -= dt; return msg(); }
+    if (D.over) return msg();
+    /* the shooter gets to his spot, then the ball */
+    if (!D.ready && b.state !== 'shot' && !sh.shoot) {
+      let to = D.spot;
+      if (!to && sh === f) { if (!D.pick) { const a = rr(-1.3, 1.3), d = rr(6, 24); D.pick = { x: Math.sin(a) * d, z: RIM - Math.cos(a) * d }; } to = D.pick; }
+      if (to && hyp(to.x - sh.x, to.z - sh.z) > 0.8) { sh.tx = to.x; sh.tz = to.z; seek(sh, dt, 0.6); }
+      else { steer(sh, dt, 0, 0); give(sh); sh.hold = 0; D.ready = true; D.pick = null; D.aimT = rr(0.6, 1.2); }
+    }
+    /* his shot: a beat to square up, then up */
+    if (D.ready && sh === f && b.holder === f && !f.shoot) { f.face = Math.atan2(0 - f.x, RIM - f.z); D.aimT -= dt; if (D.aimT <= 0) { D.from = { x: f.x, z: f.z }; startShot(f); } }
+    if (D.ready && sh === u && u.shoot && !D.from) D.from = { x: u.x, z: u.z };
+    msg();
+    function msg() {
+      $('#ftmsg').hidden = false;
+      $('#ftmsg').textContent = D.over ? (D.won ? 'You win' : `${f.name} wins`) : `You ${letters(D.L[0])} · ${f.name} ${letters(D.L[1])} · ${sh === u ? (D.mode === 'set' ? 'your shot: anywhere' : 'match it') : (D.mode === 'set' ? 'his shot' : 'he has to match')}`;
+    }
+  }
   function drillSpot() { const D = G.drill, sp = D.def.spots[D.rack]; return toCourt(0, sp[0], sp[1]); }
   function drillLands(s) {
     if (G.drill.kind === 'dunk') { dunkLands(s); return; }
     if (G.drill.kind === 'free') { freeLands(s); return; }
+    if (G.drill.kind === 'horse') { horseLands(s); return; }
     const D = G.drill, b = G.ball, money = D.def.money && D.ball === D.def.balls - 1;
     D.att++;
     if (s.made) { D.made++; D.score += money ? 2 : 1; if (D.def.mustMake && D.rack + 1 >= D.def.spots.length) { D.score += Math.floor(D.t); toast(`Around the world! +${Math.floor(D.t)} for the time left`, 'make'); } R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); AU().crowd.react(money ? 'roar' : 'applause', money ? 0.9 : 0.5); if (money) { toast('MONEY BALL', 'make'); B('moneyball', { prio: 3 }); } buzz([15, 30, 15]); }
@@ -902,6 +959,7 @@
   function drillStep(dt) {
     if (G.drill.kind === 'dunk') { dunkStep(dt); return; }
     if (G.drill.kind === 'free') { freeStep(dt); return; }
+    if (G.drill.kind === 'horse') { horseStep(dt); return; }
     const D = G.drill, u = G.user;
     if (!D.over) { D.t -= dt; if (D.t <= 0) { D.t = 0; D.over = true; } }
     G.clock = D.t; G.shotClock = 24; G.score[0] = D.score; G.score[1] = D.att;
@@ -1940,7 +1998,7 @@
       if (p.npc) { /* a park regular: parkStep moves him */ }
       else if (!live) { if (G.phase === 'check' && p.ckx !== undefined) { p.tx = p.ckx; p.tz = p.ckz; seek(p, dt, 0.7); if (b.holder === p) p.pose = 'dribble'; } else if (G.phase === 'dead' || G.phase === 'ftflight') { p.vx *= 0.9; p.vz *= 0.9; } }
       else if (p.inb) { /* out of bounds with the ball: inboundStep has him */ }
-      else if (p.isUser && G.drill) { if ((G.drill.kind === 'dunk' || G.drill.kind === 'free') && !p.shoot && p.y <= 0 && !G.auto) userStep(p, dt); /* else the drill moves you */ }
+      else if (p.isUser && G.drill) { if ((G.drill.kind === 'dunk' || G.drill.kind === 'free' || (G.drill.kind === 'horse' && G.drill.free)) && !p.shoot && p.y <= 0 && !G.auto) userStep(p, dt); /* else the drill moves you */ }
       else if (p.isUser && !G.auto) {
         userStep(p, dt);
         if (p.cutUser > 0) { p.cutUser -= dt; if (!stickWorld()) { p.tx = 0; p.tz = hoopZ(0) - 6; seek(p, dt, 1); } }
@@ -2699,7 +2757,7 @@
       if (o.half) { G.half = true; G.target = o.target || 21; G.ones = !!o.ones; G.mitt = !!o.mitt; G.by2 = o.by2 !== false; G.scLen = 20; G.shotClock = 20; G.qlen = 99; G.clock = 99 * 60; G.to = [0, 0]; }
       G.user = pl.find(p => p.isUser) || null;
       { const rp = $('#rp'); if (rp) rp.hidden = true; $('#game').classList.remove('replaying'); }   // nothing of the last game's replay is left on screen
-      $('#game').classList.toggle('watching', !G.user && !o.drill); $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; } if (R.setStations) R.setStations([]);   // spectating: the broadcast without the controls
+      $('#game').classList.toggle('watching', !G.user && !o.drill); $('#game').classList.remove('park', 'horse'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; } if (R.setStations) R.setStations([]);   // spectating: the broadcast without the controls
       G.tko = !o.drill && !o.switching && G.user ? { m: 0, on: false, until: 0, miss: 0 } : null; tkoHud();
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
@@ -2808,8 +2866,10 @@
             /* two of them have a ball and a rim each */
             pl.filter(p => p.npc).slice(0, 2).forEach((p, i) => { p.pbRim = i ? -1 : 1; p.z = p.pbRim * rr(22, 34); p.pb = { st: 'hold', x: p.x, y: 2, z: p.z, vx: 0, vy: 0, vz: 0 }; });
             $('#game').classList.add('park'); } }
+        else if (o.drill === 'horse') { G.horse = true; G.user.x = 0; G.user.z = 20; G.user.face = 0; horseStart(); }
         else { const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0; give(G.user); }
         $('#a0').textContent = 'PTS'; $('#a1').textContent = o.drill === 'dunk' ? 'DUNK' : 'SHOTS';
+        $('#game').classList.toggle('horse', o.drill === 'horse');
         $('#grade').hidden = true;
         setTimeout(() => toast(o.park ? `${(o.floor || o.teams[0]).city} Park` : def.title, 'call'), 200);
       }
