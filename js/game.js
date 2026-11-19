@@ -939,7 +939,7 @@
     msg();
     function msg() {
       $('#ftmsg').hidden = false;
-      $('#ftmsg').textContent = D.over ? (D.won ? 'You win' : `${f.name} wins`) : `You ${letters(D.L[0])} · ${f.name} ${letters(D.L[1])} · ${sh === u ? (D.mode === 'set' ? 'your shot: anywhere' : 'match it') : (D.mode === 'set' ? 'his shot' : 'he has to match')}`;
+      $('#ftmsg').textContent = D.over ? (D.won ? 'You win' : `${f.name} wins`) : `You ${letters(D.L[0])} · ${f.name} ${letters(D.L[1])}\n${sh === u ? (D.mode === 'set' ? 'Your shot: from anywhere' : 'Match it') : (D.mode === 'set' ? 'His shot' : 'He has to match it')}`;
     }
   }
   function drillSpot() { const D = G.drill, sp = D.def.spots[D.rack]; return toCourt(0, sp[0], sp[1]); }
