@@ -36,6 +36,20 @@
     const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace;
     const sp = new T.Sprite(new T.SpriteMaterial({ map: t, depthTest: false, transparent: true })); sp.scale.set(5.4, 1.21, 1); sp.renderOrder = 6; return sp;
   }
+  /* a speech bubble over a park regular's head: what he says, for a few seconds */
+  const says = new Map();
+  function bubbleSprite(text) {
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 120; const g = cv.getContext('2d');
+    let fs = 40; g.font = `800 ${fs}px Archivo, Arial`; while (g.measureText(text).width > 440 && fs > 22) { fs -= 2; g.font = `800 ${fs}px Archivo, Arial`; }
+    const w = Math.min(500, g.measureText(text).width + 56);
+    g.fillStyle = '#ffffff'; g.beginPath(); g.roundRect ? g.roundRect(256 - w / 2, 8, w, 84, 30) : g.rect(256 - w / 2, 8, w, 84); g.fill();
+    g.beginPath(); g.moveTo(240, 90); g.lineTo(256, 114); g.lineTo(272, 90); g.fill();
+    g.fillStyle = '#0b0b0d'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 256, 51);
+    const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace;
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: t, depthTest: false, transparent: true })); sp.scale.set(7.2, 1.69, 1); sp.renderOrder = 7; return sp;
+  }
+  const unsay = p => { const o = says.get(p); if (!o) return; scene.remove(o.sp); o.sp.material.map.dispose(); o.sp.material.dispose(); says.delete(p); };
+  R.say = (p, text, secs) => { unsay(p); const sp = bubbleSprite(text); scene.add(sp); says.set(p, { sp, until: performance.now() + (secs || 2.6) * 1000 }); };
   function placeTag(k, p, mine) {
     const want = p ? `${p.name}|${p.num}` : '';
     if (tags[k] && tags[k].key !== want) { scene.remove(tags[k].sp); tags[k].sp.material.map.dispose(); tags[k].sp.material.dispose(); tags[k] = null; }
@@ -52,6 +66,8 @@
     placeTag('ball', mode === 'You and the ball' && h && h !== u && !G.replay ? h : null, false);
     /* the park: everyone's handle over his head, the way a park shows who is out there (the near ones only) */
     if (G && G.park) { const me = G.user; placeTag('pme', me, true); G.pl.forEach((p, i) => { if (p.npc) placeTag('npc' + i, me && Math.hypot(p.x - me.x, p.z - me.z) < 30 ? p : null, false); }); }
+    const now = performance.now();
+    for (const [p, o] of says) { if (now > o.until || !G || !G.park || !G.pl.includes(p)) { unsay(p); continue; } o.sp.position.set(p.x, 9.4 + (p.y || 0), p.z); }
   };
   R._marks = () => ({ def: defArrow && defArrow.visible ? defArrow.material.color.getHexString() : null, pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
   R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
@@ -1539,7 +1555,7 @@
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
     for (const g of orphans) g.dispose(); orphans.length = 0;
-    meshes.clear(); refs = []; benchMesh = []; for (const k in tags) tags[k] = null;
+    meshes.clear(); refs = []; benchMesh = []; for (const k in tags) tags[k] = null; says.clear();
     while (scene.children.length > 2) { const o = scene.children[2]; scene.remove(o); freeTree(o, true); }
     /* every player's shadow, one instanced mesh */
     const sg = new T.CircleGeometry(1.1, 16); sg.rotateX(-Math.PI / 2);

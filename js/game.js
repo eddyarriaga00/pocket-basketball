@@ -685,6 +685,7 @@
   /* the shoot-around: shoot from anywhere, the ball comes back to you; no clock. Pause to finish. */
   function freeLands(s) {
     const D = G.drill, b = G.ball;
+    if (G.park) parkSay(s.made ? 'make' : 'miss');
     D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(hoopZ(0) > 0 ? 1 : -1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); }
     else { D.streak = 0; AU().play('rim', { x: b.ex, power: 0.6 }); }
     b.state = 'drop'; b.t = 0; D.next = 0.9;
@@ -742,6 +743,19 @@
     if (T0.wait > 0) { T0.wait -= dt; if (T0.wait <= 0) { T0.i++; if (opts.onTutStep) opts.onTutStep(T0.i); if (T0.i >= TUT.length) { T0.done = true; el.hidden = true; placeCard(); toast('Tutorial done', 'make'); if (opts.onTut) opts.onTut(true); } } return; }
     if (ok && ok()) { T0.wait = 0.9; el.classList.add('ok'); buzz(12); AU().play('swish'); if (T0.i === 3 && D.made <= T0.made0) el.querySelector('span').textContent = 'Close enough. It comes with reps.'; }
   }
+  /* what the regulars say: hello when you come by, something when you score (or don't) near them */
+  const PARKSAY = {
+    hi: ['You got next?', 'Run it?', 'Who\'s this?', 'New face', 'You hoop?', '1 on 1 me', 'Let\'s get a run', 'Need one more', 'Nice kicks', 'You play for real?'],
+    make: ['Cash!', 'Wet', 'Too easy', 'Cookin\'', 'Splash', 'Okay okay', 'That\'s good'],
+    miss: ['Brick!', 'Front rim', 'Airball? Nah', 'Shoot it again', 'Keep shooting'],
+    move: ['Ooh!', 'Handles', 'Stop it', 'Ankles!'],
+  };
+  function parkSay(kind, near) {
+    const u = G.user; if (!R.say || !u) return;
+    const who = G.pl.filter(p => p.npc && hyp(p.x - u.x, p.z - u.z) < (near || 26) && G.t - (p.saidT || -99) > 5).sort(() => rand() - 0.5)[0];
+    if (!who) return; who.saidT = G.t; const L = PARKSAY[kind]; R.say(who, L[Math.floor(rand() * L.length)], 2.4);
+    if (kind === 'make' || kind === 'move') { who.npcPose = rand() < 0.5 ? 'point' : 'call'; who.npcW = 0; who.npcT = 1.6; }
+  }
   /* the ring's card sits at the top, under the walk-through when that is up: the player and the controls stay clear */
   function placeCard() {
     const c = $('#parkcard'), t = $('#tut'); if (!c) return;
@@ -752,7 +766,17 @@
     /* the stanchions are solid */
     for (const s of [1, -1]) if (Math.abs(u.x) < 2.7 && Math.abs(u.z - s * 52) < 3) { const dz = u.z - s * 52; if (Math.abs(u.x) / 2.7 > Math.abs(dz) / 3) u.x = Math.sign(u.x || 1) * 2.7; else u.z = s * 52 + Math.sign(dz || -s) * 3; }
     let near = null; for (const s0 of PARK) if (hyp(u.x - s0.x, u.z - s0.z) < s0.r) near = s0;
-    if ((near && near.id) !== G.parkAt) { G.parkAt = near && near.id; R.stationLit && R.stationLit(G.parkAt); const c = $('#parkcard');
+    /* or a regular: walk right up to one and you can challenge him */
+    let guy = null;
+    if (!near) { let bd = 4.2; for (const p of G.pl) if (p.npc) { const d = hyp(p.x - u.x, p.z - u.z); if (d < bd) { bd = d; guy = p; } } }
+    const key = near ? near.id : guy ? 'npc:' + guy.d.id : undefined;
+    if (key !== G.parkAt && guy && !near) {
+      G.parkAt = key; R.stationLit && R.stationLit(null); const c = $('#parkcard');
+      c.innerHTML = `<div class="pci" style="--sc:#4cffb0"><b>${guy.name}</b><span>park regular · ${guy.d.pos} · ${guy.d.ovr} overall</span></div><div class="pcb"><button class="big" id="parkgo">1 on 1</button></div>`;
+      c.hidden = false; placeCard(); $('#parkgo').onclick = () => { G.parkGo = key; finish(); };
+      guy.npcW = 0; guy.npcT = 3; if (R.say && G.t - (guy.saidT || -99) > 3) { guy.saidT = G.t; R.say(guy, ['You want this smoke?', 'Check it up', 'First to 11?', 'You sure?', 'Bet. Let\'s go'][Math.floor(rand() * 5)], 2.4); }
+    }
+    else if (key !== G.parkAt) { G.parkAt = key; R.stationLit && R.stationLit(G.parkAt); const c = $('#parkcard');
       if (near) {
         const info = (opts.parkInfo || {})[near.id], nx = near.id === 'career' && opts.parkNext;
         c.innerHTML = `<div class="pci" style="--sc:${near.color}"><b>${near.label}</b><span>${info || near.sub}</span></div><div class="pcb">${nx ? `<button class="big" id="parknx">${nx}</button><button class="ghost" id="parkgo">Career menu</button>` : `<button class="big" id="parkgo">${near.id.startsWith('pick') || near.id === 'court' ? 'Play' : near.id === 'daily' || near.id === 'quick' || near.id === 'blacktop' ? 'Set it up' : 'Go in'}</button>`}</div>`;
@@ -760,7 +784,9 @@
         if ($('#parknx')) $('#parknx').onclick = () => { G.parkGo = 'next'; finish(); };
       }
       else c.hidden = true; }
+    if (G.t - (G.hiT || 0) > rr(7, 12)) { G.hiT = G.t; parkSay('hi', 14); }
     for (const p of G.pl) if (p.npc) {
+      if (hyp(p.x - u.x, p.z - u.z) < 5.5) { p.npcW = 0; p.npcT = Math.max(p.npcT || 0, 1); }
       p.npcT = (p.npcT || 0) - dt;
       if (p.npcT <= 0) { const r = rand(); if (r < 0.55) { p.tx = rr(-24, 24); p.tz = rr(-52, 52); p.npcW = 1; p.npcT = rr(4, 9); } else { p.npcW = 0; p.npcT = rr(2, 6); p.npcPose = ['call', 'shrug', '', '', 'flex', 'point'][Math.floor(rand() * 6)]; } }
       if (p.npcW && hyp(p.tx - p.x, p.tz - p.z) > 1.5) { seek(p, dt, 0.32); p.pose = ''; } else { steer(p, dt, 0, 0); if (p.npcPose && p.y === 0) { p.pose = p.npcPose; } const h = G.user; if (!p.npcW && hyp(h.x - p.x, h.z - p.z) < 14) p.face += (Math.atan2(h.x - p.x, h.z - p.z) - p.face) * Math.min(1, dt * 2); }
@@ -780,7 +806,7 @@
     G.clock = 0; G.shotClock = 24; G.score[0] = D.made; G.score[1] = D.att;
     if (D.next > 0) { D.next -= dt; if (D.next <= 0) { D.next = 0; give(u); } }
     $('#ftmsg').hidden = !!(G.park && G.tut && !G.tut.done);
-    $('#ftmsg').textContent = G.park ? `${D.att ? `${D.made} of ${D.att} · ` : ''}walk into a ring, or open the Menu` : `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
+    $('#ftmsg').textContent = G.park ? (D.att ? `${D.made} of ${D.att}${D.streak > 1 ? ` · ${D.streak} straight` : ''}` : 'Walk into a ring, or open the Menu') : `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
   }
   function dunkLands(s) {
     const D = G.drill, b = G.ball, p = s.shooter, st = STYLES[s.style || 0];
@@ -1670,7 +1696,7 @@
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
         } else feedMove(lbl);
       } else feedMove(lbl);
-      AU().play('squeak', { x: u.x }); if (G.tut) G.tut.moved = true;
+      AU().play('squeak', { x: u.x }); if (G.tut) G.tut.moved = true; if (G.park && rand() < 0.5) parkSay('move', 18);
       return;
     }
     const off = b.holder ? b.holder.team === 0 : G.poss === 0;
@@ -2715,7 +2741,7 @@
             if (R.parkYaw) R.parkYaw(G.user.face);
             G.parkAt = undefined; G.tut = o.tutorial ? { i: Math.min(o.tutAt || 0, TUT.length - 1) } : null; { const e = $('#tut'); if (e) e.hidden = !G.tut; }
             const HANDLES = ['SPLASHZONE', 'GLASSCLEANER', 'LOCKDOWN', 'FADEKING', 'DOWNTOWN', 'NOLOOK', 'BIGSHOT', 'BOARDMAN', 'HOOPDREAMS', 'ANKLES', 'MIDRANGE', 'BUCKETS'];
-            for (const p of pl) if (p.team === 1) { p.npc = true; p.x = rr(-28, 28); p.z = rr(-48, 48); p.face = rand() * 6.28; p.name = HANDLES[Math.floor(rand() * HANDLES.length)] + (Math.floor(rand() * 90) + 10); }
+            for (const p of pl) if (p.team === 1) { p.npc = true; p.x = rr(-24, 24); p.z = rr(-48, 48); p.face = rand() * 6.28; p.name = p.d.handle || (p.d.handle = HANDLES[Math.floor(rand() * HANDLES.length)] + (Math.floor(rand() * 90) + 10)); }
             $('#game').classList.add('park'); } }
         else { const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0; give(G.user); }
         $('#a0').textContent = 'PTS'; $('#a1').textContent = o.drill === 'dunk' ? 'DUNK' : 'SHOTS';

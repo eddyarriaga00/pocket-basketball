@@ -556,7 +556,7 @@
   const parkTeam = () => C && C.team ? PB.team(C.team) : PB.team('LAK');
   const parkFloor = () => Object.assign({}, parkTeam(), { street: true, park: true, court: 0 });
   const parkGuy = (pos, ovr) => { const p = PB.makePlayer(pos, PB.clamp(Math.round(ovr + PB.gauss() * 3), 55, 92), PB.ri(19, 31)); return p; };
-  let parkFrom = null;
+  let parkFrom = null, parkNpcs = [];
   const careerLine = () => {
     if (C.phase === 'combine') return 'the draft combine is waiting';
     if (C.phase === 'awards') return 'awards night';
@@ -572,7 +572,7 @@
     if (PB.noGL) { tab = 'home'; hub(); return; }
     statsV2();
     const from = at || parkFrom; parkFrom = null;
-    const o = C.me.ovr, npcs = ['PG', 'SG', 'SF', 'PF', 'C'].map(pos => parkGuy(pos, o));
+    const o = C.me.ovr, npcs = parkNpcs = ['PG', 'SG', 'SF', 'PF', 'C'].map(pos => parkGuy(pos, o));
     const nx = nextLive(), gymLeft = ['contest', 'combine', 'world', 'dunk', 'free'].filter(k => (C.gym || {})[k] !== today()).length;
     const info = { career: careerLine(), players: `${slots().length} player${slots().length === 1 ? '' : 's'} on this device`, daily: dailyDone() ? 'done today ✓' : 'today\'s late-game spot',
       gym: gymLeft ? `${gymLeft} workout${gymLeft > 1 ? 's' : ''} left today` : 'all of today\'s workouts done', court: `park record ${(C.park || { w: 0 }).w}-${(C.park || { l: 0 }).l}` };
@@ -583,8 +583,9 @@
   }
   function parkGo(id) {
     id = id || 'career';
-    parkFrom = id === 'next' || id.startsWith('hub:') ? 'career' : id;
+    parkFrom = id === 'next' || id.startsWith('hub:') ? 'career' : id.startsWith('npc:') ? 'pick1' : id;
     if (id === 'pick1' || id === 'pick2' || id === 'pick3') { pickup(+id.slice(-1)); return; }
+    if (id.startsWith('npc:')) { const d = parkNpcs.find(x => x.id === id.slice(4)); pickup(1, d || null); return; }
     if (id === 'court') { proAm(); return; }
     if (id === 'gym') { practice(() => park()); return; }
     if (id === 'closet') { tab = 'player'; hub(); setTimeout(() => { const e = scr().querySelector('.lookh') || scr().querySelector('[data-look]'); if (e) e.scrollIntoView({ block: 'start' }); }, 60); return; }
@@ -647,13 +648,14 @@
       <button class="big" id="again">Run it back</button><button class="ghost" id="back">Back to the park</button></div>`);
     $('#again').onclick = again; $('#back').onclick = park;
   }
-  function pickup(n) {
+  /* foe: a regular you walked up to in the park (1 on 1 against him, under his handle) */
+  function pickup(n, foe) {
     const o = C.me.ovr, mine = { 1: [], 2: [C.me.pos === 'C' || C.me.pos === 'PF' ? 'PG' : 'C'], 3: [['SF', 'C'], ['PG', 'C'], ['PG', 'C'], ['PG', 'SF'], ['PG', 'SF']][PB.POS.indexOf(C.me.pos)] }[n];
-    const ra = [C.me].concat(mine.map(pos => parkGuy(pos, o - 2))), rb = ({ 1: [C.me.pos], 2: ['PG', 'C'], 3: ['PG', 'SF', 'C'] })[n].map(pos => parkGuy(pos, o));
+    const ra = [C.me].concat(mine.map(pos => parkGuy(pos, o - 2))), rb = foe ? [Object.assign({}, foe, { first: '', last: foe.handle || foe.last })] : ({ 1: [C.me.pos], 2: ['PG', 'C'], 3: ['PG', 'SF', 'C'] })[n].map(pos => parkGuy(pos, o));
     const opp = PB.TEAMS[Math.floor(PB.rand() * PB.TEAMS.length)];
     scr().hidden = true;
     PB.Game.start({ teams: [parkTeam(), opp === parkTeam() ? PB.TEAMS[0] : opp], rosters: [ra, rb], slots: [[0], [0, 4], [0, 1, 4]][n - 1], userId: C.me.id, half: true, target: n === 1 ? 11 : 21, ones: false, mitt: false,
-      level: S.level, floor: parkFloor(), strength: [78, 78], onEnd: r => parkResult(r, () => pickup(n), `${n} on ${n}`) });
+      level: S.level, floor: parkFloor(), strength: [78, 78], onEnd: r => parkResult(r, () => pickup(n, foe), foe ? `1 on 1 vs ${foe.handle || foe.last}` : `${n} on ${n}`) });
   }
   function proAm() {
     const o = C.me.ovr, ra = PB.POS.map(pos => pos === C.me.pos ? C.me : parkGuy(pos, o - 2)), rb = PB.POS.map(pos => parkGuy(pos, o));
