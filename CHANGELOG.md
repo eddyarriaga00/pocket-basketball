@@ -16,6 +16,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
   door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
   through that door.
+- The menu has Today: your three quests with their progress, and what the day still holds (the daily reward, the
+  prize wheel, the daily challenge, the gym's five workouts); tap one to go to it. The daily reward now comes in the
+  park too, and pick-up keeps a win streak (and your best).
+- Quests are never doubled up any more (two of the same quest could be handed out together).
 - The prize wheel by the park's gate: one spin a day, for skill points (1 to 5) or followers (500 to 20,000). It
   opens right over the park.
 - Two regulars shoot around, one at each rim, with balls of their own: they walk to a spot, rise up, and chase it

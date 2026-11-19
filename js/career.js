@@ -521,8 +521,11 @@
     const scaled = ['pts', 'reb', 'ast', 'tpm', 'stl', 'blk'].includes(q[0]), n = Math.max(1, Math.round(q[2] * (scaled ? f * 4 : 1) / (scaled ? 4 : 1)));
     return { k: q[0], n, got: 0, text: q[1].replace('{n}', n).replace(/ 1 (\w+)s\b/, ' 1 $1'), sp: q[3], fans: 600 + q[3] * 400 };
   }
+  const dedupeQuests = () => { const seen = []; C.quests = C.quests.filter(q => !seen.includes(q.k) && seen.push(q.k)); while (C.quests.length < 3) C.quests.push(newQuest(C.quests.map(x => x.k))); };
+  /* three quests, no two the same */
+  function freshQuests() { const q = []; while (q.length < 3) q.push(newQuest(q.map(x => x.k))); return q; }
   function questTick(res, g) {
-    C.quests = C.quests || [newQuest(), newQuest(), newQuest()];
+    C.quests = C.quests || freshQuests();
     const l = res.line || {}, done = [];
     for (const q of C.quests) {
       const add = { pts: l.pts, reb: l.reb, ast: l.ast, tpm: l.tpm, stl: l.stl, blk: l.blk, win: res.win ? 1 : 0, road: res.win && !g.home ? 1 : 0, grade: res.gscore >= 9 ? 1 : 0, dd: l.pts >= Math.max(4, Math.round(10 * Math.max(0.25, (S.qlen || 3) / 12))) ? 1 : 0 }[q.k] || 0;
@@ -532,7 +535,7 @@
     if (done.length) { const keep = C.quests.filter(q => !done.includes(q)); C.quests = keep; while (C.quests.length < 3) C.quests.push(newQuest(done.map(q => q.k))); }
   }
   function questsCard() {
-    C.quests = C.quests || [newQuest(), newQuest(), newQuest()];
+    C.quests = C.quests || freshQuests(); dedupeQuests();
     const r = rankOf(C.fans);
     return `<div class="card quests"><h3>Rank <small>${C.questsDone || 0} quests done</small></h3>
       <div class="rank"><b>${r.name}</b><i><u style="width:${Math.round(r.frac * 100)}%"></u></i><span>${r.next ? `${fmtFans(C.fans)} of ${fmtFans(r.need)} followers to ${r.next}: ${RANK_GIFT[r.i + 1]}` : 'The top of the ladder'}</span></div>
@@ -572,10 +575,13 @@
     if (PB.noGL) { tab = 'home'; hub(); return; }
     statsV2();
     const from = at || parkFrom; parkFrom = null;
+    const lr = C.team && C.phase !== 'retired' ? loginReward() : null; if (lr) { C.loginShow = lr; rankUp(); save(); setTimeout(() => PB.Game.toast(`Daily reward · day ${lr.day}: +${lr.sp} SP, +${lr.fans} followers`, 'make'), 2600); }
+    const P = C.park || { w: 0, l: 0 }, streak = P.streak > 1 ? ` · ${P.streak} wins in a row` : '';
     const o = C.me.ovr, npcs = parkNpcs = ['PG', 'SG', 'SF', 'PF', 'C'].map(pos => parkGuy(pos, o));
     const nx = nextLive(), gymLeft = ['contest', 'combine', 'world', 'dunk', 'free'].filter(k => (C.gym || {})[k] !== today()).length;
     const info = { career: careerLine(), players: `${slots().length} player${slots().length === 1 ? '' : 's'} on this device`, daily: dailyDone() ? 'done today ✓' : 'today\'s late-game spot',
       gym: gymLeft ? `${gymLeft} workout${gymLeft > 1 ? 's' : ''} left today` : 'all of today\'s workouts done', court: `park record ${(C.park || { w: 0 }).w}-${(C.park || { l: 0 }).l}`,
+      pick1: `pick-up to 11${streak}`, pick2: `pick-up to 21${streak}`, pick3: `pick-up to 21${streak}`,
       wheel: C.wheel === today() ? 'spun today: back tomorrow' : 'a spin a day: skill points or followers', wheelBtn: C.wheel === today() ? 'See it' : 'Spin' };
     scr().hidden = true;
     PB.Game.start({ teams: [parkTeam(), PB.TEAMS[(PB.TEAMS.indexOf(parkTeam()) + 7) % PB.TEAMS.length]], rosters: [[C.me], npcs], userId: C.me.id, drill: 'free', park: true, qlen: 1, level: S.level,
@@ -596,6 +602,16 @@
       how, settings, chat: () => { if (PB.online) PB.online.open(); else park(); } };
     if (pages[id]) { pages[id](); return; }
     tab = 'home'; hub();
+  }
+  /* the menu's Today: what the day still has in it (quests, the wheel, the daily challenge, the gym's workouts) */
+  function todayCard() {
+    if (!C.team) return '';
+    C.quests = C.quests || freshQuests(); dedupeQuests();
+    const L = C.login || {}, gym = ['contest', 'combine', 'world', 'dunk', 'free'].filter(k => (C.gym || {})[k] === today()).length, wh = C.wheel === today(), dd = dailyDone();
+    const chip = (on, t, go) => `<button class="pmc ${on ? 'on' : ''}" ${go ? `data-${go}` : ''}><i>${on ? '✓' : '○'}</i>${t}</button>`;
+    return `<h4>Today</h4><div class="pmtoday">
+      ${C.quests.map(q => `<div class="qst"><span>${esc(q.text)}</span><i><u style="width:${Math.round(q.got / q.n * 100)}%"></u></i><b>${q.got}/${q.n}</b><small>+${q.sp} SP</small></div>`).join('')}
+      <div class="pmchips">${chip(L.last === today(), `Daily reward · day ${L.day || 1}`)}${chip(wh, 'Prize wheel', 'tr="wheel"')}${chip(dd, 'Daily challenge', 'go="daily"')}${chip(gym >= 5, `Gym ${gym}/5`, 'go="gym"')}</div></div>`;
   }
   /* the prize wheel by the park's gate: one spin a day */
   const PRIZES = [['+1 SP', 'sp', 1, 26], ['+500', 'fans', 500, 18], ['+2 SP', 'sp', 2, 18], ['+2,000', 'fans', 2000, 12], ['+3 SP', 'sp', 3, 10], ['+5,000', 'fans', 5000, 8], ['+5 SP', 'sp', 5, 5], ['+20,000', 'fans', 20000, 3]];
@@ -643,6 +659,7 @@
         <button class="pmx" id="pmx" aria-label="Close the menu">✕</button></div>
       <div class="pmstats"><div><b>${rk.name}</b><span>Rank</span></div><div><b>${fmtFans(C.fans)}</b><span>Followers</span></div><div><b>${me.sp}</b><span>Skill pts</span></div><div><b>${P.w}-${P.l}</b><span>Park</span></div></div>
       ${nx ? `<button class="big" data-go="next">Play next game<small>${esc(nx.label)} · vs ${esc(PB.team(nx.opp).name)}</small></button>` : `<button class="big" data-go="career">My Career<small>${esc(careerLine())}</small></button>`}
+      ${todayCard()}
       ${C.phase === 'combine' ? '' : `<h4>My Career</h4>
       <div class="pmrow">${[['home', 'Home'], ['team', 'Team'], ['player', 'Player'], ['league', 'League'], ['log', 'Log']].map(([k, n]) => `<button class="pmn" data-go="hub:${k}">${nav(k)}<span>${n}</span>${k === 'player' && up ? '<i class="dot"></i>' : ''}</button>`).join('')}</div>`}
       <h4>The park <small>tap a ring to go there</small></h4>
@@ -663,11 +680,12 @@
   function parkResult(r, again, label) {
     const u = r.user || {}, win = r.score[0] > r.score[1], P = C.park || (C.park = { w: 0, l: 0 });
     if (win) P.w++; else P.l++;
+    P.streak = win ? (P.streak || 0) + 1 : 0; P.best = Math.max(P.best || 0, P.streak);
     const fans = win ? 450 : 120; C.fans = Math.round(C.fans + fans); if (win && P.w % 3 === 0) C.me.sp += 1;
     rankUp(); save();
     show(`<div class="page post"><p class="kick">${esc(label)} · the park</p>
       <div class="final"><div>${badge(r.teams[0])}<b>${r.score[0]}</b></div><em>${win ? 'WIN' : 'LOSS'}</em><div><b>${r.score[1]}</b>${badge(r.teams[1])}</div></div>
-      <p class="mute">Park record ${P.w}-${P.l} · +${fans} followers${win && P.w % 3 === 0 ? ' · +1 skill point (every third win)' : ''}</p>
+      <p class="mute">Park record ${P.w}-${P.l}${P.streak > 1 ? ` · ${P.streak} wins in a row` : ''}${P.best > 2 ? ` (best ${P.best})` : ''} · +${fans} followers${win && P.w % 3 === 0 ? ' · +1 skill point (every third win)' : ''}</p>
       <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div></div>
       ${potg(r)}${boxScore(r)}
       <button class="big" id="again">Run it back</button><button class="ghost" id="back">Back to the park</button></div>`);

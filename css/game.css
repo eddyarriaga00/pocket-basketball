@@ -827,3 +827,12 @@ table.pbx td small{color:var(--mute)}
 .whl .hub0{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:#0b0b0d;border:3px solid #fff}
 .card.wheel .won{min-height:44px;margin:6px 0 10px;display:flex;flex-direction:column;gap:2px;color:var(--mute);font-size:12.5px}
 .card.wheel .won b{font-family:var(--display);font-size:24px;color:var(--green)}
+/* the menu's Today */
+.pmtoday{background:var(--panel2);border-radius:12px;padding:10px 12px}
+.pmtoday .qst{display:grid;grid-template-columns:1fr 54px auto auto;align-items:center;gap:8px;padding:4px 0;font-size:12px}
+.pmtoday .qst span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pmtoday .qst i{height:5px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}.pmtoday .qst i u{display:block;height:100%;background:var(--green)}
+.pmtoday .qst b{font-variant-numeric:tabular-nums;font-size:11.5px}.pmtoday .qst small{color:var(--green);font-size:10.5px;font-weight:700}
+.pmchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pmc{display:flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.07);font-size:11.5px;font-weight:600;color:#d4d4da}
+.pmc i{font-style:normal;color:var(--mute)}.pmc.on{color:#fff}.pmc.on i{color:var(--green)}
