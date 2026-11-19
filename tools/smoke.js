@@ -15,7 +15,9 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   await pg.click('#newc'); await pg.waitForTimeout(200);
   await pg.fill('#fn', 'Test'); await pg.fill('#ln', 'Player');
   await pg.click('#pos button[data-v="PG"]'); await pg.waitForTimeout(100);
+  await pg.click('[data-step="2"]'); await pg.waitForTimeout(100);   // the builder's steps: on to the build
   await pg.click('.arch button[data-v="Playmaker"]'); await pg.waitForTimeout(100);
+  await pg.click('[data-step="3"]'); await pg.waitForTimeout(100);   // and the look, the last step
   await pg.screenshot({ path: OUT + '/c1-create.png', fullPage: false });
   await pg.click('#go'); await pg.waitForTimeout(300);
   await pg.click('#skip'); await pg.waitForTimeout(300);   // the combine: skipped here (tools/drill.js plays it)

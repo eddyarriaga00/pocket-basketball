@@ -4,6 +4,17 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- My Player: every player you build has his own career, shown as a card in his uniform with his overall, build,
+  height, weight, team and season. Tap one to play him, or build another (up to ten on a device). The title goes
+  straight to the last one you played, or to the cards.
+- The builder works in steps, the way the console game's does: Profile (name, hometown, number, position, your story),
+  Body (height, weight and wingspan, each trading something: heavier is stronger inside and slower, longer arms block,
+  steal and rebound better and shoot a little worse), Build (the archetype and the starting ratings it gives), Look.
+- The Park: your player on foot in his city's park at dusk, a chain-link fence, trees, lights, park regulars wandering
+  and hanging around. Shoot around at either rim, and walk into a ring: pick-up 1 on 1 (to 11), 2 on 2 or 3 on 3 (to 21)
+  on the park court, Pro-Am (5 on 5 with park players), the gym (drills and contests: in your career each one is a
+  daily workout worth a skill point), the closet (your look), or back to your season. Park games build your followers
+  and a park record; every third win is a skill point.
 - Rank (the console game's rep, by followers): Rookie, Rotation, Starter, Fan favorite, All-Star, Superstar, MVP, Legend
   and GOAT. Each rank pays skill points and unlocks new gear in the Look card: Volt, Royal, Infrared, Chrome, MVP purple
   and Diamond shoes, gold and chrome headbands, sleeves and wristbands, platinum hair. Nothing you already had is

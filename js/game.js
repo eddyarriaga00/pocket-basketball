@@ -8,8 +8,9 @@
   const { clamp, rand, rr } = PB;
   const $ = s => document.querySelector(s);
   const RIM = 41.75, GRAV = 32;
-  const hoopZ = team => G && G.half ? RIM : team === 0 ? RIM : -RIM;      // the hoop a team attacks (on the blacktop both attack the same one)
-  const dirOf = team => G && G.half ? 1 : team === 0 ? 1 : -1;
+  const parkSide = () => (G.user && G.user.z < 0 ? -1 : 1);
+  const hoopZ = team => G && G.park ? RIM * parkSide() : G && G.half ? RIM : team === 0 ? RIM : -RIM;      // the hoop a team attacks (on the blacktop both attack the same one)
+  const dirOf = team => G && G.park ? parkSide() : G && G.half ? 1 : team === 0 ? 1 : -1;
   const hyp = Math.hypot;
   const AU = () => PB.audio || { play() {}, crowd: { react() {}, level() {}, on() {} }, muffle() {}, music() {} };
   const home = t => G && t === G.home;   // the crowd is the home team's
@@ -671,16 +672,41 @@
   /* the shoot-around: shoot from anywhere, the ball comes back to you; no clock. Pause to finish. */
   function freeLands(s) {
     const D = G.drill, b = G.ball;
-    D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); }
+    D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(hoopZ(0) > 0 ? 1 : -1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); }
     else { D.streak = 0; AU().play('rim', { x: b.ex, power: 0.6 }); }
     b.state = 'drop'; b.t = 0; D.next = 0.9;
   }
+  /* ---------- the park ----------
+     Your player walks it with the stick; Shoot puts one up at the nearer rim. The regulars wander, stop, shoot one
+     into the air, talk. Walk into a ring and its card comes up: tap it to go. */
+  const PARK = [
+    { id: 'pick3', label: '3 ON 3', sub: 'pick-up to 21', x: -29, z: 24, r: 3.4, color: '#4cffb0' },
+    { id: 'pick2', label: '2 ON 2', sub: 'pick-up to 21', x: -29, z: -24, r: 3.4, color: '#4cffb0' },
+    { id: 'pick1', label: '1 ON 1', sub: 'pick-up to 11', x: 29, z: -24, r: 3.4, color: '#4cffb0' },
+    { id: 'gym', label: 'GYM', sub: 'drills and contests', x: 29, z: 24, r: 3.4, color: '#ffffff' },
+    { id: 'closet', label: 'CLOSET', sub: 'your look and gear', x: -14, z: 54, r: 3.2, color: '#ff8fd1' },
+    { id: 'court', label: 'PRO-AM', sub: '5 on 5, full court', x: 14, z: 54, r: 3.2, color: '#7cc4ff' },
+    { id: 'exit', label: 'My Career', sub: 'back to your season', x: 0, z: -54, r: 3.4, color: '#ffd23f' },
+  ];
+  function parkStep(dt) {
+    const u = G.user;
+    let near = null; for (const s0 of PARK) if (hyp(u.x - s0.x, u.z - s0.z) < s0.r) near = s0;
+    if ((near && near.id) !== G.parkAt) { G.parkAt = near && near.id; R.stationLit && R.stationLit(G.parkAt); const c = $('#parkcard');
+      if (near) { c.innerHTML = `<b>${near.label}</b><span>${near.sub}</span><button class="big" id="parkgo">${near.id === 'exit' ? 'Leave the park' : near.id === 'closet' || near.id === 'gym' ? 'Go in' : 'Play'}</button>`; c.hidden = false; $('#parkgo').onclick = () => { G.parkGo = near.id; finish(); }; }
+      else c.hidden = true; }
+    for (const p of G.pl) if (p.npc) {
+      p.npcT = (p.npcT || 0) - dt;
+      if (p.npcT <= 0) { const r = rand(); if (r < 0.55) { p.tx = rr(-30, 30); p.tz = rr(-52, 52); p.npcW = 1; p.npcT = rr(4, 9); } else { p.npcW = 0; p.npcT = rr(2, 6); p.npcPose = ['call', 'shrug', '', '', 'flex', 'point'][Math.floor(rand() * 6)]; } }
+      if (p.npcW && hyp(p.tx - p.x, p.tz - p.z) > 1.5) { seek(p, dt, 0.32); p.pose = ''; } else { steer(p, dt, 0, 0); if (p.npcPose && p.y === 0) { p.pose = p.npcPose; } const h = G.user; if (!p.npcW && hyp(h.x - p.x, h.z - p.z) < 14) p.face += (Math.atan2(h.x - p.x, h.z - p.z) - p.face) * Math.min(1, dt * 2); }
+    }
+  }
   function freeStep(dt) {
     const D = G.drill, u = G.user;
+    if (G.park) parkStep(dt);
     G.clock = 0; G.shotClock = 24; G.score[0] = D.made; G.score[1] = D.att;
     if (D.next > 0) { D.next -= dt; if (D.next <= 0) { D.next = 0; give(u); } }
     $('#ftmsg').hidden = false;
-    $('#ftmsg').textContent = `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
+    $('#ftmsg').textContent = G.park ? `The park · ${D.made} of ${D.att} · walk into a ring` : `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
   }
   function dunkLands(s) {
     const D = G.drill, b = G.ball, p = s.shooter, st = STYLES[s.style || 0];
@@ -1751,7 +1777,8 @@
         if (s.user && s.t / s.T > 1.12) release(p, s.t / s.T);
         else if (!s.user && s.t / s.T >= s.aiRel) release(p, s.aiRel);
       }
-      if (!live) { if (G.phase === 'check' && p.ckx !== undefined) { p.tx = p.ckx; p.tz = p.ckz; seek(p, dt, 0.7); if (b.holder === p) p.pose = 'dribble'; } else if (G.phase === 'dead' || G.phase === 'ftflight') { p.vx *= 0.9; p.vz *= 0.9; } }
+      if (p.npc) { /* a park regular: parkStep moves him */ }
+      else if (!live) { if (G.phase === 'check' && p.ckx !== undefined) { p.tx = p.ckx; p.tz = p.ckz; seek(p, dt, 0.7); if (b.holder === p) p.pose = 'dribble'; } else if (G.phase === 'dead' || G.phase === 'ftflight') { p.vx *= 0.9; p.vz *= 0.9; } }
       else if (p.inb) { /* out of bounds with the ball: inboundStep has him */ }
       else if (p.isUser && G.drill) { if ((G.drill.kind === 'dunk' || G.drill.kind === 'free') && !p.shoot && p.y <= 0 && !G.auto) userStep(p, dt); /* else the drill moves you */ }
       else if (p.isUser && !G.auto) {
@@ -1850,7 +1877,8 @@
       }
     }
     /* (a man who is outside the lines, the inbounder after his pass, steps back in: he is not put back in) */
-    for (const p of G.pl) if (!p.inb) { const cx = clamp(p.x, -24.6, 24.6), cz = clamp(p.z, G.half ? 0.5 : -46.6, 46.6);
+    const BX = G.park ? 34 : 24.6, BZ = G.park ? 60 : 46.6;
+    for (const p of G.pl) if (!p.inb) { const cx = clamp(p.x, -BX, BX), cz = clamp(p.z, G.half ? 0.5 : -BZ, BZ);
       if (p.wasInb && (cx !== p.x || cz !== p.z)) { const m = dt * 13; p.x += clamp(cx - p.x, -m, m); p.z += clamp(cz - p.z, -m, m); } else { p.wasInb = false; p.x = cx; p.z = cz; } }
       else p.wasInb = true;
     /* once the ball is over half court, the computer's players on offense stay over it: no drifting (or being
@@ -2086,6 +2114,7 @@
   }
   function finish() {
     G.phase = 'end';
+    $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; }
     cancelAnimationFrame(raf);
     if (!G.buzzed) { AU().play('horn', { len: 2 }); if (R.horn) R.horn(2.2); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1); }
     if (AU().pulse) AU().pulse(false);
@@ -2093,7 +2122,7 @@
     const box = G.played ? G.playedBy.map((x, i) => ({ d: x.d, team: x.team, st: G.played[i], user: !!(G.user && x.d === G.user.d) })) : G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
     const line = (G.qsc || []).concat([G.score.slice()]), flow = (G.flow || []).concat([[Math.round(G.q * G.qlen * 60), G.score[0] - G.score[1]]]);
     const res = { line, flow, qlen: G.qlen, drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
-      gradeLog: G.gradeLog, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner, half: G.half ? { target: G.target, ones: G.ones, n: G.pl.length / 2 } : null,
+      gradeLog: G.gradeLog, parkGo: G.parkGo || null, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner, half: G.half ? { target: G.target, ones: G.ones, n: G.pl.length / 2 } : null,
       shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
     PB.Game.active = false;
     $('#game').hidden = true;
@@ -2217,6 +2246,7 @@
   }
   const reelSnd = {};
   function wantReplay(kind) {
+    if (G.park) return;   // the park has no broadcast
     if (PB.settings && PB.settings.replays === false) return;
     if (G.t < replayCd || G.replay || tape.length < 40) return;
     replayCd = G.t + 25;
@@ -2497,7 +2527,8 @@
       /* the blacktop: half court, one rim, first to the target; no quarters, no free throws, no bench */
       if (o.half) { G.half = true; G.target = o.target || 21; G.ones = !!o.ones; G.mitt = !!o.mitt; G.by2 = o.by2 !== false; G.scLen = 20; G.shotClock = 20; G.qlen = 99; G.clock = 99 * 60; G.to = [0, 0]; }
       G.user = pl.find(p => p.isUser) || null;
-      $('#game').classList.toggle('watching', !G.user && !o.drill);   // spectating: the broadcast without the controls
+      { const rp = $('#rp'); if (rp) rp.hidden = true; $('#game').classList.remove('replaying'); }   // nothing of the last game's replay is left on screen
+      $('#game').classList.toggle('watching', !G.user && !o.drill); $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; } if (R.setStations) R.setStations([]);   // spectating: the broadcast without the controls
       G.tko = !o.drill && !o.switching && G.user ? { m: 0, on: false, until: 0, miss: 0 } : null; tkoHud();
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
@@ -2513,7 +2544,7 @@
       /* jump ball setup: everyone around the center circle */
       for (const p of pl) {
         const d = dirOf(p.team);
-        const lay = [[0, -4], [-10, -8], [10, -8], [-6, -16], [6, -16]][p.slot];
+        const lay = [[0, -4], [-10, -8], [10, -8], [-6, -16], [6, -16]][p.slot] || [0, -12];
         p.x = lay[0] * (p.slot === 0 ? 1 : 1) + (p.slot === 0 ? 0 : 0); p.z = lay[1] * d;
         if (p.slot === 4) { p.x = 0; p.z = -2 * d; }
         if (p.slot === 0) { p.x = -4 * d; p.z = -6 * d; }
@@ -2569,7 +2600,7 @@
       if (cd(kh.c1, ka.c1) < 120) ka = PB.kit ? PB.kit(awayT, 'assoc') : { c1: '#f2f2f2', c2: awayT.c1, name: awayT.name };
       if (PB.kit && cd(kh.c1, ka.c1) < 120) ka = ['statement', 'city', 'icon'].map(k => PB.kit(awayT, k)).sort((a, c) => cd(kh.c1, c.c1) - cd(kh.c1, a.c1))[0];   // white looks like the home side too (a pale home kit): whichever of their others is furthest from it
       const k0 = hi === 0 ? kh : ka, k1 = hi === 0 ? ka : kh;
-      for (const p of pl) R.addPlayer(p, p.team === 0 ? k0 : k1);
+      for (const p of pl) R.addPlayer(p, o.park && p.team === 1 ? PB.kit(PB.TEAMS[(p.slot * 7 + 3) % PB.TEAMS.length], ['icon', 'assoc', 'city'][p.slot % 3]) : p.team === 0 ? k0 : k1);
       G.kits = [k0, k1];
       /* the bench: identities that can trade places with the men on the floor */
       if (o.bench && !o.drill) {
@@ -2592,11 +2623,14 @@
         if (R.setRacks) R.setRacks(def.balls ? def.spots.map(sp => Object.assign(toCourt(0, sp[0], sp[1]), { hz: hoopZ(0) })) : null, def.balls || 0, def.money);
         G.phase = 'live'; G.poss = 0; G.clock = def.secs;
         if (o.drill === 'dunk') { G.drill.next = 0.4; const sp = dunkSpot(); G.user.x = sp.x; G.user.z = sp.z; G.user.face = Math.atan2(-sp.x, hoopZ(0) - sp.z); }
-        else if (o.drill === 'free') { const sp = toCourt(0, 0, 18); G.user.x = sp.x; G.user.z = sp.z; G.user.face = 0; give(G.user); }
+        else if (o.drill === 'free') { const sp = toCourt(0, 0, 18); G.user.x = sp.x; G.user.z = sp.z; G.user.face = 0; give(G.user);
+          if (o.park) { G.park = true; G.user.x = 0; G.user.z = -6; G.user.face = 0; R.setStations && R.setStations(PARK);
+            for (const p of pl) if (p.team === 1) { p.npc = true; p.x = rr(-28, 28); p.z = rr(-48, 48); p.face = rand() * 6.28; }
+            $('#game').classList.add('park'); } }
         else { const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0; give(G.user); }
         $('#a0').textContent = 'PTS'; $('#a1').textContent = o.drill === 'dunk' ? 'DUNK' : 'SHOTS';
         $('#grade').hidden = true;
-        setTimeout(() => toast(def.title, 'call'), 200);
+        setTimeout(() => toast(o.park ? `${(o.floor || o.teams[0]).city} Park` : def.title, 'call'), 200);
       }
       /* the second night of a back-to-back: your legs start heavier */
       if (o.tired && G.user) { G.user.energy = 0.78; setTimeout(() => feed('Second night of a back-to-back: heavy legs'), 600); }

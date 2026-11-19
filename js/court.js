@@ -1447,7 +1447,67 @@
     return out;
   }
   /* Build the arena for a game: home team's floor, both hoops, the stands. */
+  /* ---------- the park: the court under a dusk sky, a chain-link fence, trees and lights, benches, and the rings you
+     walk into (a pick-up game, the gym, the closet, the way back to your career) ---------- */
+  let stations = [];
+  function signTex(txt, sub, col) {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 160; const g = c.getContext('2d');
+    g.fillStyle = 'rgba(10,10,14,.82)'; g.beginPath(); g.roundRect ? g.roundRect(6, 6, 500, 148, 26) : g.rect(6, 6, 500, 148); g.fill();
+    g.strokeStyle = col; g.lineWidth = 6; g.stroke();
+    g.fillStyle = '#fff'; g.textAlign = 'center'; let fs = 62; g.font = `900 ${fs}px Archivo, Arial, sans-serif`; while (g.measureText(txt).width > 460 && fs > 24) { fs -= 4; g.font = `900 ${fs}px Archivo, Arial, sans-serif`; } g.fillText(txt, 256, sub ? 82 : 100);
+    if (sub) { g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '600 32px Arial, sans-serif'; g.fillText(sub, 256, 128); }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+  }
+  function parkDressing(home) {
+    /* the sky: a gradient from the last of the sun to night */
+    const sc = document.createElement('canvas'); sc.width = 4; sc.height = 256; const sg = sc.getContext('2d'), gr = sg.createLinearGradient(0, 0, 0, 256);
+    gr.addColorStop(0, '#1b2440'); gr.addColorStop(0.55, '#5a4a78'); gr.addColorStop(0.8, '#e0876a'); gr.addColorStop(1, '#f2b66d');
+    sg.fillStyle = gr; sg.fillRect(0, 0, 4, 256); const st = new T.CanvasTexture(sc); st.colorSpace = T.SRGBColorSpace; scene.background = st;
+    /* grass beyond the concrete */
+    const grass = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshLambertMaterial({ color: 0x2c4a2a })); grass.rotation.x = -Math.PI / 2; grass.position.y = -0.05; scene.add(grass);
+    /* the fence: posts and a see-through chain-link panel on all four sides */
+    const fc = document.createElement('canvas'); fc.width = fc.height = 64; const fg = fc.getContext('2d'); fg.strokeStyle = 'rgba(210,214,220,.75)'; fg.lineWidth = 2;
+    fg.beginPath(); fg.moveTo(0, 32); fg.lineTo(32, 0); fg.lineTo(64, 32); fg.lineTo(32, 64); fg.closePath(); fg.stroke();
+    const ft = new T.CanvasTexture(fc); ft.wrapS = ft.wrapT = T.RepeatWrapping;
+    const FX = 36, FZ = 62, FH = 12, fm = new T.MeshBasicMaterial({ map: ft, transparent: true, side: T.DoubleSide, depthWrite: false });
+    const panel = (w, x, z, ry) => { const t = ft.clone(); t.needsUpdate = true; t.repeat.set(w / 1.6, FH / 1.6); const m = new T.Mesh(new T.PlaneGeometry(w, FH), new T.MeshBasicMaterial({ map: t, transparent: true, side: T.DoubleSide, depthWrite: false })); m.position.set(x, FH / 2, z); m.rotation.y = ry; scene.add(m); orphans.push(t); };
+    panel(FX * 2, 0, FZ, 0); panel(FX * 2, 0, -FZ, 0); panel(FZ * 2, FX, 0, Math.PI / 2); panel(FZ * 2, -FX, 0, Math.PI / 2);
+    const pm = new T.MeshLambertMaterial({ color: 0x7c8088 });
+    for (let x = -FX; x <= FX; x += 12) for (const z of [-FZ, FZ]) { const m = new T.Mesh(new T.CylinderGeometry(0.25, 0.25, FH, 6), pm); m.position.set(x, FH / 2, z); scene.add(m); }
+    for (let z = -FZ; z <= FZ; z += 12.4) for (const x of [-FX, FX]) { const m = new T.Mesh(new T.CylinderGeometry(0.25, 0.25, FH, 6), pm); m.position.set(x, FH / 2, z); scene.add(m); }
+    /* trees outside the fence */
+    const tm = new T.MeshLambertMaterial({ color: 0x4a3426 }), lm = [0x2f5b2c, 0x3b6a33, 0x28502a].map(c => new T.MeshLambertMaterial({ color: c }));
+    for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2, rx = 48 + (i % 3) * 7, rz = 76 + (i % 4) * 6, x = Math.sin(a) * rx, z = Math.cos(a) * rz;
+      const tr = new T.Mesh(new T.CylinderGeometry(0.8, 1.1, 10, 6), tm); tr.position.set(x, 5, z); scene.add(tr);
+      const cn = new T.Mesh(new T.IcosahedronGeometry(6 + (i % 3) * 1.5, 0), lm[i % 3]); cn.position.set(x, 13 + (i % 2) * 2, z); scene.add(cn); }
+    /* light poles at the corners, lamps lit */
+    for (const [x, z] of [[-34, -60], [34, -60], [-34, 60], [34, 60], [-34, 0], [34, 0]]) {
+      const pl = new T.Mesh(new T.CylinderGeometry(0.35, 0.45, 30, 6), pm); pl.position.set(x, 15, z); scene.add(pl);
+      const lamp = new T.Mesh(new T.BoxGeometry(4, 1, 2), new T.MeshBasicMaterial({ color: 0xfff1c8 })); lamp.position.set(x - Math.sign(x) * 1.5, 30, z); scene.add(lamp); }
+    /* benches along the sidelines */
+    const bm = new T.MeshLambertMaterial({ color: 0x6b4a32 });
+    for (const z of [-30, 30]) for (const x of [-31, 31]) { const b = new T.Mesh(new T.BoxGeometry(2, 1.4, 10), bm); b.position.set(x, 1.6, z); scene.add(b); const b2 = new T.Mesh(new T.BoxGeometry(0.4, 2.4, 10), bm); b2.position.set(x + Math.sign(x) * 1, 2.6, z); scene.add(b2); }
+    /* the park's name painted over the far fence */
+    const nm = new T.Mesh(new T.PlaneGeometry(36, 7), new T.MeshBasicMaterial({ map: signTex(`${(home.city || 'THE').toUpperCase()} PARK`, 'run it back', home.c1), transparent: true }));
+    nm.position.set(0, 16, FZ + 0.5); nm.rotation.y = Math.PI; scene.add(nm);
+  }
+  /* the rings you walk into: a glowing circle on the ground, a column of light and a sign over it */
+  R.setStations = list => {
+    for (const s0 of stations) { scene.remove(s0.g); freeTree(s0.g, true); }
+    stations = [];
+    for (const st of list || []) {
+      const g = new T.Group(), col = new T.Color(st.color || '#4cffb0');
+      const ring = new T.Mesh(new T.RingGeometry(st.r - 0.35, st.r, 40), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9, side: T.DoubleSide, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; g.add(ring);
+      const disc = new T.Mesh(new T.CircleGeometry(st.r - 0.35, 40), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.12, depthWrite: false })); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.05; g.add(disc);
+      const beam = new T.Mesh(new T.CylinderGeometry(st.r, st.r, 9, 32, 1, true), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.1, side: T.DoubleSide, depthWrite: false, blending: T.AdditiveBlending })); beam.position.y = 4.5; g.add(beam);
+      const sign = new T.Mesh(new T.PlaneGeometry(6.6, 2.05), new T.MeshBasicMaterial({ map: signTex(st.label, st.sub, st.color || '#4cffb0'), transparent: true, depthWrite: false })); sign.position.y = 8.6; sign.renderOrder = 6; g.add(sign);
+      g.position.set(st.x, 0, st.z); scene.add(g); stations.push({ g, ring, beam, sign, id: st.id });
+    }
+  };
+  R.stationLit = id => { for (const s0 of stations) { const on = s0.id === id; s0.beam.material.opacity = on ? 0.28 : 0.1; s0.ring.scale.setScalar(on ? 1.08 : 1); } };
   R.build = (home) => {
+    stations = [];
     drillYaw = null;
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
@@ -1464,7 +1524,7 @@
     shadowIM = new T.InstancedMesh(sg, new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }), 32);
     shadowIM.count = 0; shadowIM.frustumCulled = false; scene.add(shadowIM);
     nets = [];
-    const apron = new T.Mesh(new T.PlaneGeometry(90, 140), new T.MeshLambertMaterial({ color: 0x1c2333 }));
+    const apron = new T.Mesh(new T.PlaneGeometry(90, 140), new T.MeshLambertMaterial({ color: home.park ? 0x55585e : 0x1c2333 }));
     apron.rotation.x = -Math.PI / 2; apron.position.y = -0.02; scene.add(apron);
     courtMat = new T.MeshPhongMaterial({ map: courtTexture(home), shininess: 38, specular: 0x2a2620 });   // a polished floor: the lights glint off it
     const court = new T.Mesh(new T.PlaneGeometry(50, 94), courtMat);
@@ -1477,6 +1537,8 @@
     lg.fillStyle = grd; lg.fillRect(0, 0, 256, 256);
     const pool = new T.Mesh(new T.PlaneGeometry(80, 130), new T.MeshBasicMaterial({ map: new T.CanvasTexture(lc), transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
     pool.rotation.x = -Math.PI / 2; pool.position.y = 0.015; scene.add(pool);
+    renderer.setClearColor(home.park ? 0x24304a : 0x0b0f17); scene.fog = home.park ? new T.Fog(0x3a3550, 90, 230) : new T.Fog(0x0b0f17, 120, 260); scene.background = null;
+    if (home.park) parkDressing(home); else {
     /* stands: tiers on all four sides */
     const crowd = crowdTexture(home);
     /* all 44 tiers of each kind in one mesh: two draws for the whole crowd instead of eighty-eight */
@@ -1557,6 +1619,7 @@
     /* scorer's table */
     const table = new T.Mesh(new T.BoxGeometry(2.5, 3, 24), new T.MeshLambertMaterial({ color: new T.Color(home.c1) }));
     table.position.set(29, 1.5, 0); scene.add(table);   // across from the broadcast camera, between the benches
+    }
     /* the ball and the rings under you and the ball handler */
     const bc = document.createElement('canvas'); bc.width = 128; bc.height = 64;
     const bg = bc.getContext('2d'); bg.fillStyle = '#d4682a'; bg.fillRect(0, 0, 128, 64);
@@ -1960,6 +2023,19 @@
       cam.lookAt(bx, Math.max(4.5, b.y * 0.6), bz);
       /* a bystander standing right in front of the lens (the back of his head filled the picture) steps out of the shot */
       for (const [p, m] of meshes) if (p !== b.holder && !p.shoot && p !== b.shooter && Math.hypot(p.x - cx, p.z - cz) < 12 && Math.hypot(p.x - bx, p.z - bz) > 6) { m.root.visible = false; hidNear.push(m); }
+      return;
+    }
+    if (G.park && G.user) {
+      const u = G.user, sp = Math.hypot(u.vx, u.vz);
+      if (yaw === undefined || yaw === null || snap) { yaw = Math.atan2(0 - u.x, 41.75 - u.z); }
+      if (sp > 4) { const want = Math.atan2(u.vx, u.vz); let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; if (Math.abs(dy) < 2.6) yaw += dy * Math.min(1, dt * 1.1); }
+      anchor.lerp(new T.Vector3(u.x, 0, u.z), Math.min(1, dt * 6)); if (!dt || snap) { anchor.set(u.x, 0, u.z); snap = false; }
+      const fx = Math.sin(yaw), fz = Math.cos(yaw), back = 24 * zoom, up = 13 * zoom;
+      /* the camera stays inside the fence: against it, it rises a little instead of going through */
+      const cx = anchor.x - fx * back, cz = anchor.z - fz * back, over = Math.max(0, Math.abs(cx) - 32) + Math.max(0, Math.abs(cz) - 58);
+      cam.position.set(PB.clamp(cx, -32, 32), up + over * 0.45, PB.clamp(cz, -58, 58)); cam.lookAt(anchor.x + fx * 10, 4, anchor.z + fz * 10);
+      for (const s0 of stations) s0.sign.quaternion.copy(cam.quaternion);   // the signs face you
+      camPos.copy(cam.position); camLook.set(anchor.x + fx * 10, 4, anchor.z + fz * 10);
       return;
     }
     if (camMode === 'lock') {

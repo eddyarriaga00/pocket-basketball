@@ -101,9 +101,8 @@
     const live = C && C.me;
     show(`<div class="title">
       <div class="logo"><div class="ball"></div><h1>Pocket<br>Basketball</h1><p>Your career, from draft night to the Hall of Fame.</p></div>
-      ${live ? `<button class="mode pri" id="cont">${MIC.career}<span><b>Continue career</b><small>${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></span><em>›</em></button>` : ''}
-      <button class="mode ${live ? '' : 'pri'}" id="newc">${live ? MIC.plus : MIC.career}<span><b>New career</b><small>Create a player and take him from draft night to the Hall of Fame.</small></span><em>›</em></button>
-      ${list.length > 1 || (list.length && !live) ? `<button class="mode" id="careers">${MIC.list}<span><b>Careers</b><small>${list.length} on this device</small></span><em>›</em></button>` : ''}
+      ${live ? `<button class="mode pri" id="cont">${MIC.career}<span><b>My Career</b><small>Continue as ${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></span><em>›</em></button>` : ''}
+      ${list.length ? `<button class="mode ${live ? '' : 'pri'}" id="careers">${MIC.list}<span><b>My Player</b><small>${list.length} player${list.length > 1 ? 's' : ''} on this device · switch, or build another</small></span><em>›</em></button>` : `<button class="mode pri" id="newc">${MIC.career}<span><b>My Career</b><small>Build your My Player and take him from draft night to the Hall of Fame.</small></span><em>›</em></button>`}
       <div class="modes">
         <button class="tile" id="qg">${MIC.vs}<b>Quick game</b><small>Two teams, one game</small></button>
         <button class="tile" id="seas">${MIC.cup}<b>Season</b><small>Run a whole team</small></button>
@@ -120,7 +119,7 @@
     whatsNew();
     if (live) $('#cont').onclick = hub;
     title3d(live ? C.me : null, live && C.team ? PB.team(C.team) : null);
-    $('#newc').onclick = () => { if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one under Careers first.'); return; } setCur(''); C = null; create(); };
+    if ($('#newc')) $('#newc').onclick = () => { setCur(''); C = null; create(); };
     if ($('#careers')) $('#careers').onclick = careers;
     $('#qg').onclick = quick;
     $('#prac').onclick = practice;
@@ -150,7 +149,7 @@
     };
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-18f';
+  const NEW_V = '2026-11-18g';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V) return;
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
@@ -161,6 +160,8 @@
       <li>On defense, an arrow shows where your man is going: green while you are in front of him</li>
       <li>The full awards night: MVP, Defensive Player, Sixth Man, Most Improved, Clutch, Coach, All-League, All-Defensive and All-Rookie teams</li>
       <li>Real rotation minutes by your role, and your numbers kept exactly as you put them up</li>
+      <li>My Player: build several players, each with his own career, in a step-by-step builder with weight and wingspan</li>
+      <li>The Park: walk your player around, shoot around, pick-up games, Pro-Am, the gym and the closet</li>
       <li>Blacktop: 1v1, 2v2 and 3v3 on a half court, to 11, 15 or 21</li>
       <li>Rank up for new gear, quests, a daily reward, the Playoff Picker, Around the World, and Watch mode</li>
       <li>Classics: replay the league's great nights, for up to three stars each</li>
@@ -189,15 +190,32 @@
     scr().classList.add('over3d'); el.classList.add('t3d'); PB.R.showcase(me, team);
   }
   /* the careers on this device: play one, back it up to a file, bring one in from a file, delete one */
-  function careers() {
+  /* ---------- My Player: every player you have built, each with his own career, the way the console game keeps them ----------
+     A card for each (in his uniform, his overall, his team and his season), tap to play him; a slot to build another. */
+  const MAXP = 10;
+  const shots = {};
+  function playerShot(id, d) {
+    const key = id + '|' + JSON.stringify(d.me.look || {}) + '|' + (d.team || '');
+    if (shots[key] !== undefined) return shots[key];
+    let url = null; try { if (!PB.noGL && PB.R.modelReady && PB.R.modelReady()) url = PB.R.portrait(d.me, d.team ? PB.team(d.team) : { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' }, 260, { body: true }); } catch (e) { url = null; }
+    return (shots[key] = url);
+  }
+  function myPlayers() {
     const list = slots().sort((a, b) => (b.t || 0) - (a.t || 0)), cur = curId();
-    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Careers</h2>
-      ${list.map(x => `<div class="card slot ${x.id === cur ? 'cur' : ''}"><div><b>${esc(x.name || 'Unnamed')}</b><span>${x.pos || ''} · ${x.ovr || ''} OVR · ${x.team ? esc(PB.team(x.team).name) : 'pre-draft'} · season ${x.year || 1}</span></div>
-        <div class="row3"><button class="ghost sm" data-play="${x.id}">Play</button><button class="ghost sm" data-exp="${x.id}">Back up</button><button class="ghost sm" data-del="${x.id}">Delete</button></div></div>`).join('') || '<p class="mute">No careers yet.</p>'}
+    const card = x => { const d = load('pbb.career.' + x.id); if (!d || !d.me) return '';
+      const t = d.team ? PB.team(d.team) : null, st = d.team && d.standings && d.standings[d.team], im = playerShot(x.id, d), m = d.me;
+      return `<div class="pcard ${x.id === cur ? 'cur' : ''}" style="--tc:${t ? t.c1 : '#3a3a40'}"><button class="pplay" data-play="${x.id}">${im ? `<img alt="" src="${im}">` : '<div class="noimg"></div>'}
+        <b>${esc(PB.full(m))}</b><em>${m.ovr}</em><span>${m.pos} · ${esc(m.arch || '')} · ${PB.fmtH(m.ht)}${m.wt ? ` · ${m.wt} lb` : ''}</span>
+        <small>${t ? esc(t.name) : 'Pre-draft'} · season ${d.year || 1}${st ? ` · ${st.w}-${st.l}` : ''}${d.retired ? ' · retired' : ''}</small></button>
+        <div class="pman"><button class="ghost sm" data-exp="${x.id}">Back up</button><button class="ghost sm" data-del="${x.id}">Delete</button></div></div>`; };
+    show(`<div class="page players"><button class="back" id="bk">‹ Main menu</button><h2>My Player</h2>
+      <p class="mute">Every player you build has his own career. Pick one, or build another (up to ${MAXP}).</p>
+      <div class="pgrid">${list.map(card).join('')}${list.length < MAXP ? `<button class="pcard pnew" id="newc"><div class="plus">+</div><b>New My Player</b><span>Build him from scratch</span></button>` : ''}</div>
       <label class="ghost sm imp">Bring in a backup file<input type="file" id="imp" accept=".json,application/json" hidden></label>
-      <p class="fine">A backup is a small file you can keep, or open on another phone or computer to carry the career over.</p></div>`);
+      <p class="fine">A backup is a small file you can keep, or open on another phone or computer to carry the player over.</p></div>`);
     $('#bk').onclick = title;
-    scr().querySelectorAll('[data-play]').forEach(b => b.onclick = () => { setCur(b.dataset.play); C = loadCur(); hub(); });
+    if ($('#newc')) $('#newc').onclick = () => { setCur(''); C = null; create(); };
+    scr().querySelectorAll('[data-play]').forEach(b => b.onclick = () => { setCur(b.dataset.play); C = loadCur(); tab = 'home'; hub(); });
     scr().querySelectorAll('[data-exp]').forEach(b => b.onclick = () => {
       const data = load('pbb.career.' + b.dataset.exp); if (!data) return;
       const blob = new Blob([JSON.stringify({ pocketbasketball: 1, career: data })], { type: 'application/json' });
@@ -206,11 +224,11 @@
       document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     });
     scr().querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
-      if (!confirm('Delete this career?') || !confirm('Really delete it? This cannot be undone.')) return;
+      if (!confirm('Delete this player and his career?') || !confirm('Really delete him? This cannot be undone.')) return;
       const id = b.dataset.del; store(IDX, slots().filter(x => x.id !== id));
       try { localStorage.removeItem('pbb.career.' + id); } catch (e) { /* fine */ }
-      if (curId() === id) setCur('');
-      careers();
+      if (curId() === id) { setCur(''); C = null; }
+      myPlayers();
     });
     $('#imp').onchange = e => {
       const f = e.target.files[0]; if (!f) return;
@@ -218,11 +236,12 @@
         let d; try { d = JSON.parse(txt); } catch (err) { alert('That file is not a PocketBasketball backup.'); return; }
         const c = d && d.pocketbasketball && d.career;
         if (!c || !c.me || !c.rosters) { alert('That file is not a PocketBasketball backup.'); return; }
-        if (slots().length >= 6) { alert('Six careers is the most this device keeps. Delete one first.'); return; }
-        setCur(''); C = c; save(); careers();
+        if (slots().length >= MAXP) { alert(`${MAXP} players is the most this device keeps. Delete one first.`); return; }
+        setCur(''); C = c; save(); myPlayers();
       });
     };
   }
+  const careers = myPlayers;
   /* the daily challenge: today's late-game situation, the same for everyone on this date; a streak on the device */
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
   const dailyDone = () => { const D = load('pbb.daily') || {}; return D.last === today() && D.won; };
@@ -271,24 +290,26 @@
     };
   }
   /* practice: the contests on your own, with your career player if you have one */
-  function practice() {
-    const cur = loadCur();
+  function practice(back) {
+    const cur = loadCur(), done = typeof back === 'function' ? back : title;
     const me = cur && cur.me ? cur.me : { id: 'me', first: 'Practice', last: 'Shooter', pos: 'SG', ht: 77, skin: 2, num: 30, r: PB.makeRatings('SG', 80), badges: {} };
     const t = cur && cur.team ? PB.team(cur.team) : PB.team('SF');
-    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Practice</h2>
+    show(`<div class="page"><button class="back" id="bk">‹ ${typeof back === 'function' ? 'The park' : 'Back'}</button><h2>${typeof back === 'function' ? 'The gym' : 'Practice'}</h2>${typeof back === 'function' && C && C.me ? '<p class="mute">Each drill you finish is a workout: one skill point a day for each.</p>' : ''}
       <p class="mute">${cur && cur.me ? `As ${esc(PB.full(me))}, with your ratings and badges.` : 'As a practice shooter (80 overall).'}</p>
       <button class="big" id="p3">3-Point Contest<small>five racks, money balls, 60 seconds</small></button>
       <button class="ghost" id="pc">Spot-up drill<small>the combine's fifteen shots in 45 seconds</small></button>
       <button class="ghost" id="pw">Around the World<small>make one from each of ten spots before 60 seconds run out</small></button>
       <button class="ghost" id="pd">Dunk Contest<small>three dunks, five judges; Style picks the dunk</small></button>
       <button class="ghost" id="pf">Shoot-around<small>shoot from anywhere, no clock; pause to finish</small></button></div>`);
-    $('#bk').onclick = title;
+    $('#bk').onclick = done;
     const go = kind => { scr().hidden = true; PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: me.id, drill: kind, dunks: 3, qlen: 1, level: S.level, floor: t,
       onEnd: r => { const d = r.drill || { score: 0, made: 0, att: 0 };
         const best = load('pbb.best') || {}; const k = kind; const nb = !best[k] || d.score > best[k]; if (nb) { best[k] = d.score; store('pbb.best', best); }
+        /* in your career, the gym is a workout: once a day for each drill, a finished one is worth a skill point */
+        let wk = ''; if (typeof back === 'function' && C && C.me && d.att > 0) { const G2 = C.gym || (C.gym = {}); if (G2[kind] !== today()) { G2[kind] = today(); C.me.sp += 1; save(); wk = '<p class="mute">Workout done: +1 skill point (one a day for each drill).</p>'; } }
         show(`<div class="page post"><p class="kick">${kind === 'contest' ? '3-Point Contest' : kind === 'dunk' ? 'Dunk Contest' : kind === 'free' ? 'Shoot-around' : kind === 'world' ? 'Around the World' : 'Spot-up drill'}</p><div class="gradebig"><b>${d.score}</b><span>${kind === 'dunk' ? (d.scores || []).join(' · ') : `${d.made} of ${d.att} made`}</span></div>
-          <p class="mute">${nb ? 'A new best on this device.' : `Your best: ${best[k]}`}</p><button class="big" id="again">Again</button><button class="ghost" id="done">Done</button></div>`);
-        $('#again').onclick = () => go(kind); $('#done').onclick = title; } }); };
+          <p class="mute">${nb ? 'A new best on this device.' : `Your best: ${best[k]}`}</p>${wk}<button class="big" id="again">Again</button><button class="ghost" id="done">Done</button></div>`);
+        $('#again').onclick = () => go(kind); $('#done').onclick = done; } }); };
     $('#p3').onclick = () => go('contest');
     $('#pc').onclick = () => go('combine');
     $('#pw').onclick = () => go('world');
@@ -497,6 +518,55 @@
     const sp = L.day === 7 ? 4 : L.day >= 4 ? 2 : 1, fans = 250 * L.day; C.me.sp += sp; C.fans = Math.round(C.fans + fans);
     return { day: L.day, sp, fans };
   }
+  /* ---------- the park: your My Player, on foot, in his city's park ----------
+     Walk it, shoot around at either rim, and walk into a ring: a pick-up game (1 on 1, 2 on 2, 3 on 3, to 11 or 21),
+     Pro-Am (5 on 5, full court, with park players), the gym (drills and contests), the closet (your look), or back to
+     your season. Park games are exhibitions: they build your followers and your park record, not your season line. */
+  const parkTeam = () => C && C.team ? PB.team(C.team) : PB.team('LAK');
+  const parkFloor = () => Object.assign({}, parkTeam(), { street: true, park: true, court: 0 });
+  const parkGuy = (pos, ovr) => { const p = PB.makePlayer(pos, PB.clamp(Math.round(ovr + PB.gauss() * 3), 55, 92), PB.ri(19, 31)); return p; };
+  function park() {
+    if (!C || !C.me) { title(); return; }
+    const o = C.me.ovr, npcs = ['PG', 'SG', 'SF', 'PF', 'C'].map(pos => parkGuy(pos, o));
+    scr().hidden = true;
+    PB.Game.start({ teams: [parkTeam(), PB.TEAMS[(PB.TEAMS.indexOf(parkTeam()) + 7) % PB.TEAMS.length]], rosters: [[C.me], npcs], userId: C.me.id, drill: 'free', park: true, qlen: 1, level: S.level,
+      floor: parkFloor(), onEnd: r => parkGo(r.parkGo) });
+  }
+  function parkGo(id) {
+    if (id === 'pick1' || id === 'pick2' || id === 'pick3') { pickup(+id.slice(-1)); return; }
+    if (id === 'court') { proAm(); return; }
+    if (id === 'gym') { practice(park); return; }
+    if (id === 'closet') { tab = 'player'; hub(); setTimeout(() => { const e = scr().querySelector('.lookh') || scr().querySelector('[data-look]'); if (e) e.scrollIntoView({ block: 'start' }); }, 60); return; }
+    tab = 'home'; hub();
+  }
+  function parkResult(r, again, label) {
+    const u = r.user || {}, win = r.score[0] > r.score[1], P = C.park || (C.park = { w: 0, l: 0 });
+    if (win) P.w++; else P.l++;
+    const fans = win ? 450 : 120; C.fans = Math.round(C.fans + fans); if (win && P.w % 3 === 0) C.me.sp += 1;
+    rankUp(); save();
+    show(`<div class="page post"><p class="kick">${esc(label)} · the park</p>
+      <div class="final"><div>${badge(r.teams[0])}<b>${r.score[0]}</b></div><em>${win ? 'WIN' : 'LOSS'}</em><div><b>${r.score[1]}</b>${badge(r.teams[1])}</div></div>
+      <p class="mute">Park record ${P.w}-${P.l} · +${fans} followers${win && P.w % 3 === 0 ? ' · +1 skill point (every third win)' : ''}</p>
+      <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div></div>
+      ${potg(r)}${boxScore(r)}
+      <button class="big" id="again">Run it back</button><button class="ghost" id="back">Back to the park</button></div>`);
+    $('#again').onclick = again; $('#back').onclick = park;
+  }
+  function pickup(n) {
+    const o = C.me.ovr, mine = { 1: [], 2: [C.me.pos === 'C' || C.me.pos === 'PF' ? 'PG' : 'C'], 3: [['SF', 'C'], ['PG', 'C'], ['PG', 'C'], ['PG', 'SF'], ['PG', 'SF']][PB.POS.indexOf(C.me.pos)] }[n];
+    const ra = [C.me].concat(mine.map(pos => parkGuy(pos, o - 2))), rb = ({ 1: [C.me.pos], 2: ['PG', 'C'], 3: ['PG', 'SF', 'C'] })[n].map(pos => parkGuy(pos, o));
+    const opp = PB.TEAMS[Math.floor(PB.rand() * PB.TEAMS.length)];
+    scr().hidden = true;
+    PB.Game.start({ teams: [parkTeam(), opp === parkTeam() ? PB.TEAMS[0] : opp], rosters: [ra, rb], slots: [[0], [0, 4], [0, 1, 4]][n - 1], userId: C.me.id, half: true, target: n === 1 ? 11 : 21, ones: false, mitt: false,
+      level: S.level, floor: parkFloor(), strength: [78, 78], onEnd: r => parkResult(r, () => pickup(n), `${n} on ${n}`) });
+  }
+  function proAm() {
+    const o = C.me.ovr, ra = PB.POS.map(pos => pos === C.me.pos ? C.me : parkGuy(pos, o - 2)), rb = PB.POS.map(pos => parkGuy(pos, o));
+    const opp = PB.TEAMS[Math.floor(PB.rand() * PB.TEAMS.length)];
+    scr().hidden = true;
+    PB.Game.start({ teams: [parkTeam(), opp === parkTeam() ? PB.TEAMS[0] : opp], rosters: [ra, rb], userId: C.me.id, qlen: S.qlen, level: S.level, floor: parkFloor(),
+      strength: [PB.teamOvr(ra), PB.teamOvr(rb)], onEnd: r => parkResult(r, proAm, 'Pro-Am') });
+  }
   function blacktop(again) {
     const B = Object.assign({ n: 3, target: 21, ones: false, mitt: false, a: 'LAK', b: 'BOS', mine: true }, load('pbb.blacktop') || {});
     const cur = loadCur(), me = cur && cur.me && cur.team ? cur.me : null;
@@ -578,42 +648,63 @@
   }
 
   /* ---------- new career ---------- */
+  /* ---------- the My Player builder, in the console game's steps: who you are, your body, your build, your look ----------
+     Weight and wingspan trade like height does: heavier is stronger inside and slower; a long wingspan blocks, steals
+     and rebounds better and shoots it a little worse. */
+  const WEIGHT = { PG: [165, 215], SG: [175, 225], SF: [195, 245], PF: [215, 265], C: [230, 290] };
+  const STEPS = ['Profile', 'Body', 'Build', 'Look'];
   function create() {
-    const st = { pos: 'SG', arch: 'Sharpshooter', ht: 77, skin: 2, path: 'draft', look: { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null } };
+    const st = { pos: 'SG', arch: 'Sharpshooter', ht: 77, skin: 2, path: 'draft', step: 0, look: { hair: 'short', hairColor: '#17110d', band: null, sleeve: null, shoe: null } };
     const draw = () => {
       const archs = Object.keys(PB.ARCH).filter(a => PB.ARCH[a].pos.includes(st.pos));
       if (!archs.includes(st.arch)) st.arch = archs[0];
       const hr = PB.HEIGHT[st.pos]; st.ht = PB.clamp(st.ht, hr[0], hr[1]);
+      const wr = WEIGHT[st.pos]; if (st.wt === undefined || st.wt < wr[0] || st.wt > wr[1]) st.wt = Math.round((wr[0] + wr[1]) / 2 / 5) * 5;
+      if (st.ws === undefined) st.ws = 3;
       const A = PB.ARCH[st.arch];
       const r = startRatings(st);
       const bars = PB.ATTRS.map(([k, n]) => `<div class="bar"><span>${n}</span><i><u style="width:${r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${r[k]}</b></div>`).join('');
       /* you, as you build him: in a plain practice jersey */
       const pv = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait({ id: 'me', first: st.first || 'You', last: st.last || '', pos: st.pos, ht: st.ht, skin: st.skin, num: st.num ?? 1, r: {}, look: st.look },
         { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' }, 400, { body: true }) : null;
-      show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Create your player</h2>
-        ${pv ? `<div class="createpv"><img alt="" src="${pv}"><p>${PB.fmtH(st.ht)} · ${st.pos} · ${esc(st.arch)}</p></div>` : ''}
-        <div class="field"><label>Name</label><div class="row2"><input id="fn" maxlength="14" placeholder="First" value="${esc(st.first || '')}"><input id="ln" maxlength="16" placeholder="Last" value="${esc(st.last || '')}"></div></div>
+      const S0 = st.step, last = S0 === STEPS.length - 1;
+      const body = [
+        /* 1. who you are */
+        `<div class="field"><label>Name</label><div class="row2"><input id="fn" maxlength="14" placeholder="First" value="${esc(st.first || '')}"><input id="ln" maxlength="16" placeholder="Last" value="${esc(st.last || '')}"></div></div>
         <div class="field"><label>Hometown <small>optional</small></label><input id="ht" maxlength="26" placeholder="Houston, TX" value="${esc(st.from || '')}"></div>
-        <div class="field"><label>Your story</label><div class="arch paths">${PATHS.map(([k, n, d]) => `<button class="${k === st.path ? 'on' : ''}" data-path="${k}"><b>${n}</b><span>${d}</span></button>`).join('')}</div></div>
-        <div class="field"><label>Position</label><div class="seg" id="pos">${PB.POS.map(p => `<button class="${p === st.pos ? 'on' : ''}" data-v="${p}">${p}</button>`).join('')}</div></div>
-        <div class="field"><label>Build</label><div class="arch">${archs.map(a => `<button class="${a === st.arch ? 'on' : ''}" data-v="${a}"><b>${a}</b><span>${PB.ARCH[a].tag}</span>${[['Shoot', ['three', 'mid']], ['Finish', ['close', 'dunk']], ['Handle', ['handle', 'pass']], ['Defend', ['perD', 'inD', 'steal', 'block']]].map(([n, ks]) => `<u><em>${n}</em><i><s style="width:${Math.round(ks.reduce((x, k) => x + PB.ARCH[a].cap[k], 0) / ks.length)}%"></s></i></u>`).join('')}</button>`).join('')}</div></div>
-        <div class="field"><label>Height · ${PB.fmtH(st.ht)}</label><input type="range" id="hgt" min="${hr[0]}" max="${hr[1]}" value="${st.ht}"></div>
-        <div class="field"><label>Skin tone</label><div class="skins">${PB.SKIN.map((c, i) => `<button class="${i === st.skin ? 'on' : ''}" data-v="${i}" style="background:${c}"></button>`).join('')}</div></div>
-        ${['face', 'hair', 'hairColor', 'beard'].map(k => `<div class="field"><label>${{ face: 'Face', hair: 'Hair', hairColor: 'Hair color', beard: 'Facial hair' }[k]}</label><div class="seg" data-cl="${k}">${LOOK[k].map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(st.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`).join('')}
         <div class="field"><label>Jersey number</label><input id="num" type="number" min="0" max="99" value="${st.num ?? 1}"></div>
-        <div class="card"><h3>Starting ratings <small>overall ${PB.ovr(r, st.pos)} · the tick is how far each can grow</small></h3>${bars}</div>
-        <button class="big" id="go">Enter the draft</button></div>`);
-      const keep = () => { st.first = $('#fn').value.trim(); st.last = $('#ln').value.trim(); st.from = $('#ht').value.trim(); st.num = PB.clamp(+$('#num').value || 0, 0, 99); };
-      $('#bk').onclick = title;
-      scr().querySelectorAll('#pos button').forEach(b => b.onclick = () => { keep(); st.pos = b.dataset.v; st.ht = Math.round((PB.HEIGHT[st.pos][0] + PB.HEIGHT[st.pos][1]) / 2); draw(); });
-      scr().querySelectorAll('.arch button[data-v]').forEach(b => b.onclick = () => { keep(); st.arch = b.dataset.v; draw(); });
-      scr().querySelectorAll('[data-path]').forEach(b => b.onclick = () => { keep(); const y = scr().scrollTop, wy = window.scrollY; st.path = b.dataset.path; draw(); scr().scrollTop = y; window.scrollTo(0, wy); });
-      scr().querySelectorAll('.skins button').forEach(b => b.onclick = () => { keep(); st.skin = +b.dataset.v; draw(); });
-      scr().querySelectorAll('[data-cl] button').forEach(b => b.onclick = () => { keep(); const y = scr().scrollTop, wy = window.scrollY; st.look[b.parentElement.dataset.cl] = b.dataset.v || null; draw(); scr().scrollTop = y; window.scrollTo(0, wy); });
-      /* the slider redraws the preview when you let go (dragging only moves the label) */
-      $('#hgt').oninput = e => { st.ht = +e.target.value; const l = $('#hgt').previousElementSibling; if (l) l.textContent = `Height · ${PB.fmtH(st.ht)}`; };
-      $('#hgt').onchange = () => { keep(); draw(); };
-      $('#go').onclick = () => { keep(); if (!st.first || !st.last) { alert('Give your player a first and last name.'); return; } begin(st); };
+        <div class="field"><label>Position</label><div class="seg" id="pos">${PB.POS.map(p => `<button class="${p === st.pos ? 'on' : ''}" data-v="${p}">${p}</button>`).join('')}</div></div>
+        <div class="field"><label>Your story</label><div class="arch paths">${PATHS.map(([k, n, d]) => `<button class="${k === st.path ? 'on' : ''}" data-path="${k}"><b>${n}</b><span>${d}</span></button>`).join('')}</div></div>`,
+        /* 2. the body */
+        `<div class="field"><label>Height · ${PB.fmtH(st.ht)}</label><input type="range" id="hgt" min="${hr[0]}" max="${hr[1]}" value="${st.ht}"><p class="fine">Taller: better at the rim, on the glass and blocking. Shorter: quicker, a tighter handle.</p></div>
+        <div class="field"><label>Weight · ${st.wt} lb</label><input type="range" id="wgt" min="${wr[0]}" max="${wr[1]}" step="5" value="${st.wt}"><p class="fine">Heavier: stronger inside, a better finisher through contact. Lighter: faster, higher off the floor.</p></div>
+        <div class="field"><label>Wingspan · ${PB.fmtH(st.ht + st.ws)} (${st.ws >= 0 ? '+' : ''}${st.ws}")</label><input type="range" id="wsp" min="-2" max="8" value="${st.ws}"><p class="fine">Longer arms: blocks, steals and boards. Shorter: a cleaner jumper and handle.</p></div>
+        <div class="field"><label>Frame</label><div class="seg" data-cl="build">${LOOK.build.map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(st.look.build ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`,
+        /* 3. the build */
+        `<div class="field"><label>Build</label><div class="arch">${archs.map(a => `<button class="${a === st.arch ? 'on' : ''}" data-v="${a}"><b>${a}</b><span>${PB.ARCH[a].tag}</span>${[['Shoot', ['three', 'mid']], ['Finish', ['close', 'dunk']], ['Handle', ['handle', 'pass']], ['Defend', ['perD', 'inD', 'steal', 'block']]].map(([n, ks]) => `<u><em>${n}</em><i><s style="width:${Math.round(ks.reduce((x, k) => x + PB.ARCH[a].cap[k], 0) / ks.length)}%"></s></i></u>`).join('')}</button>`).join('')}</div></div>
+        <div class="card"><h3>Starting ratings <small>overall ${PB.ovr(r, st.pos)} · the tick is how far each can grow</small></h3>${bars}</div>`,
+        /* 4. the look */
+        `<div class="field"><label>Skin tone</label><div class="skins">${PB.SKIN.map((c, i) => `<button class="${i === st.skin ? 'on' : ''}" data-v="${i}" style="background:${c}"></button>`).join('')}</div></div>
+        ${['face', 'hair', 'hairColor', 'beard'].map(k => `<div class="field"><label>${{ face: 'Face', hair: 'Hair', hairColor: 'Hair color', beard: 'Facial hair' }[k]}</label><div class="seg" data-cl="${k}">${LOOK[k].filter(o => !o[2]).map(([v, n]) => `<button data-v="${v === null ? '' : v}" class="${(st.look[k] ?? '') === (v === null ? '' : v) ? 'on' : ''}">${n}</button>`).join('')}</div></div>`).join('')}
+        <p class="fine">Gear, tattoos and the rest are in the Look card once you are in the league.</p>`][S0];
+      show(`<div class="page builder"><button class="back" id="bk">‹ ${S0 ? STEPS[S0 - 1] : 'Back'}</button><h2>Create your My Player</h2>
+        <div class="steps">${STEPS.map((n, i) => `<button data-step="${i}" class="${i === S0 ? 'on' : i < S0 ? 'done' : ''}"><i>${i + 1}</i>${n}</button>`).join('')}</div>
+        ${pv ? `<div class="createpv"><img alt="" src="${pv}"><p>${esc(st.first || 'Your')} ${esc(st.last || 'player')} · ${PB.fmtH(st.ht)} · ${st.wt} lb · ${st.pos} · ${esc(st.arch)} · ${PB.ovr(r, st.pos)} OVR</p></div>` : ''}
+        ${body}
+        <button class="big" id="go">${last ? (st.path === 'undrafted' ? 'Start your career' : 'Enter the draft') : `Next: ${STEPS[S0 + 1]}`}</button></div>`);
+      const keep = () => { if ($('#fn')) { st.first = $('#fn').value.trim(); st.last = $('#ln').value.trim(); st.from = $('#ht').value.trim(); st.num = PB.clamp(+$('#num').value || 0, 0, 99); } };
+      const stay = f => { keep(); const y = scr().scrollTop, wy = window.scrollY; f(); draw(); scr().scrollTop = y; window.scrollTo(0, wy); };
+      $('#bk').onclick = () => { keep(); if (st.step) { st.step--; draw(); } else myPlayers(); };
+      scr().querySelectorAll('[data-step]').forEach(b => b.onclick = () => { keep(); const to = +b.dataset.step; if (to > 0 && (!st.first || !st.last)) { alert('Give your player a first and last name.'); return; } st.step = to; draw(); scr().scrollTop = 0; });
+      scr().querySelectorAll('#pos button').forEach(b => b.onclick = () => stay(() => { st.pos = b.dataset.v; st.ht = Math.round((PB.HEIGHT[st.pos][0] + PB.HEIGHT[st.pos][1]) / 2); st.wt = undefined; }));
+      scr().querySelectorAll('.arch button[data-v]').forEach(b => b.onclick = () => stay(() => { st.arch = b.dataset.v; }));
+      scr().querySelectorAll('[data-path]').forEach(b => b.onclick = () => stay(() => { st.path = b.dataset.path; }));
+      scr().querySelectorAll('.skins button').forEach(b => b.onclick = () => stay(() => { st.skin = +b.dataset.v; }));
+      scr().querySelectorAll('[data-cl] button').forEach(b => b.onclick = () => stay(() => { st.look[b.parentElement.dataset.cl] = b.dataset.v || null; }));
+      /* the sliders redraw the preview when you let go (dragging only moves the label) */
+      const slide = (id, k, lbl) => { const e = $('#' + id); if (!e) return; e.oninput = () => { st[k] = +e.value; const l = e.previousElementSibling; if (l) l.textContent = lbl(); }; e.onchange = () => stay(() => {}); };
+      slide('hgt', 'ht', () => `Height · ${PB.fmtH(st.ht)}`); slide('wgt', 'wt', () => `Weight · ${st.wt} lb`); slide('wsp', 'ws', () => `Wingspan · ${PB.fmtH(st.ht + st.ws)} (${st.ws >= 0 ? '+' : ''}${st.ws}")`);
+      $('#go').onclick = () => { keep(); if (!st.first || !st.last) { alert('Give your player a first and last name.'); return; } if (!last) { st.step++; draw(); scr().scrollTop = 0; return; } begin(st); };
     };
     draw();
   }
@@ -626,6 +717,9 @@
       let v = A.base[k];
       if (['reb', 'block', 'inD', 'dunk', 'close'].includes(k)) v += Math.round(t * 4);
       if (['speed', 'handle', 'steal', 'perD'].includes(k)) v -= Math.round(t * 4);
+      const wr = WEIGHT[st.pos], w = st.wt === undefined ? 0 : (st.wt - (wr[0] + wr[1]) / 2) / ((wr[1] - wr[0]) / 2 || 1), ws = st.ws === undefined ? 0 : (st.ws - 3) / 5;
+      if (['inD', 'close', 'reb'].includes(k)) v += Math.round(w * 3); if (['speed', 'vert'].includes(k)) v -= Math.round(w * 3);
+      if (['block', 'steal', 'reb', 'inD'].includes(k)) v += Math.round(ws * 3); if (['three', 'handle'].includes(k)) v -= Math.round(ws * 2);
       r[k] = PB.clamp(v, 25, A.cap[k]);
     }
     /* every build and position starts near 60 overall: shifted evenly, so the build's strengths stay its strengths */
@@ -642,7 +736,7 @@
     const rosters = {};
     { const taken = new Set(); for (const t of PB.TEAMS) { strengths[t.id] = Math.round(PB.rr(70, 82)); rosters[t.id] = PB.makeRoster(strengths[t.id], taken); } }
     const r = startRatings(st);
-    const me = { id: 'me', first: st.first, last: st.last, from: st.from || '', pos: st.pos, arch: st.arch, ht: st.ht, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {}, look: Object.assign({}, st.look) };
+    const me = { id: 'me', first: st.first, last: st.last, from: st.from || '', pos: st.pos, arch: st.arch, ht: st.ht, wt: st.wt, ws: st.ws, skin: st.skin, num: st.num, age: 19, r, sp: 0, me: true, badges: {}, look: Object.assign({}, st.look) };
     me.ovr = PB.ovr(r, st.pos);
     /* the draft order: lottery teams (the weakest) pick first */
     const order = PB.TEAMS.slice().sort((a, b) => strengths[a.id] - strengths[b.id] + PB.gauss() * 3).map(t => t.id);
@@ -1156,6 +1250,7 @@
           ${C.contract ? `<div class="wide"><span>Contract</span><b>${C.contract.years} yr${C.contract.years === 1 ? '' : 's'} · ${M(C.contract.salary)}</b></div>` : ''}</div>
         ${C.loginShow ? `<div class="card login"><b>Daily reward · day ${C.loginShow.day} of 7</b><span>+${C.loginShow.sp} skill point${C.loginShow.sp > 1 ? 's' : ''}, +${C.loginShow.fans} followers. Come back tomorrow for day ${C.loginShow.day % 7 + 1}${C.loginShow.day === 6 ? ' (the big one)' : ''}.</span></div>` : ''}
         ${C.rankNew ? `<div class="card login rk"><b>Rank up: ${RANKS[C.rankNew][0]}</b><span>${RANK_GIFT[C.rankNew]} unlocked in your Look card (Player tab).</span></div>` : ''}
+        <button class="mode park" id="parkbtn">${MIC.street}<span><b>The Park</b><small>Walk it, shoot around, pick-up games, Pro-Am, the gym and the closet · park record ${(C.park || { w: 0 }).w}-${(C.park || { l: 0 }).l}</small></span><em>›</em></button>
         ${questsCard()}
         <div class="card rival"><h3>Rival <small>${esc(PB.team(C.rival.team).name)}</small></h3>
           <div class="rv"><div><b>${esc(PB.full(me))}</b><span>${avg('pts')} / ${avg('reb')} / ${avg('ast')}</span></div><em>${C.rival.h2h[0]}–${C.rival.h2h[1]}</em>
@@ -1218,6 +1313,7 @@
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
     scr().querySelectorAll('.ltabs button').forEach(b => b.onclick = () => { ltab = b.dataset.l; hub(); });
+    if ($('#parkbtn')) $('#parkbtn').onclick = park;
     scr().querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { const sr = C.po && C.po.series[+b.dataset.pick]; if (sr && !sr.pick) { sr.pick = b.dataset.t; save(); const y = scr().scrollTop; hub(); scr().scrollTop = y; } });
     if ($('#mopp')) $('#mopp').onclick = () => { if (muOpp) rosterCard(muOpp[0], muOpp[1], true); };
     scr().querySelectorAll('.ros[data-pid]').forEach(r => r.onclick = () => { const p = r.dataset.pid === 'me' ? C.me : myRoster().find(x => x.id === r.dataset.pid); if (p) rosterCard(p, PB.team(C.team)); });

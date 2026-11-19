@@ -709,3 +709,30 @@ table.pbx td small{color:var(--mute)}
 /* the Playoff Picker in the bracket */
 .bracket .pick{padding:2px;border-radius:8px;border:1px dashed var(--mute)}.bracket .pk{padding:2px;border-radius:8px;border:1px solid transparent;opacity:.75}
 .bracket .pk.on{border-color:#fff;opacity:1}.bracket .pk.ok{border-color:var(--green);opacity:1}.bracket .pk.no{border-color:var(--bad);opacity:.5}
+
+/* the park: the card for the ring you are standing in, and a lighter HUD */
+#parkcard{position:absolute;left:12px;right:12px;bottom:calc(150px + var(--sb));z-index:6;display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:16px;background:rgba(10,10,14,.9);border:1px solid rgba(255,255,255,.18);pointer-events:auto;animation:pop .25s}
+#parkcard b{font-family:var(--display);font-size:20px;text-transform:uppercase}#parkcard span{font-size:12.5px;color:var(--mute)}#parkcard .big{margin-top:8px;height:44px}
+#game.park .bug,#game.park #radar,#game.park #grade,#game.park #tko,#game.park #feed{display:none!important}
+#game.park #ftmsg{top:calc(14px + env(safe-area-inset-top,0px))}
+
+/* the MyPLAYER builder's steps */
+.builder .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 12px}
+.builder .steps button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-size:11.5px;font-weight:700;color:var(--mute)}
+.builder .steps button i{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--panel3);color:var(--ink);font-size:12px}
+.builder .steps button.on{border-color:#fff;color:var(--ink)}.builder .steps button.on i{background:#fff;color:#000}.builder .steps button.done i{background:var(--green);color:#000}
+
+/* MyPLAYER: a card for each player you have built */
+.players .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.pcard{position:relative;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;background:linear-gradient(170deg,var(--tc),#141416 62%);border:1px solid var(--line);text-align:left}
+.pcard.cur{border-color:#fff}
+.pcard .pplay{display:flex;flex-direction:column;align-items:stretch;padding:0 10px 10px;text-align:left}
+.pcard img,.pcard .noimg{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:50% 12%;margin:0 0 6px}
+.pcard b{font-family:var(--display);font-size:15px;line-height:1.1;text-transform:uppercase;padding-right:34px}
+.pcard em{position:absolute;right:10px;top:calc(100% - 92px);font-style:normal;font-family:var(--display);font-weight:900;font-size:24px}
+.pcard span{font-size:11px;color:var(--ink);opacity:.8;margin-top:3px}.pcard small{font-size:10.5px;color:var(--mute);margin-top:2px}
+.pcard .pman{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0 8px 8px}.pcard .pman .sm{height:30px;font-size:11px;padding:0}
+.pcard.pnew{align-items:center;justify-content:center;min-height:260px;background:var(--panel);border:1px dashed var(--mute);gap:6px}
+.pcard.pnew .plus{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:34px;background:var(--panel3)}
+.pcard.pnew b{padding:0}.pcard.pnew span{color:var(--mute)}
+.mode.park{border-color:var(--green)}
