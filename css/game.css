@@ -684,3 +684,8 @@ table.pbx td small{color:var(--mute)}
 .zones .zt text,.zones text.zt{fill:#fff;font:700 9px var(--display);text-anchor:middle}.zones .zt text.sm{font:500 6.5px var(--body);fill:var(--mute)}
 .zones text.none{fill:rgba(255,255,255,.25)}
 .zones .hot circle{fill:rgba(61,220,132,.28);stroke:#3ddc84}.zones .cold circle{fill:rgba(255,90,107,.22);stroke:#ff5a6b}
+
+/* Classics: stars earned on each great night */
+.stars{color:var(--ink);letter-spacing:2px;font-style:normal;white-space:nowrap}.stars i{font-style:normal;color:rgba(255,255,255,.18)}
+.mode.clsc em.stars{font-size:14px}
+.gradebig b.stars{font-size:40px;letter-spacing:6px}

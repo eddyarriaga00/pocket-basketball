@@ -113,6 +113,13 @@
     /* every building's own wood: pale maple, honey, a darker stain, a reddish one */
     let hh = 0; for (const ch of String(home.id)) hh = (hh * 31 + ch.charCodeAt(0)) >>> 0;
     const tone = [[1, 1, 1], [1.08, 1.08, 1.12], [0.82, 0.8, 0.78], [1.02, 0.9, 0.82], [1.05, 1.02, 0.95]][hh % 5];
+    if (home.street) {
+      /* the blacktop: asphalt, worn lighter where the games are played, flecked with grit */
+      g.fillStyle = '#2c2e33'; g.fillRect(0, 0, cv.width, cv.height);
+      for (let i = 0; i < 9000; i++) { const l = 30 + PB.rand() * 40; g.fillStyle = `rgba(${l + 20},${l + 22},${l + 26},${0.25 + PB.rand() * 0.4})`; g.fillRect(PB.rand() * cv.width, PB.rand() * cv.height, 1 + PB.rand() * 2.5, 1 + PB.rand() * 2.5); }
+      const wear = g.createRadialGradient(cv.width / 2, cv.height * 0.06, 10, cv.width / 2, cv.height * 0.06, cv.width * 0.7); wear.addColorStop(0, 'rgba(255,255,255,0.07)'); wear.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = wear; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = wear; g.save(); g.translate(0, cv.height); g.scale(1, -1); g.fillRect(0, 0, cv.width, cv.height); g.restore();
+    } else {
     g.fillStyle = `rgb(${Math.round(201 * tone[0])},${Math.round(149 * tone[1])},${Math.round(97 * tone[2])})`; g.fillRect(0, 0, cv.width, cv.height);
     for (let i = 0; i < 50 * 3; i++) {
       const x = i * PX / 3;
@@ -127,6 +134,7 @@
     g.globalAlpha = 0.06; g.fillStyle = '#000';
     for (let i = 0; i < 3000; i++) g.fillRect(PB.rand() * cv.width, PB.rand() * cv.height, 1 + PB.rand() * 2, 4 + PB.rand() * 18);
     g.globalAlpha = 1;
+    }
     /* every floor its own design too: 0 the classic (a solid key), 1 a darker stain inside the three-point line,
        2 a two-tone key (the second color in the circle and under the rim), 3 an open key (wood, edged in the color) */
     const design = home.court !== undefined ? home.court : (hh >>> 3) % 4;
@@ -1890,7 +1898,7 @@
       if (manTarget) { manRing.position.x = manTarget.x; manRing.position.z = manTarget.z; }
       { const h = manTarget, uu = G.user, on = !!(h && uu && G.ball.holder === h && !h.shoot && !h.inb && G.phase === 'live' && Math.hypot(h.x - uu.x, h.z - uu.z) < 16);
         if (defArrow) defArrow.visible = on;
-        if (on) { const rz = h.team === 0 ? 41.75 : -41.75, hx = -h.x, hz = rz - h.z, hl = Math.hypot(hx, hz) || 1, sp = Math.hypot(h.vx, h.vz);
+        if (on) { const rz = G.half || h.team === 0 ? 41.75 : -41.75, hx = -h.x, hz = rz - h.z, hl = Math.hypot(hx, hz) || 1, sp = Math.hypot(h.vx, h.vz);
           const dx = sp > 2.5 ? h.vx / sp : hx / hl, dz = sp > 2.5 ? h.vz / sp : hz / hl;
           /* in front: you are nearer the rim than he is, along his line to it, and close enough to matter */
           const ahead = ((uu.x - h.x) * hx + (uu.z - h.z) * hz) / hl, off = Math.abs((uu.x - h.x) * -hz + (uu.z - h.z) * hx) / hl, good = ahead > 0.4 && ahead < 6.5 && off < 2.6;
@@ -1957,7 +1965,7 @@
     if (camMode === 'lock') {
       /* player lock, the way career modes on consoles play it: low behind your own player, looking down the floor
          at the rim being attacked. The view swings around (it doesn't cut) when the ball changes hands. */
-      if (G.poss === 0) lockDir = 1; else if (G.poss === 1) lockDir = -1;
+      if (G.half) lockDir = 1; else if (G.poss === 0) lockDir = 1; else if (G.poss === 1) lockDir = -1;
       const me0 = G.user || b.holder || b;
       /* in a drill the camera stands behind you facing the rim, wherever you are on the arc */
       /* (close to the rim, or past it, that angle would spin: there it keeps the last one it had from farther out) */

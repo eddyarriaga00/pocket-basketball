@@ -109,6 +109,8 @@
         <button class="tile" id="seas">${MIC.cup}<b>Season</b><small>Run a whole team</small></button>
         <button class="tile" id="prac">${MIC.target}<b>Practice</b><small>Drills and contests</small></button>
         <button class="tile" id="daily">${MIC.day}<b>Daily challenge${dailyDone() ? ' ✓' : ''}</b><small>A new one every day</small></button>
+        <button class="tile" id="btop">${MIC.street}<b>Blacktop</b><small>1v1, 2v2, 3v3 to 21</small></button>
+        <button class="tile" id="clsc">${MIC.clock}<b>Classics</b><small>Replay the league's great nights</small></button>
       </div>
       <button class="mode" id="chat">${MIC.chat}<span><b>Chat</b><small>Talk with everyone playing.</small></span><em>›</em></button>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
@@ -123,6 +125,8 @@
     $('#qg').onclick = quick;
     $('#prac').onclick = practice;
     $('#daily').onclick = daily;
+    $('#btop').onclick = () => blacktop();
+    $('#clsc').onclick = () => classics();
     $('#seas').onclick = () => PB.Season.start();
     $('#how').onclick = how;
     if ($('#chat')) $('#chat').onclick = () => { if (PB.online) PB.online.open(); };
@@ -146,7 +150,7 @@
     };
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-18d';
+  const NEW_V = '2026-11-18e';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V) return;
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
@@ -157,6 +161,8 @@
       <li>On defense, an arrow shows where your man is going: green while you are in front of him</li>
       <li>The full awards night: MVP, Defensive Player, Sixth Man, Most Improved, Clutch, Coach, All-League, All-Defensive and All-Rookie teams</li>
       <li>Real rotation minutes by your role, and your numbers kept exactly as you put them up</li>
+      <li>Blacktop: 1v1, 2v2 and 3v3 on a half court, to 11, 15 or 21</li>
+      <li>Classics: replay the league's great nights, for up to three stars each</li>
       <li>The full box score (minutes, plus/minus), hot zones, a schedule with scores around the league, Player of the Month</li>
       <li>Passes thrown to the man, and nobody jumping from place to place on screen</li>
       <li>A smarter floor: help defense on your drives, teammates who space out and get open</li>
@@ -380,6 +386,108 @@
   }
 
   /* ---------- quick game ---------- */
+  /* ---------- the blacktop: half court, 1v1 / 2v2 / 3v3, first to 11, 15 or 21 ----------
+     The best of each team by position (a guard; a guard and a big; a guard, a wing and a big), or your own career
+     player at the front of yours. Scored by 2s and 3s or by 1s and 2s, win by two; after a basket the other side
+     checks it up, or the scorer keeps it (make it, take it). */
+  /* ---------- Classics: the league's great nights, replayed (the console game's Paragon, the phone game's Rewind) ----------
+     Each one drops you into the last minutes of a famous game in this league's own history: the score, the clock and
+     the ball as they were, and a goal on top of the win. One star for the win, two for the goal, three for the goal and
+     a B+ or better. */
+  const CLASSICS = [
+    { id: 'c1', era: 'Finals, Game 7', title: 'The Shot in the Fog', a: 'SF', b: 'BOS', pos: 'SG', ovr: 88, q: 4, clock: 24, score: [101, 103], poss: 0, goal: ['win', 0], text: 'Down two, 24 seconds left, the title on the line. The Fog have never won one.' },
+    { id: 'c2', era: 'Conference Finals', title: 'Twelve in Ninety', a: 'IND', b: 'MIL', pos: 'PG', ovr: 86, q: 4, clock: 90, score: [88, 97], poss: 0, goal: ['win', 0], text: 'Nine points down with a minute and a half to play in Milwaukee. Nobody comes back from this. Do it.' },
+    { id: 'c3', era: 'Regular season', title: 'Fifty in the Garden', a: 'NY', b: 'BKN', pos: 'SF', ovr: 87, q: 4, clock: 150, score: [104, 104], poss: 0, goal: ['pts', 8], text: 'The crosstown game, tied, two and a half minutes left, and the Empire\'s star on 42. Get him to fifty: score 8.' },
+    { id: 'c4', era: 'Finals, Game 5', title: 'The Block', a: 'MIA', b: 'LAK', pos: 'C', ovr: 86, q: 4, clock: 45, score: [96, 95], poss: 1, goal: ['hold', 0], text: 'Up one, 45 seconds left, and the Knights have the ball. Win it without letting them score again.' },
+    { id: 'c5', era: 'First round, Game 6', title: 'Rattlers Rising', a: 'SA', b: 'DEN', pos: 'PF', ovr: 85, q: 4, clock: 120, score: [89, 93], poss: 0, goal: ['reb', 3], text: 'Four down at altitude with two minutes left. The Rattlers\' big man did it on the glass: grab 3 boards and win.' },
+    { id: 'c6', era: 'All-Star Game', title: 'East Beats West', a: 'CHI', b: 'PHX', pos: 'PG', ovr: 90, q: 4, clock: 60, score: [154, 156], poss: 0, goal: ['ast', 3], text: 'The one All-Star Game anyone remembers. Down two, a minute left: hand out 3 assists and win it.' },
+    { id: 'c7', era: 'Play-in', title: 'The Monuments\' Night', a: 'WAS', b: 'CHA', pos: 'SG', ovr: 84, q: 4, clock: 35, score: [97, 100], poss: 0, goal: ['three', 1], text: 'Down three, 35 seconds left, the season on the line. They needed a three. Hit one, and win.' },
+    { id: 'c8', era: 'Finals, Game 6', title: 'Peaks Over the Top', a: 'SLC', b: 'ORL', pos: 'SF', ovr: 87, q: 4, clock: 180, score: [92, 99], poss: 0, goal: ['margin', 3], text: 'Seven down, three minutes left. The Peaks didn\'t just come back, they ran away with it: win by 3 or more.' },
+    { id: 'c9', era: 'Western semifinals', title: 'The Krewe\'s Comeback', a: 'NO', b: 'OKC', pos: 'PG', ovr: 85, q: 3, clock: 120, score: [68, 82], poss: 0, goal: ['win', 0], text: 'Fourteen down late in the third. The building had started to empty. It came back.' },
+    { id: 'c10', era: 'Regular season', title: 'Double Overtime in Detroit', a: 'DET', b: 'CLE', pos: 'C', ovr: 86, q: 4, clock: 18, score: [113, 113], poss: 1, goal: ['win', 0], text: 'Tied, 18 seconds left, the Ironmen with the ball. Get the stop and finish it, however long it takes.' },
+    { id: 'c11', era: 'Finals, Game 4', title: 'Gold Rush', a: 'SAC', b: 'ATL', pos: 'SG', ovr: 88, q: 4, clock: 240, score: [90, 94], poss: 0, goal: ['pts', 12], text: 'The night the Gold\'s shooter caught fire: four minutes, four points down. Score 12 and win.' },
+    { id: 'c12', era: 'Conference Finals, Game 7', title: 'Wranglers at the Buzzer', a: 'DAL', b: 'HOU', pos: 'PF', ovr: 87, q: 4, clock: 9, score: [97, 98], poss: 0, goal: ['win', 0], text: 'Down one, nine seconds left, the ball at half court. The rodeo city still talks about it.' },
+  ];
+  const CGOAL = { win: () => 'Win the game', pts: n => `Score ${n}+ points`, reb: n => `Grab ${n}+ rebounds`, ast: n => `Hand out ${n}+ assists`, three: n => `Make ${n}+ three${n > 1 ? 's' : ''}`, margin: n => `Win by ${n}+`, hold: () => 'Do not let them score' };
+  function classics() {
+    const R0 = load('pbb.classics') || {}, stars = Object.values(R0).reduce((a, x) => a + (x || 0), 0);
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Classics</h2>
+      <p class="mute">The league's great nights, replayed from the last minutes. ${stars} of ${CLASSICS.length * 3} stars.</p>
+      ${CLASSICS.map((c, i) => { const A = PB.team(c.a), B = PB.team(c.b), st = R0[c.id] || 0;
+        return `<button class="mode clsc" data-i="${i}" style="--tc:${A.c1}">${badge(A)}<span><b>${esc(c.title)}</b><small>${esc(c.era)} · ${A.ab} vs ${B.ab} · ${CGOAL[c.goal[0]](c.goal[1])}</small></span><em class="stars">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></em></button>`; }).join('')}
+      <p class="fine">One star for the win, two for the goal too, three for the goal and a B+ or better.</p></div>`);
+    $('#bk').onclick = title;
+    scr().querySelectorAll('.clsc').forEach(b => b.onclick = () => classic(CLASSICS[+b.dataset.i]));
+  }
+  function classic(c) {
+    const A = PB.team(c.a), B = PB.team(c.b);
+    const fmt = c.clock >= 60 ? `${Math.floor(c.clock / 60)}:${String(c.clock % 60).padStart(2, '0')}` : `${c.clock} seconds`;
+    show(`<div class="page"><button class="back" id="bk">‹ Classics</button><p class="kick">${esc(c.era)}</p><h2>${esc(c.title)}</h2>
+      <div class="final"><div>${badge(A)}<b>${c.score[0]}</b></div><em>${['', '1st', '2nd', '3rd', '4th'][c.q]} · ${fmt}</em><div><b>${c.score[1]}</b>${badge(B)}</div></div>
+      <div class="card"><p>${esc(c.text)}</p><p class="fine">You: the ${PB.POS_NAME[c.pos].toLowerCase()} of the ${esc(tname(A))} (${c.ovr} overall), ${c.poss === 0 ? 'with the ball' : 'on defense'}.</p>
+      <p><b>Goal:</b> ${CGOAL[c.goal[0]](c.goal[1])}${c.goal[0] !== 'win' && c.goal[0] !== 'margin' && c.goal[0] !== 'hold' ? ', and win' : ''}</p></div>
+      <button class="big" id="go">Play it</button></div>`);
+    $('#bk').onclick = classics;
+    $('#go').onclick = () => {
+      const tk = new Set(), fa = PB.makeRoster(84, tk), fb = PB.makeRoster(84, tk), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
+      const me = ra[PB.POS.indexOf(c.pos)]; me.r = PB.makeRatings(c.pos, c.ovr); me.ovr = PB.ovr(me.r, c.pos); { const n = youName(); me.first = n[0]; me.last = n[1]; }
+      scr().hidden = true;
+      PB.Game.start({ teams: [A, B], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: me.id, qlen: Math.max(S.qlen || 3, Math.ceil(c.clock / 60) + 1), level: 'All-Star', floor: A,
+        scenario: { q: c.q, clock: c.clock, score: c.score.slice(), poss: c.poss, title: c.title },
+        onEnd: r => {
+          const u = r.user || {}, won = r.score[0] > r.score[1], them = r.score[1] - c.score[1];
+          const g = c.goal[0], n = c.goal[1], met = won && (g === 'win' || (g === 'pts' && u.pts >= n) || (g === 'reb' && u.reb >= n) || (g === 'ast' && u.ast >= n) || (g === 'three' && u.tpm >= n) || (g === 'margin' && r.score[0] - r.score[1] >= n) || (g === 'hold' && them <= 0));
+          const top = met && ['A+', 'A', 'A-', 'B+'].includes(r.grade), st = !won ? 0 : top ? 3 : met ? 2 : 1;
+          const R1 = load('pbb.classics') || {}; const was = R1[c.id] || 0; if (st > was) { R1[c.id] = st; store('pbb.classics', R1); }
+          show(`<div class="page post"><p class="kick">Classics · ${esc(c.title)}</p><div class="final"><div>${badge(A)}<b>${r.score[0]}</b></div><em>${won ? 'WIN' : 'LOSS'}</em><div><b>${r.score[1]}</b>${badge(B)}</div></div>
+            <div class="gradebig"><b class="stars">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></b><span>${st > was ? 'New best' : st ? 'Stars' : 'Not this time'}</span></div>
+            <p class="mute">${!won ? 'History says otherwise. Try it again.' : met ? (top ? 'Goal met, and played the right way.' : `Goal met. A B+ or better earns the third star (you had ${r.grade || '–'}).`) : `You won, but the goal was: ${CGOAL[g](n)}.`}</p>
+            <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div></div>
+            ${potg(r)}${reelBtn()}<button class="big" id="again">Play it again</button><button class="ghost" id="done">Classics</button></div>`);
+          $('#again').onclick = () => classic(c); $('#done').onclick = classics; reelWire();
+        } });
+    };
+  }
+  function blacktop(again) {
+    const B = Object.assign({ n: 3, target: 21, ones: false, mitt: false, a: 'LAK', b: 'BOS', mine: true }, load('pbb.blacktop') || {});
+    const cur = loadCur(), me = cur && cur.me && cur.team ? cur.me : null;
+    const pickN = (ro, n) => { const by = f => ro.filter(p => f.includes(p.pos)).sort((a, b) => b.ovr - a.ovr), used = new Set(), take = f => { const p = by(f).find(x => !used.has(x.id)) || ro.filter(x => !used.has(x.id)).sort((a, b) => b.ovr - a.ovr)[0]; used.add(p.id); return p; };
+      return n === 1 ? [ro.slice().sort((a, b) => b.ovr - a.ovr)[0]] : n === 2 ? [take(['PG', 'SG']), take(['PF', 'C'])] : [take(['PG', 'SG']), take(['SF', 'SG', 'PF']), take(['C', 'PF'])]; };
+    const rosterOf = id => (cur && cur.rosters && cur.rosters[id]) ? cur.rosters[id] : (B.cache && B.cache[id]) || PB.makeRoster(78);
+    const go = () => {
+      const a = PB.team(B.a), b = PB.team(B.b); if (a === b) { alert('Pick two different teams.'); return; }
+      const ra = pickN(rosterOf(a.id).filter(p => !(p.out > 0)), B.n).map(p => Object.assign({}, p)), rb = pickN(rosterOf(b.id).filter(p => !(p.out > 0)), B.n).map(p => Object.assign({}, p));
+      let userId;
+      if (me && B.mine) { ra[0] = me; userId = me.id; } else { const n = youName(); ra[0].first = n[0]; ra[0].last = n[1]; userId = ra[0].id; }
+      store('pbb.blacktop', { n: B.n, target: B.target, ones: B.ones, mitt: B.mitt, a: B.a, b: B.b, mine: B.mine });
+      scr().hidden = true;
+      PB.Game.start({ teams: [a, b], rosters: [ra, rb], slots: [[0], [0, 4], [0, 1, 4]][B.n - 1], userId, half: true, target: B.target, ones: B.ones, mitt: B.mitt, level: S.level,
+        floor: Object.assign({}, a, { street: true, court: 0 }), strength: [PB.teamOvr(ra.concat(ra)), PB.teamOvr(rb.concat(rb))], onEnd: r => result(r, null) });
+    };
+    if (again) { go(); return; }
+    const seg = (k, vals, lbl) => `<div class="seg sm bt" data-k="${k}">${vals.map(([v, t]) => `<button data-v="${v}" class="${String(B[k]) === String(v) ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Blacktop</h2>
+      <p class="mute">Half court, one rim. Take it back past the arc after a stop; no free throws, win by two.</p>
+      <div class="qvs">${['a', 'b'].map((k, i) => `<div class="qt" data-s="${k}"><span class="kick">${i ? 'Opponent' : 'Your side'}</span><div class="qc"><button class="ar" data-d="-1" aria-label="Previous team">‹</button><i class="qb"></i><button class="ar" data-d="1" aria-label="Next team">›</button></div><b></b><small></small></div>`).join('')}</div>
+      <div class="field"><label>Format</label>${seg('n', [[1, '1 on 1'], [2, '2 on 2'], [3, '3 on 3']])}</div>
+      <div class="field"><label>First to</label>${seg('target', [[11, '11'], [15, '15'], [21, '21']])}</div>
+      <div class="field"><label>Scoring</label>${seg('ones', [[false, '2s and 3s'], [true, '1s and 2s']])}</div>
+      <div class="field"><label>After a basket</label>${seg('mitt', [[false, 'Their ball'], [true, 'Make it, take it']])}</div>
+      ${me ? `<div class="field"><label>You play as</label>${seg('mine', [[true, esc(PB.full(me))], [false, 'Your side\'s best']])}</div>` : ''}
+      <div class="field"><label>Difficulty</label><div class="seg sm qo" data-k="level">${['Rookie', 'Pro', 'All-Star', 'Legend'].map(v => `<button class="${S.level === v ? 'on' : ''}" data-v="${v}">${v}</button>`).join('')}</div></div>
+      <div class="card" id="btlu"></div>
+      <button class="big" id="go">Check it up</button></div>`);
+    const paint = () => { for (const k of ['a', 'b']) { const q = scr().querySelector(`.qt[data-s="${k}"]`), t = PB.team(B[k]); q.style.setProperty('--tc', t.c1); const bd = q.querySelector('.qb'); bd.textContent = t.ab || t.id; bd.style.background = t.c1; bd.style.color = PB.ink(t.c1, t.c2); q.querySelector('b').textContent = t.name; q.querySelector('small').textContent = t.city; }
+      const lu = id => pickN(rosterOf(id), B.n);
+      B.cache = B.cache || {}; for (const id of [B.a, B.b]) if (!(cur && cur.rosters) && !B.cache[id]) B.cache[id] = PB.makeRoster(78);
+      const la = lu(B.a), lb = lu(B.b); if (me && B.mine) la[0] = me;
+      $('#btlu').innerHTML = `<h3>The matchup</h3>${la.map((p, i) => `<p class="news">${i === 0 ? '<b>You</b> · ' : ''}${esc(PB.full(p))} <small>${p.pos} · ${p.ovr}</small> <em class="mute">vs</em> ${esc(PB.full(lb[i]))} <small>${lb[i].pos} · ${lb[i].ovr}</small></p>`).join('')}`; };
+    scr().querySelectorAll('.qt .ar').forEach(x => x.onclick = () => { const k = x.closest('.qt').dataset.s, i = PB.TEAMS.findIndex(t => t.id === B[k]), n = PB.TEAMS.length; B[k] = PB.TEAMS[(i + +x.dataset.d + n) % n].id; paint(); });
+    scr().querySelectorAll('.bt button').forEach(x => x.onclick = () => { const k = x.parentElement.dataset.k, v = x.dataset.v; B[k] = v === 'true' ? true : v === 'false' ? false : +v; x.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === x)); paint(); });
+    scr().querySelectorAll('.qo button').forEach(x => x.onclick = () => { S.level = x.dataset.v; saveSettings(); x.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === x)); });
+    $('#bk').onclick = title; $('#go').onclick = go;
+    paint();
+  }
   function quick() {
     const opts = PB.TEAMS.map(t => `<option value="${t.id}">${tname(t)}</option>`).join('');
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Quick game</h2>
@@ -1254,6 +1362,8 @@
   const mic = d => `<i class="mi"><svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg></i>`;
   const MIC = { career: mic('<circle cx="12" cy="8" r="3.500"/><path d="M5 20c0-3.600 3.100-6 7-6s7 2.400 7 6"/>'), plus: mic('<path d="M12 5v14M5 12h14"/>'), list: mic('<path d="M8 7h11M8 12h11M8 17h11M4.500 7h.01M4.500 12h.01M4.500 17h.01"/>'),
     vs: mic('<path d="M4 7l3.500 10L11 7M20 8.500c-.700-1-1.800-1.500-3-1.500-1.700 0-3 1-3 2.400 0 3.100 6 1.600 6 4.900 0 1.500-1.400 2.700-3.200 2.700-1.400 0-2.600-.600-3.300-1.700"/>'),
+    street: mic('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-2.400 2.200-3.600 4.900-3.600 8s1.200 5.800 3.600 8M12 4c2.400 2.200 3.600 4.900 3.600 8s-1.200 5.800-3.600 8"/>'),
+    clock: mic('<circle cx="12" cy="12" r="8"/><path d="M12 7.500V12l3 2M4.500 5.500l2 2M19.500 5.500l-2 2"/>'),
     cup: mic('<path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4c0 3 1.500 4.500 3.500 4.500M17 6h3c0 3-1.500 4.500-3.500 4.500M12 13v4M8.500 20h7"/>'),
     chat: mic('<path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7l-4 3.500V17H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>'),
     target: mic('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".800"/>'), day: mic('<rect x="4" y="5.500" width="16" height="14" rx="2.500"/><path d="M8 3.500v4M16 3.500v4M4 10.500h16M9 15l2 2 4-4"/>') };
@@ -1739,15 +1849,15 @@
     lastReels = res.reels || [];
     if (!g) {   // quick game
       const u = res.user || {};
-      show(`<div class="page post"><p class="kick">Final${res.line && res.line.length > 4 ? ' · ' + (res.line.length > 5 ? res.line.length - 4 : '') + 'OT' : ''}</p>
+      show(`<div class="page post"><p class="kick">${res.half ? `Blacktop · ${res.half.n}v${res.half.n} to ${res.half.target}${res.half.ones ? ' by 1s and 2s' : ''}` : 'Final' + (res.line && res.line.length > 4 ? ' · ' + (res.line.length > 5 ? res.line.length - 4 : '') + 'OT' : '')}</p>
         <div class="final"><div>${badge(res.teams[0])}<b>${res.score[0]}</b></div><em>${res.score[0] > res.score[1] ? 'WIN' : 'LOSS'}</em><div><b>${res.score[1]}</b>${badge(res.teams[1])}</div></div>
         <div class="gradebig"><b>${res.grade || '–'}</b><span>Teammate grade</span></div>
         <div class="tiles"><div><b>${u.pts || 0}</b><span>PTS</span></div><div><b>${u.reb || 0}</b><span>REB</span></div><div><b>${u.ast || 0}</b><span>AST</span></div>
         <div><b>${u.fgm || 0}/${u.fga || 0}</b><span>FG</span></div><div><b>${u.tpm || 0}/${u.tpa || 0}</b><span>3PT</span></div><div><b>${u.stl || 0}/${u.blk || 0}</b><span>STL/BLK</span></div></div>
         ${potg(res)}${reelBtn()}
         ${gameStats(res)}${boxScore(res)}
-        <button class="big" id="go">Main menu</button></div>`);
-      $('#go').onclick = title; reelWire();
+        ${res.half ? '<button class="big" id="again">Run it back</button><button class="ghost" id="go">Main menu</button>' : '<button class="big" id="go">Main menu</button>'}</div>`);
+      $('#go').onclick = title; reelWire(); if ($('#again')) $('#again').onclick = () => blacktop(true);
       return;
     }
     const gi = LET.indexOf(res.grade);

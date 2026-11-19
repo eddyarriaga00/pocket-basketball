@@ -4,6 +4,14 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Blacktop (from the phone versions of the console game): half court, one rim, 1 on 1, 2 on 2 or 3 on 3, first to 11,
+  15 or 21, win by two. Scored by 2s and 3s or by 1s and 2s; after a basket the other side checks it up at the top of
+  the key, or the scorer keeps it (make it, take it). After a stop the ball has to be taken back past the arc, or the
+  basket does not count. No free throws, no clock but the shot clock. Played on an asphalt floor, with your career
+  player if you have one. The players walk out to the check: nobody is moved there.
+- Classics (the console game's Paragon, the phone game's Rewind): twelve great nights from this league's own history,
+  replayed from the last minutes with the score and the ball as they were: a Game 7 buzzer-beater, a nine-point
+  comeback in ninety seconds, a fifty-point night. A goal on each, and up to three stars.
 - The full box score, on the final screen and in the pause menu while the game is on: minutes, points, rebounds,
   assists, steals, blocks, turnovers, fouls, field goals, threes, free throws and plus/minus for every man who played,
   with a team line. On a phone the table slides sideways under the names.
