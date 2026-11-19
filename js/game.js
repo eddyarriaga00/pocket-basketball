@@ -740,6 +740,7 @@
       el.innerHTML = `<small>Tutorial · ${T0.i + 1} of ${TUT.length}</small><b>${t}</b><span>${d}</span><button id="tutx">Skip</button>`; el.hidden = false; el.classList.remove('ok'); placeCard();
       $('#tutx').onclick = () => { T0.done = true; el.hidden = true; placeCard(); if (opts.onTut) opts.onTut(false); };
       R.stationLit && R.stationLit(T0.i === TUT.length - 1 ? 'career' : G.parkAt);
+      if (T0.i === TUT.length - 1) { const c0 = PARK.find(x => x.id === 'career'); G.guideXZ = { x: c0.x, z: c0.z, id: 'career' }; }
     }
     if (T0.wait > 0) { T0.wait -= dt; if (T0.wait <= 0) { T0.i++; if (opts.onTutStep) opts.onTutStep(T0.i); if (T0.i >= TUT.length) { T0.done = true; el.hidden = true; placeCard(); toast('Tutorial done', 'make'); if (opts.onTut) opts.onTut(true); } } return; }
     if (ok && ok()) { T0.wait = 0.9; el.classList.add('ok'); buzz(12); AU().play('swish'); if (T0.i === 3 && D.made <= T0.made0) el.querySelector('span').textContent = 'Close enough. It comes with reps.'; }
@@ -819,6 +820,7 @@
     /* the stanchions are solid */
     for (const s of [1, -1]) if (Math.abs(u.x) < 2.7 && Math.abs(u.z - s * 52) < 3) { const dz = u.z - s * 52; if (Math.abs(u.x) / 2.7 > Math.abs(dz) / 3) u.x = Math.sign(u.x || 1) * 2.7; else u.z = s * 52 + Math.sign(dz || -s) * 3; }
     let near = null; for (const s0 of PARK) if (hyp(u.x - s0.x, u.z - s0.z) < s0.r) near = s0;
+    if (G.guideXZ && near && near.id === G.guideXZ.id) G.guideXZ = null;
     /* or a regular: walk right up to one and you can challenge him */
     let guy = null;
     if (!near) { let bd = 4.2; for (const p of G.pl) if (p.npc) { const d = hyp(p.x - u.x, p.z - u.z); if (d < bd) { bd = d; guy = p; } } }
@@ -2797,7 +2799,8 @@
             const from = o.parkAt && PARK.find(s => s.id === o.parkAt);
             if (from) { const sd = from.x > 0 ? -1 : 1; G.user.x = from.x + sd * (from.r + 3); G.user.z = from.z; G.user.face = -sd * Math.PI / 2; }   // turned back toward the door, the camera on the park side
             if (R.parkYaw) R.parkYaw(G.user.face);
-            G.parkAt = undefined; G.tut = o.tutorial ? { i: Math.min(o.tutAt || 0, TUT.length - 1) } : null; { const e = $('#tut'); if (e) e.hidden = !G.tut; }
+            G.parkAt = undefined; G.tut = o.tutorial ? { i: Math.min(o.tutAt || 0, TUT.length - 1) } : null;
+            { const gs = o.guide && PARK.find(x => x.id === o.guide); G.guideXZ = gs && !G.tut ? { x: gs.x, z: gs.z, id: gs.id } : null; } { const e = $('#tut'); if (e) e.hidden = !G.tut; }
             const HANDLES = ['SPLASHZONE', 'GLASSCLEANER', 'LOCKDOWN', 'FADEKING', 'DOWNTOWN', 'NOLOOK', 'BIGSHOT', 'BOARDMAN', 'HOOPDREAMS', 'ANKLES', 'MIDRANGE', 'BUCKETS'];
             for (const p of pl) if (p.team === 1) { p.npc = true; p.x = rr(-24, 24); p.z = rr(-48, 48); p.face = rand() * 6.28; p.name = p.d.handle || (p.d.handle = HANDLES[Math.floor(rand() * HANDLES.length)] + (Math.floor(rand() * 90) + 10)); }
             /* two of them have a ball and a rim each */

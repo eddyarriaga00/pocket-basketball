@@ -12,7 +12,7 @@
   const anchor = new T.Vector3();
   const meshes = new Map();
   let board = null, ribbons = [];
-  let passArrow = null, manRing = null, defArrow = null, flash = null, flashT = 0, passTarget = null, manTarget = null;
+  let passArrow = null, manRing = null, defArrow = null, guideArrow = null, flash = null, flashT = 0, passTarget = null, manTarget = null;
   R.marks = (pass, man) => { passTarget = pass; manTarget = man; };
   /* a tag floating over a player (your rival) */
   let tag = null, tagP = null;
@@ -1696,7 +1696,10 @@
     { const sh = new T.Shape(); sh.moveTo(0, 1.0); sh.lineTo(0.95, -0.25); sh.lineTo(0.42, -0.25); sh.lineTo(0, 0.42); sh.lineTo(-0.42, -0.25); sh.lineTo(-0.95, -0.25); sh.closePath();
       const g = new T.ShapeGeometry(sh); g.rotateX(Math.PI / 2);   // flat on the floor, pointing down +z
       defArrow = new T.Mesh(g, new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0.8, depthWrite: false, side: T.DoubleSide }));
-      defArrow.position.y = 0.04; defArrow.scale.setScalar(1.35); defArrow.visible = false; scene.add(defArrow); }
+      defArrow.position.y = 0.04; defArrow.scale.setScalar(1.35); defArrow.visible = false; scene.add(defArrow);
+      /* in the park, the way to where you are headed: the same chevron, in front of you, pointing there */
+      guideArrow = new T.Mesh(g, new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0.85, depthWrite: false, depthTest: false, side: T.DoubleSide }));
+      guideArrow.renderOrder = 5; guideArrow.position.y = 0.05; guideArrow.scale.setScalar(1.75); guideArrow.visible = false; scene.add(guideArrow); }
     flash = new T.Mesh(new T.RingGeometry(1.6, 2.3, 32), new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0, depthWrite: false }));
     flash.rotation.x = -Math.PI / 2; flash.position.y = 0.04; scene.add(flash);
   };
@@ -1999,6 +2002,10 @@
     for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
     if (tag && tagP) tag.position.set(tagP.x, (tagP.ht || 78) / 12 + 3.9 + tagP.y, tagP.z);
     if (G.pl && !G.show) R.nameTags(G);
+    if (guideArrow) { const gx = G.park && G.user && G.guideXZ, u0 = G.user;
+      const d = gx ? Math.hypot(gx.x - u0.x, gx.z - u0.z) : 0; guideArrow.visible = !!gx && d > 4;
+      if (guideArrow.visible) { const dx = (gx.x - u0.x) / d, dz = (gx.z - u0.z) / d, bob = 3.4 + Math.sin(G.t * 5) * 0.45;
+        guideArrow.position.x = u0.x + dx * bob; guideArrow.position.z = u0.z + dz * bob; guideArrow.rotation.y = Math.atan2(dx, dz); } }
     if (passArrow) {
       passArrow.visible = !!passTarget;
       if (passTarget) { passArrow.position.set(passTarget.x, (passTarget.ht || 78) / 12 + 2.4 + Math.sin(G.t * 6) * 0.25 + passTarget.y, passTarget.z); passArrow.rotation.y += dt * 2; }

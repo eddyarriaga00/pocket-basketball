@@ -585,7 +585,7 @@
       wheel: C.wheel === today() ? 'spun today: back tomorrow' : 'a spin a day: skill points or followers', wheelBtn: C.wheel === today() ? 'See it' : 'Spin' };
     scr().hidden = true;
     PB.Game.start({ teams: [parkTeam(), PB.TEAMS[(PB.TEAMS.indexOf(parkTeam()) + 7) % PB.TEAMS.length]], rosters: [[C.me], npcs], userId: C.me.id, drill: 'free', park: true, qlen: 1, level: S.level,
-      floor: parkFloor(), parkAt: from, tutorial: !load('pbb.tut'), tutAt: load('pbb.tutAt') || 0, parkInfo: info, parkNext: nx ? `Play: vs ${PB.team(nx.opp).name}` : null,
+      floor: parkFloor(), parkAt: from, guide: C.phase === 'combine' ? 'career' : null, tutorial: !load('pbb.tut'), tutAt: load('pbb.tutAt') || 0, parkInfo: info, parkNext: nx ? `Play: vs ${PB.team(nx.opp).name}` : null,
       menu: parkMenu, inPark: { wheel: prizeWheel }, onTut: done => { store('pbb.tut', done ? 1 : 2); store('pbb.tutAt', 0); }, onTutStep: i => store('pbb.tutAt', i), onEnd: r => parkGo(r.parkGo) });
   }
   function parkGo(id) {
