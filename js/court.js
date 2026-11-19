@@ -1514,6 +1514,14 @@
     for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) {
       const pl = new T.Mesh(new T.CylinderGeometry(0.35, 0.45, 30, 6), pm); pl.position.set(x, 15, z); scene.add(pl);
       const lamp = new T.Mesh(new T.BoxGeometry(4, 1, 2), new T.MeshBasicMaterial({ color: 0xfff1c8 })); lamp.position.set(x - Math.sign(x) * 1.5, 30, z); scene.add(lamp); }
+    /* pools of lamplight on the ground: under the poles, and along the wall under its lamps */
+    { const lc = document.createElement('canvas'); lc.width = lc.height = 128; const lg = lc.getContext('2d'), gr2 = lg.createRadialGradient(64, 64, 4, 64, 64, 64);
+      gr2.addColorStop(0, 'rgba(255,236,200,.42)'); gr2.addColorStop(0.5, 'rgba(255,230,190,.14)'); gr2.addColorStop(1, 'rgba(255,230,190,0)'); lg.fillStyle = gr2; lg.fillRect(0, 0, 128, 128);
+      const lt = new T.CanvasTexture(lc); orphans.push(lt);
+      const lm2 = new T.MeshBasicMaterial({ map: lt, transparent: true, blending: T.AdditiveBlending, depthWrite: false });
+      const pool2 = (x, z, r) => { const m = new T.Mesh(new T.PlaneGeometry(r * 2, r * 2), lm2); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); scene.add(m); };
+      for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) pool2(x - Math.sign(x) * 4, z, 18);
+      for (let z = -54; z <= 54; z += 12) pool2(FX - 3, z, 7); }
     /* benches along the sidelines */
     const bm = new T.MeshLambertMaterial({ color: 0x6b4a32 });
     for (const z of [-24, 24]) for (const x of [-32]) { const b = new T.Mesh(new T.BoxGeometry(2, 1.4, 10), bm); b.position.set(x, 1.6, z); scene.add(b); const b2 = new T.Mesh(new T.BoxGeometry(0.4, 2.4, 10), bm); b2.position.set(x + Math.sign(x) * 1, 2.6, z); scene.add(b2); }
