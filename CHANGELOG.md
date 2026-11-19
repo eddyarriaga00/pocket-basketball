@@ -16,6 +16,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
   door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
   through that door.
+- The park has the beat playing and a few voices around the court, and walking out of it is quiet (it used to
+  sound the end-of-game horn, the crowd and the booth's sign-off).
 - A green chevron on the ground points the way to the MY CAREER door on the walk-through's last step, and for a
   new player headed to the draft; it goes when you get there.
 - The menu has Today: your three quests with their progress, and what the day still holds (the daily reward, the

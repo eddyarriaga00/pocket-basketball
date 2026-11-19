@@ -2276,9 +2276,10 @@
     G.phase = 'end';
     $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; }
     cancelAnimationFrame(raf);
-    if (!G.buzzed) { AU().play('horn', { len: 2 }); if (R.horn) R.horn(2.2); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1); }
+    const quiet = G.park;   // walking out of the park is not the end of a game: no horn, no crowd, no call
+    if (!G.buzzed && !quiet) { AU().play('horn', { len: 2 }); if (R.horn) R.horn(2.2); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1); }
     if (AU().pulse) AU().pulse(false);
-    if (PB.booth) PB.booth.stop(); setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), 2500);
+    if (PB.booth) PB.booth.stop(); if (!quiet) setTimeout(() => B('final', { prio: 6, follow: 0.7 }), 600); setTimeout(() => AU().crowd.on(false), quiet ? 0 : 2500);
     const box = G.played ? G.playedBy.map((x, i) => ({ d: x.d, team: x.team, st: G.played[i], user: !!(G.user && x.d === G.user.d) })) : G.pl.map(p => ({ d: p.d, team: p.team, st: p.st, user: p.isUser }));
     const line = (G.qsc || []).concat([G.score.slice()]), flow = (G.flow || []).concat([[Math.round(G.q * G.qlen * 60), G.score[0] - G.score[1]]]);
     const res = { line, flow, qlen: G.qlen, drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
@@ -2703,6 +2704,7 @@
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);
+      if (o.park) { AU().music(true); AU().crowd.level(0.05); }   // the park: the beat on, a few voices around the court
       if (PB.booth && (o.drill === 'dunk' || o.drill === 'contest')) { const L = PB.booth.load(); if (L) L.then(() => PB.booth.pa(o.drill === 'dunk' ? 'dk_intro' : 'contest_intro')); }
       if (PB.booth && !o.drill && !o.half) {
         /* the home city's own opening when it is recorded, the general one otherwise */
