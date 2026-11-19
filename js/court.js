@@ -1521,7 +1521,7 @@
         const wx = 36 - st.x - 0.05, fr = new T.MeshBasicMaterial({ color: col });
         const door = new T.Mesh(new T.PlaneGeometry(5.2, 8.6), new T.MeshBasicMaterial({ color: 0x0c0c10 })); door.rotation.y = -Math.PI / 2; door.position.set(wx - 0.02, 4.3, 0); g.add(door);
         for (const [w, h, y, z] of [[0.35, 9, 4.5, -2.75], [0.35, 9, 4.5, 2.75], [5.85, 0.35, 9, 0]]) { const m = new T.Mesh(new T.BoxGeometry(0.3, h, w), fr); m.position.set(wx - 0.1, y, z); g.add(m); }
-        const mq = new T.Mesh(new T.PlaneGeometry(9.6, 3), new T.MeshBasicMaterial({ map: signTex(st.label, null, st.color || '#ffffff'), transparent: true })); mq.rotation.y = -Math.PI / 2; mq.position.set(wx - 0.15, 11.6, 0); g.add(mq);
+        const mq = new T.Mesh(new T.PlaneGeometry(9.6, 3), new T.MeshBasicMaterial({ map: signTex(st.label, null, st.color || '#ffffff'), transparent: true })); mq.rotation.y = -Math.PI / 2; mq.position.set(wx - 0.15, 10.7, 0); g.add(mq);
         sign.position.y = 7.2; sign.scale.setScalar(0.78);
       }
       g.position.set(st.x, 0, st.z); scene.add(g); stations.push({ g, ring, beam, sign, id: st.id });
@@ -2059,12 +2059,12 @@
       const cx = anchor.x - fx * back, cz = anchor.z - fz * back, over = Math.max(0, Math.abs(cx) - 32) + Math.max(0, Math.abs(cz) - 58);
       let px = PB.clamp(cx, -32, 32); const pz = PB.clamp(cz, -58, 58);
       if (Math.abs(pz) > 42 && Math.abs(pz) < 56 && Math.abs(px) < 4) px = (px < 0 ? -1 : 1) * 4;   // never inside a stanchion
-      cam.position.set(px, up + over * 0.45, pz); cam.lookAt(anchor.x + fx * 10, 4, anchor.z + fz * 10);
+      cam.position.set(px, up + over * 0.45, pz); cam.lookAt(anchor.x + fx * 8, 3.7, anchor.z + fz * 8);   // you a little above the middle: the controls are below
       /* a regular standing between the lens and you steps out of the picture */
       for (const [p, m] of meshes) if (p !== u && p.npc) { const ax = u.x - px, az = u.z - pz, L = Math.hypot(ax, az) || 1, t = ((p.x - px) * ax + (p.z - pz) * az) / L;
         if (t > 0 && t < L - 1 && Math.abs(((p.x - px) * az - (p.z - pz) * ax) / L) < 3.2) { m.root.visible = false; hidNear.push(m); } }
       for (const s0 of stations) s0.sign.quaternion.copy(cam.quaternion);   // the signs face you
-      camPos.copy(cam.position); camLook.set(anchor.x + fx * 10, 4, anchor.z + fz * 10);
+      camPos.copy(cam.position); camLook.set(anchor.x + fx * 8, 3.7, anchor.z + fz * 8);
       return;
     }
     if (camMode === 'lock') {

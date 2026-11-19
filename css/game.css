@@ -711,8 +711,14 @@ table.pbx td small{color:var(--mute)}
 .bracket .pk.on{border-color:#fff;opacity:1}.bracket .pk.ok{border-color:var(--green);opacity:1}.bracket .pk.no{border-color:var(--bad);opacity:.5}
 
 /* the park: the card for the ring you are standing in, and a lighter HUD */
-#parkcard{position:absolute;left:12px;right:12px;bottom:calc(150px + var(--sb));z-index:6;display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:16px;background:rgba(10,10,14,.9);border:1px solid rgba(255,255,255,.18);pointer-events:auto;animation:pop .25s}
-#parkcard b{font-family:var(--display);font-size:20px;text-transform:uppercase}#parkcard span{font-size:12.5px;color:var(--mute)}#parkcard .big{margin-top:8px;height:44px}
+#parkcard{position:absolute;left:12px;right:72px;top:54px;z-index:6;display:flex;align-items:center;gap:10px;padding:9px 9px 9px 12px;border-radius:14px;background:rgba(10,10,14,.92);border:1px solid rgba(255,255,255,.2);pointer-events:auto;animation:pop .25s}
+#parkcard .pci{flex:1;min-width:0;display:flex;flex-direction:column;border-left:3px solid var(--sc,#fff);padding-left:9px}
+#parkcard b{font-family:var(--display);font-size:17px;line-height:1.1;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#parkcard span{font-size:11.5px;color:var(--mute);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#parkcard .pcb{display:flex;flex-direction:column;gap:5px;flex:none;max-width:52%}
+#parkcard .pcb button{height:40px;min-width:96px;padding:0 14px;margin:0;font-size:14px;border-radius:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#parkcard .pcb .ghost{height:32px;font-size:12px}
+#game:has(#pause:not([hidden])) #parkcard{visibility:hidden}
 #game.park .bug,#game.park #grade,#game.park #tko,#game.park #feed{display:none!important}
 #game.park #ftmsg{top:calc(14px + env(safe-area-inset-top,0px))}
 
@@ -776,14 +782,14 @@ table.pbx td small{color:var(--mute)}
 .pmn svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .pmn span{font-size:11px;font-weight:600}
 .pmn .dot,.pmt .dot{position:absolute;top:6px;right:8px;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--panel2)}
-.pmgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pmgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px}
 .pmt{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 10px 9px;border-radius:12px;background:var(--panel2);text-align:left;min-width:0}
-.pmt svg{width:22px;height:22px;margin-bottom:4px}
+.pmt .mi{width:32px;height:32px;margin-bottom:5px}.pmt .mi svg{width:17px;height:17px}
 .pmt b{font-size:13px;line-height:1.15}
 .pmt small{font-size:10.5px;color:var(--mute);line-height:1.25}
-.pmgrid.sm .pmt{flex-direction:row;align-items:center;gap:7px;padding:9px 8px}.pmgrid.sm .pmt svg{width:18px;height:18px;margin:0;flex:none}.pmgrid.sm .pmt b{font-size:12px}
+.pmgrid.sm{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}.pmgrid.sm .pmt{flex-direction:row;align-items:center;gap:7px;padding:9px 8px}.pmgrid.sm .pmt .mi{width:28px;height:28px;margin:0}.pmgrid.sm .pmt .mi svg{width:15px;height:15px}.pmgrid.sm .pmt b{font-size:12px}
 .pmt:active,.pmn:active{background:var(--panel3)}
-.pmmap{display:block;width:100%;max-width:300px;margin:0 auto;height:auto}
+.pmmap{display:block;width:auto;max-width:100%;height:min(60vh,400px);margin:0 auto}
 .pmmap .gr{fill:#1d2a1f;stroke:rgba(255,255,255,.18)}
 .pmmap .ct{fill:none;stroke:rgba(255,255,255,.32);stroke-width:1}
 .pmmap .wl{fill:#6a5258}
@@ -795,3 +801,16 @@ table.pbx td small{color:var(--mute)}
 .title.splash .spacer{flex:1;min-height:30vh}
 .title.splash #start{min-height:60px}
 .title.splash #start small{display:block;font-size:12px;font-weight:500;opacity:.7;margin-top:3px;text-transform:none;letter-spacing:0}
+.hubtop .ic.pk{width:auto;min-width:44px;padding:0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:1px}
+.hubtop .ic.pk small{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+/* small phones: the park's top stack tighter, the menu a little denser */
+@media (max-width:360px){
+  #tut{padding:8px 10px 9px;right:66px}#tut b{font-size:16px}#tut span{font-size:11.5px}#tut small{font-size:9.5px}
+  #parkcard{right:66px;padding:7px 7px 7px 10px;gap:8px}#parkcard b{font-size:15px}#parkcard .pcb button{min-width:80px;height:36px;padding:0 10px;font-size:13px}
+  #game.park #radar{width:44px;height:78px}
+  #game.park #pz{height:32px;padding:0 12px 0 10px;font-size:12px}#game.park #zm button{width:32px;height:32px}
+  .pmtop b{font-size:17px}.pmtop .face{width:44px;height:44px}.pmstats b{font-size:12.5px}.pmstats span{font-size:9.5px}
+  .pmn span{font-size:10px}.pmn svg{width:19px;height:19px}
+}
+@media (max-height:700px){#tut span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
+#game:has(#parkcard:not([hidden])) #ftmsg,#game:has(#tut:not([hidden])) #ftmsg{display:none}

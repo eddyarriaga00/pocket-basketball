@@ -16,6 +16,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
   door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
   through that door.
+- Sized for phones from the smallest iPhone SE up: a ring's card is a slim bar at the top (under the walk-through when
+  that is up) instead of a box over your player and the stick, nothing from the park shows through the open menu, the
+  map fits the screen, the menu's tiles go to two columns on narrow phones, and the park camera keeps your player a
+  little higher, clear of the controls. The career's home button says Park.
 - The park camera no longer goes through a hoop's stanchion (and you cannot walk through one), and a regular standing
   between the camera and you steps out of the picture.
 

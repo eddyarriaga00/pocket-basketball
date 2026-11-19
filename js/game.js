@@ -735,12 +735,17 @@
     if (T0.i !== T0.shown) {
       T0.shown = T0.i; T0.att0 = D.att; T0.made0 = D.made; T0.moved = false;
       const [t, d] = TUT[T0.i];
-      el.innerHTML = `<small>Tutorial · ${T0.i + 1} of ${TUT.length}</small><b>${t}</b><span>${d}</span><button id="tutx">Skip</button>`; el.hidden = false; el.classList.remove('ok');
-      $('#tutx').onclick = () => { T0.done = true; el.hidden = true; if (opts.onTut) opts.onTut(false); };
+      el.innerHTML = `<small>Tutorial · ${T0.i + 1} of ${TUT.length}</small><b>${t}</b><span>${d}</span><button id="tutx">Skip</button>`; el.hidden = false; el.classList.remove('ok'); placeCard();
+      $('#tutx').onclick = () => { T0.done = true; el.hidden = true; placeCard(); if (opts.onTut) opts.onTut(false); };
       R.stationLit && R.stationLit(T0.i === TUT.length - 1 ? 'career' : G.parkAt);
     }
-    if (T0.wait > 0) { T0.wait -= dt; if (T0.wait <= 0) { T0.i++; if (opts.onTutStep) opts.onTutStep(T0.i); if (T0.i >= TUT.length) { T0.done = true; el.hidden = true; toast('Tutorial done', 'make'); if (opts.onTut) opts.onTut(true); } } return; }
+    if (T0.wait > 0) { T0.wait -= dt; if (T0.wait <= 0) { T0.i++; if (opts.onTutStep) opts.onTutStep(T0.i); if (T0.i >= TUT.length) { T0.done = true; el.hidden = true; placeCard(); toast('Tutorial done', 'make'); if (opts.onTut) opts.onTut(true); } } return; }
     if (ok && ok()) { T0.wait = 0.9; el.classList.add('ok'); buzz(12); AU().play('swish'); if (T0.i === 3 && D.made <= T0.made0) el.querySelector('span').textContent = 'Close enough. It comes with reps.'; }
+  }
+  /* the ring's card sits at the top, under the walk-through when that is up: the player and the controls stay clear */
+  function placeCard() {
+    const c = $('#parkcard'), t = $('#tut'); if (!c) return;
+    c.style.top = t && !t.hidden ? `${t.offsetTop + t.offsetHeight + 8}px` : '';
   }
   function parkStep(dt) {
     const u = G.user;
@@ -750,8 +755,8 @@
     if ((near && near.id) !== G.parkAt) { G.parkAt = near && near.id; R.stationLit && R.stationLit(G.parkAt); const c = $('#parkcard');
       if (near) {
         const info = (opts.parkInfo || {})[near.id], nx = near.id === 'career' && opts.parkNext;
-        c.innerHTML = `<b>${near.label}</b><span>${info || near.sub}</span>${nx ? `<button class="big" id="parknx">${nx}</button><button class="ghost" id="parkgo">Career menu</button>` : `<button class="big" id="parkgo">${near.id.startsWith('pick') || near.id === 'court' ? 'Play' : near.id === 'daily' || near.id === 'quick' || near.id === 'blacktop' ? 'Set it up' : 'Go in'}</button>`}`;
-        c.hidden = false; $('#parkgo').onclick = () => { G.parkGo = near.id; finish(); };
+        c.innerHTML = `<div class="pci" style="--sc:${near.color}"><b>${near.label}</b><span>${info || near.sub}</span></div><div class="pcb">${nx ? `<button class="big" id="parknx">${nx}</button><button class="ghost" id="parkgo">Career menu</button>` : `<button class="big" id="parkgo">${near.id.startsWith('pick') || near.id === 'court' ? 'Play' : near.id === 'daily' || near.id === 'quick' || near.id === 'blacktop' ? 'Set it up' : 'Go in'}</button>`}</div>`;
+        c.hidden = false; placeCard(); $('#parkgo').onclick = () => { G.parkGo = near.id; finish(); };
         if ($('#parknx')) $('#parknx').onclick = () => { G.parkGo = 'next'; finish(); };
       }
       else c.hidden = true; }

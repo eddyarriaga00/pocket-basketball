@@ -842,7 +842,7 @@
     save(); parkFrom = null;
     if (PB.noGL) { if (C.path === 'undrafted') undrafted(); else combine(); return; }
     park();
-    setTimeout(() => { if (PB.Game.active) PB.Game.toast && PB.Game.toast(C.path === 'undrafted' ? 'Your agent is waiting: MY CAREER' : 'The draft combine is waiting: MY CAREER', 'call'); }, 3500);
+    setTimeout(() => { if (PB.Game.active) PB.Game.toast && PB.Game.toast(C.path === 'undrafted' ? 'Your agent: the MY CAREER door' : 'Your draft: the MY CAREER door', 'call'); }, 3500);
   }
   /* how a career starts */
   const PATHS = [
@@ -1410,7 +1410,7 @@
     }
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}">
       <div class="hubtop"><div class="me">${portrait() ? `<img class="face" src="${portrait()}" alt="" style="background:${t.c1}">` : badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}${C.phase === 'playoffs' ? ' · Playoffs' : ''}</span></div></div>
-      <button class="ic" id="menu" aria-label="Menu">⌂</button></div>
+      <button class="ic pk" id="menu" aria-label="Back to the park">${PB.noGL ? '⌂' : '⌂<small>Park</small>'}</button></div>
       <div class="hubbody">${body}</div>
       <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
