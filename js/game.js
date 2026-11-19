@@ -756,6 +756,52 @@
     if (!who) return; who.saidT = G.t; const L = PARKSAY[kind]; R.say(who, L[Math.floor(rand() * L.length)], 2.4);
     if (kind === 'make' || kind === 'move') { who.npcPose = rand() < 0.5 ? 'point' : 'call'; who.npcW = 0; who.npcT = 1.6; }
   }
+  /* two regulars shoot around, one at each rim, with balls of their own: a spot, a jumper, the ball chased down
+     (through the net, or off the iron and away), again */
+  function parkShooters(dt) {
+    const u = G.user;
+    for (const p of G.pl) if (p.npc && p.pb) {
+      const b = p.pb, s = p.pbRim, rz = s * RIM;
+      if (b.st === 'hold') {
+        if (!p.spot) { const a = rr(-1.25, 1.25), d = rr(7, 23); p.spot = { x: Math.sin(a) * d, z: rz - s * Math.cos(a) * d }; p.pbWait = 0; }
+        const near = hyp(u.x - p.x, u.z - p.z) < 5.5;
+        if (p.pbUp === undefined) {
+          if (hyp(p.spot.x - p.x, p.spot.z - p.z) > 1.2 && !near) { p.tx = p.spot.x; p.tz = p.spot.z; seek(p, dt, 0.3); p.pose = ''; }
+          else { steer(p, dt, 0, 0); if (!near) { p.face = Math.atan2(0 - p.x, rz - p.z); p.pbWait += dt; } else p.face += (Math.atan2(u.x - p.x, u.z - p.z) - p.face) * Math.min(1, dt * 3); }
+          if (p.pbWait > rr(0.5, 1.4)) { p.pbUp = 0; p.jg = GRAV * 1.5; p.vy = Math.sqrt(2 * p.jg * 1.4); p.pose = 'shoot'; }
+          /* the dribble, in his right hand */
+          const ph = (G.t * 7 + p.slot) % Math.PI, f = p.face, sp = hyp(p.vx, p.vz) > 2;
+          b.x = p.x + Math.cos(f) * 0.9 + Math.sin(f) * (sp ? 1.2 : 0.6); b.z = p.z - Math.sin(f) * 0.9 + Math.cos(f) * (sp ? 1.2 : 0.6); b.y = sp || !p.pbWait ? 0.4 + Math.sin(ph) * 2.6 : 4.2;
+        } else {
+          /* up, and let go at the top */
+          p.pbUp += dt; steer(p, dt, 0, 0); p.face = Math.atan2(0 - p.x, rz - p.z);
+          b.x = p.x + Math.sin(p.face) * 0.6; b.z = p.z + Math.cos(p.face) * 0.6; b.y = p.y + 8.2;
+          if (p.vy <= 0 && p.pbUp > 0.15) {
+            const d = hyp(0 - b.x, rz - b.z), make = rand() < clamp(0.62 - d * 0.012, 0.32, 0.58), off = make ? 0 : rr(0.9, 1.6), oa = rand() * 6.28;
+            const tx = Math.sin(oa) * off, tz = rz + Math.cos(oa) * off, T = clamp(0.62 + d * 0.022, 0.7, 1.3), g = 32;
+            Object.assign(b, { st: 'air', vx: (tx - b.x) / T, vz: (tz - b.z) / T, vy: (10.2 - b.y + 0.5 * g * T * T) / T, T, make, t: 0 });
+            p.pbUp = undefined; p.spot = null;
+          }
+        }
+      } else if (b.st === 'air') {
+        b.t += dt; b.vy -= 32 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+        if (b.t >= b.T) {
+          const far = hyp(b.x - u.x, b.z - u.z) > 40 ? 0.25 : 0.5;
+          if (b.make) { b.x = 0; b.z = rz; b.vx = rr(-1, 1); b.vz = -s * rr(0.5, 2); b.vy = -6; R.swish && R.swish(s); AU().play('swish', { x: b.x, vol: far }); }
+          else { const a = Math.atan2(b.x, b.z - rz); b.vx = Math.sin(a) * rr(5, 9); b.vz = Math.cos(a) * rr(5, 9) - s * 3; b.vy = rr(5, 9); R.rimSnap && R.rimSnap(s, 0.3); AU().play('rim', { x: b.x, power: 0.3, vol: far }); }
+          b.st = 'loose';
+        }
+      } else {
+        /* loose: it bounces, rolls, and he goes and gets it */
+        b.vy -= 32 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+        if (b.y < 0.39) { b.y = 0.39; b.vy = Math.abs(b.vy) > 3 ? -b.vy * 0.55 : 0; b.vx *= 0.82; b.vz *= 0.82; }
+        if (b.y <= 0.4) { b.vx *= 1 - Math.min(1, dt * 0.9); b.vz *= 1 - Math.min(1, dt * 0.9); }
+        if (Math.abs(b.x) > 33) { b.x = Math.sign(b.x) * 33; b.vx *= -0.5; } if (Math.abs(b.z) > 59) { b.z = Math.sign(b.z) * 59; b.vz *= -0.5; }
+        p.tx = b.x; p.tz = b.z; seek(p, dt, 0.42); p.pose = '';
+        if (hyp(b.x - p.x, b.z - p.z) < 1.9 && b.y < 4) { b.st = 'hold'; p.spot = null; }
+      }
+    }
+  }
   /* the ring's card sits at the top, under the walk-through when that is up: the player and the controls stay clear */
   function placeCard() {
     const c = $('#parkcard'), t = $('#tut'); if (!c) return;
@@ -785,7 +831,8 @@
       }
       else c.hidden = true; }
     if (G.t - (G.hiT || 0) > rr(7, 12)) { G.hiT = G.t; parkSay('hi', 14); }
-    for (const p of G.pl) if (p.npc) {
+    parkShooters(dt);
+    for (const p of G.pl) if (p.npc && !p.pb) {
       if (hyp(p.x - u.x, p.z - u.z) < 5.5) { p.npcW = 0; p.npcT = Math.max(p.npcT || 0, 1); }
       p.npcT = (p.npcT || 0) - dt;
       if (p.npcT <= 0) { const r = rand(); if (r < 0.55) { p.tx = rr(-24, 24); p.tz = rr(-52, 52); p.npcW = 1; p.npcT = rr(4, 9); } else { p.npcW = 0; p.npcT = rr(2, 6); p.npcPose = ['call', 'shrug', '', '', 'flex', 'point'][Math.floor(rand() * 6)]; } }
@@ -806,7 +853,7 @@
     G.clock = 0; G.shotClock = 24; G.score[0] = D.made; G.score[1] = D.att;
     if (D.next > 0) { D.next -= dt; if (D.next <= 0) { D.next = 0; give(u); } }
     $('#ftmsg').hidden = !!(G.park && G.tut && !G.tut.done);
-    $('#ftmsg').textContent = G.park ? (D.att ? `${D.made} of ${D.att}${D.streak > 1 ? ` · ${D.streak} straight` : ''}` : 'Walk into a ring, or open the Menu') : `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
+    $('#ftmsg').textContent = G.park ? (D.att ? `${D.made} of ${D.att}${D.streak > 1 ? ` · ${D.streak} straight` : ''}` : 'Walk into a ring') : `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
   }
   function dunkLands(s) {
     const D = G.drill, b = G.ball, p = s.shooter, st = STYLES[s.style || 0];
@@ -2742,6 +2789,8 @@
             G.parkAt = undefined; G.tut = o.tutorial ? { i: Math.min(o.tutAt || 0, TUT.length - 1) } : null; { const e = $('#tut'); if (e) e.hidden = !G.tut; }
             const HANDLES = ['SPLASHZONE', 'GLASSCLEANER', 'LOCKDOWN', 'FADEKING', 'DOWNTOWN', 'NOLOOK', 'BIGSHOT', 'BOARDMAN', 'HOOPDREAMS', 'ANKLES', 'MIDRANGE', 'BUCKETS'];
             for (const p of pl) if (p.team === 1) { p.npc = true; p.x = rr(-24, 24); p.z = rr(-48, 48); p.face = rand() * 6.28; p.name = p.d.handle || (p.d.handle = HANDLES[Math.floor(rand() * HANDLES.length)] + (Math.floor(rand() * 90) + 10)); }
+            /* two of them have a ball and a rim each */
+            pl.filter(p => p.npc).slice(0, 2).forEach((p, i) => { p.pbRim = i ? -1 : 1; p.z = p.pbRim * rr(22, 34); p.pb = { st: 'hold', x: p.x, y: 2, z: p.z, vx: 0, vy: 0, vz: 0 }; });
             $('#game').classList.add('park'); } }
         else { const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0; give(G.user); }
         $('#a0').textContent = 'PTS'; $('#a1').textContent = o.drill === 'dunk' ? 'DUNK' : 'SHOTS';

@@ -750,7 +750,7 @@ table.pbx td small{color:var(--mute)}
 #game.park #pz::before{content:"";width:15px;height:2px;border-radius:1px;background:#fff;box-shadow:0 -5px #fff,0 5px #fff}
 #game.park #pz::after{content:"Menu"}
 #game.park #zm button{background:rgba(8,8,10,.86);border:1px solid rgba(255,255,255,.14);border-radius:999px;width:36px;height:36px}
-#game.park #ftmsg{top:calc(58px + env(safe-area-inset-top,0px))}
+#game.park #ftmsg{top:calc(58px + env(safe-area-inset-top,0px));white-space:nowrap}
 #game.park #radar{top:54px;right:12px;width:50px;height:88px;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
 #tut{position:absolute;left:12px;right:72px;top:54px;z-index:7;padding:10px 12px 11px;border-radius:14px;background:rgba(10,10,14,.92);border:1px solid rgba(255,255,255,.2);
   display:flex;flex-direction:column;gap:2px;pointer-events:auto;animation:pop .25s;transition:border-color .2s,box-shadow .2s}

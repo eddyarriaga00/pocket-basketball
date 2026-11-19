@@ -16,6 +16,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
   door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
   through that door.
+- Two regulars shoot around, one at each rim, with balls of their own: they walk to a spot, rise up, and chase it
+  down, through the net or off the iron and away.
 - The regulars talk: a word when you come by ("You got next?", "Run it?"), something when you score near them or
   miss, a reaction to a crossover. Walk right up to one and he stops and looks at you, and his card offers a 1 on 1
   against him, under his handle.

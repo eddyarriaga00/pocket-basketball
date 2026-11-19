@@ -37,7 +37,7 @@
     const sp = new T.Sprite(new T.SpriteMaterial({ map: t, depthTest: false, transparent: true })); sp.scale.set(5.4, 1.21, 1); sp.renderOrder = 6; return sp;
   }
   /* a speech bubble over a park regular's head: what he says, for a few seconds */
-  const says = new Map();
+  const says = new Map(), parkBalls = [];
   function bubbleSprite(text) {
     const cv = document.createElement('canvas'); cv.width = 512; cv.height = 120; const g = cv.getContext('2d');
     let fs = 40; g.font = `800 ${fs}px Archivo, Arial`; while (g.measureText(text).width > 440 && fs > 22) { fs -= 2; g.font = `800 ${fs}px Archivo, Arial`; }
@@ -1555,7 +1555,7 @@
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
     for (const g of orphans) g.dispose(); orphans.length = 0;
-    meshes.clear(); refs = []; benchMesh = []; for (const k in tags) tags[k] = null; says.clear();
+    meshes.clear(); refs = []; benchMesh = []; for (const k in tags) tags[k] = null; says.clear(); parkBalls.length = 0;
     while (scene.children.length > 2) { const o = scene.children[2]; scene.remove(o); freeTree(o, true); }
     /* every player's shadow, one instanced mesh */
     const sg = new T.CircleGeometry(1.1, 16); sg.rotateX(-Math.PI / 2);
@@ -1944,6 +1944,12 @@
       const h = b.holder, drib = b.state === 'held' && h && !h.shoot && !h.inb && G.phase !== 'ft' && h.pose !== 'hold' && !(h.fakeT !== undefined && G.t - h.fakeT < 0.4);
       ballMesh.rotation.x += dt * (b.state === 'shot' ? -9 : b.state === 'pass' ? (b.bounce ? 7 : -5) : b.state === 'held' ? (drib ? 6 : 0) : Math.min(14, 3 + sp * 0.5)); }
     ballShadow.position.set(b.x, 0.03, b.z);
+    /* the park regulars' own balls */
+    { let n = 0;
+      if (G.park) for (const p of G.pl) if (p.pb) {
+        let m = parkBalls[n]; if (!m) { m = new T.Mesh(ballMesh.geometry, ballMesh.material); scene.add(m); parkBalls[n] = m; }
+        m.visible = true; m.position.set(p.pb.x, p.pb.y, p.pb.z); m.rotation.x += dt * (p.pb.st === 'air' ? -9 : 6); n++; }
+      for (let i = n; i < parkBalls.length; i++) parkBalls[i].visible = false; }
     const u = G.user;
     userRing.visible = !!u;
     if (staRing) { const e = u && u.energy !== undefined && !G.drill ? Math.max(0, Math.min(1, u.energy)) : -1; staRing.visible = e >= 0 && e < 0.995;
