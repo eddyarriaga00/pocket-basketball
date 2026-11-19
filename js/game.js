@@ -2625,7 +2625,8 @@
         if (o.drill === 'dunk') { G.drill.next = 0.4; const sp = dunkSpot(); G.user.x = sp.x; G.user.z = sp.z; G.user.face = Math.atan2(-sp.x, hoopZ(0) - sp.z); }
         else if (o.drill === 'free') { const sp = toCourt(0, 0, 18); G.user.x = sp.x; G.user.z = sp.z; G.user.face = 0; give(G.user);
           if (o.park) { G.park = true; G.user.x = 0; G.user.z = -6; G.user.face = 0; R.setStations && R.setStations(PARK);
-            for (const p of pl) if (p.team === 1) { p.npc = true; p.x = rr(-28, 28); p.z = rr(-48, 48); p.face = rand() * 6.28; }
+            const HANDLES = ['SPLASHZONE', 'GLASSCLEANER', 'LOCKDOWN', 'FADEKING', 'DOWNTOWN', 'NOLOOK', 'BIGSHOT', 'BOARDMAN', 'HOOPDREAMS', 'ANKLES', 'MIDRANGE', 'BUCKETS'];
+            for (const p of pl) if (p.team === 1) { p.npc = true; p.x = rr(-28, 28); p.z = rr(-48, 48); p.face = rand() * 6.28; p.name = HANDLES[Math.floor(rand() * HANDLES.length)] + (Math.floor(rand() * 90) + 10); }
             $('#game').classList.add('park'); } }
         else { const sp = drillSpot(); G.user.x = sp.x; G.user.z = sp.z - 3; G.user.face = 0; give(G.user); }
         $('#a0').textContent = 'PTS'; $('#a1').textContent = o.drill === 'dunk' ? 'DUNK' : 'SHOTS';

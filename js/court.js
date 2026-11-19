@@ -50,6 +50,8 @@
     const u = G && !G.drill && !G.replay && mode !== 'Off' ? G.user : null, h = G && G.ball && G.ball.holder;
     placeTag('me', u, true);
     placeTag('ball', mode === 'You and the ball' && h && h !== u && !G.replay ? h : null, false);
+    /* the park: everyone's handle over his head, the way a park shows who is out there (the near ones only) */
+    if (G && G.park) { const me = G.user; placeTag('pme', me, true); G.pl.forEach((p, i) => { if (p.npc) placeTag('npc' + i, me && Math.hypot(p.x - me.x, p.z - me.z) < 30 ? p : null, false); }); }
   };
   R._marks = () => ({ def: defArrow && defArrow.visible ? defArrow.material.color.getHexString() : null, pass: passTarget && passTarget.num, man: manTarget && manTarget.num, arrow: passArrow && passArrow.visible && R.toScreen(passArrow.position.x, passArrow.position.y, passArrow.position.z) });
   R.flash = color => { if (!flash) return; flash.material.color.set(color); flashT = 0.6; };
@@ -1488,8 +1490,8 @@
     const bm = new T.MeshLambertMaterial({ color: 0x6b4a32 });
     for (const z of [-30, 30]) for (const x of [-31, 31]) { const b = new T.Mesh(new T.BoxGeometry(2, 1.4, 10), bm); b.position.set(x, 1.6, z); scene.add(b); const b2 = new T.Mesh(new T.BoxGeometry(0.4, 2.4, 10), bm); b2.position.set(x + Math.sign(x) * 1, 2.6, z); scene.add(b2); }
     /* the park's name painted over the far fence */
-    const nm = new T.Mesh(new T.PlaneGeometry(36, 7), new T.MeshBasicMaterial({ map: signTex(`${(home.city || 'THE').toUpperCase()} PARK`, 'run it back', home.c1), transparent: true }));
-    nm.position.set(0, 16, FZ + 0.5); nm.rotation.y = Math.PI; scene.add(nm);
+    const nm = new T.Mesh(new T.PlaneGeometry(26, 5), new T.MeshBasicMaterial({ map: signTex(`${(home.city || 'THE').toUpperCase()} PARK`, 'run it back', home.c1), transparent: true }));
+    nm.position.set(0, 19, FZ + 0.5); nm.rotation.y = Math.PI; scene.add(nm);
   }
   /* the rings you walk into: a glowing circle on the ground, a column of light and a sign over it */
   R.setStations = list => {
@@ -1517,7 +1519,7 @@
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
     for (const g of orphans) g.dispose(); orphans.length = 0;
-    meshes.clear(); refs = []; benchMesh = []; tags.me = tags.ball = null;
+    meshes.clear(); refs = []; benchMesh = []; for (const k in tags) tags[k] = null;
     while (scene.children.length > 2) { const o = scene.children[2]; scene.remove(o); freeTree(o, true); }
     /* every player's shadow, one instanced mesh */
     const sg = new T.CircleGeometry(1.1, 16); sg.rotateX(-Math.PI / 2);
