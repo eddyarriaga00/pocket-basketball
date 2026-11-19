@@ -113,7 +113,7 @@
       <div class="row2"><button class="ghost sm" id="sw">Switch player</button><button class="ghost sm" id="set">Settings</button></div></div>`);
     whatsNew();
     title3d(C.me, t);
-    $('#start').onclick = () => park();
+    $('#start').onclick = () => { PB.R.showcase(null); scr().classList.remove('over3d'); park(); };
     $('#sw').onclick = myPlayers; $('#set').onclick = settings;
   }
   function recordBook() {

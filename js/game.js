@@ -2735,6 +2735,9 @@
       }
       if (PB.noGL) { alert('This browser cannot draw the 3D court (WebGL is off or unavailable). Try another browser, or turn on hardware acceleration.'); if (o.onEnd) setTimeout(() => PB.Career.title(), 0); return; }
       opts = o;
+      /* a menu's 3D showcase (the start screen's player) hides the controls while it is up: never carry it into a game */
+      if (R.showcase) R.showcase(null);
+      $('#game').classList.remove('show', 'replaying');
       $('#game').hidden = false;
       if (!bound) { bindControls(); bound = true; }
       R.setCam(Object.keys(R.CAMS).find(k => R.CAMS[k] === (PB.settings && PB.settings.cam)) || 'lock');

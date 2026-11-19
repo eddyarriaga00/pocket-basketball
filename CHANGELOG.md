@@ -16,6 +16,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
   door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
   through that door.
+- Fixed: after Tap to start, the park came up with no stick, no buttons and no Menu, so you could not move. The start
+  screen's 3D player kept the game's controls hidden; now every game clears it as it starts. tools/start.js checks
+  that way in with real touches (the stick has to move you, Menu has to open), from the start screen and the others.
 - Fixes from a full bug pass: each visit to the park left its sky picture in graphics memory (about one more for every
   visit, and the park is visited all the time now); "Play next game" from the park went past what the career had
   waiting (a word from the coach, an endorsement, All-Star weekend and its contests, a rival's post), which the menu
