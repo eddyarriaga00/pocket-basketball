@@ -8,7 +8,8 @@ const { chromium } = require('playwright');
   const errs = []; pg.on('pageerror', e => errs.push('PAGE ' + e.message)); pg.on('dialog', d => d.accept());
   await pg.goto(s.url); await pg.evaluate(() => localStorage.clear()); await pg.reload();
   await pg.waitForFunction(() => window.PB && PB.R && PB.R.modelReady && PB.R.modelReady(), { timeout: 30000 });
-  await pg.click('#newc'); await pg.fill('#fn', 'Drill'); await pg.fill('#ln', 'Tester'); await pg.click('#go');
+  await pg.click('#newc'); await pg.fill('#fn', 'Drill'); await pg.fill('#ln', 'Tester'); for (let k = 0; k < 4 && (await pg.$('#go')); k++) await pg.click('#go');
+  await pg.waitForFunction(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().park, null, { timeout: 60000 }); await pg.evaluate(() => PB.Game.dbg.parkGo('career')); await pg.waitForSelector('#skip');
   await pg.screenshot({ path: require('os').tmpdir() + '/d0.png' });
   const shootLoop = async (tag) => {
     let shots = 0;

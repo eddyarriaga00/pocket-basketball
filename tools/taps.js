@@ -10,7 +10,7 @@ const { webkit, devices } = require('playwright');
   await tap('#how', 'how to play (early)'); await tap('#bk', 'back'); await tap('#set', 'settings'); await tap('#bk', 'back from settings');
   await tap('#newc', 'new career'); await pg.fill('#fn', 'Tap'); await pg.fill('#ln', 'Test');
   for (const s of await pg.$$eval('#screen .seg button, #screen .opt button, #screen select', es => es.slice(0, 0).map(e => e.id))) await tap('#' + s);
-  for (let k = 0; k < 8 && !(await pg.$('#play')); k++) { if (await pg.$('#skip')) await tap('#skip', 'skip'); if (await pg.$('.ans')) await tap('.ans', 'answer'); await tap('#go', 'go ' + k); }
+  for (let k = 0; k < 12 && !(await pg.$('#play')); k++) { if (await pg.evaluate(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().park)) { await pg.evaluate(() => PB.Game.dbg.parkGo('career')); await pg.waitForTimeout(400); } if (await pg.$('#skip')) await tap('#skip', 'skip'); if (await pg.$('.ans')) await tap('.ans', 'answer'); await tap('#go', 'go ' + k); }
   for (const t of await pg.$$eval('.tabs button', bs => bs.map(x => x.dataset.t))) await tap(`.tabs button[data-t="${t}"]`, 'tab ' + t);
   await tap('.tabs button[data-t="player"]', 'player tab');
   const ups = await pg.$$('#screen button'); let tried = 0; for (const u of ups.slice(0, 40)) { const box = await u.boundingBox(); if (!box || box.y < 0 || box.y > 760) continue; const tx = (await u.textContent()).trim().slice(0, 16); try { await u.tap({ timeout: 2500, trial: true }); tried++; } catch (e) { fails.push('player tab button "' + tx + '": ' + e.message.split('\n').filter(l => /intercepts/.test(l)).slice(0, 1).join('').slice(0, 160)); } }

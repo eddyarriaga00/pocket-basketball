@@ -93,8 +93,49 @@
   const badge = t => `<i class="tb" style="background:${t.c1};color:${PB.ink(t.c1, t.c2)}">${esc(t.ab || t.id)}</i>`;
   const tname = t => `${t.city} ${t.name}`;
 
-  /* ---------- title ---------- */
+  /* ---------- home ----------
+     With a player and a 3D view, home is the park: every back button and the hub's home button lead there. Without a
+     player (a first visit) or without 3D, the classic menu. */
   function title() {
+    C = loadCur();
+    if (C && C.me && !PB.noGL) { park(); return; }
+    classicTitle();
+  }
+  /* the first screen: the logo over your player, a tap to start (which also lets the sound in), and the park */
+  function splash() {
+    C = loadCur();
+    if (!C || !C.me || PB.noGL) { classicTitle(); return; }
+    if (PB.audio) PB.audio.music(true);
+    const t = C.team ? PB.team(C.team) : null;
+    show(`<div class="title splash"><div class="logo"><div class="ball"></div><h1>Pocket<br>Basketball</h1></div>
+      <div class="spacer"></div>
+      <button class="big" id="start">Tap to start<small>${esc(PB.full(C.me))} · ${t ? esc(t.name) : 'pre-draft'} · ${C.me.ovr} OVR</small></button>
+      <div class="row2"><button class="ghost sm" id="sw">Switch player</button><button class="ghost sm" id="set">Settings</button></div></div>`);
+    whatsNew();
+    title3d(C.me, t);
+    $('#start').onclick = () => park();
+    $('#sw').onclick = myPlayers; $('#set').onclick = settings;
+  }
+  function recordBook() {
+    const hall = load('pbb.hall') || [], RB = load('pbb.records') || {};
+    const rec = (o, list) => list.filter(([k]) => o && o[k]).map(([k, l]) => `<div class="card rec"><span>${l}</span><b>${o[k].v}</b><small>${esc(o[k].name)} · ${esc(PB.team(o[k].team).ab)} · season ${o[k].year}</small></div>`).join('');
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Record book</h2><p class="mute">The best by any career on this device.</p>
+      ${RB.game ? `<h3>One game</h3>${rec(RB.game, [['pts', 'Points'], ['reb', 'Rebounds'], ['ast', 'Assists'], ['tpm', 'Threes'], ['stl', 'Steals'], ['blk', 'Blocks']])}` : ''}
+      ${RB.season ? `<h3>One season</h3>${rec(RB.season, [['ppg', 'Points a game'], ['rpg', 'Rebounds a game'], ['apg', 'Assists a game']])}` : ''}
+      ${!RB.game && !RB.season && !hall.length ? '<p class="mute">Nothing yet. Records are set in the games you play.</p>' : ''}
+      ${hall.length ? '<h3>Retired careers</h3>' : ''}
+      ${hall.map(h => `<div class="card slot"><div><b>${h.hof ? '🏛 ' : ''}${esc(h.name)}</b><span>${h.pos} · ${h.seasons} seasons · ${h.pts} points (${h.ppg} a game) · ${h.trophies} trophies · last with the ${esc(PB.team(h.team).name)}</span>
+        <span>${h.hof ? 'Hall of Fame' : 'Hall score ' + h.score + ' of 22'}</span></div></div>`).join('')}</div>`);
+    $('#bk').onclick = title;
+  }
+  function achievements() {
+    const got = load('pbb.ach') || {};
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Achievements</h2><p class="mute">${Object.keys(got).length} of ${ACH.length}, across every career on this device.</p>
+      <div class="achgrid">${ACH.map(([k, n, d]) => `<div class="card ach ${got[k] ? 'got' : ''}"><i>${got[k] ? '★' : '☆'}</i><div><b>${n}</b><span>${d}</span><em>${got[k] ? esc(got[k].who) : 'Not yet'}</em></div></div>`).join('')}</div></div>`);
+    $('#bk').onclick = title;
+  }
+  /* ---------- the classic menu ---------- */
+  function classicTitle() {
     if (PB.audio) PB.audio.music(true);
     C = loadCur();
     const list = slots();
@@ -117,7 +158,7 @@
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
     whatsNew();
-    if (live) $('#cont').onclick = hub;
+    if (live) $('#cont').onclick = () => { tab = 'home'; hub(); };
     title3d(live ? C.me : null, live && C.team ? PB.team(C.team) : null);
     if ($('#newc')) $('#newc').onclick = () => { setCur(''); C = null; create(); };
     if ($('#careers')) $('#careers').onclick = careers;
@@ -129,32 +170,20 @@
     $('#seas').onclick = () => PB.Season.start();
     $('#how').onclick = how;
     if ($('#chat')) $('#chat').onclick = () => { if (PB.online) PB.online.open(); };
-    if ($('#hall')) $('#hall').onclick = () => {
-      const hall = load('pbb.hall') || [], RB = load('pbb.records') || {};
-      const rec = (o, list) => list.filter(([k]) => o && o[k]).map(([k, l]) => `<div class="card rec"><span>${l}</span><b>${o[k].v}</b><small>${esc(o[k].name)} · ${esc(PB.team(o[k].team).ab)} · season ${o[k].year}</small></div>`).join('');
-      show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Record book</h2><p class="mute">The best by any career on this device.</p>
-        ${RB.game ? `<h3>One game</h3>${rec(RB.game, [['pts', 'Points'], ['reb', 'Rebounds'], ['ast', 'Assists'], ['tpm', 'Threes'], ['stl', 'Steals'], ['blk', 'Blocks']])}` : ''}
-        ${RB.season ? `<h3>One season</h3>${rec(RB.season, [['ppg', 'Points a game'], ['rpg', 'Rebounds a game'], ['apg', 'Assists a game']])}` : ''}
-        ${hall.length ? '<h3>Retired careers</h3>' : ''}
-        ${hall.map(h => `<div class="card slot"><div><b>${h.hof ? '🏛 ' : ''}${esc(h.name)}</b><span>${h.pos} · ${h.seasons} seasons · ${h.pts} points (${h.ppg} a game) · ${h.trophies} trophies · last with the ${esc(PB.team(h.team).name)}</span>
-          <span>${h.hof ? 'Hall of Fame' : 'Hall score ' + h.score + ' of 22'}</span></div></div>`).join('')}</div>`);
-      $('#bk').onclick = title;
-    };
+    if ($('#hall')) $('#hall').onclick = recordBook;
     $('#set').onclick = settings;
-    if ($('#achv')) $('#achv').onclick = () => {
-      const got = load('pbb.ach') || {};
-      show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Achievements</h2><p class="mute">${Object.keys(got).length} of ${ACH.length}, across every career on this device.</p>
-        <div class="achgrid">${ACH.map(([k, n, d]) => `<div class="card ach ${got[k] ? 'got' : ''}"><i>${got[k] ? '★' : '☆'}</i><div><b>${n}</b><span>${d}</span><em>${got[k] ? esc(got[k].who) : 'Not yet'}</em></div></div>`).join('')}</div></div>`);
-      $('#bk').onclick = title;
-    };
+    if ($('#achv')) $('#achv').onclick = achievements;
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-18g';
+  const NEW_V = '2026-11-18h';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V) return;
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
     const el = document.createElement('div'); el.className = 'card whatsnew';
     el.innerHTML = `<h3>New in PocketBasketball</h3><ul>
+      <li>The park is home: you start there. A wall of doors has every mode (My Career, Quick game, Season, the gym, the closet, Blacktop, Classics, Daily, My Player), and the pick-up games and Pro-Am are courtside</li>
+      <li>Menu, top left in the park: everything in one place, and a map of the park: tap a ring and you are there</li>
+      <li>A walk-through on your first visit: walking, sprinting, shooting, moves, the menu and the doors</li>
       <li>A new player model, sculpted for this game: hairstyles, beards, faces, builds, and it blinks and shouts</li>
       <li>The pump fake: tap Shoot quickly. A defender who jumps at it is out of the play</li>
       <li>On defense, an arrow shows where your man is going: green while you are in front of him</li>
@@ -518,26 +547,92 @@
     const sp = L.day === 7 ? 4 : L.day >= 4 ? 2 : 1, fans = 250 * L.day; C.me.sp += sp; C.fans = Math.round(C.fans + fans);
     return { day: L.day, sp, fans };
   }
-  /* ---------- the park: your My Player, on foot, in his city's park ----------
-     Walk it, shoot around at either rim, and walk into a ring: a pick-up game (1 on 1, 2 on 2, 3 on 3, to 11 or 21),
-     Pro-Am (5 on 5, full court, with park players), the gym (drills and contests), the closet (your look), or back to
-     your season. Park games are exhibitions: they build your followers and your park record, not your season line. */
+  /* ---------- the park: home ----------
+     You spawn here: your My Player, on foot, in his city's park. A wall down one side has a door for every mode (your
+     career, a quick game, a season, the gym, the closet, Blacktop, Classics, the daily challenge, My Player); along the
+     other sideline are the pick-up games and Pro-Am. The Menu button is all of it as a list, with a map: tap a ring and
+     you are there. The first visit walks you through the controls. Park games are exhibitions: they build your
+     followers and your park record, not your season line. */
   const parkTeam = () => C && C.team ? PB.team(C.team) : PB.team('LAK');
   const parkFloor = () => Object.assign({}, parkTeam(), { street: true, park: true, court: 0 });
   const parkGuy = (pos, ovr) => { const p = PB.makePlayer(pos, PB.clamp(Math.round(ovr + PB.gauss() * 3), 55, 92), PB.ri(19, 31)); return p; };
-  function park() {
-    if (!C || !C.me) { title(); return; }
+  let parkFrom = null;
+  const careerLine = () => {
+    if (C.phase === 'combine') return 'the draft combine is waiting';
+    if (C.phase === 'awards') return 'awards night';
+    if (C.phase === 'offseason') return 'the offseason';
+    if (C.phase === 'retired') return 'retired';
+    const nx = nextGame(); if (!nx) return C.phase === 'playoffs' ? 'the playoffs' : `season ${C.year}`;
+    return `${nx.label.split(' · ').slice(0, 2).join(' · ')} · vs ${PB.team(nx.opp).name}`;
+  };
+  const nextLive = () => (C.phase === 'regular' || C.phase === 'playoffs') && C.team ? nextGame() : null;
+  function park(at) {
+    C = C || loadCur();
+    if (!C || !C.me) { classicTitle(); return; }
+    if (PB.noGL) { tab = 'home'; hub(); return; }
+    statsV2();
+    const from = at || parkFrom; parkFrom = null;
     const o = C.me.ovr, npcs = ['PG', 'SG', 'SF', 'PF', 'C'].map(pos => parkGuy(pos, o));
+    const nx = nextLive(), gymLeft = ['contest', 'combine', 'world', 'dunk', 'free'].filter(k => (C.gym || {})[k] !== today()).length;
+    const info = { career: careerLine(), players: `${slots().length} player${slots().length === 1 ? '' : 's'} on this device`, daily: dailyDone() ? 'done today ✓' : 'today\'s late-game spot',
+      gym: gymLeft ? `${gymLeft} workout${gymLeft > 1 ? 's' : ''} left today` : 'all of today\'s workouts done', court: `park record ${(C.park || { w: 0 }).w}-${(C.park || { l: 0 }).l}` };
     scr().hidden = true;
     PB.Game.start({ teams: [parkTeam(), PB.TEAMS[(PB.TEAMS.indexOf(parkTeam()) + 7) % PB.TEAMS.length]], rosters: [[C.me], npcs], userId: C.me.id, drill: 'free', park: true, qlen: 1, level: S.level,
-      floor: parkFloor(), onEnd: r => parkGo(r.parkGo) });
+      floor: parkFloor(), parkAt: from, tutorial: !load('pbb.tut'), tutAt: load('pbb.tutAt') || 0, parkInfo: info, parkNext: nx ? `Play: vs ${PB.team(nx.opp).name}` : null,
+      menu: parkMenu, onTut: done => { store('pbb.tut', done ? 1 : 2); store('pbb.tutAt', 0); }, onTutStep: i => store('pbb.tutAt', i), onEnd: r => parkGo(r.parkGo) });
   }
   function parkGo(id) {
+    id = id || 'career';
+    parkFrom = id === 'next' || id.startsWith('hub:') ? 'career' : id;
     if (id === 'pick1' || id === 'pick2' || id === 'pick3') { pickup(+id.slice(-1)); return; }
     if (id === 'court') { proAm(); return; }
-    if (id === 'gym') { practice(park); return; }
+    if (id === 'gym') { practice(() => park()); return; }
     if (id === 'closet') { tab = 'player'; hub(); setTimeout(() => { const e = scr().querySelector('.lookh') || scr().querySelector('[data-look]'); if (e) e.scrollIntoView({ block: 'start' }); }, 60); return; }
+    if (id === 'next') { if (nextLive()) { C.goals = C.goals || makeGoals(); playGame(); } else { tab = 'home'; hub(); } return; }
+    if (id.startsWith('hub:')) { tab = id.slice(4); hub(); return; }
+    const pages = { quick, season: () => PB.Season.start(), blacktop: () => blacktop(), classics, daily, players: myPlayers, ach: achievements, hall: recordBook,
+      how, settings, chat: () => { if (PB.online) PB.online.open(); else park(); } };
+    if (pages[id]) { pages[id](); return; }
     tab = 'home'; hub();
+  }
+  /* the menu, over the park: you, your next game, your career's pages, the park's map (tap a ring to go there),
+     every mode, and the rest */
+  function parkMenu(ov, ctl) {
+    const me = C.me, t = C.team ? PB.team(C.team) : null, rk = rankOf(C.fans), P = C.park || { w: 0, l: 0 }, nx = nextLive();
+    const tile = (id, ic, n, sub, dot) => `<button class="pmt" data-go="${id}">${ic}<b>${n}</b>${sub ? `<small>${sub}</small>` : ''}${dot ? '<i class="dot"></i>' : ''}</button>`;
+    const nav = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[k]}</svg>`;
+    const W = 220, H = 360, mx = x => W / 2 - x / 76 * W, mz = z => H / 2 - z / 128 * H;
+    const map = `<svg class="pmmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of the park">
+      <rect x="${mx(36)}" y="${mz(62)}" width="${mx(-36) - mx(36)}" height="${mz(-62) - mz(62)}" rx="6" class="gr"/>
+      <rect x="${mx(25)}" y="${mz(47)}" width="${mx(-25) - mx(25)}" height="${mz(-47) - mz(47)}" class="ct"/>
+      <line x1="${mx(25)}" x2="${mx(-25)}" y1="${mz(0)}" y2="${mz(0)}" class="ct"/><circle cx="${mx(0)}" cy="${mz(0)}" r="10" class="ct"/>
+      <circle cx="${mx(0)}" cy="${mz(41.75)}" r="3" class="ct"/><circle cx="${mx(0)}" cy="${mz(-41.75)}" r="3" class="ct"/>
+      <rect x="${mx(37.4) - 1}" y="${mz(62)}" width="7" height="${mz(-62) - mz(62)}" class="wl"/>
+      ${ctl.stations.map(s => `<g class="st${s.id === ctl.at ? ' at' : ''}" data-tr="${s.id}" role="button" aria-label="Go to ${esc(s.label)}" transform="translate(${mx(s.x).toFixed(1)},${mz(s.z).toFixed(1)})">
+        <circle r="13" class="hit"/><circle r="6.5" style="fill:${s.color}"/><text x="${s.x > 0 ? 11 : -11}" y="3.5" text-anchor="${s.x > 0 ? 'start' : 'end'}">${esc(s.label)}</text></g>`).join('')}
+      <g class="you" transform="translate(${mx(ctl.me.x).toFixed(1)},${mz(ctl.me.z).toFixed(1)})"><circle r="7"/><text y="-11" text-anchor="middle">YOU</text></g></svg>`;
+    const done = dailyDone(), up = canUpgrade();
+    ov.innerHTML = `<div class="card pm">
+      <div class="pmtop">${portrait() ? `<img class="face" src="${portrait()}" alt="" style="background:${t ? t.c1 : '#2a2a2e'}">` : ''}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · ${t ? esc(t.name) : 'pre-draft'} · season ${C.year}</span></div>
+        <button class="pmx" id="pmx" aria-label="Close the menu">✕</button></div>
+      <div class="pmstats"><div><b>${rk.name}</b><span>Rank</span></div><div><b>${fmtFans(C.fans)}</b><span>Followers</span></div><div><b>${me.sp}</b><span>Skill pts</span></div><div><b>${P.w}-${P.l}</b><span>Park</span></div></div>
+      ${nx ? `<button class="big" data-go="next">Play next game<small>${esc(nx.label)} · vs ${esc(PB.team(nx.opp).name)}</small></button>` : `<button class="big" data-go="career">My Career<small>${esc(careerLine())}</small></button>`}
+      ${C.phase === 'combine' ? '' : `<h4>My Career</h4>
+      <div class="pmrow">${[['home', 'Home'], ['team', 'Team'], ['player', 'Player'], ['league', 'League'], ['log', 'Log']].map(([k, n]) => `<button class="pmn" data-go="hub:${k}">${nav(k)}<span>${n}</span>${k === 'player' && up ? '<i class="dot"></i>' : ''}</button>`).join('')}</div>`}
+      <h4>The park <small>tap a ring to go there</small></h4>
+      ${map}
+      <h4>Play</h4>
+      <div class="pmgrid">${tile('quick', MIC.vs, 'Quick game', 'two teams, one game')}${tile('season', MIC.cup, 'Season', 'run a whole team')}${tile('blacktop', MIC.street, 'Blacktop', '1v1 to 3v3, your teams')}
+        ${tile('classics', MIC.clock, 'Classics', 'the great nights')}${tile('daily', MIC.day, 'Daily' + (done ? ' ✓' : ''), done ? 'done today' : 'a new one every day')}${tile('gym', MIC.target, 'Gym', 'drills and contests')}
+        ${tile('pick1', MIC.career, '1 on 1', 'pick-up to 11')}${tile('pick3', MIC.list, '3 on 3', 'pick-up to 21')}${tile('court', MIC.vs, 'Pro-Am', '5 on 5')}</div>
+      <h4>More</h4>
+      <div class="pmgrid sm">${tile('closet', MIC.career, 'Closet')}${tile('players', MIC.list, 'My Player')}${tile('ach', MIC.cup, 'Achievements')}${tile('hall', MIC.clock, 'Record book')}
+        ${tile('chat', MIC.chat, 'Chat')}${tile('how', MIC.target, 'How to play')}<button class="pmt" id="pmtut">${MIC.day}<b>Tutorial</b></button>${tile('settings', MIC.list, 'Settings')}</div>
+      <button class="ghost" id="pmres">Back to the park</button></div>`;
+    $('#pmx').onclick = ctl.close; $('#pmres').onclick = ctl.close; $('#pmtut').onclick = () => { store('pbb.tut', 0); store('pbb.tutAt', 0); ctl.tutorial(); };
+    ov.querySelectorAll('[data-go]').forEach(b => b.onclick = () => ctl.go(b.dataset.go));
+    ov.querySelectorAll('[data-tr]').forEach(g => g.addEventListener('click', () => ctl.travel(g.dataset.tr)));
+    ov.scrollTop = 0;
   }
   function parkResult(r, again, label) {
     const u = r.user || {}, win = r.score[0] > r.score[1], P = C.park || (C.park = { w: 0, l: 0 });
@@ -744,7 +839,10 @@
     const order = PB.TEAMS.slice().sort((a, b) => strengths[a.id] - strengths[b.id] + PB.gauss() * 3).map(t => t.id);
     C = { v: 2, statV: 2, me, team: null, pick: 0, year: 1, rosters, standings: {}, games: [], gi: 0, news: [], seasons: [], totals: zero(), awards: [], trophies: [],
       trust: st.path === 'top' ? 56 : st.path === 'undrafted' ? 28 : 42, fans: 0, ct: {}, feed: [], phase: 'combine', streak: 0, order, path: st.path || 'draft' };
-    if (C.path === 'undrafted') undrafted(); else combine();
+    save(); parkFrom = null;
+    if (PB.noGL) { if (C.path === 'undrafted') undrafted(); else combine(); return; }
+    park();
+    setTimeout(() => { if (PB.Game.active) PB.Game.toast && PB.Game.toast(C.path === 'undrafted' ? 'Your agent is waiting: MY CAREER' : 'The draft combine is waiting: MY CAREER', 'call'); }, 3500);
   }
   /* how a career starts */
   const PATHS = [
@@ -758,11 +856,12 @@
     const me = C.me;
     /* three teams thin at your position will give you a look */
     const need = PB.TEAMS.map(t => ({ t, best: Math.max(...C.rosters[t.id].filter(p => p.pos === me.pos).map(p => p.ovr), 50) })).sort((a, b) => a.best - b.best + PB.gauss() * 2).slice(0, 3);
-    show(`<div class="page post"><p class="kick">Draft night</p><h2>Sixty names. Not yours.</h2>
+    show(`<div class="page post">${PB.noGL ? '' : '<button class="back" id="bk">‹ The park</button>'}<p class="kick">Draft night</p><h2>Sixty names. Not yours.</h2>
       <div class="card"><p>You watch both rounds from your couch. The phone stays face down on the table. A little after midnight, it buzzes: your agent.</p>
       <p>“Three teams want you in camp. No promises. A two-way deal, the last seat on the bench, and whatever you make of it.”</p></div>
       ${need.map((x, i) => `<button class="ghost ans" data-i="${i}">${badge(x.t)} <b>${esc(tname(x.t))}</b><small> · their best ${me.pos} is a ${x.best}</small></button>`).join('')}
       <p class="fine">Undrafted: you start lower and at the end of the bench. Each goal you hit is worth an extra skill point, good nights win fans fast, and when the coach trusts you the team turns the two-way into a real contract.</p></div>`);
+    if ($('#bk')) $('#bk').onclick = title;
     scr().querySelectorAll('.ans').forEach(b => b.onclick = () => {
       const t = need[+b.dataset.i].t;
       C.pick = 0; C.team = t.id; C.combine = null; C.phase = 'regular';
@@ -785,7 +884,7 @@
      the board, a bad one down. Skipping it sends the scouts your college numbers instead (an average day). */
   function combine() {
     const me = C.me;
-    show(`<div class="page post"><p class="kick">Pre-draft combine</p><h2>The scouts are watching</h2>
+    show(`<div class="page post">${PB.noGL ? '' : '<button class="back" id="bk">‹ The park</button>'}<p class="kick">Pre-draft combine</p><h2>The scouts are watching</h2>
       <div class="card"><p>Fifteen spot-up shots from five spots, three balls each, in 45 seconds: the corners, the elbows, the top of the key.
       Hold Shoot and let go at the top of your jump, in the green band.</p>
       <p class="fine">Your stock now: about pick ${projected()} of 30. Each make above an average day moves you up the board; each below moves you down.</p></div>
@@ -797,6 +896,7 @@
         onEnd: r => interviews(() => finishDraft(r.drill ? r.drill.score : 6)) });
     };
     $('#skip').onclick = () => interviews(() => finishDraft(null));
+    if ($('#bk')) $('#bk').onclick = title;
   }
   /* team interviews: two teams picking near you sit you down for a question each. Win one over and, if your stock is
      close to its pick, that team takes you there. */
@@ -1155,7 +1255,7 @@
     if (!C) { title(); return; }
     upgrade();
     if (C.phase === 'regular' && C.gi >= C.games.length) { startPlayoffs(); }
-    if (C.phase === 'combine') { combine(); return; }
+    if (C.phase === 'combine') { (C.path === 'undrafted' ? undrafted : combine)(); return; }
     if (C.phase === 'retired') { hallOfFame(); return; }
     if (C.phase === 'awards') { awardsNight(); return; }
     if (C.phase === 'offseason') { seasonEnd(C.lastGot); return; }
@@ -2682,10 +2782,10 @@
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 
-  PB.Career = { title, hub, get: () => C, gameStats };
+  PB.Career = { title, hub, park, get: () => C, gameStats };
   PB.boot = () => {
     /* without WebGL the menus and the career still work; only the court cannot be drawn */
     try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }
-    title();
+    splash();
   };
 })();

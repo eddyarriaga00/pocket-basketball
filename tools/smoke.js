@@ -20,6 +20,12 @@ const OUT = require('os').tmpdir();  /* screenshots go to the temp folder */
   await pg.click('[data-step="3"]'); await pg.waitForTimeout(100);   // and the look, the last step
   await pg.screenshot({ path: OUT + '/c1-create.png', fullPage: false });
   await pg.click('#go'); await pg.waitForTimeout(300);
+  /* a new player starts in the park, with the walk-through: into the MY CAREER ring, and its card's button */
+  await pg.waitForFunction(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().park, { timeout: 60000 });
+  await pg.waitForTimeout(800); await pg.screenshot({ path: OUT + '/c1b-park.png' });
+  console.log('tutorial', await pg.evaluate(() => { const e = document.querySelector('#tut'); return e && !e.hidden ? e.innerText.replace(/\s+/g, ' ') : 'none'; }));
+  await pg.evaluate(() => { const u = PB.Game.dbg.state().user; u.x = 31; u.z = 0; });
+  await pg.waitForSelector('#parkgo', { state: 'visible' }); await pg.click('#parkgo'); await pg.waitForTimeout(300);
   await pg.click('#skip'); await pg.waitForTimeout(300);   // the combine: skipped here (tools/drill.js plays it)
   for (let k = 0; k < 3 && await pg.$('.ans'); k++) { await pg.click('.ans'); await pg.click('#go'); }   // the team interviews
   await pg.screenshot({ path: OUT + '/c2-draft.png' });

@@ -12,7 +12,7 @@ const { webkit, devices } = require('playwright');
   console.log('webgl', await pg.evaluate(() => { const c = document.createElement('canvas'); const g = c.getContext('webgl2') || c.getContext('webgl'); return g ? g.getParameter(g.VERSION) : 'none'; }), 'rig', await pg.evaluate(() => PB.R._rig));
   await pg.waitForTimeout(1500); await shot('title');
   await tap('#newc'); await pg.fill('#fn', 'Web'); await pg.fill('#ln', 'Kit'); await shot('create');
-  for (let k = 0; k < 8 && !(await pg.$('#play')); k++) { if (await pg.$('#skip')) await tap('#skip'); if (await pg.$('.ans')) await tap('.ans'); await tap('#go'); }
+  for (let k = 0; k < 12 && !(await pg.$('#play')); k++) { if (await pg.evaluate(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().park)) { await pg.evaluate(() => PB.Game.dbg.parkGo('career')); await pg.waitForTimeout(400); } if (await pg.$('#skip')) await tap('#skip'); if (await pg.$('.ans')) await tap('.ans'); await tap('#go'); }
   await shot('hub');
   for (const t of await pg.$$eval('.tabs button', bs => bs.map(x => x.dataset.t))) { await tap(`.tabs button[data-t="${t}"]`); await shot('tab-' + t); }
   await tap('.tabs button[data-t="home"]'); await tap('#play'); await pg.waitForTimeout(1500); await shot('intro');

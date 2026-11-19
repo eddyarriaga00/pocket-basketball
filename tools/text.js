@@ -14,7 +14,7 @@ const N = +(process.argv[2] || 14);
       for (const im of document.querySelectorAll('#screen img')) if (im.complete && !im.naturalWidth && im.src) out.push('broken image ' + im.src.slice(0, 60));
       return out; }); for (const h of hits) { const k = where + ': ' + h; found[k] = (found[k] || 0) + 1; } };
   await tap('#newc'); await pg.fill('#fn', 'Text'); await pg.fill('#ln', 'Scan'); await scan('create');
-  for (let k = 0; k < 8 && !(await pg.$('#play')); k++) { await scan('setup' + k); if (await pg.$('#skip')) await tap('#skip'); if (await pg.$('.ans')) await tap('.ans'); await tap('#go'); }
+  for (let k = 0; k < 12 && !(await pg.$('#play')); k++) { await scan('setup' + k); if (await pg.evaluate(() => PB.Game.active && PB.Game.dbg.state() && PB.Game.dbg.state().park)) { await pg.evaluate(() => PB.Game.dbg.parkGo('career')); await pg.waitForTimeout(400); } if (await pg.$('#skip')) await tap('#skip'); if (await pg.$('.ans')) await tap('.ans'); await tap('#go'); }
   let games = 0;
   for (let g = 0; g < N; g++) {
     for (const t of await pg.$$eval('.tabs button', bs => bs.map(x => x.dataset.t))) { await tap(`.tabs button[data-t="${t}"]`); await scan('tab ' + t);

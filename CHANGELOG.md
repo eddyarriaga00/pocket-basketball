@@ -4,6 +4,21 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The park is home. After the start screen (your player over the arena, Tap to start) you are in your city's park, on
+  foot. One side of the park is a brick wall with a lit door for every mode: My Player, Season, Quick game, the gym,
+  My Career, the closet, Blacktop, Classics and the daily challenge. The pick-up rings (1 on 1, 2 on 2, 3 on 3) and
+  Pro-Am are along the other sideline. Every back button and the career's home button come back to the park, and
+  you come out of the door you went in. The classic menu is still there for a first visit with no player.
+- Menu (top left in the park) opens over it with everything: you (rank, followers, skill points, park record), your
+  next game in one tap, your career's pages, a map of the park (tap a ring and you are there), every mode, and the
+  rest (My Player, achievements, the record book, chat, how to play, the walk-through again, settings). The park has a
+  minimap too.
+- A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
+  door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
+  through that door.
+- The park camera no longer goes through a hoop's stanchion (and you cannot walk through one), and a regular standing
+  between the camera and you steps out of the picture.
+
 - My Player: every player you build has his own career, shown as a card in his uniform with his overall, build,
   height, weight, team and season. Tap one to play him, or build another (up to ten on a device). The title goes
   straight to the last one you played, or to the cards.

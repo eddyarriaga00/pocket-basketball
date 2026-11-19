@@ -1473,22 +1473,34 @@
     const ft = new T.CanvasTexture(fc); ft.wrapS = ft.wrapT = T.RepeatWrapping;
     const FX = 36, FZ = 62, FH = 12, fm = new T.MeshBasicMaterial({ map: ft, transparent: true, side: T.DoubleSide, depthWrite: false });
     const panel = (w, x, z, ry) => { const t = ft.clone(); t.needsUpdate = true; t.repeat.set(w / 1.6, FH / 1.6); const m = new T.Mesh(new T.PlaneGeometry(w, FH), new T.MeshBasicMaterial({ map: t, transparent: true, side: T.DoubleSide, depthWrite: false })); m.position.set(x, FH / 2, z); m.rotation.y = ry; scene.add(m); orphans.push(t); };
-    panel(FX * 2, 0, FZ, 0); panel(FX * 2, 0, -FZ, 0); panel(FZ * 2, FX, 0, Math.PI / 2); panel(FZ * 2, -FX, 0, Math.PI / 2);
+    panel(FX * 2, 0, FZ, 0); panel(FX * 2, 0, -FZ, 0); panel(FZ * 2, -FX, 0, Math.PI / 2);
     const pm = new T.MeshLambertMaterial({ color: 0x7c8088 });
     for (let x = -FX; x <= FX; x += 12) for (const z of [-FZ, FZ]) { const m = new T.Mesh(new T.CylinderGeometry(0.25, 0.25, FH, 6), pm); m.position.set(x, FH / 2, z); scene.add(m); }
-    for (let z = -FZ; z <= FZ; z += 12.4) for (const x of [-FX, FX]) { const m = new T.Mesh(new T.CylinderGeometry(0.25, 0.25, FH, 6), pm); m.position.set(x, FH / 2, z); scene.add(m); }
+    for (let z = -FZ; z <= FZ; z += 12.4) { const m = new T.Mesh(new T.CylinderGeometry(0.25, 0.25, FH, 6), pm); m.position.set(-FX, FH / 2, z); scene.add(m); }
+    /* the other side is a wall: painted brick the length of the park, a door in it for every mode (the doors, their
+       lights and their signs come with the rings), lamps between them, a sidewalk along it */
+    { const bc = document.createElement('canvas'); bc.width = 256; bc.height = 128; const b = bc.getContext('2d');
+      b.fillStyle = '#3a2f33'; b.fillRect(0, 0, 256, 128);
+      for (let r = 0; r < 8; r++) for (let c = -1; c < 5; c++) { const x = c * 64 + (r % 2) * 32, y = r * 16, k = 70 + ((r * 7 + c * 13) % 5) * 9;
+        b.fillStyle = `rgb(${k + 32},${k - 6},${k - 2})`; b.fillRect(x + 2, y + 2, 60, 12); }
+      const bt = new T.CanvasTexture(bc); bt.colorSpace = T.SRGBColorSpace; bt.wrapS = bt.wrapT = T.RepeatWrapping; bt.repeat.set(FZ * 2 / 16, 18 / 8); orphans.push(bt);
+      const wall = new T.Mesh(new T.BoxGeometry(1.4, 18, FZ * 2 + 1.4), new T.MeshLambertMaterial({ map: bt, color: 0x9a8f96 })); wall.position.set(FX + 0.7, 9, 0); scene.add(wall);
+      const cap = new T.Mesh(new T.BoxGeometry(2, 0.8, FZ * 2 + 2), new T.MeshLambertMaterial({ color: 0x55585e })); cap.position.set(FX + 0.7, 18.3, 0); scene.add(cap);
+      const walk = new T.Mesh(new T.PlaneGeometry(9, FZ * 2), new T.MeshLambertMaterial({ color: 0x6a6d74 })); walk.rotation.x = -Math.PI / 2; walk.position.set(FX - 4.5, 0.01, 0); scene.add(walk);
+      const lampM = new T.MeshBasicMaterial({ color: 0xfff1c8 });
+      for (let z = -54; z <= 54; z += 12) { const l = new T.Mesh(new T.BoxGeometry(0.6, 1.2, 1.2), lampM); l.position.set(FX - 0.3, 13.5, z); scene.add(l); } }
     /* trees outside the fence */
     const tm = new T.MeshLambertMaterial({ color: 0x4a3426 }), lm = [0x2f5b2c, 0x3b6a33, 0x28502a].map(c => new T.MeshLambertMaterial({ color: c }));
     for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2, rx = 48 + (i % 3) * 7, rz = 76 + (i % 4) * 6, x = Math.sin(a) * rx, z = Math.cos(a) * rz;
       const tr = new T.Mesh(new T.CylinderGeometry(0.8, 1.1, 10, 6), tm); tr.position.set(x, 5, z); scene.add(tr);
       const cn = new T.Mesh(new T.IcosahedronGeometry(6 + (i % 3) * 1.5, 0), lm[i % 3]); cn.position.set(x, 13 + (i % 2) * 2, z); scene.add(cn); }
     /* light poles at the corners, lamps lit */
-    for (const [x, z] of [[-34, -60], [34, -60], [-34, 60], [34, 60], [-34, 0], [34, 0]]) {
+    for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) {
       const pl = new T.Mesh(new T.CylinderGeometry(0.35, 0.45, 30, 6), pm); pl.position.set(x, 15, z); scene.add(pl);
       const lamp = new T.Mesh(new T.BoxGeometry(4, 1, 2), new T.MeshBasicMaterial({ color: 0xfff1c8 })); lamp.position.set(x - Math.sign(x) * 1.5, 30, z); scene.add(lamp); }
     /* benches along the sidelines */
     const bm = new T.MeshLambertMaterial({ color: 0x6b4a32 });
-    for (const z of [-30, 30]) for (const x of [-31, 31]) { const b = new T.Mesh(new T.BoxGeometry(2, 1.4, 10), bm); b.position.set(x, 1.6, z); scene.add(b); const b2 = new T.Mesh(new T.BoxGeometry(0.4, 2.4, 10), bm); b2.position.set(x + Math.sign(x) * 1, 2.6, z); scene.add(b2); }
+    for (const z of [-24, 24]) for (const x of [-32]) { const b = new T.Mesh(new T.BoxGeometry(2, 1.4, 10), bm); b.position.set(x, 1.6, z); scene.add(b); const b2 = new T.Mesh(new T.BoxGeometry(0.4, 2.4, 10), bm); b2.position.set(x + Math.sign(x) * 1, 2.6, z); scene.add(b2); }
     /* the park's name painted over the far fence */
     const nm = new T.Mesh(new T.PlaneGeometry(26, 5), new T.MeshBasicMaterial({ map: signTex(`${(home.city || 'THE').toUpperCase()} PARK`, 'run it back', home.c1), transparent: true }));
     nm.position.set(0, 19, FZ + 0.5); nm.rotation.y = Math.PI; scene.add(nm);
@@ -1504,6 +1516,14 @@
       const disc = new T.Mesh(new T.CircleGeometry(st.r - 0.35, 40), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.12, depthWrite: false })); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.05; g.add(disc);
       const beam = new T.Mesh(new T.CylinderGeometry(st.r, st.r, 9, 32, 1, true), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.1, side: T.DoubleSide, depthWrite: false, blending: T.AdditiveBlending })); beam.position.y = 4.5; g.add(beam);
       const sign = new T.Mesh(new T.PlaneGeometry(6.6, 2.05), new T.MeshBasicMaterial({ map: signTex(st.label, st.sub, st.color || '#4cffb0'), transparent: true, depthWrite: false })); sign.position.y = 8.6; sign.renderOrder = 6; g.add(sign);
+      if (st.wall) {
+        /* its door: dark, framed in light the ring's color, its name lit over it */
+        const wx = 36 - st.x - 0.05, fr = new T.MeshBasicMaterial({ color: col });
+        const door = new T.Mesh(new T.PlaneGeometry(5.2, 8.6), new T.MeshBasicMaterial({ color: 0x0c0c10 })); door.rotation.y = -Math.PI / 2; door.position.set(wx - 0.02, 4.3, 0); g.add(door);
+        for (const [w, h, y, z] of [[0.35, 9, 4.5, -2.75], [0.35, 9, 4.5, 2.75], [5.85, 0.35, 9, 0]]) { const m = new T.Mesh(new T.BoxGeometry(0.3, h, w), fr); m.position.set(wx - 0.1, y, z); g.add(m); }
+        const mq = new T.Mesh(new T.PlaneGeometry(9.6, 3), new T.MeshBasicMaterial({ map: signTex(st.label, null, st.color || '#ffffff'), transparent: true })); mq.rotation.y = -Math.PI / 2; mq.position.set(wx - 0.15, 11.6, 0); g.add(mq);
+        sign.position.y = 7.2; sign.scale.setScalar(0.78);
+      }
       g.position.set(st.x, 0, st.z); scene.add(g); stations.push({ g, ring, beam, sign, id: st.id });
     }
   };
@@ -1852,6 +1872,7 @@
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
   R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
   let snap = false; R.snap = () => { snap = true; };
+  let parkYaw = null; R.parkYaw = y => { parkYaw = y; };
   R.setCam = m => { camMode = R.CAMS[m] ? m : 'lock'; R.resize(); };
   R.getCam = () => camMode;
   /* player lock framing: how far behind you, how high, how far ahead it looks, the lens */
@@ -2029,13 +2050,19 @@
     }
     if (G.park && G.user) {
       const u = G.user, sp = Math.hypot(u.vx, u.vz);
-      if (yaw === undefined || yaw === null || snap) { yaw = Math.atan2(0 - u.x, 41.75 - u.z); }
+      if (parkYaw !== null) { yaw = parkYaw; parkYaw = null; snap = true; }
+      else if (yaw === undefined || yaw === null) { yaw = Math.atan2(0 - u.x, 41.75 - u.z); }
       if (sp > 4) { const want = Math.atan2(u.vx, u.vz); let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; if (Math.abs(dy) < 2.6) yaw += dy * Math.min(1, dt * 1.1); }
       anchor.lerp(new T.Vector3(u.x, 0, u.z), Math.min(1, dt * 6)); if (!dt || snap) { anchor.set(u.x, 0, u.z); snap = false; }
       const fx = Math.sin(yaw), fz = Math.cos(yaw), back = 24 * zoom, up = 13 * zoom;
       /* the camera stays inside the fence: against it, it rises a little instead of going through */
       const cx = anchor.x - fx * back, cz = anchor.z - fz * back, over = Math.max(0, Math.abs(cx) - 32) + Math.max(0, Math.abs(cz) - 58);
-      cam.position.set(PB.clamp(cx, -32, 32), up + over * 0.45, PB.clamp(cz, -58, 58)); cam.lookAt(anchor.x + fx * 10, 4, anchor.z + fz * 10);
+      let px = PB.clamp(cx, -32, 32); const pz = PB.clamp(cz, -58, 58);
+      if (Math.abs(pz) > 42 && Math.abs(pz) < 56 && Math.abs(px) < 4) px = (px < 0 ? -1 : 1) * 4;   // never inside a stanchion
+      cam.position.set(px, up + over * 0.45, pz); cam.lookAt(anchor.x + fx * 10, 4, anchor.z + fz * 10);
+      /* a regular standing between the lens and you steps out of the picture */
+      for (const [p, m] of meshes) if (p !== u && p.npc) { const ax = u.x - px, az = u.z - pz, L = Math.hypot(ax, az) || 1, t = ((p.x - px) * ax + (p.z - pz) * az) / L;
+        if (t > 0 && t < L - 1 && Math.abs(((p.x - px) * az - (p.z - pz) * ax) / L) < 3.2) { m.root.visible = false; hidNear.push(m); } }
       for (const s0 of stations) s0.sign.quaternion.copy(cam.quaternion);   // the signs face you
       camPos.copy(cam.position); camLook.set(anchor.x + fx * 10, 4, anchor.z + fz * 10);
       return;

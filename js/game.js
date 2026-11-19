@@ -175,8 +175,21 @@
   /* the radar: the whole floor at a glance, top right (Settings can turn it off) */
   function radar() {
     const cv = $('#radar'); if (!cv) return;
-    const on = !(PB.settings && PB.settings.radar === false) && !G.drill;
+    const on = !(PB.settings && PB.settings.radar === false) && (!G.drill || G.park);
     cv.hidden = !on; if (!on) return;
+    /* in the park it is the park's map: the wall of doors, the rings, the regulars, and you */
+    if (G.park) {
+      const g = cv.getContext('2d'), W = cv.width, Hh = cv.height, sx = x => W / 2 - x / 76 * W, sz = z => Hh / 2 - z / 128 * Hh;
+      g.clearRect(0, 0, W, Hh); g.fillStyle = 'rgba(8,11,18,.78)'; g.fillRect(0, 0, W, Hh);
+      g.strokeStyle = 'rgba(255,255,255,.3)'; g.lineWidth = 1; g.strokeRect(sx(25), sz(47), sx(-25) - sx(25), sz(-47) - sz(47));
+      g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(sx(36.5), sz(62), 3, sz(-62) - sz(62));
+      for (const s0 of PARK) { g.fillStyle = s0.color; g.globalAlpha = s0.id === G.parkAt ? 1 : 0.75; g.beginPath(); g.arc(sx(s0.x), sz(s0.z), 2.3, 0, 7); g.fill(); }
+      g.globalAlpha = 1; g.fillStyle = 'rgba(255,255,255,.45)';
+      for (const p of G.pl) if (p.npc) { g.beginPath(); g.arc(sx(p.x), sz(p.z), 1.6, 0, 7); g.fill(); }
+      const u = G.user; if (u) { const x = sx(u.x), z = sz(u.z); g.fillStyle = '#4cffb0'; g.beginPath(); g.arc(x, z, 3.2, 0, 7); g.fill();
+        g.strokeStyle = '#4cffb0'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, z); g.lineTo(x - Math.sin(u.face) * 6, z - Math.cos(u.face) * 6); g.stroke(); }
+      return;
+    }
     const g = cv.getContext('2d'), W = cv.width, Hh = cv.height, sx = x => W / 2 - x / 50 * W, sz = z => Hh / 2 - z / 94 * Hh;
     g.clearRect(0, 0, W, Hh);
     g.fillStyle = 'rgba(8,11,18,.72)'; g.fillRect(0, 0, W, Hh);
@@ -677,36 +690,92 @@
     b.state = 'drop'; b.t = 0; D.next = 0.9;
   }
   /* ---------- the park ----------
-     Your player walks it with the stick; Shoot puts one up at the nearer rim. The regulars wander, stop, shoot one
-     into the air, talk. Walk into a ring and its card comes up: tap it to go. */
+     Your home: you spawn here. Your player walks it with the stick; Shoot puts one up at the nearer rim. One side is a
+     wall with a door for every mode (your career, a quick game, a season, the gym, the closet...); along the other
+     sideline are the pick-up games and Pro-Am. The regulars wander, stop, shoot one into the air, talk. Walk into a
+     ring and its card comes up: tap it to go. Menu (top left) has everything too, and a map to get anywhere. */
   const PARK = [
-    { id: 'pick3', label: '3 ON 3', sub: 'pick-up to 21', x: -29, z: 24, r: 3.4, color: '#4cffb0' },
-    { id: 'pick2', label: '2 ON 2', sub: 'pick-up to 21', x: -29, z: -24, r: 3.4, color: '#4cffb0' },
-    { id: 'pick1', label: '1 ON 1', sub: 'pick-up to 11', x: 29, z: -24, r: 3.4, color: '#4cffb0' },
-    { id: 'gym', label: 'GYM', sub: 'drills and contests', x: 29, z: 24, r: 3.4, color: '#ffffff' },
-    { id: 'closet', label: 'CLOSET', sub: 'your look and gear', x: -14, z: 54, r: 3.2, color: '#ff8fd1' },
-    { id: 'court', label: 'PRO-AM', sub: '5 on 5, full court', x: 14, z: 54, r: 3.2, color: '#7cc4ff' },
-    { id: 'exit', label: 'My Career', sub: 'back to your season', x: 0, z: -54, r: 3.4, color: '#ffd23f' },
+    { id: 'players', label: 'MY PLAYER', sub: 'switch or build one', x: 31, z: -48, r: 2.8, color: '#ffffff', wall: 1 },
+    { id: 'season', label: 'SEASON', sub: 'run a whole team', x: 31, z: -36, r: 2.8, color: '#ffffff', wall: 1 },
+    { id: 'quick', label: 'QUICK GAME', sub: 'two teams, one game', x: 31, z: -24, r: 2.8, color: '#ffffff', wall: 1 },
+    { id: 'gym', label: 'GYM', sub: 'drills and contests', x: 31, z: -12, r: 2.8, color: '#ffffff', wall: 1 },
+    { id: 'career', label: 'MY CAREER', sub: 'your season', x: 31, z: 0, r: 3.0, color: '#4cffb0', wall: 1 },
+    { id: 'closet', label: 'CLOSET', sub: 'your look and gear', x: 31, z: 12, r: 2.8, color: '#ff8fd1', wall: 1 },
+    { id: 'blacktop', label: 'BLACKTOP', sub: 'pick the teams, 1v1 to 3v3', x: 31, z: 24, r: 2.8, color: '#ffffff', wall: 1 },
+    { id: 'classics', label: 'CLASSICS', sub: 'the great nights', x: 31, z: 36, r: 2.8, color: '#ffffff', wall: 1 },
+    { id: 'daily', label: 'DAILY', sub: 'today\'s challenge', x: 31, z: 48, r: 2.8, color: '#ffffff', wall: 1 },
+    { id: 'pick1', label: '1 ON 1', sub: 'pick-up to 11', x: -30, z: -36, r: 3.2, color: '#4cffb0' },
+    { id: 'pick2', label: '2 ON 2', sub: 'pick-up to 21', x: -30, z: -12, r: 3.2, color: '#4cffb0' },
+    { id: 'pick3', label: '3 ON 3', sub: 'pick-up to 21', x: -30, z: 12, r: 3.2, color: '#4cffb0' },
+    { id: 'court', label: 'PRO-AM', sub: '5 on 5, full court', x: -30, z: 36, r: 3.2, color: '#7cc4ff' },
   ];
+  /* the first visit: a walk-through, one thing at a time, each step done by doing it */
+  const TUT = [
+    ['Walk', 'Put your left thumb down anywhere on the lower left of the screen and drag.'],
+    ['Sprint', 'Push the stick all the way to the edge to run. It drains your stamina; walking brings it back.'],
+    ['Shoot', 'Hold Shoot and let go at the top of your jump, when the meter is in the green.'],
+    ['Knock one down', 'Make a shot. Closer is easier: walk in toward the rim and try a layup.'],
+    ['Dribble moves', 'Tap Move for a crossover. Swipe it down for a step-back, up for a spin.'],
+    ['The menu', 'Tap Menu at the top left. Every mode, your career and the settings are in there, and the map takes you anywhere in the park.'],
+    ['The wall', 'Every door on the wall is a mode. Walk into the green MY CAREER ring.'],
+  ];
+  function tutStep(dt) {
+    const T0 = G.tut, u = G.user, D = G.drill; if (!T0 || T0.done) return;
+    let el = $('#tut');
+    if (!el) { el = document.createElement('div'); el.id = 'tut'; $('#game').appendChild(el); }
+    const ok = [
+      () => (T0.dist = (T0.dist || 0) + hyp(u.vx, u.vz) * dt) > 16,
+      () => { const w = stickWorld(); if (w && w.m > 0.82) T0.run = (T0.run || 0) + dt; return T0.run > 0.8; },
+      () => D.att > T0.att0,
+      () => D.made > T0.made0 || D.att - T0.att0 >= 7,
+      () => !!T0.moved,
+      () => !!T0.menu && !G.paused,
+      () => G.parkAt === 'career',
+    ][T0.i];
+    if (T0.i !== T0.shown) {
+      T0.shown = T0.i; T0.att0 = D.att; T0.made0 = D.made; T0.moved = false;
+      const [t, d] = TUT[T0.i];
+      el.innerHTML = `<small>Tutorial · ${T0.i + 1} of ${TUT.length}</small><b>${t}</b><span>${d}</span><button id="tutx">Skip</button>`; el.hidden = false; el.classList.remove('ok');
+      $('#tutx').onclick = () => { T0.done = true; el.hidden = true; if (opts.onTut) opts.onTut(false); };
+      R.stationLit && R.stationLit(T0.i === TUT.length - 1 ? 'career' : G.parkAt);
+    }
+    if (T0.wait > 0) { T0.wait -= dt; if (T0.wait <= 0) { T0.i++; if (opts.onTutStep) opts.onTutStep(T0.i); if (T0.i >= TUT.length) { T0.done = true; el.hidden = true; toast('Tutorial done', 'make'); if (opts.onTut) opts.onTut(true); } } return; }
+    if (ok && ok()) { T0.wait = 0.9; el.classList.add('ok'); buzz(12); AU().play('swish'); if (T0.i === 3 && D.made <= T0.made0) el.querySelector('span').textContent = 'Close enough. It comes with reps.'; }
+  }
   function parkStep(dt) {
     const u = G.user;
+    /* the stanchions are solid */
+    for (const s of [1, -1]) if (Math.abs(u.x) < 2.7 && Math.abs(u.z - s * 52) < 3) { const dz = u.z - s * 52; if (Math.abs(u.x) / 2.7 > Math.abs(dz) / 3) u.x = Math.sign(u.x || 1) * 2.7; else u.z = s * 52 + Math.sign(dz || -s) * 3; }
     let near = null; for (const s0 of PARK) if (hyp(u.x - s0.x, u.z - s0.z) < s0.r) near = s0;
     if ((near && near.id) !== G.parkAt) { G.parkAt = near && near.id; R.stationLit && R.stationLit(G.parkAt); const c = $('#parkcard');
-      if (near) { c.innerHTML = `<b>${near.label}</b><span>${near.sub}</span><button class="big" id="parkgo">${near.id === 'exit' ? 'Leave the park' : near.id === 'closet' || near.id === 'gym' ? 'Go in' : 'Play'}</button>`; c.hidden = false; $('#parkgo').onclick = () => { G.parkGo = near.id; finish(); }; }
+      if (near) {
+        const info = (opts.parkInfo || {})[near.id], nx = near.id === 'career' && opts.parkNext;
+        c.innerHTML = `<b>${near.label}</b><span>${info || near.sub}</span>${nx ? `<button class="big" id="parknx">${nx}</button><button class="ghost" id="parkgo">Career menu</button>` : `<button class="big" id="parkgo">${near.id.startsWith('pick') || near.id === 'court' ? 'Play' : near.id === 'daily' || near.id === 'quick' || near.id === 'blacktop' ? 'Set it up' : 'Go in'}</button>`}`;
+        c.hidden = false; $('#parkgo').onclick = () => { G.parkGo = near.id; finish(); };
+        if ($('#parknx')) $('#parknx').onclick = () => { G.parkGo = 'next'; finish(); };
+      }
       else c.hidden = true; }
     for (const p of G.pl) if (p.npc) {
       p.npcT = (p.npcT || 0) - dt;
-      if (p.npcT <= 0) { const r = rand(); if (r < 0.55) { p.tx = rr(-30, 30); p.tz = rr(-52, 52); p.npcW = 1; p.npcT = rr(4, 9); } else { p.npcW = 0; p.npcT = rr(2, 6); p.npcPose = ['call', 'shrug', '', '', 'flex', 'point'][Math.floor(rand() * 6)]; } }
+      if (p.npcT <= 0) { const r = rand(); if (r < 0.55) { p.tx = rr(-24, 24); p.tz = rr(-52, 52); p.npcW = 1; p.npcT = rr(4, 9); } else { p.npcW = 0; p.npcT = rr(2, 6); p.npcPose = ['call', 'shrug', '', '', 'flex', 'point'][Math.floor(rand() * 6)]; } }
       if (p.npcW && hyp(p.tx - p.x, p.tz - p.z) > 1.5) { seek(p, dt, 0.32); p.pose = ''; } else { steer(p, dt, 0, 0); if (p.npcPose && p.y === 0) { p.pose = p.npcPose; } const h = G.user; if (!p.npcW && hyp(h.x - p.x, h.z - p.z) < 14) p.face += (Math.atan2(h.x - p.x, h.z - p.z) - p.face) * Math.min(1, dt * 2); }
     }
+    tutStep(dt);
+  }
+  /* the map in the menu: tap a ring and you are there (a cut, the way the broadcast changes camera) */
+  function parkTravel(id) {
+    const s0 = PARK.find(s => s.id === id); if (!s0 || !G.user) return;
+    const u = G.user;   // in the ring, facing out of the park (the door, or the fence): the camera stays on the court side
+    cut(); u.x = s0.x; u.z = s0.z; u.vx = u.vz = 0; u.face = s0.x > 0 ? Math.PI / 2 : -Math.PI / 2;
+    if (R.parkYaw) R.parkYaw(u.face); G.parkAt = undefined;
   }
   function freeStep(dt) {
     const D = G.drill, u = G.user;
     if (G.park) parkStep(dt);
     G.clock = 0; G.shotClock = 24; G.score[0] = D.made; G.score[1] = D.att;
     if (D.next > 0) { D.next -= dt; if (D.next <= 0) { D.next = 0; give(u); } }
-    $('#ftmsg').hidden = false;
-    $('#ftmsg').textContent = G.park ? `The park · ${D.made} of ${D.att} · walk into a ring` : `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
+    $('#ftmsg').hidden = !!(G.park && G.tut && !G.tut.done);
+    $('#ftmsg').textContent = G.park ? `${D.att ? `${D.made} of ${D.att} · ` : ''}walk into a ring, or open the Menu` : `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
   }
   function dunkLands(s) {
     const D = G.drill, b = G.ball, p = s.shooter, st = STYLES[s.style || 0];
@@ -1596,7 +1665,7 @@
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
         } else feedMove(lbl);
       } else feedMove(lbl);
-      AU().play('squeak', { x: u.x });
+      AU().play('squeak', { x: u.x }); if (G.tut) G.tut.moved = true;
       return;
     }
     const off = b.holder ? b.holder.team === 0 : G.poss === 0;
@@ -1877,7 +1946,7 @@
       }
     }
     /* (a man who is outside the lines, the inbounder after his pass, steps back in: he is not put back in) */
-    const BX = G.park ? 34 : 24.6, BZ = G.park ? 60 : 46.6;
+    const BX = G.park ? 33.5 : 24.6, BZ = G.park ? 60 : 46.6;
     for (const p of G.pl) if (!p.inb) { const cx = clamp(p.x, -BX, BX), cz = clamp(p.z, G.half ? 0.5 : -BZ, BZ);
       if (p.wasInb && (cx !== p.x || cz !== p.z)) { const m = dt * 13; p.x += clamp(cx - p.x, -m, m); p.z += clamp(cz - p.z, -m, m); } else { p.wasInb = false; p.x = cx; p.z = cz; } }
       else p.wasInb = true;
@@ -2114,7 +2183,7 @@
   }
   function finish() {
     G.phase = 'end';
-    $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; }
+    $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; }
     cancelAnimationFrame(raf);
     if (!G.buzzed) { AU().play('horn', { len: 2 }); if (R.horn) R.horn(2.2); AU().crowd.react(G.score[G.home] > G.score[1 - G.home] ? 'roar' : 'applause', 1); }
     if (AU().pulse) AU().pulse(false);
@@ -2383,7 +2452,7 @@
     /* the Move button reads a swipe: left or right is a crossover that way, down a step-back, up a spin; a tap is a
        crossover */
     { const el = $('#bC'); let sx = 0, sy = 0, id = null;
-      el.addEventListener('pointerdown', e => { e.preventDefault(); id = e.pointerId; sx = e.clientX; sy = e.clientY; el.classList.add('press'); el.setPointerCapture(id); });
+      el.addEventListener('pointerdown', e => { e.preventDefault(); id = e.pointerId; sx = e.clientX; sy = e.clientY; el.classList.add('press'); try { el.setPointerCapture(id); } catch (err) { /* a pointer the browser no longer has */ } });
       const end = e => {
         if (e.pointerId !== id) return; id = null; el.classList.remove('press');
         if (G.paused) return;
@@ -2435,6 +2504,15 @@
     AU().muffle(on);
     const ov = $('#pause');
     ov.hidden = !on;
+    ov.classList.toggle('pmenu', !!(on && G.park && opts.menu));
+    /* in the park, pause is the menu: every mode, your career, settings, and the map */
+    if (on && G.park && opts.menu) {
+      if (G.tut) G.tut.menu = true;
+      opts.menu(ov, { close: () => pause(false), go: id => { ov.hidden = true; G.paused = false; G.parkGo = id; finish(); },
+        travel: id => { pause(false); parkTravel(id); }, stations: PARK, me: { x: G.user.x, z: G.user.z }, at: G.parkAt,
+        tutorial: () => { pause(false); G.tut = { i: 0 }; const e = $('#tut'); if (e) e.hidden = false; } });
+      return;
+    }
     if (on) {
       ov.innerHTML = `<div class="card"><h2>Paused</h2>
         <div class="pmatch">${[0, 1].map(i => { const t = G.teams[i]; return `<div><i style="background:${t.c1};color:${PB.ink ? PB.ink(t.c1, t.c2) : '#fff'}">${t.ab || t.id}</i><b>${G.score[i]}</b><s>${'•'.repeat(Math.max(0, G.to ? G.to[i] : 0))}</s></div>`; }).join(`<span><small>${$('#qt').textContent}</small>${$('#clk').textContent}</span>`)}</div>
@@ -2493,6 +2571,7 @@
   let bound = false;
   PB.Game = {
     active: false,
+    toast: (t, k) => { if (G && PB.Game.active) toast(t, k); },
     /* o: { teams:[userTeam, oppTeam], rosters:[[5],[5]], userId, qlen, floor, strength:[a,b], diff, onEnd } */
     start(o) {
       /* the players' model may still be on its way on a slow connection: wait for it (up to eight seconds) */
@@ -2528,7 +2607,7 @@
       if (o.half) { G.half = true; G.target = o.target || 21; G.ones = !!o.ones; G.mitt = !!o.mitt; G.by2 = o.by2 !== false; G.scLen = 20; G.shotClock = 20; G.qlen = 99; G.clock = 99 * 60; G.to = [0, 0]; }
       G.user = pl.find(p => p.isUser) || null;
       { const rp = $('#rp'); if (rp) rp.hidden = true; $('#game').classList.remove('replaying'); }   // nothing of the last game's replay is left on screen
-      $('#game').classList.toggle('watching', !G.user && !o.drill); $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; } if (R.setStations) R.setStations([]);   // spectating: the broadcast without the controls
+      $('#game').classList.toggle('watching', !G.user && !o.drill); $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; } if (R.setStations) R.setStations([]);   // spectating: the broadcast without the controls
       G.tko = !o.drill && !o.switching && G.user ? { m: 0, on: false, until: 0, miss: 0 } : null; tkoHud();
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
@@ -2624,7 +2703,12 @@
         G.phase = 'live'; G.poss = 0; G.clock = def.secs;
         if (o.drill === 'dunk') { G.drill.next = 0.4; const sp = dunkSpot(); G.user.x = sp.x; G.user.z = sp.z; G.user.face = Math.atan2(-sp.x, hoopZ(0) - sp.z); }
         else if (o.drill === 'free') { const sp = toCourt(0, 0, 18); G.user.x = sp.x; G.user.z = sp.z; G.user.face = 0; give(G.user);
-          if (o.park) { G.park = true; G.user.x = 0; G.user.z = -6; G.user.face = 0; R.setStations && R.setStations(PARK);
+          if (o.park) { G.park = true; G.user.x = 8; G.user.z = -5; G.user.face = 1.2; R.setStations && R.setStations(PARK);   // looking over at the wall of doors
+            /* back from a door: you come out of it, a step in front of its ring, facing the park */
+            const from = o.parkAt && PARK.find(s => s.id === o.parkAt);
+            if (from) { const sd = from.x > 0 ? -1 : 1; G.user.x = from.x + sd * (from.r + 3); G.user.z = from.z; G.user.face = -sd * Math.PI / 2; }   // turned back toward the door, the camera on the park side
+            if (R.parkYaw) R.parkYaw(G.user.face);
+            G.parkAt = undefined; G.tut = o.tutorial ? { i: Math.min(o.tutAt || 0, TUT.length - 1) } : null; { const e = $('#tut'); if (e) e.hidden = !G.tut; }
             const HANDLES = ['SPLASHZONE', 'GLASSCLEANER', 'LOCKDOWN', 'FADEKING', 'DOWNTOWN', 'NOLOOK', 'BIGSHOT', 'BOARDMAN', 'HOOPDREAMS', 'ANKLES', 'MIDRANGE', 'BUCKETS'];
             for (const p of pl) if (p.team === 1) { p.npc = true; p.x = rr(-28, 28); p.z = rr(-48, 48); p.face = rand() * 6.28; p.name = HANDLES[Math.floor(rand() * HANDLES.length)] + (Math.floor(rand() * 90) + 10); }
             $('#game').classList.add('park'); } }
@@ -2722,7 +2806,7 @@
       raf = requestAnimationFrame(loop);
     },
     /* test hooks */
-    dbg: { state: () => G, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
+    dbg: { state: () => G, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
       auto: on => { G.auto = on; },
       replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },
       /* run the simulation ahead without drawing: sec seconds of game time */
