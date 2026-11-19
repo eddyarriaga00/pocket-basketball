@@ -1480,14 +1480,14 @@
     /* the sky: a gradient from the last of the sun to night */
     const sc = document.createElement('canvas'); sc.width = 4; sc.height = 256; const sg = sc.getContext('2d'), gr = sg.createLinearGradient(0, 0, 0, 256);
     gr.addColorStop(0, '#1b2440'); gr.addColorStop(0.55, '#5a4a78'); gr.addColorStop(0.8, '#e0876a'); gr.addColorStop(1, '#f2b66d');
-    sg.fillStyle = gr; sg.fillRect(0, 0, 4, 256); const st = new T.CanvasTexture(sc); st.colorSpace = T.SRGBColorSpace; scene.background = st;
+    sg.fillStyle = gr; sg.fillRect(0, 0, 4, 256); const st = new T.CanvasTexture(sc); st.colorSpace = T.SRGBColorSpace; scene.background = st; orphans.push(st);   // (a background is not in the scene: it is let go of with the next build)
     /* grass beyond the concrete */
     const grass = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshLambertMaterial({ color: 0x2c4a2a })); grass.rotation.x = -Math.PI / 2; grass.position.y = -0.05; scene.add(grass);
     /* the fence: posts and a see-through chain-link panel on all four sides */
     const fc = document.createElement('canvas'); fc.width = fc.height = 64; const fg = fc.getContext('2d'); fg.strokeStyle = 'rgba(210,214,220,.75)'; fg.lineWidth = 2;
     fg.beginPath(); fg.moveTo(0, 32); fg.lineTo(32, 0); fg.lineTo(64, 32); fg.lineTo(32, 64); fg.closePath(); fg.stroke();
     const ft = new T.CanvasTexture(fc); ft.wrapS = ft.wrapT = T.RepeatWrapping;
-    const FX = 36, FZ = 62, FH = 12, fm = new T.MeshBasicMaterial({ map: ft, transparent: true, side: T.DoubleSide, depthWrite: false });
+    const FX = 36, FZ = 62, FH = 12; orphans.push(ft);
     const panel = (w, x, z, ry) => { const t = ft.clone(); t.needsUpdate = true; t.repeat.set(w / 1.6, FH / 1.6); const m = new T.Mesh(new T.PlaneGeometry(w, FH), new T.MeshBasicMaterial({ map: t, transparent: true, side: T.DoubleSide, depthWrite: false })); m.position.set(x, FH / 2, z); m.rotation.y = ry; scene.add(m); orphans.push(t); };
     panel(FX * 2, 0, FZ, 0); panel(FX * 2, 0, -FZ, 0); panel(FZ * 2, -FX, 0, Math.PI / 2);
     const pm = new T.MeshLambertMaterial({ color: 0x7c8088 });

@@ -569,6 +569,20 @@
     return `${nx.label.split(' · ').slice(0, 2).join(' · ')} · vs ${PB.team(nx.opp).name}`;
   };
   const nextLive = () => (C.phase === 'regular' || C.phase === 'playoffs') && C.team ? nextGame() : null;
+  /* what the career's home page has waiting (the same cards it shows over the next game): the park points you there */
+  const waiting = () => {
+    if (!C || !C.team || (C.phase !== 'regular' && C.phase !== 'playoffs')) return [];
+    const w = [], nx = nextLive();
+    if (C.endorse && C.endorse.offer !== undefined && C.endorse.offer >= C.endorse.tier) w.push('A shoe deal offer');
+    if (C.event) w.push('Something came up');
+    if (C.coachTalk) w.push('The coach wants a word');
+    if (C.season && C.season.allstar && !C.asg) w.push('The All-Star Game');
+    if (C.contest === 'invited') w.push('The 3-Point Contest');
+    if (C.dunk === 'invited') w.push('The Dunk Contest');
+    if (C.rising === 'invited') w.push('Rising Stars');
+    const rvx = C.rival && rivalP(); if (nx && rvx && nx.opp === C.rival.team && C.talk !== `${C.year}-${C.gi}-${C.phase}`) w.push('Your rival posted about you');
+    return w;
+  };
   function park(at) {
     C = C || loadCur();
     if (!C || !C.me) { classicTitle(); return; }
@@ -579,7 +593,8 @@
     const P = C.park || { w: 0, l: 0 }, streak = P.streak > 1 ? ` · ${P.streak} wins in a row` : '';
     const o = C.me.ovr, npcs = parkNpcs = ['PG', 'SG', 'SF', 'PF', 'C'].map(pos => parkGuy(pos, o));
     const nx = nextLive(), gymLeft = ['contest', 'combine', 'world', 'dunk', 'free'].filter(k => (C.gym || {})[k] !== today()).length;
-    const info = { career: careerLine(), players: `${slots().length} player${slots().length === 1 ? '' : 's'} on this device`, daily: dailyDone() ? 'done today ✓' : 'today\'s late-game spot',
+    const wt = waiting();
+    const info = { career: wt.length ? `${wt[0]}${wt.length > 1 ? ` and ${wt.length - 1} more` : ''} · go in` : careerLine(), players: `${slots().length} player${slots().length === 1 ? '' : 's'} on this device`, daily: dailyDone() ? 'done today ✓' : 'today\'s late-game spot',
       gym: gymLeft ? `${gymLeft} workout${gymLeft > 1 ? 's' : ''} left today` : 'all of today\'s workouts done', court: `park record ${(C.park || { w: 0 }).w}-${(C.park || { l: 0 }).l}`,
       pick1: `pick-up to 11${streak}`, pick2: `pick-up to 21${streak}`, pick3: `pick-up to 21${streak}`,
       wheel: C.wheel === today() ? 'spun today: back tomorrow' : 'a spin a day: skill points or followers', wheelBtn: C.wheel === today() ? 'See it' : 'Spin' };
@@ -660,6 +675,7 @@
         <button class="pmx" id="pmx" aria-label="Close the menu">✕</button></div>
       <div class="pmstats"><div><b>${rk.name}</b><span>Rank</span></div><div><b>${fmtFans(C.fans)}</b><span>Followers</span></div><div><b>${me.sp}</b><span>Skill pts</span></div><div><b>${P.w}-${P.l}</b><span>Park</span></div></div>
       ${nx ? `<button class="big" data-go="next">Play next game<small>${esc(nx.label)} · vs ${esc(PB.team(nx.opp).name)}</small></button>` : `<button class="big" data-go="career">My Career<small>${esc(careerLine())}</small></button>`}
+      ${(w => w.length ? `<h4>Waiting in My Career</h4><div class="pmwait">${w.map(t => `<button class="pmc" data-go="hub:home"><i>●</i>${esc(t)}</button>`).join('')}</div>` : '')(waiting())}
       ${todayCard()}
       ${C.phase === 'combine' ? '' : `<h4>My Career</h4>
       <div class="pmrow">${[['home', 'Home'], ['team', 'Team'], ['player', 'Player'], ['league', 'League'], ['log', 'Log']].map(([k, n]) => `<button class="pmn" data-go="hub:${k}">${nav(k)}<span>${n}</span>${k === 'player' && up ? '<i class="dot"></i>' : ''}</button>`).join('')}</div>`}

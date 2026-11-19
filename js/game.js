@@ -1690,8 +1690,10 @@
     const sh = G.pl.find(o => o.team !== u.team && o.shoot && o.shoot.kind !== 'dunk');
     if (sh && hyp(sh.x - u.x, sh.z - u.z) < 6) u.pose = 'contest';
   }
+  /* H-O-R-S-E: while he shoots, you watch (no jumping at his shot, no reaching for his ball) */
+  const sidelined = () => !!(G.horse && G.drill && G.drill.shooter !== G.user);
   function pressA(down) {
-    const u = G.user; if (!u) return;
+    const u = G.user; if (!u || sidelined()) return;
     if (G.phase === 'ft' && G.ftq && G.ftq.shooter === u) {
       if (down) { G.ftMeter = 0.0001; } else if (G.ftMeter > 0) { const m = G.ftMeter; G.ftMeter = 0; shootFT(m); }
       return;
@@ -1733,7 +1735,7 @@
     if (u.inb) { u.inb = false; G.inb = null; } passTo(u, best); buzz(8); return true;
   }
   function pressB() {
-    const u = G.user; if (!u || G.phase !== 'live') return;
+    const u = G.user; if (!u || G.phase !== 'live' || sidelined()) return;
     const b = G.ball;
     if (b.holder === u) {
       if (u.shoot) return;
@@ -1764,7 +1766,7 @@
   /* The Move button: tap for a crossover; swipe it for the move you want. kind: 'cross' (dir -1 left, 1 right on
      screen, 0 any), 'step' (step-back: room for the jumper), 'spin' (spin toward the rim). */
   function pressC(kind, dir) {
-    const u = G.user; if (!u || G.phase !== 'live' || u.inb) return;
+    const u = G.user; if (!u || G.phase !== 'live' || u.inb || sidelined()) return;
     if (G.drill && G.drill.kind === 'dunk') { if (!u.shoot && u.y <= 0) { const D = G.drill; D.style = (D.style + (kind === 'step' ? STYLES.length - 1 : 1)) % STYLES.length; toast(STYLES[D.style][0], 'call'); buzz(8); } return; }
     const b = G.ball;
     if (b.holder === u) {

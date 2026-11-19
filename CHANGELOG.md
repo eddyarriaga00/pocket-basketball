@@ -16,6 +16,11 @@ What changed, newest first. The full list is the git log; the order of work is [
 - A walk-through the first time: walk, sprint, shoot, make one, a dribble move, the menu, then into the MY CAREER
   door. It picks up where you left off, and Skip ends it. A new player starts in the park and goes to the draft
   through that door.
+- Fixes from a full bug pass: each visit to the park left its sky picture in graphics memory (about one more for every
+  visit, and the park is visited all the time now); "Play next game" from the park went past what the career had
+  waiting (a word from the coach, an endorsement, All-Star weekend and its contests, a rival's post), which the menu
+  now lists under Waiting in My Career and the MY CAREER card names; in H-O-R-S-E the keyboard could still jump at or
+  reach for the regular's ball during his shot.
 - H-O-R-S-E: walk up to a regular and his card offers it next to the 1 on 1. Set a shot from anywhere; he has to
   make the same one from the same spot, or take a letter (and you have to match his). Whoever sets keeps going until
   he misses. Spell it and you are out. It counts in your park record.
