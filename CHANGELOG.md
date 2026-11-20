@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The ball stays in a fast hand: hand positions are carried along with the player's own movement since the last
+  drawn frame, so on a dunk the ball goes up with the arm instead of hanging under it for a moment.
 - The dribble follows where you are going, not where you were: the ball is pushed toward the stick's direction (on a
   cut the stick turns before your feet do, and the ball used to land the old way, up to six feet off, behind you or
   through your body), it comes back up quicker when you run away from it, it goes round your legs instead of through

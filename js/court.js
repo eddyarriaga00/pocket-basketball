@@ -1204,7 +1204,7 @@
   }
   function updateSkinned(p, m, G, dt) {
     if (dt <= 0 && m.posed) return; m.posed = 1;   // paused: the pose holds (the turns added on top of the clip would pile up frame after frame)
-    m.root.position.set(p.x, 0, p.z);
+    m.root.position.set(p.x, 0, p.z); m.py = p.y;
     const mv = p.mv && G.ball.holder === p && !p.shoot ? p.mv : null, ms = mv ? (G.t - mv.t0) / mv.T : 2;
     const drib = G.ball.holder === p && !p.shoot && !p.inb && G.phase !== 'ft', prot = drib ? p.prot || 0 : 0;
     /* shielding the ball: the shoulder turns toward the man, the ball hand away from him */
@@ -1479,8 +1479,11 @@
   R.hands = p => {
     const m = meshes.get(p);
     if (!m || m.kind !== 'skin') return null;
-    m.R.hand.getWorldPosition(_h); const r = { x: _h.x, y: _h.y, z: _h.z };
-    m.L.hand.getWorldPosition(_h); const l = { x: _h.x, y: _h.y, z: _h.z };
+    /* the hands as drawn last frame, carried along by how far he has moved since (the ball used to trail a frame behind a
+       fast hand: a dunk's ball hung under the arm on the way up) */
+    const dx = p.x - m.root.position.x, dz = p.z - m.root.position.z, dy = m.py === undefined ? 0 : (p.y || 0) - m.py;
+    m.R.hand.getWorldPosition(_h); const r = { x: _h.x + dx, y: _h.y + dy, z: _h.z + dz };
+    m.L.hand.getWorldPosition(_h); const l = { x: _h.x + dx, y: _h.y + dy, z: _h.z + dz };
     return { r, l };
   };
 
@@ -1997,7 +2000,7 @@
         else { m.shadow.position.set(0, 0.02, 0); m.shadow.scale.setScalar(k); }
         continue;
       }
-      m.root.position.set(p.x, 0, p.z);
+      m.root.position.set(p.x, 0, p.z); m.py = p.y;
       const sp = Math.hypot(p.vx, p.vz);
       m.body.position.y = p.y;
       m.root.rotation.y = p.face;
