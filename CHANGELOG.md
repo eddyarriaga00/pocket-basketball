@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The look: the arena's crowd is lit instead of nearly black (the top of the screen was a dark void), and the park has
+  a city behind it: a skyline with lit windows, stars and a crescent moon. The park's guide arrow is smaller.
 - The ball stays in a fast hand: hand positions are carried along with the player's own movement since the last
   drawn frame, so on a dunk the ball goes up with the arm instead of hanging under it for a moment.
 - The dribble follows where you are going, not where you were: the ball is pushed toward the stick's direction (on a

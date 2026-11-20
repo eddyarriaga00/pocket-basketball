@@ -216,7 +216,7 @@
   function crowdTexture(home) {
     const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
     const g = cv.getContext('2d');
-    g.fillStyle = '#141a26'; g.fillRect(0, 0, 512, 128);
+    g.fillStyle = '#1b2231'; g.fillRect(0, 0, 512, 128);
     const cols = ['#d9d9d9', '#30343c', '#b22a2a', '#2b4f9e', '#e0c070', '#6e7c8c', '#1d1d1d', '#8d5a3a'];
     for (let r = 0; r < 8; r++) for (let c = 0; c < 64; c++) {
       if (PB.rand() < 0.12) continue;
@@ -1560,6 +1560,17 @@
     const sc = document.createElement('canvas'); sc.width = 4; sc.height = 256; const sg = sc.getContext('2d'), gr = sg.createLinearGradient(0, 0, 0, 256);
     gr.addColorStop(0, '#1b2440'); gr.addColorStop(0.55, '#5a4a78'); gr.addColorStop(0.8, '#e0876a'); gr.addColorStop(1, '#f2b66d');
     sg.fillStyle = gr; sg.fillRect(0, 0, 4, 256); const st = new T.CanvasTexture(sc); st.colorSpace = T.SRGBColorSpace; scene.background = st; orphans.push(st);   // (a background is not in the scene: it is let go of with the next build)
+    /* the city beyond the park: a skyline with lit windows, a few stars, the moon */
+    { const kc = document.createElement('canvas'); kc.width = 1024; kc.height = 256; const k = kc.getContext('2d');
+      let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 70; i++) { k.fillStyle = `rgba(255,255,255,${0.35 + rnd() * 0.5})`; k.fillRect(rnd() * 1024, rnd() * 110, 2, 2); }
+      k.fillStyle = '#f4ecd2'; k.beginPath(); k.arc(790, 46, 17, 0, 7); k.fill(); k.globalCompositeOperation = 'destination-out'; k.beginPath(); k.arc(798, 40, 15, 0, 7); k.fill(); k.globalCompositeOperation = 'source-over';
+      for (let x = 0; x < 1024;) { const w = 26 + rnd() * 46, h = 50 + rnd() * 130; k.fillStyle = `rgb(${18 + rnd() * 10 | 0},${20 + rnd() * 10 | 0},${34 + rnd() * 14 | 0})`; k.fillRect(x, 256 - h, w, h);
+        for (let wy = 256 - h + 8; wy < 246; wy += 11) for (let wx = x + 5; wx < x + w - 6; wx += 9) if (rnd() < 0.32) { k.fillStyle = rnd() < 0.8 ? 'rgba(255,214,140,.85)' : 'rgba(170,210,255,.8)'; k.fillRect(wx, wy, 4, 5); }
+        x += w + 2 + rnd() * 6; }
+      const kt = new T.CanvasTexture(kc); kt.colorSpace = T.SRGBColorSpace; kt.wrapS = T.RepeatWrapping; kt.repeat.set(3, 1); orphans.push(kt);
+      const ring = new T.Mesh(new T.CylinderGeometry(175, 175, 78, 40, 1, true), new T.MeshBasicMaterial({ map: kt, transparent: true, side: T.BackSide, fog: false, depthWrite: false }));
+      ring.position.y = 37; ring.renderOrder = -1; scene.add(ring); }
     /* grass beyond the concrete */
     const grass = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshLambertMaterial({ color: 0x2c4a2a })); grass.rotation.x = -Math.PI / 2; grass.position.y = -0.05; scene.add(grass);
     /* the fence: posts and a see-through chain-link panel on all four sides */
@@ -1678,8 +1689,8 @@
         ends.push(new T.BoxGeometry(80 + d * 2, 3.2, 5).translate(0, h - 1.6, side * (47 + 10 + d)));
       }
     }
-    scene.add(new T.Mesh(mergeGeo(sides), new T.MeshLambertMaterial({ map: sideM, color: 0x8a8890 })));
-    scene.add(new T.Mesh(mergeGeo(ends), new T.MeshLambertMaterial({ map: endM, color: 0x8a8890 })));
+    scene.add(new T.Mesh(mergeGeo(sides), new T.MeshLambertMaterial({ map: sideM, color: 0xa9a7b0, emissive: 0x4a4852, emissiveMap: sideM })));
+    scene.add(new T.Mesh(mergeGeo(ends), new T.MeshLambertMaterial({ map: endM, color: 0xa9a7b0, emissive: 0x4a4852, emissiveMap: endM })));
     /* the center-hung scoreboard: four screens over center court showing the score and the clock, and a ring of light */
     const jc = document.createElement('canvas'); jc.width = 512; jc.height = 256;
     board = { cv: jc, g: jc.getContext('2d'), tex: new T.CanvasTexture(jc), key: '' }; board.tex.colorSpace = T.SRGBColorSpace;
@@ -1786,7 +1797,7 @@
       defArrow.position.y = 0.04; defArrow.scale.setScalar(1.35); defArrow.visible = false; scene.add(defArrow);
       /* in the park, the way to where you are headed: the same chevron, in front of you, pointing there */
       guideArrow = new T.Mesh(g, new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0.85, depthWrite: false, depthTest: false, side: T.DoubleSide }));
-      guideArrow.renderOrder = 5; guideArrow.position.y = 0.05; guideArrow.scale.setScalar(1.75); guideArrow.visible = false; scene.add(guideArrow); }
+      guideArrow.renderOrder = 5; guideArrow.position.y = 0.05; guideArrow.scale.setScalar(1.3); guideArrow.visible = false; scene.add(guideArrow); }
     flash = new T.Mesh(new T.RingGeometry(1.6, 2.3, 32), new T.MeshBasicMaterial({ color: 0x4cffb0, transparent: true, opacity: 0, depthWrite: false }));
     flash.rotation.x = -Math.PI / 2; flash.position.y = 0.04; scene.add(flash);
   };
