@@ -598,9 +598,19 @@
       gym: gymLeft ? `${gymLeft} workout${gymLeft > 1 ? 's' : ''} left today` : 'all of today\'s workouts done', court: `park record ${(C.park || { w: 0 }).w}-${(C.park || { l: 0 }).l}`,
       pick1: `pick-up to 11${streak}`, pick2: `pick-up to 21${streak}`, pick3: `pick-up to 21${streak}`,
       wheel: C.wheel === today() ? 'spun today: back tomorrow' : 'a spin a day: skill points or followers', wheelBtn: C.wheel === today() ? 'See it' : 'Spin' };
+    /* what comes up on your phone while you are out here: the timeline, the league, who followed you, what is open */
+    const notes = [];
+    for (const f of (C.feed || []).slice(0, 4)) notes.push({ who: f.who, text: f.text });
+    for (const n of (C.news || []).slice(0, 2)) notes.push({ who: 'League news', text: n });
+    for (let i = 0; i < 3; i++) notes.push({ who: '@' + FANS[Math.floor(PB.rand() * FANS.length)], text: say('started following you', 'liked your highlight', 'mentioned you: "who is this kid at the park?"', 'shared your last game', 'wants to run 1 on 1') });
+    if (!dailyDone()) notes.push({ who: 'Daily challenge', text: 'Today\'s late-game spot is open', go: 'daily' });
+    if (gymLeft) notes.push({ who: 'Gym', text: `${gymLeft} workout${gymLeft > 1 ? 's' : ''} left today`, go: 'gym' });
+    if (C.wheel !== today()) notes.push({ who: 'Prize wheel', text: 'Your free spin is waiting', go: 'wheel' });
+    if (wt.length) notes.push({ who: 'My Career', text: wt[0], go: 'career' });
+    notes.push({ who: 'Pro-Am', text: say('A five is looking for one more', 'Run starting in the next few minutes'), go: 'court' });
     scr().hidden = true;
     PB.Game.start({ teams: [parkTeam(), PB.TEAMS[(PB.TEAMS.indexOf(parkTeam()) + 7) % PB.TEAMS.length]], rosters: [[C.me], npcs], userId: C.me.id, drill: 'free', park: true, qlen: 1, level: S.level,
-      floor: parkFloor(), parkAt: from, guide: C.phase === 'combine' ? 'career' : null, tutorial: !load('pbb.tut'), tutAt: load('pbb.tutAt') || 0, parkInfo: info, parkNext: nx ? `Play: vs ${PB.team(nx.opp).name}` : null,
+      floor: parkFloor(), parkAt: from, guide: C.phase === 'combine' ? 'career' : null, tutorial: !load('pbb.tut'), tutAt: load('pbb.tutAt') || 0, parkInfo: info, parkNotes: notes, userName: C.me.first, onParkTalk: id => { if (C.talkDay !== today()) { C.talkDay = today(); C.talked = []; } if (C.talked.includes(id) || C.talked.length >= 4) return null; C.talked.push(id); C.fans = (C.fans || 0) + 10; save(); return '+10 followers: word gets around'; }, parkNext: nx ? `Play: vs ${PB.team(nx.opp).name}` : null,
       menu: parkMenu, inPark: { wheel: prizeWheel }, onTut: done => { store('pbb.tut', done ? 1 : 2); store('pbb.tutAt', 0); }, onTutStep: i => store('pbb.tutAt', i), onEnd: r => parkGo(r.parkGo) });
   }
   function parkGo(id) {
@@ -1437,7 +1447,7 @@
           <div class="rv"><div><b>${esc(PB.full(me))}</b><span>${avg('pts')} / ${avg('reb')} / ${avg('ast')}</span></div><em>${C.rival.h2h[0]}–${C.rival.h2h[1]}</em>
           <div><b>${esc(PB.full(rv))}</b><span>${(rs.pts / rg).toFixed(1)} / ${(rs.reb / rg).toFixed(1)} / ${(rs.ast / rg).toFixed(1)}</span></div></div>
           <p class="fine">Points, rebounds, assists a game this season; the middle is your record head to head.</p></div>
-        <div class="card"><h3>Feed</h3>${C.feed.slice(0, 4).map(f => `<div class="fpost"><b>${esc(f.who)}</b><span>${esc(f.text)}</span></div>`).join('') || '<p class="mute">Nothing yet. Play a game.</p>'}</div>
+        <div class="card"><h3>Feed</h3>${C.feed.slice(0, C.feedAll ? 14 : 5).map((f, i) => `<div class="fpost"><b>${esc(f.who)}</b><span>${esc(f.text)}</span><div class="fmeta"><button class="flike${f.liked ? ' on' : ''}" data-like="${i}" aria-label="Like"><i>${f.liked ? '♥' : '♡'}</i>${kfmt((f.likes || 0) + (f.liked ? 1 : 0))}</button><u>${f.re || 0} ${f.re === 1 ? 'reply' : 'replies'}</u></div></div>`).join('') || '<p class="mute">Nothing yet. Play a game.</p>'}${C.feed.length > 5 ? `<button class="ghost fmore" id="fmore">${C.feedAll ? 'Show less' : `Show more (${Math.min(14, C.feed.length) - 5})`}</button>` : ''}</div>
         <div class="card"><h3>News</h3>${C.news.slice(0, 5).map(n => `<p class="news">${esc(n)}</p>`).join('')}</div>`;
     } else if (tab === 'team') {
       const st = C.standings[C.team] || { w: 0, l: 0 };
@@ -1509,6 +1519,11 @@
     if ($('#nocontest')) $('#nocontest').onclick = () => { C.contest = 'done'; save(); hub(); };
     if ($('#dunk')) $('#dunk').onclick = () => dunkRound(1);
     if ($('#nodunk')) $('#nodunk').onclick = () => { C.dunk = 'done'; save(); hub(); };
+    /* the feed: a like is yours to give; the first few each day get you noticed */
+    document.querySelectorAll('[data-like]').forEach(e => e.onclick = () => { const f = C.feed[+e.dataset.like]; if (!f) return; f.liked = !f.liked;
+      if (f.liked && !f.likedOnce) { f.likedOnce = true; if (C.likeDay !== today()) { C.likeDay = today(); C.likeN = 0; } if ((C.likeN = (C.likeN || 0) + 1) <= 3) { C.fans = (C.fans || 0) + 5; } }
+      const st = scr().scrollTop; save(); hub(); scr().scrollTop = st; });
+    if ($('#fmore')) $('#fmore').onclick = () => { const st = scr().scrollTop; C.feedAll = !C.feedAll; hub(); scr().scrollTop = st; };
     const talked = () => { C.talk = `${C.year}-${C.gi}-${C.phase}`; };
     if ($('#clap')) $('#clap').onclick = () => { talked(); C.fans = Math.round(C.fans * 1.04); C.trust = Math.max(0, C.trust - 1); C.clapped = true; C.feed.unshift({ who: '@' + (C.me.first + C.me.last).toLowerCase(), text: `See you tomorrow. Bring your best.` }); C.news.unshift(`${C.me.last} fires back at his rival`); save(); hub(); };
     if ($('#quiet')) $('#quiet').onclick = () => { talked(); C.trust = Math.min(100, C.trust + 1); C.clapped = false; save(); hub(); };
@@ -2010,6 +2025,7 @@
     C.event = null; save(); hub();
   }
 
+  const kfmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'K' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n);
   /* ---------- the social feed ---------- */
   const FANS = ['hoopsdad_22', 'courtside_kay', 'bucketsonly', 'the_real_ref', 'nightcapnation', 'bench_mob', 'stat_nerd', 'local_scribe', 'section_214', 'midrange_mary', 'film_room_fred', 'tipoff_tess', 'ankle_tax', 'glasscleaner99', 'sixth_man_sam', 'nosebleed_nate'];
   const say = (...v) => v[Math.floor(PB.rand() * v.length)];
@@ -2033,8 +2049,23 @@
     if (res.rival) posts.push([`@${o.name.toLowerCase()}_insider`, `${me.last} vs ${rivalP().last}: ${l.pts} to ${res.rival.pts}. ${l.pts >= res.rival.pts ? 'Round to the rookie from ' + t.city + '.' : 'This one goes to ' + rivalP().last + '.'}`]);
     if (res.win) posts.push([`@${t.name.toLowerCase()}`, `FINAL: ${t.name} ${res.us}, ${o.name} ${res.them}. ${g.po ? 'Playoff basketball!' : 'Big win.'}`]);
     else posts.push([`@${t.name.toLowerCase()}`, `FINAL: ${o.name} ${res.them}, ${t.name} ${res.us}. On to the next one.`]);
-    for (const [w, x] of posts.slice(0, 3)) C.feed.unshift({ who: w, text: x });
-    C.feed = C.feed.slice(0, 20);
+    /* and the rest of the timeline: people who watched, people who did not, people with opinions */
+    const extra = [
+      [who(), say(`Watching ${t.name} from section 214 again. Worth every dollar.`, `${t.city} basketball is fun right now.`, `Arena was loud tonight.`, `Got my #${me.num} jersey in the mail today.`)],
+      [who(), say(`Is ${me.last} a top-five ${me.pos} yet? Asking for my group chat.`, `Start ${me.last} more minutes. That is the post.`, `${me.last} needs the ball in his hands late.`, `Who taught ${me.last} that footwork?`)],
+      [`@${o.name.toLowerCase()}_fan`, say(`${me.last} is not that guy. Relax.`, `We will see ${t.city} again. Circle it.`, `Refs helped ${t.city} tonight. I said what I said.`, `Okay, fine, ${me.last} can play a little.`)],
+      ['@fantasy_guru', say(`${me.last}: ${l.pts} pts, ${l.reb} reb, ${l.ast} ast. ${l.pts + l.reb + l.ast >= 25 ? 'Start him everywhere.' : 'Hold, do not drop.'}`, `Fantasy managers: ${me.last} is ${l.pts >= 15 ? 'a must-start' : 'a bench stash'} this week.`)],
+      ['@film_room_fred', say(`Watch ${me.last} off the ball on that last possession. Smart cut.`, `${me.last}'s closeouts are getting better. Film does not lie.`, `Three clips from tonight on ${me.last}'s screen navigation. Thread.`)],
+      ['@kicks_daily', say(`What is ${me.last} wearing on his feet? Need those.`, `${me.last}'s pregame fit: 9 out of 10.`)],
+      [who(), say(`My kid wants to be ${me.last} for Halloween.`, `Met ${me.last} at the grocery store once. Nice guy. Tall.`, `${me.last} signed my hat after the game. Never washing it.`)],
+    ];
+    if (l.pts >= 25) extra.unshift(['@highlight_reel', `Every ${me.last} bucket from tonight in 40 seconds. Sound on.`]);
+    if (res.win && g.po) extra.unshift(['@league', `${t.name} take one in the playoffs. ${me.last}: ${l.pts} points.`]);
+    for (let i = extra.length - 1; i > 0; i--) { const j = Math.floor(PB.rand() * (i + 1)); [extra[i], extra[j]] = [extra[j], extra[i]]; }
+    for (const e of extra.slice(0, 2)) posts.push(e);
+    const big = Math.max(1, Math.round((C.fans || 2000) / 400));
+    for (const [w, x] of posts.slice(0, 5)) C.feed.unshift({ who: w, text: x, likes: Math.round(big * (0.2 + PB.rand() * 1.4)) + Math.floor(PB.rand() * 9), re: Math.floor(PB.rand() * 4) });
+    C.feed = C.feed.slice(0, 24);
   }
 
   /* ---------- after a game: the result, a press question now and then ---------- */

@@ -101,6 +101,39 @@
     const t = $('#toast'); t.textContent = txt; t.className = 'on ' + (cls || ''); clearTimeout(toast.h);
     toast.h = setTimeout(() => t.classList.remove('on'), 1500);   // (its kind stays on while it fades: it used to snap back to the big letters on the way out)
   }
+  /* your phone, in the corner of the screen: a name and a line, one at a time, a few seconds each. In the park one
+     that points somewhere can be tapped: the arrow on the floor takes you there. */
+  const noteQ = []; let noteBusy = false;
+  function notify(who, text, o) {
+    if (noteQ.length > 2) return; noteQ.push({ who, text, o: o || {}, g: G }); if (!noteBusy) noteNext();
+  }
+  function noteNext() {
+    const n = noteQ.shift(); if (!n || n.g !== G || !G || G.phase === 'end') { noteBusy = false; noteQ.length = 0; const e0 = $('#notif'); if (e0) e0.classList.remove('on'); return; }
+    noteBusy = true; let e = $('#notif');
+    if (!e) { e = document.createElement('button'); e.id = 'notif'; $('#game').appendChild(e); }
+    e.innerHTML = `<i></i><div><b></b><span></span>${n.o.go ? '<u>Tap: show me the way</u>' : ''}</div>`; e.querySelector('b').textContent = n.who; e.querySelector('span').textContent = n.text;
+    e.classList.toggle('go', !!n.o.go);
+    e.onclick = () => { if (n.o.go && G === n.g && G.park) { const st = PARK.find(x => x.id === n.o.go); if (st) { G.guideXZ = { x: st.x, z: st.z, id: st.id }; toast('Follow the arrow', 'call'); } } e.classList.remove('on'); };
+    void e.offsetWidth; e.classList.add('on');
+    clearTimeout(noteNext.h); noteNext.h = setTimeout(() => { e.classList.remove('on'); noteNext.h = setTimeout(noteNext, 700); }, n.o.go ? 5200 : 3800);
+  }
+  /* the timeline, live: people watching react to what you just did (not after every play) */
+  const HANDLES = ['@hoopsdad_22', '@courtside_kay', '@bucketsonly', '@nightcapnation', '@section_214', '@midrange_mary', '@film_room_fred', '@ankle_tax', '@sixth_man_sam', '@nosebleed_nate', '@tipoff_tess', '@highlight_reel'];
+  const REACT = {
+    three: ['From DEEP', 'He is not missing tonight', 'Hand down, man down', 'Splash. Again.', 'Somebody guard him'],
+    dunk: ['OH MY', 'He put him in the rim', 'Rim is still shaking', 'Clip that. Clip it now', 'Sheesh'],
+    Steal: ['Cookies!', 'Pick-pocket', 'Hands everywhere tonight'], 'Picked it off': ['Read it the whole way', 'Free safety out there'],
+    Block: ['Get that out of here', 'Not in his house', 'Sent it to row five'], 'Chase-down block': ['Chased him DOWN', 'Never give up on a play'],
+    Assist: ['What a dime', 'He sees everything', 'Everybody eats'], 'Alley-oop': ['LOB CITY', 'Threw it to the moon'],
+    'Poster dunk': ['POSTER. Frame it', 'Somebody call his family', 'That man has a family'], 'Beat your man': ['Too quick', 'Left him standing there'],
+    pts: ['is cooking', 'has it going', 'cannot be stopped right now', 'is feeling it'],
+  };
+  function social(kind, extra) {
+    if (!G || G.drill || G.park || !G.user || G.auto || G.switching || G.phase === 'end') return;
+    if (G.t - (G.noteAt || -99) < 9) return; const L = REACT[kind]; if (!L) return;
+    G.noteAt = G.t; const u = G.user, line = L[Math.floor(rand() * L.length)];
+    notify(HANDLES[Math.floor(rand() * HANDLES.length)], kind === 'pts' ? `#${u.num} ${line}: ${extra} points` : line, { quiet: true });
+  }
   function feed(txt) {
     const f = $('#feed'); const e = document.createElement('div'); e.textContent = txt; f.prepend(e);
     while (f.children.length > 3) f.lastChild.remove();
@@ -113,6 +146,7 @@
     const before = gradeLetter(G.grade);
     G.grade = clamp(G.grade + delta, -26, 26);
     G.gradeLog.push([delta, why]);
+    if (delta >= 1 && REACT[why] && rand() < 0.7) social(why);
     tkoAdd(delta > 0 ? delta * 0.05 : delta * 0.025);
     const g = $('#grade'); g.innerHTML = `<b>${gradeLetter(G.grade)}</b><span class="${delta >= 0 ? 'up' : 'dn'}">${delta >= 0 ? '+' : '−'} ${why}</span>`;
     g.classList.remove('flash'); void g.offsetWidth; g.classList.add('flash', 'why');
@@ -738,8 +772,8 @@
   /* the shoot-around: shoot from anywhere, the ball comes back to you; no clock. Pause to finish. */
   function freeLands(s) {
     const D = G.drill, b = G.ball;
-    if (G.park) parkSay(s.made ? 'make' : 'miss');
-    D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(hoopZ(0) > 0 ? 1 : -1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); if (G.park && D.streak >= 3 && D.streak % 3 === 0 && G.user) celebrate(G.user, ['three', 'point', 'flex']); }
+    if (G.park) parkSay(s.made ? (s.kind === 'dunk' ? 'dunk' : 'make') : 'miss');
+    D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(hoopZ(0) > 0 ? 1 : -1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); if (G.park && D.streak >= 3 && D.streak % 3 === 0 && G.user) { celebrate(G.user, ['three', 'point', 'flex']); setTimeout(() => G && G.park && parkSay('streak', 40), 500); } }
     else { D.streak = 0; AU().play('rim', { x: b.ex, power: 0.6 }); }
     b.state = 'drop'; b.t = 0; D.next = 0.9;
   }
@@ -800,16 +834,29 @@
   }
   /* what the regulars say: hello when you come by, something when you score (or don't) near them */
   const PARKSAY = {
-    hi: ['You got next?', 'Run it?', 'Who\'s this?', 'New face', 'You hoop?', '1 on 1 me', 'Let\'s get a run', 'Need one more', 'Nice kicks', 'You play for real?'],
-    make: ['Cash!', 'Wet', 'Too easy', 'Cookin\'', 'Splash', 'Okay okay', 'That\'s good'],
-    miss: ['Brick!', 'Front rim', 'Airball? Nah', 'Shoot it again', 'Keep shooting'],
-    move: ['Ooh!', 'Handles', 'Stop it', 'Ankles!'],
+    hi: ['You got next?', 'Run it?', 'Who\'s this?', 'New face', 'You hoop?', '1 on 1 me', 'Let\'s get a run', 'Need one more', 'Nice kicks', 'You play for real?', 'Yo, {n}!', 'What\'s good, {n}', '{n} is here', 'Look who showed up', 'You staying a while?', 'Winner stays', 'Court\'s open', 'I got next after you', 'Been here since noon', 'Hot out here today'],
+    make: ['Cash!', 'Wet', 'Too easy', 'Cookin\'', 'Splash', 'Okay okay', 'That\'s good', 'Bottoms', 'Net didn\'t move', 'Shooter!', 'Do it again', 'All day'],
+    miss: ['Brick!', 'Front rim', 'Airball? Nah', 'Shoot it again', 'Keep shooting', 'Short', 'Left', 'Legs, {n}, legs', 'Off the back iron', 'Next one\'s good'],
+    move: ['Ooh!', 'Handles', 'Stop it', 'Ankles!', 'Yo chill', 'He got a bag', 'Shifty'],
+    streak: ['He can\'t miss!', 'Somebody guard {n}', 'That\'s three straight', 'Heat check!', 'Get him a contract'],
+    dunk: ['OHHH!', 'Put it DOWN', 'Rim\'s gonna break', 'He\'s got bounce', 'Do that in a game'],
   };
+  /* the regulars talk to each other too: one says something, another answers */
+  const BANTER = [['You see the game last night?', 'Don\'t remind me'], ['I\'m nice from the corner', 'You\'re nice from the bench'], ['Who\'s got ball?', 'Shoot for it'], ['That was a foul', 'Call your own'], ['Run it back', 'After water'],
+    ['My knees, man', 'Stretch first, old head'], ['Next point wins', 'It was next point ten minutes ago'], ['You owe me a drink', 'Double or nothing'], ['I had 30 in high school', 'Against who?'], ['Pass the ball sometimes', 'Get open sometimes'],
+    ['These rims are tight', 'It\'s not the rims'], ['Who\'s the new kid?', 'He can play a little'], ['Lights come on at eight', 'Then we go till eight'], ['New shoes?', 'Don\'t step on them'], ['You hooping tomorrow?', 'Every day'],
+    ['I\'m taking {n} first', 'Then I got {n} next'], ['Shirts or skins?', 'Shirts. Always shirts'], ['Check ball', 'Ball\'s in'], ['That boombox still work?', 'Louder than you'], ['Somebody sweep the court', 'Not it']];
+  /* walk up and talk to one: he has a tip, or something on his mind */
+  const TALK = ['Pull the stick away from the rim when you shoot. Fadeaway. Can\'t block it', 'Let go at the top of the jump. That\'s the whole secret', 'Swipe Move down for a step-back. Works on me every time', 'Don\'t sprint everywhere. Legs go, the jumper goes',
+    'Big men: back him down, then turn. Hook or the turnaround', 'The gym door resets every day. Do your workouts', 'Spin the wheel by the far fence. Free stuff, every day', 'Daily\'s different every day. I never miss it',
+    'You get followers out here, you know. People watch', 'Win a few in a row at this park and everybody knows your name', 'Pump fake first. They all jump', 'Throw the lob when your man cuts. Crowd goes crazy',
+    'I played two-way for a year. Don\'t waste your shot, {n}', 'My cousin says you\'re the real thing. We\'ll see', 'Pro-Am runs are on the far side. Bring your best', 'Stay in front of your man. Don\'t reach, slide'];
+  const fill = t => t.replace('{n}', (opts && opts.userName) || 'rook');
   function parkSay(kind, near) {
     const u = G.user; if (!R.say || !u) return;
     const who = G.pl.filter(p => p.npc && hyp(p.x - u.x, p.z - u.z) < (near || 26) && G.t - (p.saidT || -99) > 5).sort(() => rand() - 0.5)[0];
-    if (!who) return; who.saidT = G.t; const L = PARKSAY[kind]; R.say(who, L[Math.floor(rand() * L.length)], 2.4);
-    if (kind === 'make' || kind === 'move') { who.npcPose = rand() < 0.5 ? 'point' : 'call'; who.npcW = 0; who.npcT = 1.6; }
+    if (!who) return; who.saidT = G.t; const L = PARKSAY[kind]; R.say(who, fill(L[Math.floor(rand() * L.length)]), 2.4);
+    if (kind === 'make' || kind === 'move' || kind === 'streak' || kind === 'dunk') { who.npcPose = rand() < 0.5 ? 'point' : 'call'; who.npcW = 0; who.npcT = 1.6; }
   }
   /* two regulars shoot around, one at each rim, with balls of their own: a spot, a jumper, the ball chased down
      (through the net, or off the iron and away), again */
@@ -881,8 +928,11 @@
     const key = near ? near.id : guy ? 'npc:' + guy.d.id : undefined;
     if (key !== G.parkAt && guy && !near) {
       G.parkAt = key; R.stationLit && R.stationLit(null); const c = $('#parkcard');
-      c.innerHTML = `<div class="pci" style="--sc:#4cffb0"><b>${guy.name}</b><span>park regular · ${guy.d.pos} · ${guy.d.ovr} overall</span></div><div class="pcb"><button class="big" id="parkgo">1 on 1</button><button class="ghost" id="parkhs">H-O-R-S-E</button></div>`;
+      c.innerHTML = `<div class="pci" style="--sc:#4cffb0"><b>${guy.name}</b><span>park regular · ${guy.d.pos} · ${guy.d.ovr} overall</span></div><div class="pcb"><button class="big" id="parkgo">1 on 1</button><div class="pc2"><button class="ghost" id="parkhs">HORSE</button><button class="ghost" id="parktk">Talk</button></div></div>`;
       c.hidden = false; placeCard(); $('#parkgo').onclick = () => leavePark(key); $('#parkhs').onclick = () => leavePark('horse:' + guy.d.id);
+      $('#parktk').onclick = () => { const li = (guy.talkI = guy.talkI === undefined ? Math.floor(rand() * TALK.length) : (guy.talkI + 1) % TALK.length), line = fill(TALK[li]);
+        guy.saidT = G.t + 3; guy.npcW = 0; guy.npcT = 4; guy.npcPose = 'call'; if (R.say) R.say(guy, line.length > 34 ? line.slice(0, line.lastIndexOf(' ', 34)) + '…' : line, 3.4); notify(guy.name, line, { quiet: true });
+        if (!guy.talked) { guy.talked = true; if (opts.onParkTalk) { const m = opts.onParkTalk(guy.d.id); if (m) setTimeout(() => toast(m, 'call'), 900); } } };
       guy.npcW = 0; guy.npcT = 3; if (R.say && G.t - (guy.saidT || -99) > 3) { guy.saidT = G.t; R.say(guy, ['You want this smoke?', 'Check it up', 'First to 11?', 'You sure?', 'Bet. Let\'s go'][Math.floor(rand() * 5)], 2.4); }
     }
     else if (key !== G.parkAt) { G.parkAt = key; R.stationLit && R.stationLit(G.parkAt); const c = $('#parkcard');
@@ -898,6 +948,14 @@
       }
       else c.hidden = true; }
     if (G.t - (G.hiT || 0) > rr(7, 12)) { G.hiT = G.t; parkSay('hi', 14); }
+    /* two of the regulars, talking */
+    if (R.say && G.t - (G.banT || 4) > (G.banGap || 7)) { G.banT = G.t; G.banGap = rr(6, 11);
+      const ns = G.pl.filter(p => p.npc && hyp(p.x - u.x, p.z - u.z) < 34 && G.t - (p.saidT || -99) > 4).sort(() => rand() - 0.5);
+      if (ns.length >= 2) { const a = ns[0], b2 = ns.slice(1).sort((x, y) => hyp(x.x - a.x, x.z - a.z) - hyp(y.x - a.x, y.z - a.z))[0], pr = BANTER[Math.floor(rand() * BANTER.length)], g = G;
+        a.saidT = b2.saidT = G.t + 2; R.say(a, fill(pr[0]), 2.3); setTimeout(() => { if (G === g && G.park && !G.paused) R.say(b2, fill(pr[1]), 2.4); }, 1700); } }
+    /* your phone */
+    if (opts.parkNotes && opts.parkNotes.length && !G.tut && G.t - (G.phoneT || -12) > (G.phoneGap || 20)) { G.phoneT = G.t; G.phoneGap = rr(16, 28);
+      G.phoneI = G.phoneI === undefined ? Math.floor(rand() * opts.parkNotes.length) : (G.phoneI + 1) % opts.parkNotes.length; const n = opts.parkNotes[G.phoneI]; notify(n.who, n.text, { go: n.go, quiet: true }); }
     parkShooters(dt);
     for (const p of G.pl) if (p.npc && !p.pb) {
       if (hyp(p.x - u.x, p.z - u.z) < 5.5) { p.npcW = 0; p.npcT = Math.max(p.npcT || 0, 1); }
@@ -1055,6 +1113,8 @@
       /* a dunk on somebody: said out loud */
       if (s.kind === 'dunk' && !G.drill) { const v = nearestDef(p); if (v.who && v.d < 3.4) { R.benchJump && R.benchJump(p.team); feed(`${p.name} dunks on ${v.who.name}`);
         if (p.isUser) { setTimeout(() => toast('POSTERIZED', 'make'), 500); grade(1, 'Poster dunk'); buzz([30, 40, 30]); } else if (v.who.isUser) setTimeout(() => toast('Dunked on', 'opp'), 500); } }
+      if (p.isUser && !G.drill) { const was = p.st.pts - s.pts, th = [10, 20, 30, 40, 50].find(v => was < v && p.st.pts >= v);
+        if (th) { G.noteAt = -99; social('pts', p.st.pts); } else if (s.kind === 'dunk' && rand() < 0.6) social('dunk'); else if (s.three && rand() < 0.4) social('three'); }
       /* your badges at work, shown as they fire */
       if (p.isUser && !G.drill) { const k = s.kind === 'dunk' ? 'poster' : s.fade ? 'fade' : s.kind === 'hook' ? 'post' : s.kind === 'layup' || s.kind === 'floater' ? 'acro' : s.three ? (s.caught && bt(p, 'catch') ? 'catch' : 'deep') : 'mid';
         badgePop(p, clutchTime() && bt(p, 'clutch') ? 'clutch' : k); }
