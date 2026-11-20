@@ -713,7 +713,7 @@
   function freeLands(s) {
     const D = G.drill, b = G.ball;
     if (G.park) parkSay(s.made ? 'make' : 'miss');
-    D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(hoopZ(0) > 0 ? 1 : -1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); }
+    D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(hoopZ(0) > 0 ? 1 : -1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); if (G.park && D.streak >= 3 && D.streak % 3 === 0 && G.user) celebrate(G.user, ['three', 'point', 'flex']); }
     else { D.streak = 0; AU().play('rim', { x: b.ex, power: 0.6 }); }
     b.state = 'drop'; b.t = 0; D.next = 0.9;
   }
@@ -935,7 +935,7 @@
     } else {
       const k = me ? 0 : 1;
       if (s.made) toast(me ? 'Matched' : `${p.name} matches it`, me ? 'make' : 'opp');
-      else { D.L[k]++; toast(me ? `Letter: ${letters(D.L[0])}` : `${p.name} takes a letter: ${letters(D.L[1])}`, me ? 'opp' : 'make'); buzz(me ? [30, 40, 30] : 12); }
+      else { D.L[k]++; celebrate(other(p), ['point', 'flex', 'three']); p.celebK = 'ugh'; p.celebT = 1.2; toast(me ? `Letter: ${letters(D.L[0])}` : `${p.name} takes a letter: ${letters(D.L[1])}`, me ? 'opp' : 'make'); buzz(me ? [30, 40, 30] : 12); }
       D.mode = 'set'; D.shooter = D.lead; D.spot = null;
       if (D.L[k] >= 5) { D.over = true; D.won = !me; }
     }
