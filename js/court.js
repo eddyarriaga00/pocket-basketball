@@ -1698,6 +1698,11 @@
     lg.fillStyle = grd; lg.fillRect(0, 0, 256, 256);
     const pool = new T.Mesh(new T.PlaneGeometry(80, 130), new T.MeshBasicMaterial({ map: new T.CanvasTexture(lc), transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
     pool.rotation.x = -Math.PI / 2; pool.position.y = 0.015; scene.add(pool);
+    /* the arena lights in the polish of the floor: long pale streaks, brightest down the middle */
+    if (!home.park && !home.street) { const rc = document.createElement('canvas'); rc.width = 64; rc.height = 256; const rg = rc.getContext('2d'), g2 = rg.createRadialGradient(32, 128, 2, 32, 128, 128);
+      g2.addColorStop(0, 'rgba(255,250,240,.5)'); g2.addColorStop(0.4, 'rgba(255,250,240,.14)'); g2.addColorStop(1, 'rgba(255,250,240,0)'); rg.save(); rg.translate(32, 128); rg.scale(0.25, 1); rg.translate(-32, -128); rg.fillStyle = g2; rg.fillRect(-200, 0, 464, 256); rg.restore();
+      const rt = new T.CanvasTexture(rc), rm = new T.MeshBasicMaterial({ map: rt, transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: 0.5 });
+      for (const [x, z, k] of [[-9, -24, 1], [9, -24, 1], [-9, 24, 1], [9, 24, 1], [0, 0, 1.25], [-18, 0, 0.7], [18, 0, 0.7]]) { const m = new T.Mesh(new T.PlaneGeometry(7 * k, 30 * k), rm); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.018, z); scene.add(m); } }
     renderer.setClearColor(home.park ? 0x24304a : 0x0b0f17); scene.fog = home.park ? new T.Fog(0x3a3550, 90, 230) : new T.Fog(0x0b0f17, 120, 260); scene.background = null;
     if (home.park) parkDressing(home); else {
     /* stands: tiers on all four sides */
