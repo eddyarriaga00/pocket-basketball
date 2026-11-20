@@ -29,6 +29,8 @@ The dribbling arm is measured from the CMU Graphics Lab Motion Capture Database 
 [sfd158/cmu-mocap](https://github.com/sfd158/cmu-mocap) and `tools/mocap/dribble.py`. The data used in this project was
 obtained from mocap.cs.cmu.edu. The database was created with funding from NSF EIA-0196217.
 
+The moving dribble follows the speed and protected dribble cues in the [FIBA/WABC Start Coaching workbook](https://assets.fiba.basketball/image/upload/documents-corporate-wabc-start-coaching-eng-coach-workbook.pdf) and the push dribble in [Level 2, section 2.4.6](https://assets.fiba.basketball/image/upload/documents-corporate-wabc-coaching-manual-level-2-eng.pdf).
+
 ## The booth
 
 The two commentators are recorded on a Mac with [Chatterbox](https://github.com/resemble-ai/chatterbox) (Resemble AI,

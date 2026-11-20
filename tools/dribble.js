@@ -23,3 +23,19 @@ for (const [kind, floorZ] of [['cross', 1.2], ['legs', 0.15], ['btb', -1]]) {
   }
 }
 console.log('All six hand changes met the floor and returned to the receiving hand.');
+
+// A change of direction after the push must leave the floor contact in place.
+const movingPlayer = { runD: 1, dribVX: 14, dribVZ: 0 };
+const ball = {}, hand = { x: 1, z: 0 }, rate = 7;
+const bounce = progress => window.PB.movingBounce(ball, movingPlayer, hand, (0.5 + progress) * Math.PI, rate);
+bounce(0);
+const target = ball.floorX;
+assert(target > hand.x + 4);
+movingPlayer.dribVX = -10;
+hand.x = 0;
+bounce(0.5);
+assert.equal(ball.x, target);
+bounce(1);
+assert.equal(ball.x, hand.x);
+assert(ball.floorX < hand.x);
+console.log('The push stays on its line through a cut and the next bounce follows the new direction.');

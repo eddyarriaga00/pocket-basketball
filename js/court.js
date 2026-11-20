@@ -1329,7 +1329,7 @@
     /* planted feet: in a defensive stance (and standing over a dribble) the feet are set on the floor and step, one
        at a time, as he moves; the legs are solved to reach them. sw eases in and out so he drops into it */
     { const gs = m.gw * (1 - smooth(13, 17, sp)), rdy = m.rw > m.dw && m.rw > gs, sw = Math.max(gs, m.dw, m.rw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = crossing ? (mv.k === 'legs' ? 0.10 : 0.065) * Math.sin(ms * Math.PI) : ms < 1 && mv.k === 'spin' ? 0.05 : 0;
-      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - 0.08 * load - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
+      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - 0.06 * (p.brakeD || 0) - low - 0.07 * m.gath - 0.08 * load - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
     /* a dunk: the knees tuck under him as he rises */
     if ((p.pose === 'dunk1' || p.pose === 'windmill') && p.y > 0.5 && m.bones[bk('DEF-thigh.L')]) { const w = Math.min(1, (p.y - 0.5) * 1.6), f = p.face + (p.spinA || 0);
       for (const sd of ['L', 'R']) { const th = m.bones[bk(`DEF-thigh.${sd}`)], sh = m.bones[bk(`DEF-shin.${sd}`)], ft = m.bones[bk(`DEF-foot.${sd}`)], k = sd === 'L' ? 0.5 : 0.72;
@@ -1407,14 +1407,21 @@
     if (pose === 'dribble' && p.runD > 0.05) {
       const run = p.runD, height = Math.sin(kk * Math.PI);
       // Reach forward on the push and bend the elbow again as the ball climbs back to the hand.
-      P[0][2] += run * (0.2 + 0.22 * (1 - height));
-      P[1][2] += 0.28 * run;
+      const vx = p.dribVX ?? p.vx, vz = p.dribVZ ?? p.vz;
+      const speed = Math.max(1, Math.hypot(vx, vz)), fx = Math.sin(p.face), fz = Math.cos(p.face);
+      const ahead = (vx * fx + vz * fz) / speed;
+      const across = (-vx * fz + vz * fx) / speed * (p.dribHand || 1);
+      const reach = run * (0.2 + 0.22 * (1 - height));
+      P[0][2] += reach * ahead;
+      P[0][0] += reach * across;
+      P[1][2] += 0.28 * run * ahead;
+      P[1][0] += 0.28 * run * across;
       P[1][1] += run * (0.38 * height - 0.18);
     }
     if (pose === 'dribble') {
       // Change bounce height at the elbow so the returning ball still meets the palm.
       const style = p.d && p.d.look && p.d.look.drib;
-      const lift = (style === 'high' ? 0.2 : style === 'low' ? -0.38 : 0) - 0.32 * prot;
+      const lift = (style === 'high' ? 0.2 : style === 'low' ? -0.38 : 0) - 0.32 * prot - 0.35 * (p.brakeD || 0);
       P[1][1] += lift * Math.sin(Math.PI * kk);
     }
     if (pose === 'guard' && m.gd < 0.98) { const R0 = [[0.42, -0.8, 0.42], [0.4, -0.3, 0.86]], e = 1 - m.gd, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], R0[0]), L(P[1], R0[1]), L(P[2], R0[0]), L(P[3], R0[1])]; }

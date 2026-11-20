@@ -21,6 +21,25 @@
   PB.clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   PB.gauss = () => { let u = 0, v = 0; while (!u) u = PB.rand(); while (!v) v = PB.rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.283185 * v); };
 
+  // Each push commits to a point on the court. After floor contact, the ball returns to the moving hand.
+  PB.movingBounce = (ball, p, hand, phase, rate) => {
+    const cycle = Math.floor(phase / Math.PI - 0.5);
+    const progress = phase / Math.PI - 0.5 - cycle;
+    if (ball.pushCycle !== cycle) {
+      ball.pushCycle = cycle;
+      ball.pushX = hand.x; ball.pushZ = hand.z;
+      const flight = Math.PI * 0.5 / rate;
+      const lead = flight + 0.12 * p.runD;
+      ball.floorX = ball.pushX + p.dribVX * lead;
+      ball.floorZ = ball.pushZ + p.dribVZ * lead;
+    }
+    const down = progress < 0.5;
+    const reach = down ? 2 * progress : 2 * (1 - progress);
+    const hx = down ? ball.pushX : hand.x, hz = down ? ball.pushZ : hand.z;
+    ball.x = hx + (ball.floorX - hx) * reach;
+    ball.z = hz + (ball.floorZ - hz) * reach;
+  };
+
   // A hand change crosses the floor target at half time. Horizontal travel continues through
   // contact while the vertical arc reverses. Hand samples are at the palm, ball positions at the center.
   PB.crossBounce = (ball, player, move, phase, hands) => {

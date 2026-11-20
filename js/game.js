@@ -270,7 +270,8 @@
     if (G.half) { if (G.hadBall !== undefined && G.hadBall !== p.team && !G.checking && G.phase === 'live') { G.clr = p.team; if (p.isUser || (G.user && G.user.team === p.team)) toast('Take it back past the arc', 'call'); } G.hadBall = p.team; }
     if (G.inb) { G.inb.p.inb = false; G.inb = null; }
     b.state = 'held'; b.holder = p; p.hold = 0; p.think = 0.2 + rand() * 0.2; delete p.post;
-    p.dph = Math.PI / 2; b.bk = 0;
+    p.dph = Math.PI / 2; b.bk = 0; b.pushCycle = null;
+    p.dribX = p.x; p.dribZ = p.z; p.dribVX = p.dribVZ = p.brakeD = 0;
     b.lastTouch = p.team;
     if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; G.possN = (G.possN || 0) + 1;
       if (G.phase === 'live' && !p.inb) G.transT = G.t;   // a live-ball change of hands (a steal, a board): the break is on
@@ -2041,10 +2042,21 @@
          the side away from the defender (changing hands with a crossover, or through the legs when he is right there) */
       if (b.holder === p && b.state === 'held' && !p.shoot && !p.inb && G.phase !== 'ft') {
         const nd = nearestDef(p), spd = hyp(p.vx, p.vz), top = maxSpeed(p), ds = p.d && p.d.look && p.d.look.drib;
-        const tight = nd.who && nd.d < 5.5 ? 1 - Math.max(0, nd.d - 2.5) / 3 : 0, run = clamp((spd - top * 0.6) / (top * 0.4), 0, 1) * (1 - tight);
-        p.prot = (p.prot || 0) + (tight - (p.prot || 0)) * Math.min(1, dt * 6); p.runD = (p.runD || 0) + (run - (p.runD || 0)) * Math.min(1, dt * 5);
-        const rate = (1 + 0.28 * p.prot - 0.2 * p.runD) * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1);
-        p.dph = (p.dph === undefined ? G.t * 7.4 : p.dph) + dt * 7.4 * rate;
+        const tight = nd.who && nd.d < 5.5 ? 1 - Math.max(0, nd.d - 2.5) / 3 : 0;
+        // Measure ground travel so leaning on the stick against a defender does not start a speed dribble.
+        const vx = p.dribX === undefined ? p.vx : clamp((p.x - p.dribX) / dt, -top, top);
+        const vz = p.dribZ === undefined ? p.vz : clamp((p.z - p.dribZ) / dt, -top, top);
+        p.dribX = p.x; p.dribZ = p.z;
+        const blend = Math.min(1, dt * 12);
+        p.dribVX = (p.dribVX || 0) + (vx - (p.dribVX || 0)) * blend;
+        p.dribVZ = (p.dribVZ || 0) + (vz - (p.dribVZ || 0)) * blend;
+        const speed = hyp(p.dribVX, p.dribVZ);
+        const forwardSpeed = (vx * p.dribVX + vz * p.dribVZ) / Math.max(1, speed);
+        p.brakeD = clamp((speed - forwardSpeed) / (top * 0.55), 0, 1);
+        p.prot = (p.prot || 0) + (tight - (p.prot || 0)) * Math.min(1, dt * 6);
+        p.runD = clamp(speed / top, 0, 1) * (1 - p.prot);
+        p.dribRate = 7.4 * (1 + 0.28 * p.prot + 0.16 * p.brakeD - 0.2 * p.runD) * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1);
+        p.dph = (p.dph === undefined ? G.t * 7.4 : p.dph) + dt * p.dribRate;
         if (p.handCd > 0) p.handCd -= dt;
         if (G.sigN !== G.possN && Math.abs(p.z) < 7 && spd > 3 && tight < 0.3 && G.phase === 'live' && !G.drill) { G.sigN = G.possN; p.sigT = G.t; }   // calling the set: a hand up as he crosses half court
         const busy = p.mv && G.t - p.mv.t0 < p.mv.T + 0.15;
@@ -2059,7 +2071,7 @@
           p.sizeT = (p.sizeT || 0) + dt;
           if (p.sizeT > (p.sizeN || 1.2)) { const cur = p.dribHand || 1; p.dribHand = -cur; startMv(p, ['legs', 'btb', 'cross', 'legs'][Math.floor(rand() * 4)], cur, -cur); p.mv.idle = true; p.sizeT = 0; p.sizeN = rr(0.8, 2.0); p.handCd = 0.6; }
         } else p.sizeT = 0;
-      } else { p.prot = 0; p.runD = 0; }
+      } else { p.prot = 0; p.runD = 0; p.brakeD = 0; p.dribX = undefined; }
       if (p.moveCd > 0) p.moveCd -= dt;
       if (p.reachCd > 0) p.reachCd -= dt;
       if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && (p.pose === 'reach' || passingPose(p.pose))) p.pose = ''; }
@@ -2212,7 +2224,7 @@
     if (b.state === 'held') {
       const p = b.holder, hp = handPos(p);
       const H = R.hands && R.hands(p);
-      if (p.shoot) { b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? (H ? 0.1 : 0.6) : H ? 0 : 0.2); }
+      if (p.shoot) { b.pushCycle = null; b.x = hp.x; b.z = hp.z; b.y = hp.y + (p.shoot.kind === 'dunk' ? (H ? 0.1 : 0.6) : H ? 0 : 0.2); }
       /* a shot goes up, in front of the shooter: the ball is never carried down by his knees or behind him on the way
          (the hands lag the pose by a frame, and an arm may swing through a wind-up; a windmill is the one exception) */
       if (p.shoot && p.pose !== 'windmill') { const fx = Math.sin(p.face), fz = Math.cos(p.face), ht = (p.ht || 78) / 12, k = Math.min(1, p.shoot.t / 0.12);
@@ -2234,12 +2246,12 @@
           p.st.fga++; if (p.shoot.three) p.st.tpa++; p.shoot = null; p.pose = ''; G.possN = (G.possN || 0) + 1;
           blockShot(o, p, { x: b.x, y: b.y, z: b.z }); return; }
       } }   // (a shot never falls through to the dribble below: the ball stays in the hands)
-      else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb || (p.fakeT !== undefined && G.t - p.fakeT < 0.36) || p.y > 0.25 /* in the air with it (a rebound): it stays in his hands until he lands */)) { b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
+      else if (H && ((G.phase === 'ft' && p.pose !== 'dribble') || p.inb || (p.fakeT !== undefined && G.t - p.fakeT < 0.36) || p.y > 0.25 /* in the air with it (a rebound): it stays in his hands until he lands */)) { b.pushCycle = null; b.x = (H.r.x + H.l.x) / 2; b.z = (H.r.z + H.l.z) / 2; b.y = (H.r.y + H.l.y) / 2 + 0.2; }
       else {
         const mv = p.mv, ms = mv && H ? (G.t - mv.t0) / mv.T : 2;
         if (ms < 1) {
           // The ordinary bounce resumes from the receiving palm after the move.
-          p.dph = Math.PI / 2; b.bk = 0;
+          p.dph = Math.PI / 2; b.bk = 0; b.pushCycle = null;
           const A = mv.a < 0 ? H.l : H.r;
           if (mv.k === 'spin' || mv.k === 'hesi') {   // palmed through the spin; held at the hip on the hesitation
             b.x = A.x; b.z = A.z; b.y = Math.max(1.2, A.y - (mv.k === 'hesi' ? 0.15 : 0.3)); return;
@@ -2255,8 +2267,7 @@
         const top = H ? Math.max(1.2, hp.y - 0.35) : 3 * (ds === 'low' ? 0.78 : ds === 'high' ? 1.06 : 1) * (1 - 0.18 * (p.prot || 0) + 0.08 * (p.runD || 0));
         const ph = p.dph !== undefined ? p.dph : G.t * 7.4, sn = Math.abs(Math.sin(ph));
         b.y = 0.4 + sn * (top - 0.4);
-        /* at a run the ball is pushed out ahead and comes back to the hand */
-        if (p.runD > 0.05) { const f = (1 - sn) * 1.5 * p.runD, sp1 = hyp(p.vx, p.vz) || 1; b.x += p.vx / sp1 * f; b.z += p.vz / sp1 * f; }
+        if (p.dribRate && !p.inb && G.phase !== 'ft') PB.movingBounce(b, p, hp, ph, p.dribRate);
         /* the bounce: one each time the ball meets the floor, quieter the farther it is from you */
         const k = Math.floor(ph / Math.PI);
         if (k !== b.bk) { b.bk = k; if (G.phase === 'live') { const d = G.user ? hyp(b.x - G.user.x, b.z - G.user.z) : 20; AU().play('bounce', { x: b.x, vol: clamp(1.1 - d / 45, 0.25, 1) }); } }
