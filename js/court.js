@@ -1096,7 +1096,7 @@
     hang: () => [[0.12, 0.98, 0.12], [0.04, 0.99, 0.12], [0.12, 0.98, 0.12], [0.04, 0.99, 0.12]],   // on the rim
     bpass: () => [[0.22, -0.55, 0.8], [0.05, -0.6, 0.8], [0.22, -0.55, 0.8], [0.05, -0.6, 0.8]],   // a bounce pass, pushed down
     sad: () => [[0.2, -0.75, 0.62], [0.05, -0.85, 0.5], [0.2, -0.75, 0.62], [0.05, -0.85, 0.5]],   // hands on knees
-    chest: () => [[0.22, -0.12, 0.97], [0.0, 0.02, 1], [0.22, -0.12, 0.97], [0.0, 0.02, 1]],   // a chest pass, arms out
+    chestPass: () => [[0.22, -0.12, 0.97], [0.0, 0.02, 1], [0.22, -0.12, 0.97], [0.0, 0.02, 1]],   // a chest pass, arms out
     catch: () => [[0.32, 0.05, 0.94], [0.12, 0.25, 0.96], [0.32, 0.05, 0.94], [0.12, 0.25, 0.96]],   // hands up for the ball
     reach: () => [[0.1, -0.15, 0.98], [0.05, -0.2, 0.98], [0.6, -0.6, 0.4], [0.3, -0.5, 0.8]],
     /* active hands: one up in the ball's face (it mirrors the dribble), the other low and wide in the passing lane */
@@ -1310,10 +1310,10 @@
       aim(th, sh, _t3.set(Math.sin(f) * 0.9, -0.42, Math.cos(f) * 0.9).normalize(), w); aim(sh, ft, _t3.set(-Math.sin(f) * 0.25, -0.97, -Math.cos(f) * 0.25).normalize(), w); }
     /* the arms */
     const has = G.ball.holder === p;
-    let pose = p.pose;
+    let pose = p.pose === 'lobPass' ? 'chestPass' : p.pose;
     if (pose === 'shoot' && !p.shoot) pose = 'follow';
     if (has && !p.shoot && (pose !== 'dribble' || p.inb)) pose = G.phase === 'ft' ? 'hold' : p.inb ? (p.inbW ? 'hold' : 'over') : 'dribble';   // (carried at the waist on the jog out to the line, overhead once he is there)
-    if (pose === 'chest' && !(p.reachT > 0) && !(p.passT0 !== undefined && G.t - p.passT0 < 0.6)) pose = 'thump';   // the celebration (the chest pass had taken its name, and with it its arms)
+    if (pose === 'chest') pose = 'thump';
     if (has && !p.shoot && !p.inb && p.y > 0.25 && p.pose !== 'hang') pose = 'contest';   // he came down with a rebound: the ball stays up in both hands until his feet are back on the floor
     const fk = has && !p.shoot && p.fakeT !== undefined && G.t - p.fakeT < 0.36 ? (G.t - p.fakeT) / 0.36 : -1;   // a pump fake: the ball shown, then pulled back
     if (fk >= 0) pose = 'shoot';
@@ -1350,13 +1350,23 @@
     if (pose === 'dribble') { const pr = smooth(0.12, 0.6, p.prot || 0), rn = Math.min(1, p.runD || 0), sw = Math.sin(kk * Math.PI * 2);
       const up = [0.32 - 0.04 * rn, -0.88, 0.22 + 0.22 * rn * sw], fo = [0.08, -0.45 + 0.5 * rn + 0.2 * rn * sw, 0.88], L = (a, b) => a.map((v, j) => v + (b[j] - v) * pr);
       P = [P[0], P[1], L(up, P[2]), L(fo, P[3])]; }
-    if ((pose === 'chest' || pose === 'bpass') && p.passT0 !== undefined && G.t - p.passT0 < 0.6) { P = keyed(pose === 'chest' ? PASSK : BPASSK, Math.min(1, (G.t - p.passT0) / 0.3));
-      if (pose === 'chest' && G.ball.lob && G.ball.passer === p) P = P.map(v => [v[0], v[1] + 0.5, v[2]]); }   // a lob goes up and out
+    if (pose === 'chestPass' || pose === 'bpass') {
+      const elapsed = 0.32 - p.reachT;
+      P = keyed(pose === 'bpass' ? BPASSK : PASSK, Math.min(1, elapsed / 0.3));
+      if (p.pose === 'lobPass') P = P.map(v => [v[0], v[1] + 0.5, v[2]]);
+    }
     /* a reach goes at the ball: down for a low dribble, up for one held high */
     if (pose === 'reach' && G.ball.holder && G.ball.holder !== p) { const b = G.ball, d = Math.hypot(b.x - p.x, b.z - p.z) || 1, vy = Math.max(-0.75, Math.min(0.5, ((b.y || 0) - ((p.ht || 78) / 12 * 0.70 + (p.y || 0))) / Math.max(2, d)));
       P = [[0.10, vy * 0.8, 0.98], [0.04, vy * 1.1, 0.98], P[2], P[3]]; }
-    if (pose === 'catch' && G.ball.state === 'pass') { const b = G.ball, d = Math.hypot(b.x - p.x, b.z - p.z) || 1, vy = Math.max(-0.7, Math.min(0.9, ((b.y || 0) - ((p.ht || 78) / 12 * 0.78 + (p.y || 0))) / Math.max(3, d)));   // the hands go to where the ball is coming in
-      P = [[0.30, vy * 0.5 - 0.1, 0.90], [0.10, vy + 0.15, 0.95], [0.30, vy * 0.5 - 0.1, 0.90], [0.10, vy + 0.15, 0.95]]; }
+    if (pose === 'catch' && G.ball.state === 'pass') {
+      const b = G.ball, dx = b.x - p.x, dz = b.z - p.z, distance = Math.max(3, Math.hypot(dx, dz));
+      const height = PB.clamp((b.y - (p.y + p.ht / 12 * 0.78)) / distance, -0.7, 0.9);
+      const side = TPL.sideR < 0 ? 1 : -1;
+      const across = side * PB.clamp((-dx * Math.cos(p.face) + dz * Math.sin(p.face)) / distance, -0.7, 0.7);
+      // The arms use mirrored local axes. Both hands reach toward the incoming side.
+      P = [[0.30 + across * 0.5, height * 0.5 - 0.1, 0.90], [0.10 + across, height + 0.15, 0.95],
+           [0.30 - across * 0.5, height * 0.5 - 0.1, 0.90], [0.10 - across, height + 0.15, 0.95]];
+    }
     /* off one hand: a layup reaches up for the glass, the off arm keeping the defender away; a hook sweeps up from the side */
     { const sk = p.shoot && p.shoot.kind; m.lay = p.shoot ? (sk === 'layup' || sk === 'floater' ? 1 : sk === 'hook' ? 2 : 0) : (p.y > 0.2 ? m.lay : 0);
       if (m.lay && (pose === 'shoot' || pose === 'follow')) { const e = pose === 'follow' ? 1 : smooth(0, 1, kk), L = (a, b) => a.map((v, j) => v + (b[j] - v) * e);
@@ -1935,6 +1945,9 @@
       let a0 = -s * swing * 0.8, a1 = s * swing * 0.8, z0 = 0.08, z1 = -0.08;
       if (p.pose === 'shoot') { a0 = a1 = -2.9; z0 = 0.15; z1 = -0.15; }
       else if (p.pose === 'contest') { a0 = a1 = -3.0; z0 = 0.35; z1 = -0.35; }
+      else if (p.pose === 'chestPass' || p.pose === 'catch') { a0 = a1 = -1.5; }
+      else if (p.pose === 'bpass') { a0 = a1 = -0.85; }
+      else if (p.pose === 'lobPass') { a0 = a1 = -2.1; }
       else if (p.pose === 'reach') { a0 = -1.4; }
       else if (p.pose === 'dribble') { a1 = -0.55 + Math.abs(Math.sin(G.t * 9)) * 0.35; }
       else if (p.pose === 'guard') { a0 = a1 = -0.5; z0 = 0.5; z1 = -0.5; }

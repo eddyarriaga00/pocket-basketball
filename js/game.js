@@ -90,7 +90,7 @@
   function mkOnCourt(d, team, slot) {
     return { d, team, slot, r: d.r, ht: d.ht, name: d.last, num: d.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, jg: GRAV,
       face: team === 0 ? 0 : Math.PI, pose: '', stun: 0, think: rr(0, 0.3), hold: 0, tx: 0, tz: 0, cut: rr(3, 8), cutT: 0,
-      spot: 0, drive: 0, move: 0, moveCd: 0, shoot: null, isUser: false,
+      spot: 0, drive: 0, move: 0, moveCd: 0, reachT: 0, shoot: null, isUser: false,
       st: { pts: 0, reb: 0, oreb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, pf: 0, cs3: 0, mid: 0, lay: 0, dunk: 0, shake: 0, cmiss: 0, clutch: 0, fade: 0, hookm: 0 } };
   }
   const maxSpeed = p => (11.5 + p.r.speed * 0.075) * (G.ball.holder === p ? 0.9 : 1) * (p.isUser && G.tko && G.tko.on ? 1.05 : 1) * (p.energy !== undefined ? 0.82 + 0.18 * Math.min(1, p.energy * 2) : 1);
@@ -1173,6 +1173,7 @@
   }
 
   /* ---------- passing ---------- */
+  const passingPose = pose => pose === 'chestPass' || pose === 'bpass' || pose === 'lobPass';
   function passTo(p, r) {
     const b = G.ball;
     if (b.holder !== p || p.shoot) return;
@@ -1181,7 +1182,7 @@
     const lx = clamp(r.x + r.vx * T0 * 0.8, -24, 24), lz = clamp(r.z + r.vz * T0 * 0.8, -46, 46);
     const hp = handPos(p);
     b.state = 'pass'; b.holder = null; b.from = p; b.to = r; b.t = 0;
-    p.pose = 'chest'; p.reachT = 0.32;   // both arms push the ball out
+    p.pose = 'chestPass'; p.reachT = 0.32;   // both arms push the ball out
     p.passA = Math.atan2(lx - p.x, lz - p.z); p.passT0 = G.t;   // he turns and steps into it
     b.sx = hp.x; b.sy = hp.y - 1; b.sz = hp.z; b.ex = lx; b.ez = lz; b.ey = r.ht / 12 * 0.6 + 1.2;
     b.dur = hyp(lx - p.x, lz - p.z) / PS + 0.1; b.apex = 0.35 + b.dur * 0.9; b.wild = false;
@@ -1193,7 +1194,7 @@
     if (b.bounce) { p.pose = 'bpass'; b.bn = false; }
     const toRim = (0 - r.x) * r.vx + (hoopZ(r.team) - r.z) * r.vz;
     if ((r.cutT > 0 || r.cutUser > 0) && distHoop(lx, lz, r.team) < 13 && toRim > 0 && hyp(r.vx, r.vz) > 7 && r.r.dunk + r.r.vert > 125 && nearestDef(r).d > 3.5 && rand() < (r.isUser ? 0.8 : 0.3) * (0.5 + p.r.pass / 200)) {
-      b.lob = true; b.bounce = false; p.pose = 'chest';
+      b.lob = true; b.bounce = false; p.pose = 'lobPass';
       b.ex = clamp(lx * 0.5, -6, 6); b.ez = hoopZ(r.team) - dirOf(r.team) * 3; b.ey = 11.2;
       b.dur = hyp(b.ex - p.x, b.ez - p.z) / 34 + 0.35; b.apex = 4.5; b.passT = G.t + b.dur;
       r.oopT = b.dur + 0.4;
@@ -1665,7 +1666,7 @@
       if (G.ball.holder === u) u.pose = 'dribble';
       else if (!off) { const h = G.ball.holder, mn = G.pl.find(o => o.team !== u.team && o.slot === u.slot);   // a stance near the ball or your man; a run when you are getting back
         u.pose = (h && hyp(h.x - u.x, h.z - u.z) < 17) || (mn && hyp(mn.x - u.x, mn.z - u.z) < 9) ? 'guard' : ''; }
-      else u.pose = '';
+      else if (!passingPose(u.pose)) u.pose = '';
       if (!off) handsUp(u);
     } else {
       G.idle += dt;
@@ -1993,7 +1994,7 @@
       } else { p.prot = 0; p.runD = 0; }
       if (p.moveCd > 0) p.moveCd -= dt;
       if (p.reachCd > 0) p.reachCd -= dt;
-      if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && (p.pose === 'reach' || p.pose === 'chest' || p.pose === 'bpass')) p.pose = ''; }
+      if (p.reachT > 0) { p.reachT -= dt; if (p.reachT <= 0 && (p.pose === 'reach' || passingPose(p.pose))) p.pose = ''; }
       if (p.holdPoseT > 0) { p.holdPoseT -= dt; if (p.holdPoseT <= 0 && p.pose === 'hold') p.pose = ''; }
       /* going up for a rebound: the ball coming down near you, above your reach */
       if (b.state === 'loose' && !p.isUser && p.y === 0 && b.vy < 0 && b.y > 8 && b.y < 13 && hyp(b.x - p.x, b.z - p.z) < 3.2 && rand() < dt * 6) {
@@ -2020,11 +2021,11 @@
         userStep(p, dt);
         if (p.cutUser > 0) { p.cutUser -= dt; if (!stickWorld()) { p.tx = 0; p.tz = hoopZ(0) - 6; seek(p, dt, 1); } }
       } else if (!p.shoot) {
-        if (b.holder === p) { handlerAI(p, dt); seek(p, dt, p.drive > 0 ? 1 : p.post !== undefined ? 0.3 : 0.7); p.pose = 'dribble'; }
+        if (b.holder === p) { handlerAI(p, dt); seek(p, dt, p.drive > 0 ? 1 : p.post !== undefined ? 0.3 : 0.7); if (b.holder === p) p.pose = 'dribble'; }
         else if (b.state === 'loose') { reboundAI(p); seek(p, dt, 1); if (p.pose !== 'contest') p.pose = ''; }
         else {
           const offTeam = b.holder ? b.holder.team : G.poss;
-          if (offTeam === p.team) { offBallAI(p, dt); seek(p, dt, b.state === 'pass' && b.to === p ? 1 : 0.8); if (!(p.reachT > 0)) p.pose = b.state === 'pass' && b.to === p && b.dur - b.t < 0.45 ? 'catch' : p.callT > G.t ? 'call' : '';
+          if (offTeam === p.team) { offBallAI(p, dt); seek(p, dt, b.state === 'pass' && b.to === p ? 1 : 0.8); if (!(p.reachT > 0)) p.pose = p.callT > G.t ? 'call' : '';
             /* open, standing still, in his range: a hand goes up for the ball (now and then, and it shows you who is open) */
             if (b.state === 'held' && b.holder && b.holder !== p && !(p.callCd > G.t) && G.phase === 'live') { p.callCd = G.t + rr(0.5, 1.1);
               if (hyp(p.vx, p.vz) < 2.5 && nearestDef(p).d > 7 && distHoop(p.x, p.z, p.team) < 26 && (b.holder.hold || 0) > 0.8 && rand() < 0.45) { p.callT = G.t + rr(0.9, 1.5); p.callCd = G.t + rr(3, 6); } } }
@@ -2037,6 +2038,9 @@
           }
         }
       }
+      // Both the controlled player and his teammates show their hands as the pass arrives.
+      if (live && b.state === 'pass' && b.to === p && b.dur - b.t < 0.45 && !p.shoot && !(p.reachT > 0)) p.pose = 'catch';
+      else if (p.pose === 'catch') p.pose = '';
       /* jump */
       if (p.spin) {
         const S = p.spin; S.t += dt; const k = Math.min(1, S.t / (S.T * 0.85)); p.spinA = S.total * k * k * (3 - 2 * k);
@@ -2459,7 +2463,7 @@
      The last few seconds are kept as snapshots (positions, poses, the ball) thirty times a second. A dunk, an
      and-one of yours or a shot at the buzzer plays back at half speed from a camera circling the play, in the pause
      before the inbound; a tap skips it. Settings can turn them off. */
-  const SNAP = ['x', 'y', 'z', 'vx', 'vz', 'face', 'pose', 'jg', 'vy', 'spinA'];
+  const SNAP = ['x', 'y', 'z', 'vx', 'vz', 'face', 'pose', 'jg', 'vy', 'spinA', 'reachT'];
   let tape = [], snapT = 0, replayCd = 0;
   function record(dt) {
     snapT += dt;
