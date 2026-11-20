@@ -1604,6 +1604,12 @@
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
   }
   function parkDressing(home) {
+    /* every city's park is its own: the skyline, the trees, the street and who is standing at the fence all come
+       from the city's name, so it is the same park every time you come back and a different one on the road */
+    const CITY = PB.parkCity || home.city || 'The'; let wsd = 17; for (let i = 0; i < CITY.length; i++) wsd = (wsd * 31 + CITY.charCodeAt(i)) % 2147483646 + 1;
+    const wr = () => (wsd = (wsd * 16807) % 2147483647) / 2147483647, wrr = (a, b) => a + (b - a) * wr();
+    const BIOME = ['Los Angeles', 'Miami', 'Orlando', 'Phoenix', 'Houston', 'New Orleans', 'San Antonio', 'Sacramento'].includes(CITY) ? 'palm' : ['Denver', 'Minneapolis', 'Portland', 'Salt Lake', 'Toronto', 'Milwaukee', 'Detroit', 'Cleveland', 'Boston'].includes(CITY) ? 'pine' : 'leaf';
+    const mo = new Date().getMonth(), SNOW = BIOME === 'pine' && (mo === 11 || mo < 2) && PB.parkSnow !== false || PB.parkSnow === true, DRY = ['Phoenix', 'San Antonio', 'Dallas', 'Oklahoma City', 'Sacramento'].includes(CITY);
     /* the sky: a gradient from the last of the sun to night */
     const sc = document.createElement('canvas'); sc.width = 4; sc.height = 256; const sg = sc.getContext('2d'), gr = sg.createLinearGradient(0, 0, 0, 256);
     /* the hour on your own clock: a bright day, the last of the sun, or night (PB.parkTime forces one, for the test tools) */
@@ -1615,19 +1621,29 @@
     sg.fillStyle = gr; sg.fillRect(0, 0, 4, 256); const st = new T.CanvasTexture(sc); st.colorSpace = T.SRGBColorSpace; scene.background = st; orphans.push(st);   // (a background is not in the scene: it is let go of with the next build)
     /* the city beyond the park: a skyline with lit windows, a few stars, the moon */
     { const kc = document.createElement('canvas'); kc.width = 1024; kc.height = 256; const k = kc.getContext('2d');
-      let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+      let sd = wsd; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
       if (!day) for (let i = 0; i < (night ? 130 : 45); i++) { k.fillStyle = `rgba(255,255,255,${0.35 + rnd() * 0.5})`; k.fillRect(rnd() * 1024, rnd() * 110, 2, 2); }
       if (day) { const sg2 = k.createRadialGradient(790, 50, 6, 790, 50, 46); sg2.addColorStop(0, 'rgba(255,252,230,1)'); sg2.addColorStop(0.35, 'rgba(255,246,200,.55)'); sg2.addColorStop(1, 'rgba(255,246,200,0)'); k.fillStyle = sg2; k.fillRect(740, 0, 100, 100);
         for (let i = 0; i < 7; i++) { const cx0 = rnd() * 1024, cy0 = 30 + rnd() * 70; k.fillStyle = 'rgba(255,255,255,.75)'; for (let j = 0; j < 4; j++) { k.beginPath(); k.ellipse(cx0 + j * 16 - 24, cy0 + (j % 2) * 5, 20, 9, 0, 0, 7); k.fill(); } } }
       else { k.fillStyle = '#f4ecd2'; k.beginPath(); k.arc(790, 46, 17, 0, 7); k.fill(); k.globalCompositeOperation = 'destination-out'; k.beginPath(); k.arc(798, 40, 15, 0, 7); k.fill(); k.globalCompositeOperation = 'source-over'; }
-      for (let x = 0; x < 1024;) { const w = 26 + rnd() * 46, h = 50 + rnd() * 130; const sh = rnd() * 10 | 0; k.fillStyle = day ? `rgb(${128 + sh * 3},${146 + sh * 3},${170 + sh * 3})` : `rgb(${18 + sh},${20 + sh},${34 + sh})`; k.fillRect(x, 256 - h, w, h);
-        for (let wy = 256 - h + 8; wy < 246; wy += 11) for (let wx = x + 5; wx < x + w - 6; wx += 9) if (rnd() < (day ? 0.5 : night ? 0.4 : 0.26)) { k.fillStyle = day ? 'rgba(70,96,128,.55)' : rnd() < 0.8 ? 'rgba(255,214,140,.85)' : 'rgba(170,210,255,.8)'; k.fillRect(wx, wy, 4, 5); }
-        x += w + 2 + rnd() * 6; }
+      /* far towers in the haze, then the nearer blocks in front of them: flat roofs, stepped tops, spires, masts, and
+         one tower that is this city's own */
+      const tall = 0.75 + rnd() * 0.5, mark = 120 + rnd() * 780;
+      for (const far of [1, 0]) for (let x = far ? -10 : 0; x < 1024;) { const w = (far ? 20 : 26) + rnd() * (far ? 30 : 46), h = ((far ? 90 : 46) + rnd() * (far ? 120 : 110)) * tall * (!far && Math.abs(x - mark) < 30 ? 1.7 : 1), sh = rnd() * 10 | 0, top = 256 - Math.min(236, h);
+        const body = day ? (far ? `rgb(${166 + sh * 2},${184 + sh * 2},${206 + sh * 2})` : `rgb(${122 + sh * 3},${140 + sh * 3},${164 + sh * 3})`) : night ? (far ? `rgb(${24 + sh},${28 + sh},${50 + sh})` : `rgb(${14 + sh},${16 + sh},${28 + sh})`) : (far ? `rgb(${84 + sh},${70 + sh},${104 + sh})` : `rgb(${34 + sh},${32 + sh},${52 + sh})`);
+        k.fillStyle = body; k.fillRect(x, top, w, 256 - top);
+        const kind = rnd();
+        if (kind < 0.22) k.fillRect(x + w * 0.2, top - 12 - rnd() * 14, w * 0.6, 30);                                   // a stepped top
+        else if (kind < 0.34) { k.beginPath(); k.moveTo(x + w * 0.15, top); k.lineTo(x + w / 2, top - 26 - rnd() * 30); k.lineTo(x + w * 0.85, top); k.fill(); }   // a spire
+        else if (kind < 0.5) { k.fillRect(x + w / 2 - 1, top - 18 - rnd() * 16, 2, 34); if (!day) { k.fillStyle = 'rgba(255,70,60,.95)'; k.fillRect(x + w / 2 - 2, top - 34, 4, 4); } }   // a mast, its light on at night
+        else if (kind < 0.58 && !far) { k.fillRect(x + w * 0.3, top - 9, w * 0.4, 9); k.fillRect(x + w * 0.25, top - 13, w * 0.5, 5); }   // a water tank on the roof
+        if (!far || !day) for (let wy = top + 8; wy < 246; wy += 11) for (let wx = x + 5; wx < x + w - 6; wx += 9) if (rnd() < (day ? 0.5 : night ? (far ? 0.22 : 0.4) : 0.26)) { k.fillStyle = day ? 'rgba(70,96,128,.55)' : rnd() < 0.8 ? `rgba(255,214,140,${far ? 0.5 : 0.85})` : 'rgba(170,210,255,.8)'; k.fillRect(wx, wy, 4, 5); }
+        x += w + (far ? 6 + rnd() * 26 : 2 + rnd() * 6); }
       const kt = new T.CanvasTexture(kc); kt.colorSpace = T.SRGBColorSpace; kt.wrapS = T.RepeatWrapping; kt.repeat.set(3, 1); orphans.push(kt);
       const ring = new T.Mesh(new T.CylinderGeometry(175, 175, 78, 40, 1, true), new T.MeshBasicMaterial({ map: kt, transparent: true, side: T.BackSide, fog: false, depthWrite: false }));
       ring.position.y = 37; ring.renderOrder = -1; scene.add(ring); }
     /* grass beyond the concrete */
-    const grass = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshLambertMaterial({ color: 0x2c4a2a })); grass.rotation.x = -Math.PI / 2; grass.position.y = -0.05; scene.add(grass);
+    const grass = new T.Mesh(new T.PlaneGeometry(520, 520), new T.MeshLambertMaterial({ color: SNOW ? 0xdfe6ee : DRY ? 0x8a7a52 : BIOME === 'palm' ? 0x3d6a34 : 0x2c4a2a })); grass.rotation.x = -Math.PI / 2; grass.position.y = -0.05; scene.add(grass);
     /* the fence: posts and a see-through chain-link panel on all four sides */
     const fc = document.createElement('canvas'); fc.width = fc.height = 64; const fg = fc.getContext('2d'); fg.strokeStyle = 'rgba(210,214,220,.75)'; fg.lineWidth = 2;
     fg.beginPath(); fg.moveTo(0, 32); fg.lineTo(32, 0); fg.lineTo(64, 32); fg.lineTo(32, 64); fg.closePath(); fg.stroke();
@@ -1650,11 +1666,20 @@
       const walk = new T.Mesh(new T.PlaneGeometry(9, FZ * 2), new T.MeshLambertMaterial({ color: 0x6a6d74 })); walk.rotation.x = -Math.PI / 2; walk.position.set(FX - 4.5, 0.01, 0); scene.add(walk);
       const lampM = new T.MeshBasicMaterial({ color: day ? 0x8a8d92 : 0xfff1c8 });
       for (let z = -54; z <= 54; z += 12) { const l = new T.Mesh(new T.BoxGeometry(0.6, 1.2, 1.2), lampM); l.position.set(FX - 0.3, 13.5, z); scene.add(l); } }
-    /* trees outside the fence */
-    const tm = new T.MeshLambertMaterial({ color: 0x4a3426 }), lm = [0x2f5b2c, 0x3b6a33, 0x28502a].map(c => new T.MeshLambertMaterial({ color: c }));
-    for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2, rx = 48 + (i % 3) * 7, rz = 76 + (i % 4) * 6, x = Math.sin(a) * rx, z = Math.cos(a) * rz;
-      const tr = new T.Mesh(new T.CylinderGeometry(0.8, 1.1, 10, 6), tm); tr.position.set(x, 5, z); scene.add(tr);
-      const cn = new T.Mesh(new T.IcosahedronGeometry(6 + (i % 3) * 1.5, 0), lm[i % 3]); cn.position.set(x, 13 + (i % 2) * 2, z); scene.add(cn); }
+    /* trees outside the fence: palms where it is warm, pines where it is cold, shade trees everywhere else; none of
+       them standing in the street */
+    { const tm = new T.MeshLambertMaterial({ color: BIOME === 'palm' ? 0x7a6a4c : 0x4a3426 }), lm = (BIOME === 'pine' ? [0x1f4a34, 0x275a3c, 0x1a4030] : BIOME === 'palm' ? [0x3f7a3a, 0x4a8a40, 0x356c34] : [0x2f5b2c, 0x3b6a33, 0x28502a]).map(c => new T.MeshLambertMaterial({ color: c, flatShading: true })), sm = new T.MeshLambertMaterial({ color: 0xf2f5f8, flatShading: true });
+      const tree = (x, z, k) => { const g = new T.Group(), m = lm[Math.floor(wr() * 3)];
+        if (BIOME === 'palm') { const h = 16 + wr() * 9, tr = new T.Mesh(new T.CylinderGeometry(0.45, 0.75, h, 6), tm); tr.position.y = h / 2; tr.rotation.z = wrr(-0.07, 0.07); g.add(tr);
+          for (let f = 0; f < 5; f++) { const fr = new T.Mesh(new T.ConeGeometry(1.5, 9, 4), m), a = f / 5 * Math.PI * 2 + wr(); fr.position.set(Math.sin(a) * 3.4, h - 0.6, Math.cos(a) * 3.4); fr.rotation.set(Math.cos(a) * 1.95, 0, -Math.sin(a) * 1.95); fr.scale.z = 0.35; g.add(fr); } }
+        else if (BIOME === 'pine') { const h = 18 + wr() * 12, tr = new T.Mesh(new T.CylinderGeometry(0.5, 0.8, h * 0.3, 6), tm); tr.position.y = h * 0.15; g.add(tr);
+          for (let c = 0; c < 3; c++) { const cn = new T.Mesh(new T.ConeGeometry(5.6 - c * 1.5, h * 0.42, 7), SNOW && c === 2 ? sm : m); cn.position.y = h * (0.36 + c * 0.24); g.add(cn); } }
+        else { const h = 8 + wr() * 5, tr = new T.Mesh(new T.CylinderGeometry(0.7, 1.1, h, 6), tm); tr.position.y = h / 2; g.add(tr);
+          for (let c = 0; c < 3; c++) { const cn = new T.Mesh(new T.IcosahedronGeometry(4.2 + wr() * 2.6, 0), lm[(c + Math.floor(wr() * 3)) % 3]); cn.position.set(wrr(-2.6, 2.6), h + 2 + wr() * 4, wrr(-2.6, 2.6)); g.add(cn); } }
+        g.position.set(x, 0, z); g.scale.setScalar(k); g.rotation.y = wr() * 6.28; scene.add(g); };
+      for (let i = 0; i < 26; i++) { const a = (i + wr() * 0.7) / 26 * Math.PI * 2, x = Math.sin(a) * wrr(46, 70), z = Math.cos(a) * wrr(74, 100); if (x < -42 && x > -64) continue; tree(x, z, wrr(0.85, 1.25)); }
+      for (let z = -150; z <= 150; z += 30) if (Math.abs(z) > 4) tree(-40.5, z + wrr(-5, 5), 0.7);   // a row along the sidewalk
+    }
     /* light poles at the corners, lamps lit */
     for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) {
       const pl = new T.Mesh(new T.CylinderGeometry(0.35, 0.45, 30, 6), pm); pl.position.set(x, 15, z); scene.add(pl);
@@ -1683,6 +1708,57 @@
     /* benches along the sidelines */
     const bm = new T.MeshLambertMaterial({ color: 0x6b4a32 });
     for (const z of [-24, 24]) for (const x of [-32]) { const b = new T.Mesh(new T.BoxGeometry(2, 1.4, 10), bm); b.position.set(x, 1.6, z); scene.add(b); const b2 = new T.Mesh(new T.BoxGeometry(0.4, 2.4, 10), bm); b2.position.set(x + Math.sign(x) * 1, 2.6, z); scene.add(b2); }
+    /* ---- the neighborhood (left out on the Low graphics setting: it is a few hundred more things to draw) ---- */
+    if (!(PB.settings && PB.settings.gfx === 'Low')) { const lam = c => new T.MeshLambertMaterial({ color: c }), box = (w, h, d, x, y, z, m) => { const o = new T.Mesh(new T.BoxGeometry(w, h, d), m); o.position.set(x, y, z); scene.add(o); return o; };
+      /* the street on the open side: a sidewalk, two lanes, a line down the middle */
+      { const side = new T.Mesh(new T.PlaneGeometry(7, 420), lam(SNOW ? 0xcfd6de : 0x8b8e94)); side.rotation.x = -Math.PI / 2; side.position.set(-40.5, 0.0, 0); scene.add(side);
+        const rc = document.createElement('canvas'); rc.width = 64; rc.height = 128; const rg = rc.getContext('2d'); rg.fillStyle = '#2b2d32'; rg.fillRect(0, 0, 64, 128); rg.fillStyle = '#d8c98a'; rg.fillRect(30, 20, 4, 56); rg.fillStyle = '#3a3c42'; rg.fillRect(0, 0, 3, 128); rg.fillRect(61, 0, 3, 128);
+        const rt = new T.CanvasTexture(rc); rt.colorSpace = T.SRGBColorSpace; rt.wrapT = T.RepeatWrapping; rt.repeat.set(1, 26); orphans.push(rt);
+        const road = new T.Mesh(new T.PlaneGeometry(20, 420), new T.MeshLambertMaterial({ map: rt })); road.rotation.x = -Math.PI / 2; road.position.set(-54, 0.0, 0); scene.add(road); }
+      /* cars: a few parked at the curb, two that keep driving by (headlights on after dark) */
+      const paint = [0xc9d0d8, 0x2a2d33, 0xb23a32, 0x2f5fa8, 0xd8b23a, 0x3c7a52, 0xe8e4dc, 0x6a4a8c], glass = lam(0x1a2230), tyre = lam(0x121316);
+      const hl = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'), gr = g.createRadialGradient(16, 16, 1, 16, 16, 16); gr.addColorStop(0, 'rgba(255,246,214,1)'); gr.addColorStop(1, 'rgba(255,240,200,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); const t = new T.CanvasTexture(c); orphans.push(t); return new T.SpriteMaterial({ map: t, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false }); })();
+      const car = (x, z, dir) => { const g = new T.Group(), body = lam(paint[Math.floor(wr() * paint.length)]), van = wr() < 0.25;
+        const b = new T.Mesh(new T.BoxGeometry(6.2, van ? 4.6 : 2.6, 14.5), body); b.position.y = van ? 3.4 : 2.3; g.add(b);
+        if (!van) { const c = new T.Mesh(new T.BoxGeometry(5.6, 2.1, 7.4), glass); c.position.set(0, 4.5, -0.6); g.add(c); const rf = new T.Mesh(new T.BoxGeometry(5.7, 0.3, 7), body); rf.position.set(0, 5.6, -0.6); g.add(rf); }
+        else { const c = new T.Mesh(new T.BoxGeometry(6.3, 1.6, 3), glass); c.position.set(0, 4.4, 5.2); g.add(c); }
+        for (const [wx, wz] of [[-3, 4.6], [3, 4.6], [-3, -4.6], [3, -4.6]]) { const w = new T.Mesh(new T.CylinderGeometry(1.15, 1.15, 0.8, 10), tyre); w.rotation.z = Math.PI / 2; w.position.set(wx, 1.15, wz); g.add(w); }
+        if (!day) for (const sx of [-2.1, 2.1]) { const sp = new T.Sprite(hl); sp.position.set(sx, 2.6, 7.5); sp.scale.setScalar(3.4); g.add(sp); }
+        g.position.set(x, 0, z); g.rotation.y = dir < 0 ? Math.PI : 0; scene.add(g); return g; };
+      for (let i = 0; i < 5; i++) car(-46.5, -130 + i * 62 + wrr(-14, 14), 1);
+      for (const [lx, dir] of [[-52.5, 1], [-59, -1]]) { const g = car(lx, wrr(-200, 200), dir), v = wrr(26, 40) * dir; parkMovers.push((t, dt) => { g.position.z += v * dt; if (g.position.z * dir > 210) g.position.z = -210 * dir - wrr(0, 160) * dir; }); }
+      /* street lamps over the road */
+      { const pole = lam(0x4d5158), lm0 = new T.MeshBasicMaterial({ color: day ? 0x8a8d92 : 0xfff1c8 });
+        for (let z = -150; z <= 150; z += 60) { const p0 = new T.Mesh(new T.CylinderGeometry(0.3, 0.4, 22, 6), pole); p0.position.set(-43.5, 11, z + 15); scene.add(p0); box(5, 0.4, 0.5, -45.8, 22, z + 15, pole); box(2.2, 0.5, 1, -47.6, 21.8, z + 15, lm0);
+          if (!day) { const sp = new T.Sprite(hl); sp.position.set(-47.6, 21.5, z + 15); sp.scale.setScalar(9); scene.add(sp); } } }
+      /* buildings round the park, behind the trees: brick, stone and glass, windows lit at night */
+      { const wt = [0, 1, 2].map(v => { const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d'), base = day ? ['#9a6a58', '#b9b2a4', '#7f93a8'][v] : night ? ['#2a1d1c', '#2c2c30', '#1c2430'][v] : ['#5a3c3a', '#6a6068', '#454e66'][v];
+          g.fillStyle = base; g.fillRect(0, 0, 64, 128); for (let y = 6; y < 124; y += 15) for (let x = 5; x < 60; x += 14) { const lit = !day && wr() < (night ? 0.42 : 0.25); g.fillStyle = lit ? (wr() < 0.8 ? '#ffd68c' : '#aed2ff') : day ? 'rgba(40,60,84,.7)' : 'rgba(8,10,18,.8)'; g.fillRect(x, y, 8, 9); }
+          const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; orphans.push(t); return t; });
+        const N = 16; for (let i = 0; i < N; i++) { const a = (i + wr() * 0.6) / N * Math.PI * 2, x = Math.sin(a) * wrr(96, 132), z = Math.cos(a) * wrr(128, 168); if (x < -40 && x > -70) continue;
+          const w = wrr(22, 40), d = wrr(22, 36), h = wrr(22, 62) * (wr() < 0.2 ? 1.5 : 1), t = wt[Math.floor(wr() * 3)].clone(); t.needsUpdate = true; t.repeat.set(Math.round(w / 14), Math.round(h / 22)); orphans.push(t);
+          const m = day ? new T.MeshLambertMaterial({ map: t }) : new T.MeshBasicMaterial({ map: t }); const b = box(w, h, d, x, h / 2, z, m); b.rotation.y = Math.round(wr() * 3) * 0.12;
+          if (wr() < 0.5) box(w * 0.3, 5, d * 0.3, x + wrr(-4, 4), h + 2.5, z, lam(0x55585e));                                         // something on the roof
+          if (SNOW) box(w + 0.6, 0.7, d + 0.6, x, h + 0.35, z, lam(0xf2f5f8)); }
+        /* across the street: a row of low storefronts, awnings in the home colors */
+        for (let z = -160; z <= 160;) { const w = wrr(26, 44), h = wrr(11, 19), t = wt[Math.floor(wr() * 3)].clone(); t.needsUpdate = true; t.repeat.set(Math.round(w / 12), Math.max(1, Math.round(h / 20))); orphans.push(t);
+          const b = box(18, h, w, -76, h / 2, z + w / 2, day ? new T.MeshLambertMaterial({ map: t }) : new T.MeshBasicMaterial({ map: t })); if (wr() < 0.7) box(3, 0.5, w * 0.8, -65.6, 8.4, z + w / 2, lam(wr() < 0.5 ? new T.Color(home.c1).getHex() : 0xe8e4dc)).rotation.z = 0.3;
+          z += w + 0.4; } }
+      /* people: a few stopped at the fence to watch, two on the bench */
+      { const skin = [0xf0c8a0, 0xc68e62, 0x8a5a3c, 0x5a3a26].map(lam), shirts = [0xe8e4dc, 0x2a2d33, 0xb23a32, 0x2f5fa8, 0xd8b23a, 0x3c7a52, new T.Color(home.c1).getHex()].map(lam), legs = lam(0x23252b);
+        const person = (x, z, face, sit) => { const g = new T.Group(), sk = skin[Math.floor(wr() * 4)], h = wrr(0.92, 1.08);
+          const lg = new T.Mesh(new T.BoxGeometry(1.25, sit ? 1.3 : 2.9, sit ? 2 : 0.8), legs); lg.position.set(0, sit ? 0.65 : 1.45, sit ? 0.6 : 0); g.add(lg);
+          const bd = new T.Mesh(new T.BoxGeometry(1.5, 2.3, 0.9), shirts[Math.floor(wr() * shirts.length)]); bd.position.y = (sit ? 1.3 : 2.9) + 1.15; g.add(bd);
+          const hd = new T.Mesh(new T.SphereGeometry(0.62, 10, 8), sk); hd.position.y = (sit ? 1.3 : 2.9) + 2.95; g.add(hd);
+          g.position.set(x, sit ? 2.3 : 0, z); g.rotation.y = face; g.scale.setScalar(h); scene.add(g); const ph = wr() * 6.28; parkMovers.push(t => { hd.position.x = Math.sin(t * 0.7 + ph) * 0.06; bd.rotation.z = Math.sin(t * 0.5 + ph) * 0.03; }); };
+        for (let i = 0; i < 6; i++) person(-37.6, wrr(-56, 56), Math.PI / 2 + wrr(-0.3, 0.3), false);
+        for (let i = 0; i < 3; i++) { const zs = wr() < 0.5 ? -1 : 1; person(wrr(-28, 28), zs * 63.6, zs > 0 ? Math.PI : 0, false); }
+        person(-32, -26.5, Math.PI / 2, true); person(-32, -22, Math.PI / 2, true); }
+      /* clouds that drift (not at night) */
+      if (!night) { const cc = document.createElement('canvas'); cc.width = 128; cc.height = 64; const cg = cc.getContext('2d'); for (let j = 0; j < 6; j++) { const gx = 26 + j * 15, gy = 34 + (j % 2) * 6, gr = cg.createRadialGradient(gx, gy, 2, gx, gy, 24); gr.addColorStop(0, day ? 'rgba(255,255,255,.9)' : 'rgba(255,214,190,.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cg.fillStyle = gr; cg.fillRect(0, 0, 128, 64); }
+        const ct = new T.CanvasTexture(cc); orphans.push(ct); const cm = new T.SpriteMaterial({ map: ct, transparent: true, depthWrite: false, fog: false, opacity: 0.9 });
+        for (let i = 0; i < 7; i++) { const sp = new T.Sprite(cm); sp.position.set(wrr(-160, 160), wrr(58, 96), wrr(-150, 150)); sp.scale.set(wrr(50, 90), wrr(18, 30), 1); sp.renderOrder = -1; scene.add(sp); const v = wrr(1.2, 3); parkMovers.push((t, dt) => { sp.position.x += v * dt; if (sp.position.x > 190) sp.position.x = -190; }); } }
+    }
     /* the park's name painted over the far fence */
     const nm = new T.Mesh(new T.PlaneGeometry(26, 5), new T.MeshBasicMaterial({ map: signTex(`${(home.city || 'THE').toUpperCase()} PARK`, 'run it back', home.c1), transparent: true }));
     nm.position.set(0, 19, FZ + 0.5); nm.rotation.y = Math.PI; scene.add(nm);
@@ -1716,7 +1792,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; confPts = null; leds.length = 0; shocks.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
@@ -2054,6 +2130,7 @@
     show.raf = requestAnimationFrame(loop);
   };
   let introFocus = null;
+  const parkMovers = [];   // what moves out beyond the fence: cars, clouds, the people watching
   let cine = null;
   R.cine = (shots, done) => { const was = cine; cine = shots && shots.length ? { shots, i: 0, t: 0, done } : null; if (!cine && was) { snap = true; if (was.done) was.done(); } };
   R.cineOn = () => !!cine;
@@ -2281,6 +2358,7 @@
       /* a regular standing between the lens and you steps out of the picture */
       for (const [p, m] of meshes) if (p !== u && p.npc) { const ax = u.x - px, az = u.z - pz, L = Math.hypot(ax, az) || 1, t = ((p.x - px) * ax + (p.z - pz) * az) / L;
         if (t > 0 && t < L - 1 && Math.abs(((p.x - px) * az - (p.z - pz) * ax) / L) < 3.2) { m.root.visible = false; hidNear.push(m); } }
+      if (dt > 0) for (let i = 0; i < parkMovers.length; i++) parkMovers[i](G.t, dt);
       for (let i = 0; i < stations.length; i++) { const s0 = stations[i]; s0.sign.quaternion.copy(cam.quaternion);   // the signs face you, and the rings breathe
         const w = 0.5 + 0.5 * Math.sin(G.t * 2.2 + i * 1.3); s0.ring.material.opacity = 0.62 + 0.33 * w; s0.sign.position.y = (s0.signY || (s0.signY = s0.sign.position.y)) + Math.sin(G.t * 1.6 + i) * 0.12; }
       camPos.copy(cam.position); camLook.set(anchor.x + fx * 8, 3.7, anchor.z + fz * 8);

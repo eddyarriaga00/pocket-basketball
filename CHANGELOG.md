@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The park has a neighborhood, and every city's is its own (made from the city's name, so it is the same each visit): a layered skyline with stepped towers, spires, masts and one landmark; buildings behind the trees with windows lit at night; a street with parked cars and two that keep driving by, headlights on after dark; storefronts with awnings; people stopped at the fence and sitting on the bench; drifting clouds. Palms in warm cities, pines in cold ones (snow on them and on the roofs in winter), dry grass in the desert.
 - Smaller controls in a tidier arc (Shoot 76, Pass 56, Move 50, Pick 42; the stick to match). Settings > Large buttons is about the old size.
 - Your phone: notifications slide in on the right. In a game, people watching react to what you just did (a dunk, a three, a steal, ten points, twenty). In the park it is the timeline, league news, who followed you and what is open today; one that points somewhere can be tapped and the arrow takes you there.
 - The park talks: the regulars talk to each other, say more (and say your name), react to streaks and dunks, and each one has a Talk button with a tip or something on his mind; the first chats of the day get you a few followers.
