@@ -1071,7 +1071,7 @@
        forehead, the elbow under it, the guide hand on the side), the release (the arm goes up and out, the guide hand
        comes off), and the follow-through held. k runs 0 to 1 at the release */
     shoot: (k) => keyed(SHOT, k),
-    follow: () => [[0.08, 0.88, 0.47], [0.03, 0.72, 0.69], [0.46, 0.32, 0.83], [0.08, 0.78, 0.62]],
+    follow: () => SHOT[SHOT.length - 1][1],
     contest: () => [[0.25, 0.96, 0.15], [0.12, 0.99, 0.05], [0.25, 0.96, 0.15], [0.12, 0.99, 0.05]],
     celebrate: () => [[0.5, 0.86, 0.1], [0.3, 0.95, 0.05], [0.5, 0.86, 0.1], [0.3, 0.95, 0.05]],
     /* celebrations; k is the clock, for the beat of a chest thump or a pump of the fist */
@@ -1118,7 +1118,8 @@
     [0.00, [[0.26, -0.74, 0.62], [-0.26, 0.10, 0.96], [0.30, -0.70, 0.65], [-0.30, 0.16, 0.94]]],
     [0.38, [[0.20, -0.18, 0.96], [-0.10, 0.86, 0.50], [0.34, -0.14, 0.93], [-0.30, 0.82, 0.48]]],
     [0.76, [[0.12, 0.56, 0.82], [-0.02, 0.97, -0.22], [0.34, 0.50, 0.80], [-0.30, 0.92, 0.10]]],
-    [1.00, [[0.10, 0.80, 0.59], [0.03, 0.86, 0.51], [0.40, 0.55, 0.73], [-0.10, 0.95, 0.28]]]];
+    [0.89, [[0.09, 0.72, 0.69], [0.01, 0.98, 0.19], [0.34, 0.51, 0.79], [-0.28, 0.93, 0.14]]],
+    [1.00, [[0.07, 0.83, 0.55], [0.04, 0.83, 0.56], [0.35, 0.52, 0.79], [-0.25, 0.94, 0.16]]]];
   /* the layup, keyed: the gather (two hands on the ball at the hip on the ball side), carried up past the shoulder,
      the reach (the knee and that elbow go up together), the release at full stretch off the fingers; the off arm
      comes off the ball and bars the defender */
@@ -1403,9 +1404,12 @@
     if ((pose === 'shoot' || pose === 'follow') && m.lay === 1 && m.R.fing && m.L.fing) { const hd = sw ? m.L : m.R, fr = pose === 'follow' ? [0, 0.15, 0.99] : [0, 0.55 + 0.2 * kk, 0.83 - 0.3 * kk];   // the finger roll: the palm under the ball, then the fingers through it
       aim(hd.hand, hd.fing, dirOf(p.face, fr[0], fr[1], fr[2], sw ? -s : s), w); }
     if ((pose === 'shoot' || pose === 'follow') && !m.lay && m.R.fing && m.L.fing) {
-      const e = pose === 'follow' ? 2 : kk, wr = e >= 2 ? [0, -0.62, 0.78] : e > 0.76 ? [0, 0.75 - 0.15 * (e - 0.76) / 0.24, -0.6 + 1.4 * (e - 0.76) / 0.24] : [0, 0.5 + 0.25 * e / 0.76, 0.85 - 1.45 * e / 0.76];
+      // Cock the wrist as the ball rises, then roll the fingers forward through extension.
+      const phase = pose === 'follow' ? 1 : kk;
+      const wristAngle = 0.55 + 1.65 * smooth(0, 0.76, phase) - 2.85 * smooth(0.82, 1, phase);
+      const wr = [0, Math.sin(wristAngle), Math.cos(wristAngle)];
       aim(m.R.hand, m.R.fing, dirOf(p.face, wr[0], wr[1], wr[2], s), w);
-      aim(m.L.hand, m.L.fing, dirOf(p.face, -0.25, 0.94, 0.22, -s), w * (pose === 'follow' ? 0.5 : 1));
+      aim(m.L.hand, m.L.fing, dirOf(p.face, -0.25, 0.94, 0.22, -s), w);
     }
   }
   /* where a player's hands are, in feet, for the ball (null for the simple figures) */

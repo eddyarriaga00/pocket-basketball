@@ -13,6 +13,8 @@ The order of work. [PLAN.md](PLAN.md) is the design. Update this file after ever
 
 (newest first)
 
+- `f2449ce`, before the jump-shot release and follow-through adjustment (2026-11-20).
+
 - `6614e98`, before pass follow-through and directional catch animations (2026-11-20).
 
 - `f1062f9`, before directional passing used the angle of the stick at every strength (2026-11-20).

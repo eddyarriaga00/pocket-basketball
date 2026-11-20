@@ -36,3 +36,10 @@ MIT license), each cloned from a reference clip spoken by [Kokoro](https://huggi
 (Apache 2.0), a synthetic voice: no real person's voice is used. `tools/voice.py` records and packs them.
 
 Libraries: [three.js](https://threejs.org) (MIT). Fonts: Archivo (SIL Open Font License), from Google Fonts.
+
+## Jump shot
+
+The jumper's elbow extension, quiet guide hand and relaxed wrist finish were keyed in code using these coaching references.
+
+- [Breakthrough Basketball, shooting technique](https://www.breakthroughbasketball.com/fundamentals/shooting-technique.html)
+- [Basketball For Coaches, how to shoot a basketball](https://www.basketballforcoaches.com/how-to-shoot-a-basketball/)
