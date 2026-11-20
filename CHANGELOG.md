@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The game fills the phone's visible height (it follows the height the browser reports, and re-fits when that
+  changes): on an iPhone a strip at the bottom could be left black.
 - A puff at the feet on a hard cut and where a player comes down from a big jump (dust on the park's asphalt, a pale
   scuff on the hardwood).
 - The look: the arena's crowd is lit instead of nearly black (the top of the screen was a dark void), and the park has

@@ -2766,6 +2766,8 @@
       if (e.key === ' ' || e.key === 'j' || e.key === 'J') pressA(false);
     });
     window.addEventListener('resize', () => R.resize());
+    /* the view's own size changing (a phone's bar sliding away changes it without a window resize) */
+    if (window.ResizeObserver) new ResizeObserver(() => R.resize()).observe($('#game'));
     document.addEventListener('visibilitychange', () => { if (document.hidden && PB.Game.active && !G.paused) pause(true); });
   }
   /* the box score as it stands, for the pause menu: everyone who has played, the five on the floor first */
