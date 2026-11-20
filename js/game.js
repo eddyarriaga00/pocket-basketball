@@ -176,7 +176,7 @@
   function radar() {
     const cv = $('#radar'); if (!cv) return;
     const on = !(PB.settings && PB.settings.radar === false) && (!G.drill || G.park);
-    cv.hidden = !on; if (!on) return;
+    setHidden(cv, !on); if (!on) return;
     /* in the park it is the park's map: the wall of doors, the rings, the regulars, and you */
     if (G.park) {
       const g = cv.getContext('2d'), W = cv.width, Hh = cv.height, sx = x => W / 2 - x / 76 * W, sz = z => Hh / 2 - z / 128 * Hh;
@@ -202,19 +202,28 @@
     }
     g.fillStyle = '#ffb02e'; g.beginPath(); g.arc(sx(G.ball.x), sz(G.ball.z), 2, 0, 7); g.fill();
   }
+  // The HUD is checked every frame. Only replace a label or attribute when it changes.
+  function setLabel(element, text) {
+    if (element.textContent !== text) element.textContent = text;
+  }
+  function setHidden(element, hidden) {
+    if (element.hidden !== hidden) element.hidden = hidden;
+  }
   function hud() {
     highCheck(); radar();
     $('#game').classList.toggle('drill', !!(G && G.drill));
     $('#game').classList.toggle('dunk', !!(G && G.drill && (G.drill.kind === 'dunk' || G.drill.kind === 'free' || G.drill.kind === 'horse')));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
     $('#game').classList.toggle('bigbtn', !!(PB.settings && PB.settings.btnSize === 'Large'));
-    const en = $('#energy'); if (G.user && G.user.energy !== undefined) { en.hidden = false; en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); } else en.hidden = true;
+    const en = $('#energy'); setHidden(en, !G.user || G.user.energy === undefined);
+    if (!en.hidden) { en.firstChild.style.width = `${Math.round(G.user.energy * 100)}%`; en.classList.toggle('low', G.user.energy < 0.3); }
     const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : s.toFixed(1);
     for (const i of [0, 1]) { const e = $('#s' + i); if (e.textContent !== String(G.score[i])) { e.textContent = G.score[i]; e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); } }
-    if (G.half) { $('#qt').textContent = G.ones ? '1s & 2s' : 'Blacktop'; $('#clk').textContent = `To ${G.target}`; }
-    else { $('#qt').textContent = G.q <= 4 ? ['1st', '2nd', '3rd', '4th'][G.q - 1] : (G.q === 5 ? 'OT' : `${G.q - 4}OT`);
-    $('#clk').textContent = fmt(Math.max(0, G.clock)); }
-    const sc = $('#sc'); sc.textContent = Math.ceil(Math.max(0, G.shotClock)); sc.classList.toggle('low', G.shotClock < 5);
+    const period = G.half ? (G.ones ? '1s & 2s' : 'Blacktop')
+      : G.q <= 4 ? ['1st', '2nd', '3rd', '4th'][G.q - 1] : (G.q === 5 ? 'OT' : `${G.q - 4}OT`);
+    setLabel($('#qt'), period);
+    setLabel($('#clk'), G.half ? `To ${G.target}` : fmt(Math.max(0, G.clock)));
+    const sc = $('#sc'); setLabel(sc, String(Math.ceil(Math.max(0, G.shotClock)))); sc.classList.toggle('low', G.shotClock < 5);
     sc.style.visibility = G.phase === 'live' && G.poss !== null ? 'visible' : 'hidden';
     $('#sd0').classList.toggle('poss', G.poss === 0); $('#sd1').classList.toggle('poss', G.poss === 1);
     { const e = $('#line'), st = G.user && !G.drill && !G.switching && G.user.st, v = st ? `<b>${st.pts}</b> PTS <b>${st.reb}</b> REB <b>${st.ast}</b> AST` : ''; if (e && e._v !== v) { e._v = v; e.innerHTML = v; } }   // your line, live
@@ -230,12 +239,15 @@
       const mt = $('#meter'); if (mt) mt.classList.toggle('away', !!(ft && u && !home(u.team))); }   // the last two minutes of a close game; a road crowd behind the basket at the line
     if (G.phase === 'live' && G.t > 2) { if (has) tip('ball'); else if (!off && G.ball.holder) tip('def'); else if (off && G.ball.holder) tip('mate'); }
     if (ft) tip('ft');
-    $('#bA').textContent = ft || has || G.drill ? 'Shoot' : 'Jump';
-    $('#bA').className = 'btn a ' + (has || ft || G.drill ? 'shoot' : 'jump');
-    $('#bB').textContent = has ? 'Pass' : off ? 'Call' : 'Steal';
-    $('#bB').classList.toggle('lit', !has && (off ? G.callT > 0 : G.phase === 'live' && exposed(u, G.ball.holder) > 0));
-    $('#bC').textContent = has ? 'Move' : off ? 'Cut' : G.switching ? 'Switch' : 'Help';
-    if (G.drill && G.drill.kind === 'dunk') { $('#bA').textContent = 'Dunk'; $('#bC').textContent = 'Style'; }
+    const dunk = G.drill && G.drill.kind === 'dunk';
+    const shoot = ft || has || G.drill;
+    const a = $('#bA'), buttonClass = shoot ? 'btn a shoot' : 'btn a jump';
+    setLabel(a, dunk ? 'Dunk' : shoot ? 'Shoot' : 'Jump');
+    if (a.className !== buttonClass) a.className = buttonClass;
+    const b = $('#bB');
+    setLabel(b, has ? 'Pass' : off ? 'Call' : 'Steal');
+    b.classList.toggle('lit', !has && (off ? G.callT > 0 : G.phase === 'live' && exposed(u, G.ball.holder) > 0));
+    setLabel($('#bC'), dunk ? 'Style' : has ? 'Move' : off ? 'Cut' : G.switching ? 'Switch' : 'Help');
     const pk = has && !u.inb && !G.drill && G.phase === 'live' && along(u.z, u.team) < RIM;
     $('#bD').classList.toggle('on', pk);
     if (pk && G.t > 12 && seenTips && seenTips.ball && $('#tipcard').hidden) tip('pick');   // after the ball tip has had its moment
@@ -2528,7 +2540,7 @@
     if (G.replay) {
       if (!G.paused) replayFrame(dt);
       R.update(G, G.paused || !G.replay ? 0 : dt * 0.5);
-      R.render(); hud(); $('#meter').hidden = true;
+      R.render(); hud(); setHidden($('#meter'), true);
       return;
     }
     if (!G.paused) {
@@ -2556,15 +2568,15 @@
     const u = G.user;
     const s = u && u.shoot && u.shoot.user ? u.shoot : null;
     const ftm = G.phase === 'ft' && G.ftq && G.ftq.shooter === u ? (G.ftMeter || 0.0001) : 0;
-    if (!s && !ftm) { m.hidden = true; return; }
+    setHidden(m, !s && !ftm);
+    if (m.hidden) return;
     const v = s ? s.t / s.T : ftm;
     const w = (s ? 0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006 : 0.05 + u.r.ft * 0.0007) * timingEase();
     const p = R.toScreen(u.x, u.ht / 12 + u.y + 1.2, u.z);
-    m.hidden = false;
     m.style.transform = `translate(${Math.round(p.x + 26)}px, ${Math.round(p.y - 70)}px)`;
     $('#mfill').style.height = `${Math.min(1, v) * 100}%`;
     $('#mzone').style.bottom = `${(0.82 - w) * 100}%`; $('#mzone').style.height = `${w * 200}%`;
-    $('#mfill').className = Math.abs(v - 0.82) <= w ? 'g' : '';
+    $('#mfill').classList.toggle('g', Math.abs(v - 0.82) <= w);
   }
 
   /* ---------- controls ---------- */

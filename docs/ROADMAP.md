@@ -4,7 +4,7 @@ The order of work. [PLAN.md](PLAN.md) is the design. Update this file after ever
 
 ## Ground rules
 
-- Commit on `main` and push `main`; every push redeploys the GitHub Pages site, so run the tests in "How to test" first.
+- Merge each tested change into `main` and push `main`. Each push redeploys the GitHub Pages site. See "How to test" below.
 - Before a push that changes how the game plays, add a line to **Rollback points** with the commit `main` is on.
   To go back: `git revert --no-edit <commit>..main`, then push.
 - All teams and players are fictional. No real league, team or player names.
