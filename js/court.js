@@ -1026,7 +1026,9 @@
     const arm = s => ({ up: bones[bk(`DEF-upper_arm.${s}`)], fore: bones[bk(`DEF-forearm.${s}`)], hand: bones[bk(`DEF-hand.${s}`)], fing: bones[bk(`DEF-f_middle.01.${s}`)] });
     const headS = TPL.model && !PB.mannequin ? Math.max(0.9, Math.min(1.1, ((78 / 12) / (TPL.Hs || TPL.H)) / sc)) : HEAD;   // the model's head is its own size; a seven-footer's is no bigger than a guard's
     const headB = bones[bk('DEF-head')]; if (headB) headB.scale.setScalar(headS);
-    return { kind: 'skin', headS, root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
+    const chest = bones[bk('DEF-spine.002')];
+    const idle = { chest, base: new T.Quaternion(), applied: false, still: 0, breath: 0, phase: act.Idle_Loop.time * 3 };
+    return { kind: 'skin', idle, headS, root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
   }
 
   /* turn a bone so the segment from it to `tip` points along `dir` (world), by `w` of the way */
@@ -1261,7 +1263,22 @@
     m.act.Sprint_Loop.timeScale = Math.min(1.3, Math.max(0.8, sp / (18 * scl)));
     if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
     if (m.head) { if (!m.headRest) m.headRest = m.head.quaternion.clone(); else m.head.quaternion.copy(m.headRest); }   // the turn below is fresh each frame
+    const idle = m.idle;
+    if (idle.applied) idle.chest.quaternion.copy(idle.base);
     m.mixer.update(dt);
+    const resting = !G.show && !G.replay && !p.ref && !p.shoot && !p.inb && p.y === 0 && fall === 0
+      && (!p.pose || p.pose === 'ready' || p.pose === 'dribble') && ms >= 1
+      && !(p.fakeT !== undefined && G.t - p.fakeT < 0.36) && !(G.ball.state === 'pass' && G.ball.to === p)
+      && Math.hypot(p.vx, p.vz) < 1;
+    idle.still = resting ? Math.min(3, idle.still + dt) : 0;
+    const settle = smooth(0.5, 2.5, idle.still);
+    idle.applied = !!idle.chest && settle > 0;
+    if (idle.applied) {
+      idle.base.copy(idle.chest.quaternion);
+      idle.breath += dt * (1.6 + 0.7 * (1 - (p.energy ?? 1)));
+      idle.chest.rotateX(0.035 * settle * Math.sin(idle.breath + idle.phase));
+      idle.chest.rotateZ(0.045 * settle * Math.sin(G.t * 0.78 + idle.phase));
+    }
     if (m.head) m.head.scale.setScalar(m.headS || HEAD);
     /* down in a stance: the back flat and leaning in from the hips, the head up */
     { const bl = G.ball, rb = bl.state === 'loose' && bl.y > 5 && !p.ref && p.team !== undefined && Math.hypot(bl.x - p.x, bl.z - p.z) < 11 && G.phase === 'live'; m.rb = (m.rb || 0) + ((rb && !air ? 1 : 0) - (m.rb || 0)) * Math.min(1, dt * 8);
@@ -1289,7 +1306,12 @@
       let d = Math.atan2(bx, bz) - (p.face + (p.spinA || 0)); while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
       const want = Math.abs(d) < 2.2 ? Math.max(-0.75, Math.min(0.75, d)) : 0;
       m.lookY = (m.lookY || 0) + (want - (m.lookY || 0)) * Math.min(1, dt * 6);
-    } else m.lookY = (m.lookY || 0) * Math.max(0, 1 - dt * 6);
+    } else {
+      // An idle ball handler occasionally looks to either side between dribbles.
+      const glance = settle && G.ball.holder === p ? 0.28 * settle * Math.sin(G.t * 0.82 + idle.phase)
+        * smooth(0.25, 0.85, Math.sin(G.t * 0.95 + idle.phase)) : 0;
+      m.lookY = (m.lookY || 0) + (glance - (m.lookY || 0)) * Math.min(1, dt * 6);
+    }
     if (m.head && Math.abs(m.lookY || 0) > 0.01) { m.body.updateMatrixWorld(true); m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_up, m.lookY).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); }
     if (m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = (G.t + m.hg.userData.bph) % 3.8 < 0.13;
     if (m.hg && m.hg.userData.faceM) { const fm = m.hg.userData.faceM, sh = (G.t + (m.bph2 || (m.bph2 = Math.random() * 3.8))) % 3.8 < 0.13, yl = /^(roar|flex|celebrate|dunk1|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2), mood = p.celebT > 0 ? (p.celebK === 'ugh' ? 'stern' : p.celebK === 'call' ? '' : 'happy') : p.pose === 'sad' ? (p.tiredP ? 'tired' : 'stern') : '', ix = yl ? fm.userData.yell : sh ? fm.userData.shut : (mood && fm.userData[mood]) || fm.userData.open; if (fm.geometry.index !== ix) fm.geometry.setIndex(ix); }   // the model blinks
