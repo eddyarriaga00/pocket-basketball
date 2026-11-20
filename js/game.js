@@ -69,7 +69,7 @@
       const front = ((o.x - p.x) * toHoopX + (o.z - p.z) * toHoopZ) / (L * (d || 1));   // 1: right between him and the rim
       let f = clamp(0.6 + 0.07 * d, 0.6, 1);
       if (front < 0) f = 1 - (1 - f) * 0.35;              // a chaser from behind barely bothers the shot
-      if (o.y > 0.5 || o.pose === 'contest') f -= 0.06 * clamp((o.r.perD + o.r.block) / 160, 0.4, 1);
+      if (o.y > 0.5 || (o.pose === 'contest' && !(o.handOnly !== undefined && G.t - o.handOnly < 0.2))) f -= 0.06 * clamp((o.r.perD + o.r.block) / 160, 0.4, 1);
       f -= 0.025 * bt(o, 'lock') * (d < 5 ? 1 : 0);
       best = Math.min(best, f);
     }
@@ -1665,6 +1665,7 @@
       let tx = man.x + dx / L * gap, tz = man.z + dz / L * gap;
       tx += (bx - tx) * 0.18; tz += (bz - tz) * 0.12;
       p.tx = tx; p.tz = tz; p.pose = '';
+      if (L < 32 && G.phase === 'live' && b.state !== 'shot') p.offD = G.t;   // off the ball in the half court: down in a stance, seeing ball and man (the look only: it is not the on-ball stance that stops a drive)
       if (b.state === 'shot') {
         /* box out: between your man and the rim */
         p.tx = man.x + dx / L * 3; p.tz = man.z + dz / L * 3;
@@ -2146,6 +2147,12 @@
               if (hyp(p.vx, p.vz) < 2.5 && nearestDef(p).d > 7 && distHoop(p.x, p.z, p.team) < 26 && (b.holder.hold || 0) > 0.8 && rand() < 0.45) { p.callT = G.t + rr(0.9, 1.5); p.callCd = G.t + rr(3, 6); } } }
           else {
             defAI(p, dt);
+            /* a hand up. A man near a shooter who is not leaving his feet still puts a hand in his face, and one
+               closing out on a man who has just caught it in range comes at him with a hand high. (How it looks only:
+               `handOnly` keeps it out of the contest, so nobody's shot gets harder for it.) */
+            if (p.y === 0 && p.contestT === undefined && !(p.reachT > 0)) { const sh = G.pl.find(o => o.shoot && o.team !== p.team && o.shoot.kind !== 'dunk' && o.shoot.kind !== 'layup'), h = G.ball.holder;
+              const dS = sh ? hyp(sh.x - p.x, sh.z - p.z) : 99, dH = h && h.team !== p.team && !h.shoot ? hyp(h.x - p.x, h.z - p.z) : 99;
+              if (dS < 6.5 || (dH > 3.5 && dH < 13 && h.caughtT !== undefined && G.t - h.caughtT < 0.9 && h.slot === p.slot && distHoop(h.x, h.z, h.team) < 27 && distHoop(h.x, h.z, h.team) > 9)) { p.pose = 'contest'; p.handOnly = G.t; } }
             /* closing out on a shooter who just caught it: a sprint, then short choppy steps */
             const gap = hyp(p.tx - p.x, p.tz - p.z), man = G.ball.holder;
             const close = man && man.team !== p.team && hyp(man.x - p.x, man.z - p.z) > 6 && hyp(man.x - p.x, man.z - p.z) < 26 && (man.caughtT !== undefined && G.t - man.caughtT < 1.2);
@@ -2193,6 +2200,11 @@
         /* in a stance you face your man and slide, you don't turn and run (until he is gone) */
         const h = b.holder && b.holder.team !== p.team ? b.holder : null, tgt = h && hyp(h.x - p.x, h.z - p.z) < 14 ? h : b;
         want = Math.atan2(tgt.x - p.x, tgt.z - p.z);
+      }
+      else if (p.offD !== undefined && G.t - p.offD < 0.1 && sp < 7 && b.holder && b.holder.team !== p.team) {
+        /* off the ball he opens up: chest to a point between the ball and his man, so he sees both */
+        const mn = G.pl.find(o => o.team !== p.team && o.slot === p.slot) || b.holder, qx = b.holder.x * 0.65 + mn.x * 0.35, qz = b.holder.z * 0.65 + mn.z * 0.35;
+        want = Math.atan2(qx - p.x, qz - p.z);
       }
       else if ((p.pose === 'contest' || p.y > 0.3) && b.holder !== p && !p.shoot) want = Math.atan2(b.x - p.x, b.z - p.z);   // up for a block or a board: he faces the ball, whichever way he was drifting
       else if (sp > 2.5) want = Math.atan2(p.vx, p.vz);
@@ -3137,7 +3149,7 @@
       raf = requestAnimationFrame(loop);
     },
     /* test hooks */
-    dbg: { state: () => G, opts: () => opts, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
+    dbg: { state: () => G, opts: () => opts, hoopZ, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
       auto: on => { G.auto = on; },
       replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },
       /* run the simulation ahead without drawing: sec seconds of game time */

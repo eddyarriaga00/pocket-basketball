@@ -1322,7 +1322,7 @@
     if (m.head) m.head.scale.setScalar(m.headS || HEAD);
     /* down in a stance: the back flat and leaning in from the hips, the head up */
     { const bl = G.ball, rb = bl.state === 'loose' && bl.y > 5 && !p.ref && p.team !== undefined && Math.hypot(bl.x - p.x, bl.z - p.z) < 11 && G.phase === 'live'; m.rb = (m.rb || 0) + ((rb && !air ? 1 : 0) - (m.rb || 0)) * Math.min(1, dt * 8);
-      const g = (p.pose === 'guard' || p.pose === 'reach' || p.pose === 'contest' || rb) && !air && G.ball.holder !== p ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);
+      const g = (p.pose === 'guard' || p.pose === 'reach' || p.pose === 'contest' || rb || (!p.pose && p.offD !== undefined && G.t - p.offD < 0.15 && sp < 9)) && !air && G.ball.holder !== p ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);
       /* on the ball he sits all the way down; away from it, a lighter stance with the hands ready */
       const h = G.ball.holder, on = h && h.team !== p.team && Math.hypot(h.x - p.x, h.z - p.z) < 8 ? 1 : 0; if (m.gd === undefined) m.gd = on; m.gd += (on - m.gd) * Math.min(1, dt * 5);
       /* chest to chest he stands taller and walls up, arms wide, instead of leaning through his man */
@@ -1397,6 +1397,7 @@
       if (G.phase === 'ft' && has) ftk = G.ftMeter > 0 ? Math.min(0.74, G.ftMeter * 0.9) : (!p.isUser || G.auto) && G.ftWait !== undefined && G.ftWait <= 0.35 ? Math.min(0.74, (1 - Math.max(0, G.ftWait) / 0.35) * 0.74) : -1;
       if (ftk >= 0) pose = 'shoot'; else if (G.phase === 'ftflight') pose = 'follow'; }
     if ((pose === 'guard' || pose === 'ready' || !pose) && !has && p.y > 0.35 && !p.shoot && p.pose !== 'hang') pose = 'contest';   // off the floor without the ball: the hands go up (a block try, a rebound)
+    if (!pose && !has && p.offD !== undefined && G.t - p.offD < 0.15 && Math.hypot(p.vx, p.vz) < 9) pose = 'guard';   // off the ball on defense: the stance, arms relaxed (m.gd)
     if (pose === 'guard' && !has) { const h = G.ball.holder; if (Math.hypot(p.vx, p.vz) > 10 && (!h || Math.hypot(h.x - p.x, h.z - p.z) > 9)) pose = ''; }   // sprinting back, far from the ball: he runs, arms pumping, not spread like wings
     if (!pose && m.rw > 0.3 && !has) pose = 'ready';
     /* setting a screen: planted, arms crossed in front of him, braced for the bump */
