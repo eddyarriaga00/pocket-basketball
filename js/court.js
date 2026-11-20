@@ -99,6 +99,18 @@
     if (r.m.parent !== scene) scene.add(r.m);
     r.m.position.set(x, 0.06, z); r.t = 0.55; r.size = size || 9; r.m.visible = true;
   };
+  /* a puff at the feet: dust off the asphalt, a scuff of light off the hardwood (a hard cut, a landing) */
+  const puffs = []; let puffTex = null;
+  R.puff = (x, z, k) => {
+    if (!scene) return;
+    if (!puffTex) { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(0.5, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); puffTex = new T.CanvasTexture(c); puffTex.userData.keep = true; }
+    let r = puffs.find(o => o.t <= 0);
+    if (!r) { if (puffs.length > 9) return; const mt = new T.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, opacity: 0 }); mt.userData.shared = true; r = { m: new T.Sprite(mt), t: 0 }; puffs.push(r); }
+    if (r.m.parent !== scene) scene.add(r.m);
+    r.m.material.color.setHex(scene.background ? 0xb9b2a6 : 0xfff3df); r.m.position.set(x + (Math.random() - 0.5) * 0.5, 0.35, z + (Math.random() - 0.5) * 0.5); r.t = r.T = 0.45; r.k = k || 1; r.m.visible = true;
+  };
+  function puffTick(dt) { for (const r of puffs) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / r.T; r.m.scale.setScalar((0.8 + k * 2.2) * r.k); r.m.position.y = 0.35 + k * 0.5; r.m.material.opacity = Math.min(0.7, 0.55 * (1 - k) * r.k); } }
   function shockTick(dt) { for (const r of shocks) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / 0.55; r.m.scale.setScalar(1 + k * r.size); r.m.material.opacity = 0.8 * (1 - k) * (1 - k); } }
   let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
   /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
@@ -1997,7 +2009,7 @@
 
   /* Pose every player from the game state. */
   R.update = (G, dt) => {
-    shockTick(dt);
+    shockTick(dt); puffTick(dt);
     if (!G.replay) moveRefs(G, dt);
     benchT += dt;
     benchMesh.forEach((m0, t) => { const m = m0.userData.pl || m0; if (benchJ[t] > 0) { benchJ[t] = Math.max(0, benchJ[t] - dt); m.position.y = Math.abs(Math.sin(benchT * 11 + t)) * 0.7 * Math.min(1, benchJ[t]); } else m.position.y = 0; });

@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- A puff at the feet on a hard cut and where a player comes down from a big jump (dust on the park's asphalt, a pale
+  scuff on the hardwood).
 - The look: the arena's crowd is lit instead of nearly black (the top of the screen was a dark void), and the park has
   a city behind it: a skyline with lit windows, stars and a crescent moon. The park's guide arrow is smaller.
 - The ball stays in a fast hand: hand positions are carried along with the player's own movement since the last

@@ -2145,13 +2145,14 @@
       } else if (p.vy !== 0 || p.y > 0) {
         const flightDt = p.shoot && p.shoot.gather ? clamp(p.shoot.t - p.shoot.gather, 0, dt) : dt;
         p.y += p.vy * flightDt; p.vy -= p.jg * flightDt;
+        if (p.y <= 0 && p.vy < -9 && R.puff) R.puff(p.x, p.z, clamp(-p.vy / 14, 0.7, 1.5));   // down hard: a puff where he lands
         if (p.y <= 0 && p.vy <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'windmill' || p.pose === 'hang') p.pose = ''; }
       }
       p.x += p.vx * dt; p.z += p.vz * dt;
       /* a hard cut squeaks the sneakers */
       if (live) {
         const acc = hyp(p.vx - (p.pvx || 0), p.vz - (p.pvz || 0)) / dt, spd = hyp(p.vx, p.vz);
-        if (acc > 70 && spd > 6 && G.t > G.squeakT && rand() < 0.35) { G.squeakT = G.t + rr(0.12, 0.35); AU().play('squeak', { x: p.x, vol: p.isUser ? 1 : 0.7 }); }
+        if (acc > 70 && spd > 6 && G.t > G.squeakT && rand() < 0.35) { G.squeakT = G.t + rr(0.12, 0.35); AU().play('squeak', { x: p.x, vol: p.isUser ? 1 : 0.7 }); if (R.puff && p.y <= 0) R.puff(p.x, p.z, 0.8); }
       }
       p.pvx = p.vx; p.pvz = p.vz;
       /* face: where you run, else the ball or the rim */
