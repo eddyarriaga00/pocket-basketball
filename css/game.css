@@ -842,3 +842,18 @@ table.pbx td small{color:var(--mute)}
 /* the visible height, as the phone reports it now: with Safari's bar tucked away a box pinned top and bottom could stop short */
 @supports (height:100dvh){#app{bottom:auto;height:calc(100dvh - env(safe-area-inset-top,0px))}}
 @keyframes gamein{0%{opacity:0}100%{opacity:1}}
+
+/* in the park a message is a pill under the top row, not big letters over the doors */
+#game.park #toast.call{left:50%;right:auto;top:calc(104px + env(safe-area-inset-top,0px));width:max-content;max-width:calc(100% - 96px);padding:9px 16px;border-radius:999px;background:rgba(10,10,14,.92);border:1px solid rgba(255,255,255,.2);
+  font-family:var(--body);font-weight:700;font-size:13.5px;font-stretch:100%;letter-spacing:0;line-height:1.3;color:#fff;text-shadow:none;transform:translate(-50%,-8px);z-index:5}
+#game.park #toast.call.on{transform:translate(-50%,0)}
+#game:has(#parkcard:not([hidden])) #toast.call,#game:has(#tut:not([hidden])) #toast.call{top:calc(150px + env(safe-area-inset-top,0px))}
+/* sheets come up from below, the dark behind them fades in */
+@keyframes sheetin{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes dimin{from{background-color:rgba(4,4,6,0)}}
+#pause:not([hidden]){animation:dimin .2s ease-out}
+#pause>.card{animation:sheetin .26s cubic-bezier(.2,.75,.2,1) both}
+.pmt,.pmn,.pmc,.pmx,#parkcard button,#tut button{transition:transform .1s,background-color .12s}
+.pmt:active,.pmn:active,.pmc:active,#parkcard button:active{transform:scale(.96)}
+.pmx:active{transform:scale(.9)}
+@media (prefers-reduced-motion:reduce){#pause:not([hidden]),#pause>.card{animation:none}}

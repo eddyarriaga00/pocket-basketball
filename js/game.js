@@ -99,7 +99,7 @@
   /* ---------- HUD and feedback ---------- */
   function toast(txt, cls) {
     const t = $('#toast'); t.textContent = txt; t.className = 'on ' + (cls || ''); clearTimeout(toast.h);
-    toast.h = setTimeout(() => t.className = '', 1500);
+    toast.h = setTimeout(() => t.classList.remove('on'), 1500);   // (its kind stays on while it fades: it used to snap back to the big letters on the way out)
   }
   function feed(txt) {
     const f = $('#feed'); const e = document.createElement('div'); e.textContent = txt; f.prepend(e);

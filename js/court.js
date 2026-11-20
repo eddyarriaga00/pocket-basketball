@@ -1667,8 +1667,8 @@
         const wx = 36 - st.x - 0.05, fr = new T.MeshBasicMaterial({ color: col });
         const door = new T.Mesh(new T.PlaneGeometry(5.2, 8.6), new T.MeshBasicMaterial({ color: 0x0c0c10 })); door.rotation.y = -Math.PI / 2; door.position.set(wx - 0.02, 4.3, 0); g.add(door);
         for (const [w, h, y, z] of [[0.35, 9, 4.5, -2.75], [0.35, 9, 4.5, 2.75], [5.85, 0.35, 9, 0]]) { const m = new T.Mesh(new T.BoxGeometry(0.3, h, w), fr); m.position.set(wx - 0.1, y, z); g.add(m); }
-        const mq = new T.Mesh(new T.PlaneGeometry(9.6, 3), new T.MeshBasicMaterial({ map: signTex(st.label, null, st.color || '#ffffff'), transparent: true })); mq.rotation.y = -Math.PI / 2; mq.position.set(wx - 0.15, 10.7, 0); g.add(mq);
-        sign.position.y = 7.2; sign.scale.setScalar(0.78);
+        const mq = new T.Mesh(new T.PlaneGeometry(9.6, 3), new T.MeshBasicMaterial({ map: signTex(st.label, st.sub, st.color || '#ffffff'), transparent: true })); mq.rotation.y = -Math.PI / 2; mq.position.set(wx - 0.15, 10.7, 0); g.add(mq);
+        sign.visible = false;   // one sign a door: its name and what is behind it, over the frame
       }
       g.position.set(st.x, 0, st.z); scene.add(g); stations.push({ g, ring, beam, sign, id: st.id });
     }
