@@ -2469,7 +2469,7 @@
     snapT += dt;
     if (snapT < 1 / 30) return;
     snapT = 0;
-    tape.push({ t: G.t, pl: G.pl.map(p => SNAP.map(k => p[k])), shoot: G.pl.map(p => p.shoot ? { t: p.shoot.t, T: p.shoot.T } : null),
+    tape.push({ t: G.t, pl: G.pl.map(p => SNAP.map(k => p[k])), shoot: G.pl.map(p => p.shoot ? { t: p.shoot.t, T: p.shoot.T, kind: p.shoot.kind, js: p.shoot.js, fade: p.shoot.fade } : null),
       ball: [G.ball.x, G.ball.y, G.ball.z, G.ball.state, G.ball.holder ? G.pl.indexOf(G.ball.holder) : -1] });
     if (tape.length > 150) tape.shift();
   }
@@ -2513,7 +2513,7 @@
     const f = r.frames[k], g = r.frames[k + 1], u = r.i - k;
     G.pl.forEach((p, i) => {
       SNAP.forEach((key, j) => { const a = f.pl[i][j], c = g.pl[i][j]; p[key] = typeof a === 'number' ? a + (c - a) * u : a; });
-      const sh = f.shoot[i]; p.shoot = sh ? { t: sh.t, T: sh.T, kind: 'jumper' } : null;
+      const sh = f.shoot[i]; p.shoot = sh ? { ...sh, kind: sh.kind || 'jumper' } : null;
     });
     G.ball.x = f.ball[0] + (g.ball[0] - f.ball[0]) * u; G.ball.y = f.ball[1] + (g.ball[1] - f.ball[1]) * u; G.ball.z = f.ball[2] + (g.ball[2] - f.ball[2]) * u;
     G.ball.state = f.ball[3] === 'held' ? 'replay' : f.ball[3]; G.ball.holder = f.ball[4] >= 0 ? G.pl[f.ball[4]] : null;
