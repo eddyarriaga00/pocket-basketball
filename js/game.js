@@ -1674,6 +1674,7 @@
     let vx = wantX, vz = wantZ;
     const L = hyp(vx, vz);
     if (L > max) { vx *= max / L; vz *= max / L; }
+    p.wvx = vx; p.wvz = vz; p.wvT = G.t;   // where he means to go (the dribble is pushed that way, ahead of his feet)
     const acc = (p.move > 0 ? 110 : 62) * dt;
     const dx = vx - p.vx, dz = vz - p.vz, dl = hyp(dx, dz);
     if (dl > acc) { p.vx += dx / dl * acc; p.vz += dz / dl * acc; } else { p.vx = vx; p.vz = vz; }
@@ -2055,7 +2056,14 @@
         p.brakeD = clamp((speed - forwardSpeed) / (top * 0.55), 0, 1);
         p.prot = (p.prot || 0) + (tight - (p.prot || 0)) * Math.min(1, dt * 6);
         p.runD = clamp(speed / top, 0, 1) * (1 - p.prot);
-        p.dribRate = 7.4 * (1 + 0.28 * p.prot + 0.16 * p.brakeD - 0.2 * p.runD) * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1);
+        /* the push goes where he is headed: on a cut the stick turns before his feet do, and a ball sent the old way was
+           left behind him. And a ball he is running away from comes back up quicker */
+        { const fresh = p.wvT !== undefined && G.t - p.wvT < 0.1, wx = fresh ? p.wvx : p.dribVX, wz = fresh ? p.wvz : p.dribVZ;
+          p.leadVX = p.dribVX * 0.4 + wx * 0.6; p.leadVZ = p.dribVZ * 0.4 + wz * 0.6;
+          { const L = hyp(p.leadVX, p.leadVZ), cap = Math.max(2, speed); if (L > cap) { p.leadVX *= cap / L; p.leadVZ *= cap / L; } }   // (his direction, not a head start: no farther ahead than his feet can follow)
+          const gap = b.floorX !== undefined && b.pushCycle !== null && b.pushCycle !== undefined ? hyp(b.floorX - p.x, b.floorZ - p.z) : 0;
+          p.chaseD = (p.chaseD || 0) + (clamp((gap - 3.2) / 2.5, 0, 1) - (p.chaseD || 0)) * Math.min(1, dt * 14); }
+        p.dribRate = 7.4 * (1 + 0.28 * p.prot + 0.16 * p.brakeD - 0.2 * p.runD + 0.7 * p.chaseD) * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1);
         p.dph = (p.dph === undefined ? G.t * 7.4 : p.dph) + dt * p.dribRate;
         if (p.handCd > 0) p.handCd -= dt;
         if (G.sigN !== G.possN && Math.abs(p.z) < 7 && spd > 3 && tight < 0.3 && G.phase === 'live' && !G.drill) { G.sigN = G.possN; p.sigT = G.t; }   // calling the set: a hand up as he crosses half court
@@ -2267,7 +2275,17 @@
         const top = H ? Math.max(1.2, hp.y - 0.35) : 3 * (ds === 'low' ? 0.78 : ds === 'high' ? 1.06 : 1) * (1 - 0.18 * (p.prot || 0) + 0.08 * (p.runD || 0));
         const ph = p.dph !== undefined ? p.dph : G.t * 7.4, sn = Math.abs(Math.sin(ph));
         b.y = 0.4 + sn * (top - 0.4);
-        if (p.dribRate && !p.inb && G.phase !== 'ft') PB.movingBounce(b, p, hp, ph, p.dribRate);
+        if (p.dribRate && !p.inb && G.phase !== 'ft') {
+          PB.movingBounce(b, { runD: p.runD, dribVX: p.leadVX !== undefined ? p.leadVX : p.dribVX, dribVZ: p.leadVZ !== undefined ? p.leadVZ : p.dribVZ }, hp, ph, p.dribRate);
+          /* never through his legs or his body on the way back to the hand: it goes round, on the side of the hand it is in */
+          /* and never out of his reach: past a long stride and a half, the rest of the way is squeezed in */
+          { const ex = b.x - p.x, ez = b.z - p.z, e = hyp(ex, ez), lim = 4.3; if (e > lim) { const k = (lim + (e - lim) * 0.3) / e; b.x = p.x + ex * k; b.z = p.z + ez * k; } }
+          const dx = b.x - p.x, dz = b.z - p.z, d = hyp(dx, dz), R0 = 1.0;
+          if (d < R0 && b.y < 4.7) { const fx = Math.sin(p.face), fz = Math.cos(p.face), sd = (p.dribHand || 1) >= 0 ? 1 : -1, w = (R0 - d) / R0;
+            let ox = dx + fz * sd * w * 0.6, oz = dz - fx * sd * w * 0.6; const ol = hyp(ox, oz) || 1; ox /= ol; oz /= ol;
+            const k = (R0 - d) * (1 - clamp((b.y - 4.1) / 0.6, 0, 1));
+            b.x += ox * k; b.z += oz * k; }
+        }
         /* the bounce: one each time the ball meets the floor, quieter the farther it is from you */
         const k = Math.floor(ph / Math.PI);
         if (k !== b.bk) { b.bk = k; if (G.phase === 'live') { const d = G.user ? hyp(b.x - G.user.x, b.z - G.user.z) : 20; AU().play('bounce', { x: b.x, vol: clamp(1.1 - d / 45, 0.25, 1) }); } }

@@ -4,6 +4,11 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The dribble follows where you are going, not where you were: the ball is pushed toward the stick's direction (on a
+  cut the stick turns before your feet do, and the ball used to land the old way, up to six feet off, behind you or
+  through your body), it comes back up quicker when you run away from it, it goes round your legs instead of through
+  them, and it never gets out of reach. tools/dribblemove.js measures it frame by frame while standing, walking,
+  sprinting, cutting, zigzagging, stopping, circling and backing up.
 - The park is home. After the start screen (your player over the arena, Tap to start) you are in your city's park, on
   foot. One side of the park is a brick wall with a lit door for every mode: My Player, Season, Quick game, the gym,
   My Career, the closet, Blacktop, Classics and the daily challenge. The pick-up rings (1 on 1, 2 on 2, 3 on 3) and
