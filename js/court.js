@@ -1211,9 +1211,12 @@
     m.shield = (m.shield || 0) + ((drib ? -(p.dribHand || 1) * 0.42 * prot : 0) - (m.shield || 0)) * Math.min(1, dt * 7);
     m.root.rotation.y = p.face + m.shield + (p.spinA || 0) + (ms < 1 && mv.k === 'spin' ? mv.side * Math.PI * 2 * smooth(0, 1, ms) : 0);   // the turn of a reverse or a 360 in the air, or a spin move
     m.body.position.y = p.y;
-    /* a crossover shifts his weight: the hips go with the ball to the new side (the feet stay where they are planted) */
-    { const sw = ms < 1 && (mv.k === 'cross' || mv.k === 'legs' || mv.k === 'btb') ? Math.sin(Math.PI * Math.min(1, ms * 1.15)) * 0.5 * (mv.b > 0 ? 1 : -1) : 0;
-      m.sway = (m.sway || 0) + (sw - (m.sway || 0)) * Math.min(1, dt * 14); m.body.position.x = -m.sway * (TPL.sideR < 0 ? 1 : -1); }
+    // Load the outside leg on the ball side, then drive the hips across as the other hand receives.
+    const crossing = ms < 1 && (mv.k === 'cross' || mv.k === 'legs' || mv.k === 'btb');
+    const shift = crossing ? mv.a * (0.28 * Math.sin(Math.PI * smooth(0, 0.44, ms))
+      - 0.52 * Math.sin(Math.PI * smooth(0.28, 1, ms))) : 0;
+    m.sway = (m.sway || 0) + (shift - (m.sway || 0)) * Math.min(1, dt * 18);
+    m.body.position.x = -m.sway * (TPL.sideR < 0 ? 1 : -1);
     /* a fadeaway leans back in the air */
     const lean = p.shoot && p.shoot.kind === 'dunk' && p.y > 0.3 ? (p.shoot.t / p.shoot.T < 0.6 ? -0.16 : 0.16) : p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     const plean = p.passT0 !== undefined && G.t - p.passT0 < 0.3 ? 0.16 * Math.sin(Math.PI * (G.t - p.passT0) / 0.3) : 0;
@@ -1325,7 +1328,7 @@
     abduct(m, p.face + (p.spinA || 0), ABD);
     /* planted feet: in a defensive stance (and standing over a dribble) the feet are set on the floor and step, one
        at a time, as he moves; the legs are solved to reach them. sw eases in and out so he drops into it */
-    { const gs = m.gw * (1 - smooth(13, 17, sp)), rdy = m.rw > m.dw && m.rw > gs, sw = Math.max(gs, m.dw, m.rw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = ms < 1 && mv.k !== 'hesi' ? 0.05 : 0;
+    { const gs = m.gw * (1 - smooth(13, 17, sp)), rdy = m.rw > m.dw && m.rw > gs, sw = Math.max(gs, m.dw, m.rw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = crossing ? (mv.k === 'legs' ? 0.10 : 0.065) * Math.sin(ms * Math.PI) : ms < 1 && mv.k === 'spin' ? 0.05 : 0;
       if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - 0.08 * load - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
     /* a dunk: the knees tuck under him as he rises */
     if ((p.pose === 'dunk1' || p.pose === 'windmill') && p.y > 0.5 && m.bones[bk('DEF-thigh.L')]) { const w = Math.min(1, (p.y - 0.5) * 1.6), f = p.face + (p.spinA || 0);
@@ -1401,7 +1404,13 @@
           : pose === 'follow' ? [[0.12, 0.93, 0.34], [0.06, 0.92, 0.38], [0.40, -0.82, 0.38], [0.02, 0.36, 0.93]] : keyed(LAYUP, kk); } }
     if (pose === 'dribble' && p.sigT !== undefined && G.t - p.sigT < 1.3 && !(ms < 1)) { const e = Math.sin(Math.PI * Math.min(1, (G.t - p.sigT) / 1.3)); const L = (a, b) => a.map((v, j) => v + (b[j] - v) * Math.min(1, e * 1.6)); P = [P[0], P[1], L(P[2], [0.3, 0.86, 0.35]), L(P[3], [0.12, 0.97, 0.2])]; }   // calling the set: the off hand goes up
     /* at a run the ball is pushed out in front at the waist, not carried up by the shoulder */
-    if (pose === 'dribble' && p.runD > 0.05) { const e = 0.7 * p.runD, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], [0.1, -0.88, 0.45]), L(P[1], [0.2, -0.5, 0.84]), [0.3, -0.75, -0.2 + 0.5 * Math.sin(kk * 6.28)], [0.1, -0.3, 0.9]]; }
+    if (pose === 'dribble' && p.runD > 0.05) {
+      const run = p.runD, height = Math.sin(kk * Math.PI);
+      // Reach forward on the push and bend the elbow again as the ball climbs back to the hand.
+      P[0][2] += run * (0.2 + 0.22 * (1 - height));
+      P[1][2] += 0.28 * run;
+      P[1][1] += run * (0.38 * height - 0.18);
+    }
     if (pose === 'dribble') {
       // Change bounce height at the elbow so the returning ball still meets the palm.
       const style = p.d && p.d.look && p.d.look.drib;
@@ -1434,6 +1443,17 @@
     aim(m.R.fore, m.R.hand, dirOf(p.face, Af[0], Af[1] + hi, Af[2] - hi, s), w);
     aim(m.L.up, m.L.fore, dirOf(p.face, Bu[0], Bu[1], Bu[2], -s), w);
     aim(m.L.fore, m.L.hand, dirOf(p.face, Bf[0], Bf[1], Bf[2], -s), w);
+    if (pose === 'dribble') {
+      // Let the wrist give on the rise and flex through the push. On a crossover the
+      // outgoing wrist finishes across the body while the receiving hand opens to the ball.
+      const side = crossing && ms < 0.5 ? mv.a : (p.dribHand || 1);
+      const arm = side < 0 ? m.L : m.R;
+      if (arm.fing) {
+        const flex = crossing ? Math.cos(ms * Math.PI) : Math.cos(kk * 2 * Math.PI);
+        aim(arm.hand, arm.fing, dirOf(p.face, crossing ? -0.32 : 0.12,
+          -0.4 - 0.42 * flex, 0.85, side * s), w);
+      }
+    }
     /* the shooter's wrists: cocked back under the ball at the set point, snapped through at the release and left
        hanging on the follow-through; the guide hand's fingers point up */
     if ((pose === 'shoot' || pose === 'follow') && m.lay === 1 && m.R.fing && m.L.fing) { const hd = sw ? m.L : m.R, fr = pose === 'follow' ? [0, 0.15, 0.99] : [0, 0.55 + 0.2 * kk, 0.83 - 0.3 * kk];   // the finger roll: the palm under the ball, then the fingers through it

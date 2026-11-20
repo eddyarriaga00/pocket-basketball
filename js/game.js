@@ -2252,8 +2252,6 @@
       b.t += dt;
       const u = Math.min(1, b.t / b.dur);
       b.x = b.sx + (b.ex - b.sx) * u; b.z = b.sz + (b.ez - b.sz) * u; b.y = b.sy + (b.ey - b.sy) * u + 4 * b.apex * u * (1 - u);
-      if (b.bounce) { const f = 0.62; b.y = u < f ? b.sy + (0.4 - b.sy) * (u / f) : 0.4 + (b.ey - 0.4) * ((u - f) / (1 - f)) + 2.2 * ((u - f) / (1 - f)) * (1 - (u - f) / (1 - f));
-        if (u >= f && !b.bn) { b.bn = true; AU().play('bounce', { x: b.x, vol: 0.6 }); } }
       if (G.phase === 'live' && !G.drill && u < 1) { inFlight(u); if (b.state !== 'shot') return; }
       if (u >= 1) { if (b.shot.ft) ftLands(); else shotLands(); }
       return;
@@ -2273,8 +2271,8 @@
       return;
     }
     if (b.state === 'drop') {
+      b.y = Math.max(0.4, b.y - (14 + 20 * b.t + 10 * dt) * dt);
       b.t += dt;
-      b.y = Math.max(0.4, 10 - b.t * 14 - b.t * b.t * 10);
       return;
     }
     if (b.state === 'loose') {
