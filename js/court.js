@@ -1402,6 +1402,12 @@
     if (pose === 'dribble' && p.sigT !== undefined && G.t - p.sigT < 1.3 && !(ms < 1)) { const e = Math.sin(Math.PI * Math.min(1, (G.t - p.sigT) / 1.3)); const L = (a, b) => a.map((v, j) => v + (b[j] - v) * Math.min(1, e * 1.6)); P = [P[0], P[1], L(P[2], [0.3, 0.86, 0.35]), L(P[3], [0.12, 0.97, 0.2])]; }   // calling the set: the off hand goes up
     /* at a run the ball is pushed out in front at the waist, not carried up by the shoulder */
     if (pose === 'dribble' && p.runD > 0.05) { const e = 0.7 * p.runD, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], [0.1, -0.88, 0.45]), L(P[1], [0.2, -0.5, 0.84]), [0.3, -0.75, -0.2 + 0.5 * Math.sin(kk * 6.28)], [0.1, -0.3, 0.9]]; }
+    if (pose === 'dribble') {
+      // Change bounce height at the elbow so the returning ball still meets the palm.
+      const style = p.d && p.d.look && p.d.look.drib;
+      const lift = (style === 'high' ? 0.2 : style === 'low' ? -0.38 : 0) - 0.32 * prot;
+      P[1][1] += lift * Math.sin(Math.PI * kk);
+    }
     if (pose === 'guard' && m.gd < 0.98) { const R0 = [[0.42, -0.8, 0.42], [0.4, -0.3, 0.86]], e = 1 - m.gd, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], R0[0]), L(P[1], R0[1]), L(P[2], R0[0]), L(P[3], R0[1])]; }
     if (pose === 'guard' && m.gc > 0.02) { const W0 = [[0.92, -0.3, 0.2], [0.82, 0.3, 0.45]], e = m.gc, L = (a, b) => a.map((v, j) => v + (b[j] - v) * e); P = [L(P[0], W0[0]), L(P[1], W0[1]), L(P[2], W0[0]), L(P[3], W0[1])]; }
     /* in the air at a shooter: one long arm to the ball, the other down for balance (both go up for a rebound) */
@@ -1415,7 +1421,10 @@
       const F = [L(K.F[i][0], K.F[i + 1][0]), L(K.F[i][1], K.F[i + 1][1])], O = [L(K.O[i][0], K.O[i + 1][0]), L(K.O[i][1], K.O[i + 1][1])];
       /* POSES are written right-hand first and swapped below for a left-hand dribbler (dribHand < 0, now the new hand) */
       const fromR = mv.a > 0;
-      P = (p.dribHand < 0) === fromR ? [O[0], O[1], F[0], F[1]] : [F[0], F[1], O[0], O[1]];
+      const movePose = (p.dribHand < 0) === fromR ? [O[0], O[1], F[0], F[1]] : [F[0], F[1], O[0], O[1]];
+      // Open the receiving arm into its ordinary dribble position as the ball returns.
+      const receive = smooth(0.65, 1, ms);
+      P = receive ? movePose.map((arm, j) => arm.map((v, i) => v + (P[j][i] - v) * receive)) : movePose;
     }
     /* dribbling with the left hand: the arms trade jobs */
     /* the high hand goes to the side the ball is on */
@@ -1916,15 +1925,14 @@
       const b = g.ball;
       if (!p.mv || g.t - p.mv.t0 > 2.4) { const k = ['cross', 'legs', 'btb', 'cross', 'hesi'][Math.floor(g.t / 2.4) % 5], from = p.dribHand || 1, to = k === 'hesi' ? from : -from;
         p.mv = { k, t0: g.t, T: { cross: 0.32, btb: 0.4, legs: 0.38, hesi: 0.5 }[k], a: from, b: to }; p.dribHand = to; }
+      p.dph = Math.PI / 2 + Math.max(0, g.t - p.mv.t0 - p.mv.T) * 8.5;
       R.update(g, dt);
       const H = R.hands(p);
       if (H) { b.state = 'held'; b.holder = p;
-        const mv = p.mv, ms = (g.t - mv.t0) / mv.T, A0 = mv.a < 0 ? H.l : H.r, B0 = mv.b < 0 ? H.l : H.r;
-        if (ms < 1 && mv.k !== 'hesi') { const fx = Math.sin(p.face), fz = Math.cos(p.face), off = mv.k === 'btb' ? -1.0 : mv.k === 'legs' ? 0.15 : 1.2, M = { x: p.x + fx * off, y: 0.35, z: p.z + fz * off };
-          const [P0, P1, t] = ms < 0.5 ? [A0, M, (ms / 0.5) ** 2] : [M, B0, 1 - (1 - (ms - 0.5) / 0.5) ** 2];
-          b.x = P0.x + (P1.x - P0.x) * t; b.y = P0.y + (P1.y - P0.y) * t; b.z = P0.z + (P1.z - P0.z) * t; }
+        const mv = p.mv, ms = (g.t - mv.t0) / mv.T, A0 = mv.a < 0 ? H.l : H.r;
+        if (ms < 1 && mv.k !== 'hesi') PB.crossBounce(b, p, mv, ms, H);
         else if (ms < 1) { b.x = A0.x; b.y = Math.max(1.2, A0.y - 0.15); b.z = A0.z; }
-        else { const hh = p.dribHand < 0 ? H.l : H.r; b.x = hh.x; b.z = hh.z; b.y = 0.4 + Math.abs(Math.sin(g.t * 8.5)) * (Math.max(1.2, hh.y - 0.35) - 0.4); } }
+        else { const hh = p.dribHand < 0 ? H.l : H.r; b.x = hh.x; b.z = hh.z; b.y = 0.4 + Math.abs(Math.sin(p.dph)) * (Math.max(1.2, hh.y - 0.35) - 0.4); } }
       cam.position.set(Math.sin(a) * 14.5, 4.4 + Math.sin(a * 0.7) * 0.6, Math.cos(a) * 14.5);
       cam.lookAt(0, 2.5, 0);
       R.render(true);

@@ -21,6 +21,28 @@
   PB.clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   PB.gauss = () => { let u = 0, v = 0; while (!u) u = PB.rand(); while (!v) v = PB.rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.283185 * v); };
 
+  // A hand change crosses the floor target at half time. Horizontal travel continues through
+  // contact while the vertical arc reverses. Hand samples are at the palm, ball positions at the center.
+  PB.crossBounce = (ball, player, move, phase, hands) => {
+    const down = phase < 0.5, side = down ? move.a : move.b;
+    const hand = side < 0 ? hands.l : hands.r;
+    const offset = move.k === 'btb' ? -1 : move.k === 'legs' ? 0.15 : 1.2;
+    const x = player.x + Math.sin(player.face) * offset;
+    const z = player.z + Math.cos(player.face) * offset;
+    // Gather a low bounce before sending it across the body.
+    const gather = move.pickup ? 0.18 : 0;
+    const reach = down ? 1 - Math.max(0, phase - gather) / (0.5 - gather) : 2 * phase - 1;
+    ball.x = x + (hand.x - x) * reach;
+    ball.z = z + (hand.z - z) * reach;
+    ball.y = 0.4 + Math.max(0, hand.y - 0.35 - 0.4) * reach * (2 - reach);
+    if (phase < gather) {
+      const from = move.pickup, t = phase / gather, w = t * t * (3 - 2 * t);
+      ball.x += (player.x + from.x - ball.x) * (1 - w);
+      ball.y += (Math.max(0.4, from.y) - ball.y) * (1 - w);
+      ball.z += (player.z + from.z - ball.z) * (1 - w);
+    }
+  };
+
   /* 30 teams, two conferences of three divisions, aligned the way the real league is by city. */
   PB.TEAMS = [
     // East · Atlantic

@@ -270,6 +270,7 @@
     if (G.half) { if (G.hadBall !== undefined && G.hadBall !== p.team && !G.checking && G.phase === 'live') { G.clr = p.team; if (p.isUser || (G.user && G.user.team === p.team)) toast('Take it back past the arc', 'call'); } G.hadBall = p.team; }
     if (G.inb) { G.inb.p.inb = false; G.inb = null; }
     b.state = 'held'; b.holder = p; p.hold = 0; p.think = 0.2 + rand() * 0.2; delete p.post;
+    p.dph = Math.PI / 2; b.bk = 0;
     b.lastTouch = p.team;
     if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; G.possN = (G.possN || 0) + 1;
       if (G.phase === 'live' && !p.inb) G.transT = G.t;   // a live-ball change of hands (a steal, a board): the break is on
@@ -1855,7 +1856,13 @@
   const MV_T = { cross: 0.32, btb: 0.4, legs: 0.38, hesi: 0.5, spin: 0.5 };
   /* an ankle-breaker: the beaten defender goes down and needs a moment to get up */
   function ankles(d) { if (!G.replay) G.hitT = 0.07; d.fallT = G.t; d.stun = 1.5; d.vx *= 0.3; d.vz *= 0.3; if (R.shock) R.shock(d.x, d.z, 5); }
-  function startMv(p, k, a, b, side) { p.mv = { k, t0: G.t, T: MV_T[k], a, b, side: side || 1, bn: false }; }
+  function startMv(p, k, a, b, side) {
+    const ball = G.ball;
+    p.mv = { k, t0: G.t, T: MV_T[k], a, b, side: side || 1, bn: false };
+    if (ball.holder === p && k !== 'spin' && k !== 'hesi') {
+      p.mv.pickup = { x: ball.x - p.x, y: ball.y, z: ball.z - p.z };
+    }
+  }
   function feedMove(lbl) { const r = $('#rel'); r.textContent = lbl; r.className = 'on y'; relT = 0.6; }
 
   /* ---------- whole-team control: you are whoever has the ball, or the man guarding it ---------- */
@@ -2182,22 +2189,21 @@
       else {
         const mv = p.mv, ms = mv && H ? (G.t - mv.t0) / mv.T : 2;
         if (ms < 1) {
+          // The ordinary bounce resumes from the receiving palm after the move.
+          p.dph = Math.PI / 2; b.bk = 0;
           const A = mv.a < 0 ? H.l : H.r;
           if (mv.k === 'spin' || mv.k === 'hesi') {   // palmed through the spin; held at the hip on the hesitation
             b.x = A.x; b.z = A.z; b.y = Math.max(1.2, A.y - (mv.k === 'hesi' ? 0.15 : 0.3)); return;
           }
           /* hand, floor, other hand: in front for a crossover, under you through the legs, behind the back */
-          const Bh = mv.b < 0 ? H.l : H.r, fx = Math.sin(p.face), fz = Math.cos(p.face);
-          const off = mv.k === 'btb' ? -1.0 : mv.k === 'legs' ? 0.15 : 1.2, M = { x: p.x + fx * off, y: 0.35, z: p.z + fz * off };
-          let P0, P1, t;
-          if (ms < 0.5) { P0 = A; P1 = M; t = (ms / 0.5) ** 2; } else { P0 = M; P1 = Bh; t = 1 - (1 - (ms - 0.5) / 0.5) ** 2; }
-          b.x = P0.x + (P1.x - P0.x) * t; b.y = P0.y + (P1.y - P0.y) * t - (ms < 0.5 ? 0.35 : 0); b.z = P0.z + (P1.z - P0.z) * t;
+          PB.crossBounce(b, p, mv, ms, H);
           if (ms >= 0.5 && !mv.bn) { mv.bn = true; if (G.phase === 'live') AU().play('bounce', { x: b.x, vol: p.isUser ? 1 : 0.5 }); }
           return;
         }
         /* the dribble: from the hand to the floor and back, under the hand */
         b.x = hp.x; b.z = hp.z;
-        const ds = p.d && p.d.look && p.d.look.drib, top = (H ? Math.max(1.2, (p.dribHand < 0 ? H.l.y : H.r.y) - 0.35) : 3.0) * (ds === 'low' ? 0.78 : ds === 'high' ? 1.06 : 1) * (1 - 0.18 * (p.prot || 0) + 0.08 * (p.runD || 0));
+        const ds = p.d && p.d.look && p.d.look.drib;
+        const top = H ? Math.max(1.2, hp.y - 0.35) : 3 * (ds === 'low' ? 0.78 : ds === 'high' ? 1.06 : 1) * (1 - 0.18 * (p.prot || 0) + 0.08 * (p.runD || 0));
         const ph = p.dph !== undefined ? p.dph : G.t * 7.4, sn = Math.abs(Math.sin(ph));
         b.y = 0.4 + sn * (top - 0.4);
         /* at a run the ball is pushed out ahead and comes back to the hand */
