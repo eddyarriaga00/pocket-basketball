@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Your close-up before the tip: you look into the camera instead of off at the ball.
 - UI: one sign over each door (its name and what is behind it), park messages are a small pill under the top row instead of big letters over the doors, menus slide up, and menu tiles press in.
 - The park keeps your clock: a bright day (blue sky, clouds, the sun, lamps off), the last of the sun in the early
   evening, and night (a darker sky, more stars, more windows lit).

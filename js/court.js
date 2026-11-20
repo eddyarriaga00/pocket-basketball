@@ -1331,6 +1331,9 @@
         * smooth(0.25, 0.85, Math.sin(G.t * 0.95 + idle.phase)) : 0;
       m.lookY = (m.lookY || 0) + (glance - (m.lookY || 0)) * Math.min(1, dt * 6);
     }
+    /* his close-up before the tip: he looks into the camera, not off at the ball */
+    if (introFocus === p && intro > 0 && intro < 2.4) { let d = Math.atan2(cam.position.x - p.x, cam.position.z - p.z) - p.face; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+      m.introL = (m.introL === undefined ? d : m.introL) + (d - (m.introL === undefined ? d : m.introL)) * Math.min(1, dt * 8); m.lookY = Math.max(-0.75, Math.min(0.75, m.introL)); } else m.introL = undefined;
     if (m.head && Math.abs(m.lookY || 0) > 0.01) { m.body.updateMatrixWorld(true); m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_up, m.lookY).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); }
     if (m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = (G.t + m.hg.userData.bph) % 3.8 < 0.13;
     if (m.hg && m.hg.userData.faceM) { const fm = m.hg.userData.faceM, sh = (G.t + (m.bph2 || (m.bph2 = Math.random() * 3.8))) % 3.8 < 0.13, yl = /^(roar|flex|celebrate|dunk1|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2), mood = p.celebT > 0 ? (p.celebK === 'ugh' ? 'stern' : p.celebK === 'call' ? '' : 'happy') : p.pose === 'sad' ? (p.tiredP ? 'tired' : 'stern') : '', ix = yl ? fm.userData.yell : sh ? fm.userData.shut : (mood && fm.userData[mood]) || fm.userData.open; if (fm.geometry.index !== ix) fm.geometry.setIndex(ix); }   // the model blinks
