@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The park keeps your clock: a bright day (blue sky, clouds, the sun, lamps off), the last of the sun in the early
+  evening, and night (a darker sky, more stars, more windows lit).
 - Small things: every game and the park fade up out of black; the park's rings breathe and their signs bob; the arena
   lights show in the polish of the floor; a small celebration on every third straight make in the park and when a
   letter is handed out in H-O-R-S-E. tools/parkmonkey.js does random things in the park and reports anything odd

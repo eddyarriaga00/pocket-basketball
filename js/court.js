@@ -1570,15 +1570,22 @@
   function parkDressing(home) {
     /* the sky: a gradient from the last of the sun to night */
     const sc = document.createElement('canvas'); sc.width = 4; sc.height = 256; const sg = sc.getContext('2d'), gr = sg.createLinearGradient(0, 0, 0, 256);
-    gr.addColorStop(0, '#1b2440'); gr.addColorStop(0.55, '#5a4a78'); gr.addColorStop(0.8, '#e0876a'); gr.addColorStop(1, '#f2b66d');
+    /* the hour on your own clock: a bright day, the last of the sun, or night (PB.parkTime forces one, for the test tools) */
+    const hr = new Date().getHours(), tod = PB.parkTime || (hr >= 7 && hr < 17 ? 'day' : hr >= 17 && hr < 20 ? 'dusk' : 'night'), day = tod === 'day', night = tod === 'night';
+    const stops = day ? ['#3f8fdc', '#7fbdf0', '#c4e4fa', '#e9f6ff'] : night ? ['#070b1a', '#10183a', '#1c2450', '#2b2f5c'] : ['#1b2440', '#5a4a78', '#e0876a', '#f2b66d'];
+    gr.addColorStop(0, stops[0]); gr.addColorStop(0.55, stops[1]); gr.addColorStop(0.8, stops[2]); gr.addColorStop(1, stops[3]);
+    scene.fog = day ? new T.Fog(0xbfe0f5, 140, 320) : night ? new T.Fog(0x161a36, 80, 220) : scene.fog;
+    if (day) { const al = new T.AmbientLight(0xffffff, 0.55); scene.add(al); }
     sg.fillStyle = gr; sg.fillRect(0, 0, 4, 256); const st = new T.CanvasTexture(sc); st.colorSpace = T.SRGBColorSpace; scene.background = st; orphans.push(st);   // (a background is not in the scene: it is let go of with the next build)
     /* the city beyond the park: a skyline with lit windows, a few stars, the moon */
     { const kc = document.createElement('canvas'); kc.width = 1024; kc.height = 256; const k = kc.getContext('2d');
       let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-      for (let i = 0; i < 70; i++) { k.fillStyle = `rgba(255,255,255,${0.35 + rnd() * 0.5})`; k.fillRect(rnd() * 1024, rnd() * 110, 2, 2); }
-      k.fillStyle = '#f4ecd2'; k.beginPath(); k.arc(790, 46, 17, 0, 7); k.fill(); k.globalCompositeOperation = 'destination-out'; k.beginPath(); k.arc(798, 40, 15, 0, 7); k.fill(); k.globalCompositeOperation = 'source-over';
-      for (let x = 0; x < 1024;) { const w = 26 + rnd() * 46, h = 50 + rnd() * 130; k.fillStyle = `rgb(${18 + rnd() * 10 | 0},${20 + rnd() * 10 | 0},${34 + rnd() * 14 | 0})`; k.fillRect(x, 256 - h, w, h);
-        for (let wy = 256 - h + 8; wy < 246; wy += 11) for (let wx = x + 5; wx < x + w - 6; wx += 9) if (rnd() < 0.32) { k.fillStyle = rnd() < 0.8 ? 'rgba(255,214,140,.85)' : 'rgba(170,210,255,.8)'; k.fillRect(wx, wy, 4, 5); }
+      if (!day) for (let i = 0; i < (night ? 130 : 45); i++) { k.fillStyle = `rgba(255,255,255,${0.35 + rnd() * 0.5})`; k.fillRect(rnd() * 1024, rnd() * 110, 2, 2); }
+      if (day) { const sg2 = k.createRadialGradient(790, 50, 6, 790, 50, 46); sg2.addColorStop(0, 'rgba(255,252,230,1)'); sg2.addColorStop(0.35, 'rgba(255,246,200,.55)'); sg2.addColorStop(1, 'rgba(255,246,200,0)'); k.fillStyle = sg2; k.fillRect(740, 0, 100, 100);
+        for (let i = 0; i < 7; i++) { const cx0 = rnd() * 1024, cy0 = 30 + rnd() * 70; k.fillStyle = 'rgba(255,255,255,.75)'; for (let j = 0; j < 4; j++) { k.beginPath(); k.ellipse(cx0 + j * 16 - 24, cy0 + (j % 2) * 5, 20, 9, 0, 0, 7); k.fill(); } } }
+      else { k.fillStyle = '#f4ecd2'; k.beginPath(); k.arc(790, 46, 17, 0, 7); k.fill(); k.globalCompositeOperation = 'destination-out'; k.beginPath(); k.arc(798, 40, 15, 0, 7); k.fill(); k.globalCompositeOperation = 'source-over'; }
+      for (let x = 0; x < 1024;) { const w = 26 + rnd() * 46, h = 50 + rnd() * 130; const sh = rnd() * 10 | 0; k.fillStyle = day ? `rgb(${128 + sh * 3},${146 + sh * 3},${170 + sh * 3})` : `rgb(${18 + sh},${20 + sh},${34 + sh})`; k.fillRect(x, 256 - h, w, h);
+        for (let wy = 256 - h + 8; wy < 246; wy += 11) for (let wx = x + 5; wx < x + w - 6; wx += 9) if (rnd() < (day ? 0.5 : night ? 0.4 : 0.26)) { k.fillStyle = day ? 'rgba(70,96,128,.55)' : rnd() < 0.8 ? 'rgba(255,214,140,.85)' : 'rgba(170,210,255,.8)'; k.fillRect(wx, wy, 4, 5); }
         x += w + 2 + rnd() * 6; }
       const kt = new T.CanvasTexture(kc); kt.colorSpace = T.SRGBColorSpace; kt.wrapS = T.RepeatWrapping; kt.repeat.set(3, 1); orphans.push(kt);
       const ring = new T.Mesh(new T.CylinderGeometry(175, 175, 78, 40, 1, true), new T.MeshBasicMaterial({ map: kt, transparent: true, side: T.BackSide, fog: false, depthWrite: false }));
@@ -1605,7 +1612,7 @@
       const wall = new T.Mesh(new T.BoxGeometry(1.4, 18, FZ * 2 + 1.4), new T.MeshLambertMaterial({ map: bt, color: 0x9a8f96 })); wall.position.set(FX + 0.7, 9, 0); scene.add(wall);
       const cap = new T.Mesh(new T.BoxGeometry(2, 0.8, FZ * 2 + 2), new T.MeshLambertMaterial({ color: 0x55585e })); cap.position.set(FX + 0.7, 18.3, 0); scene.add(cap);
       const walk = new T.Mesh(new T.PlaneGeometry(9, FZ * 2), new T.MeshLambertMaterial({ color: 0x6a6d74 })); walk.rotation.x = -Math.PI / 2; walk.position.set(FX - 4.5, 0.01, 0); scene.add(walk);
-      const lampM = new T.MeshBasicMaterial({ color: 0xfff1c8 });
+      const lampM = new T.MeshBasicMaterial({ color: day ? 0x8a8d92 : 0xfff1c8 });
       for (let z = -54; z <= 54; z += 12) { const l = new T.Mesh(new T.BoxGeometry(0.6, 1.2, 1.2), lampM); l.position.set(FX - 0.3, 13.5, z); scene.add(l); } }
     /* trees outside the fence */
     const tm = new T.MeshLambertMaterial({ color: 0x4a3426 }), lm = [0x2f5b2c, 0x3b6a33, 0x28502a].map(c => new T.MeshLambertMaterial({ color: c }));
@@ -1615,13 +1622,13 @@
     /* light poles at the corners, lamps lit */
     for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) {
       const pl = new T.Mesh(new T.CylinderGeometry(0.35, 0.45, 30, 6), pm); pl.position.set(x, 15, z); scene.add(pl);
-      const lamp = new T.Mesh(new T.BoxGeometry(4, 1, 2), new T.MeshBasicMaterial({ color: 0xfff1c8 })); lamp.position.set(x - Math.sign(x) * 1.5, 30, z); scene.add(lamp); }
+      const lamp = new T.Mesh(new T.BoxGeometry(4, 1, 2), new T.MeshBasicMaterial({ color: day ? 0x8a8d92 : 0xfff1c8 })); lamp.position.set(x - Math.sign(x) * 1.5, 30, z); scene.add(lamp); }
     /* pools of lamplight on the ground: under the poles, and along the wall under its lamps */
     { const lc = document.createElement('canvas'); lc.width = lc.height = 128; const lg = lc.getContext('2d'), gr2 = lg.createRadialGradient(64, 64, 4, 64, 64, 64);
       gr2.addColorStop(0, 'rgba(255,236,200,.42)'); gr2.addColorStop(0.5, 'rgba(255,230,190,.14)'); gr2.addColorStop(1, 'rgba(255,230,190,0)'); lg.fillStyle = gr2; lg.fillRect(0, 0, 128, 128);
       const lt = new T.CanvasTexture(lc); orphans.push(lt);
       const lm2 = new T.MeshBasicMaterial({ map: lt, transparent: true, blending: T.AdditiveBlending, depthWrite: false });
-      const pool2 = (x, z, r) => { const m = new T.Mesh(new T.PlaneGeometry(r * 2, r * 2), lm2); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); scene.add(m); };
+      const pool2 = (x, z, r) => { if (day) return; const m = new T.Mesh(new T.PlaneGeometry(r * 2, r * 2), lm2); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); scene.add(m); };
       for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) pool2(x - Math.sign(x) * 4, z, 18);
       for (let z = -54; z <= 54; z += 12) pool2(FX - 3, z, 7); }
     /* a glow round every lamp, and the park's furniture: a boombox on a bench, trash cans, a rack of balls by the gym */
@@ -1629,7 +1636,7 @@
       gr3.addColorStop(0, 'rgba(255,240,205,.95)'); gr3.addColorStop(0.25, 'rgba(255,232,180,.4)'); gr3.addColorStop(1, 'rgba(255,230,180,0)'); hg.fillStyle = gr3; hg.fillRect(0, 0, 64, 64);
       const ht = new T.CanvasTexture(hc); orphans.push(ht);
       const hm = new T.SpriteMaterial({ map: ht, transparent: true, opacity: 0.75, depthWrite: false, blending: T.AdditiveBlending, fog: false });
-      const halo = (x, y, z, sz) => { const sp = new T.Sprite(hm); sp.position.set(x, y, z); sp.scale.setScalar(sz); scene.add(sp); };
+      const halo = (x, y, z, sz) => { if (day) return; const sp = new T.Sprite(hm); sp.position.set(x, y, z); sp.scale.setScalar(sz); scene.add(sp); };
       for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) halo(x - Math.sign(x) * 1.5, 29.6, z, 13);
       for (let z = -54; z <= 54; z += 12) halo(FX - 0.7, 13.5, z, 4);
       const dark = new T.MeshLambertMaterial({ color: 0x1b1c20 }), grey = new T.MeshLambertMaterial({ color: 0x4d5158 }), ballM = new T.MeshLambertMaterial({ color: 0xd4682a });
