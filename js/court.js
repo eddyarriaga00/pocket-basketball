@@ -2021,6 +2021,9 @@
     show.raf = requestAnimationFrame(loop);
   };
   let introFocus = null;
+  let cine = null;
+  R.cine = (shots, done) => { const was = cine; cine = shots && shots.length ? { shots, i: 0, t: 0, done } : null; if (!cine && was) { snap = true; if (was.done) was.done(); } };
+  R.cineOn = () => !!cine;
   R.setIntro = (sec, focus) => { intro = sec; if (sec > 0) introT = sec; introFocus = sec > 0 ? focus || null : null; };
   let replayD = 1;
   const hidNear = [];
@@ -2183,6 +2186,15 @@
       else n.mesh.position.y = 9.25 - n.swish * 0.26;
     }
     if (G.show) return;
+    if (cine) {
+      /* a cut scene: one camera move after another, each circling what it is watching */
+      const sh = cine.shots[cine.i]; cine.t += dt; const k0 = Math.min(1, cine.t / sh.dur), e = k0 * k0 * (3 - 2 * k0), mix = v => v[0] + (v[1] - v[0]) * e;
+      const f = sh.focus, fx = f ? f.x : 0, fz = f ? f.z : 0, a = mix(sh.a), r = mix(sh.r);
+      cam.position.set(fx + Math.sin(a) * r, mix(sh.h), fz + Math.cos(a) * r); cam.lookAt(fx, sh.ly === undefined ? 4 : sh.ly, fz);
+      camPos.copy(cam.position); camLook.set(fx, 2, fz);
+      if (k0 >= 1) { cine.t = 0; if (++cine.i >= cine.shots.length) { const done = cine.done; cine = null; snap = true; if (done) done(); } }
+      return;
+    }
     if (intro > 0) {
       /* the opening: high over the arena, sweeping down toward center court */
       intro = G && G.phase === 'tip' && G.tipT > 0 ? Math.max(0, G.tipT - 0.4) : Math.max(0, intro - dt);   // in step with the tip

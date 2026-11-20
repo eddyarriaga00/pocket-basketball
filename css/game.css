@@ -857,3 +857,16 @@ table.pbx td small{color:var(--mute)}
 .pmt:active,.pmn:active,.pmc:active,#parkcard button:active{transform:scale(.96)}
 .pmx:active{transform:scale(.9)}
 @media (prefers-reduced-motion:reduce){#pause:not([hidden]),#pause>.card{animation:none}}
+
+/* a cut scene: black bars, the controls away, a line of type low on the left */
+#cine{position:absolute;inset:0;z-index:8;display:none;pointer-events:none}
+#game.cine #cine,#game.cinepark #cine{display:block}#game.cine #cine{pointer-events:auto}
+#cine i{position:absolute;left:0;right:0;height:11%;background:#000;animation:barin .35s cubic-bezier(.2,.7,.2,1) both}
+#cine i:first-child{top:0;transform-origin:top}#cine i:nth-child(2){bottom:0;transform-origin:bottom}
+#game.cinepark #cine i{display:none}
+@keyframes barin{from{transform:scaleY(0)}}
+#cine p{position:absolute;left:18px;right:18px;bottom:calc(11% + 22px);margin:0;display:flex;flex-direction:column;gap:2px;animation:rise .5s .25s cubic-bezier(.2,.7,.2,1) both;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+#cine small{font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.8)}
+#cine b{font-family:var(--display);font-weight:900;font-stretch:115%;font-size:30px;line-height:1.05;text-transform:uppercase}
+#game.cinepark #cine p{bottom:auto;top:26%;text-align:center;align-items:center}
+#game.cine #hud,#game.cine #btns,#game.cine #stickzone,#game.cine #toast,#game.cine #statpop,#game.cine #tipcard,#game.cine #meter{opacity:0;pointer-events:none;transition:opacity .2s}

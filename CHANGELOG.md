@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Cut scenes: the camera comes down out of the sky the first time you walk into the park; a slow pass along the sideline at the end of a quarter; at the final horn it finds the winners' best player and then pulls up over the floor. Black bars, a line of type, a tap skips.
 - Your close-up before the tip: you look into the camera instead of off at the ball.
 - UI: one sign over each door (its name and what is behind it), park messages are a small pill under the top row instead of big letters over the doors, menus slide up, and menu tiles press in.
 - The park keeps your clock: a bright day (blue sky, clouds, the sun, lamps off), the last of the sun in the early

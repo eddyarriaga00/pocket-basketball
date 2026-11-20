@@ -362,6 +362,18 @@
     e.style.transition = 'none'; e.style.opacity = '1'; void e.offsetWidth;
     clearTimeout(cut.h); cut.h = setTimeout(() => { e.style.transition = 'opacity .3s ease-out'; e.style.opacity = '0'; }, 170);
   }
+  /* a cut scene: the camera leaves the play for a few moves of its own, black bars top and bottom, a line of type.
+     A tap skips it. (In the park there are no bars and the controls stay: walking off ends it.) */
+  let parkCine = false;
+  function cine(shots, kick, title, o) {
+    if (!R.cine) return; o = o || {};
+    const el = $('#game'); let e = $('#cine');
+    if (!e) { e = document.createElement('div'); e.id = 'cine'; e.innerHTML = '<i></i><i></i><p><small></small><b></b></p>'; el.appendChild(e); }
+    e.querySelector('small').textContent = kick || ''; e.querySelector('b').textContent = title || '';
+    e.onclick = () => { if (o.skip) o.skip(); R.cine(null); };
+    el.classList.remove('cine', 'cinepark'); void e.offsetWidth; el.classList.add(o.park ? 'cinepark' : 'cine');
+    const g = G; R.cine(shots, () => { el.classList.remove('cine', 'cinepark'); if (G === g && o.done) o.done(); });
+  }
   function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; subs();
     /* a coach stops a run: a timeout called from the bench (yours or theirs). Legs come back, and the run is over */
     if (G.coachTO !== undefined && !G.ftq && G.q <= 4) { const tc = G.coachTO; G.coachTO = undefined;
@@ -843,6 +855,7 @@
     c.style.top = t && !t.hidden ? `${t.offsetTop + t.offsetHeight + 8}px` : '';
   }
   function parkStep(dt) {
+    if (R.cineOn && R.cineOn() && G.user && Math.hypot(G.user.vx || 0, G.user.vz || 0) > 2) R.cine(null);   // walking off ends the arrival shot
     const u = G.user;
     /* the stanchions are solid */
     for (const s of [1, -1]) if (Math.abs(u.x) < 2.7 && Math.abs(u.z - s * 52) < 3) { const dz = u.z - s * 52; if (Math.abs(u.x) / 2.7 > Math.abs(dz) / 3) u.x = Math.sign(u.x || 1) * 2.7; else u.z = s * 52 + Math.sign(dz || -s) * 3; }
@@ -2410,12 +2423,19 @@
       const w = g.score[0] > g.score[1] ? 0 : 1, kinds = ['celebrate', 'flex', 'roar', 'three', 'point', 'chest'];
       for (const p of g.pl) { p.shoot = null; p.drive = 0; p.vx *= 0.3; p.vz *= 0.3; p.pose = p.team === w ? (p.d && p.d.look && p.d.look.celeb) || kinds[Math.floor(rand() * kinds.length)] : 'sad'; }
       if (R.benchJump) R.benchJump(w);
+      /* the cameras find the winners: close on their best player, then up and away over the floor */
+      { const on = g.pl.filter(p => p.team === w), star = g.user && g.user.team === w ? g.user : on.slice().sort((a, b) => b.st.pts - a.st.pts)[0];
+        if (star && R.cine) { g.buzzT = 5.0; const fa = star.face || 0, ab = t => g.teams[t].ab || g.teams[t].id;
+          cine([{ focus: star, a: [fa - 0.7, fa + 0.45], r: [10, 7.5], h: [3, 4.6], ly: 4.4, dur: 2.6 }, { a: [0.7, 1.35], r: [58, 72], h: [18, 36], ly: 3, dur: 2.3 }],
+            'Final', `${ab(0)} ${g.score[0]} · ${ab(1)} ${g.score[1]}`, { skip: () => { if (G === g && g.phase === 'buzzer') g.buzzT = Math.min(g.buzzT, 0.25); } }); } }
       return;
     }
     (g.qsc = g.qsc || []).push(g.score.slice());   // the score at the end of each period, for the line score
     g.q++;
     g.clock = g.q > 4 ? Math.max(60, g.qlen * 60 * 5 / 12) : g.qlen * 60;
-    toast(g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, '');
+    if (g.q !== 3 && !g.drill && R.cine) { const sd = rand() < 0.5 ? 1 : -1, ab = t => g.teams[t].ab || g.teams[t].id;   // the break: a slow pass along the sideline (the half has its own card)
+      cine([{ a: [sd * (Math.PI / 2 - 0.55), sd * (Math.PI / 2 + 0.35)], r: [33, 29], h: [8, 12], ly: 4, dur: 1.75 }], g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, `${ab(0)} ${g.score[0]} · ${ab(1)} ${g.score[1]}`); }
+    else toast(g.q > 4 ? 'Overtime' : `End of the ${['', '1st', '2nd', '3rd'][g.q - 1]}`, '');
     AU().play('horn'); if (R.horn) R.horn(1.6); AU().crowd.react('applause', 0.7);
     setTimeout(() => AU().organ && AU().organ(g.q === 3 ? 'walk' : 'letsgo'), 2200);
     setTimeout(() => B(g.q === 3 ? 'half' : g.q > 4 ? 'ot' : 'end_q', { prio: 3, follow: g.q === 3 ? 0.6 : 0 }), 900);
@@ -2458,6 +2478,7 @@
     $('#h2').onclick = () => { ov.hidden = true; G.paused = false; AU().muffle(false); };
   }
   function finish() {
+    if (R.cine) R.cine(null);
     G.phase = 'end';
     $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; }
     cancelAnimationFrame(raf);
@@ -2864,7 +2885,7 @@
       opts = o;
       /* a menu's 3D showcase (the start screen's player) hides the controls while it is up: never carry it into a game */
       if (R.showcase) R.showcase(null);
-      $('#game').classList.remove('show', 'replaying');
+      if (R.cine) R.cine(null); $('#game').classList.remove('show', 'replaying', 'cine', 'cinepark');
       $('#game').hidden = false;
       { const g = $('#game'); g.style.animation = 'none'; void g.offsetWidth; g.style.animation = 'gamein .45s ease-out'; }   // every game and the park come up out of black
       if (!bound) { bindControls(); bound = true; }
@@ -3004,7 +3025,9 @@
         $('#a0').textContent = 'PTS'; $('#a1').textContent = o.drill === 'dunk' ? 'DUNK' : 'SHOTS';
         $('#game').classList.toggle('horse', o.drill === 'horse');
         $('#grade').hidden = true;
-        setTimeout(() => toast(o.park ? `${(o.floor || o.teams[0]).city} Park` : def.title, 'call'), 200);
+        if (o.park && !parkCine && G.user && R.cine) { parkCine = true; const u = G.user, bk = (u.face || 0) + Math.PI;   // the first time in: down out of the sky to your shoulder
+          cine([{ focus: u, a: [bk - 1.5, bk], r: [52, 17], h: [40, 10], ly: 4, dur: 3.2 }], 'Welcome to', `${(o.floor || o.teams[0]).city} Park`, { park: true }); }
+        else setTimeout(() => toast(o.park ? `${(o.floor || o.teams[0]).city} Park` : def.title, 'call'), 200);
       }
       /* the second night of a back-to-back: your legs start heavier */
       if (o.tired && G.user) { G.user.energy = 0.78; setTimeout(() => feed('Second night of a back-to-back: heavy legs'), 600); }
