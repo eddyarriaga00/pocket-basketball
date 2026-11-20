@@ -726,7 +726,10 @@
   const MOUTH_MAT = Object.assign(new T.MeshBasicMaterial({ color: 0x2a0d0a }), { userData: { shared: true } });
   const HEAD = 1.22, ABD = 0.16;
   const _ax = V3(), _up = V3(0, 1, 0);
-  const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 4.5], ['Jog_Fwd_Loop', 11], ['Sprint_Loop', 18]];
+  const LOCO = [['Idle_Loop', 0], ['Walk_Loop', 3.4], ['Jog_Fwd_Loop', 9.5], ['Sprint_Loop', 18]];
+  /* each run clip: when the left foot lands, when it leaves, the same for the right (fractions of the clip), and how
+     far a foot goes back under him while it is down (feet, for the model at its own size) */
+  const GAIT = [['Jog_Fwd_Loop', [0, 0.18, 0.5, 0.68], 2.65], ['Sprint_Loop', [0.07, 0.2, 0.595, 0.745], 2.5]];
   /* the face as one geometry with vertex colors: two eyes, two pupils, two brows */
   const FACE_MAT = new T.MeshBasicMaterial({ vertexColors: true });
   function faceGeometry(H) {
@@ -1184,7 +1187,7 @@
     if (!legs[0].th || !legs[0].toe) return;
     if (!m.legL) { legs[0].th.getWorldPosition(_H); legs[0].sh.getWorldPosition(_K); legs[0].ft.getWorldPosition(_A); m.legL = [_H.distanceTo(_K), _K.distanceTo(_A)]; }
     const l1 = m.legL[0], l2 = m.legL[1], L = l1 + l2, W = wide * L, ank = 0.105 * L, sp = Math.hypot(p.vx, p.vz);
-    const thr = 0.2 * L, vx = sp > 0.5 ? p.vx / sp : 0, vz = sp > 0.5 ? p.vz / sp : 0, lead = Math.min(1, sp / 5);
+    const thr = 0.2 * L * (1 + 0.7 * Math.min(1, sp / 4)), vx = sp > 0.5 ? p.vx / sp : 0, vz = sp > 0.5 ? p.vz / sp : 0, lead = Math.min(1, sp / 5);
     if (!m.ft || Math.hypot(m.ft[0].x - p.x, m.ft[0].z - p.z) > 6) m.ft = legs.map(l => ({ x: p.x + rx * l.s * W, z: p.z + rz * l.s * W, t: -1, y: 0 }));
     const F = m.ft, home = legs.map(l => [p.x + rx * l.s * W + fx * l.s * 0.06 * L, p.z + rz * l.s * W + fz * l.s * 0.06 * L]);
     let far = -1, fe = 0;
@@ -1268,7 +1271,7 @@
     crouch = Math.max(crouch, 0.85 * load);
     if (fall > 0) crouch = 1;
     if (p.pose === 'sad') crouch = 0.55;
-    if (drib) crouch = Math.max(crouch, 0.12 + 0.3 * prot);   // an athletic base with the ball, lower with a man on you
+    if (drib) crouch = Math.max(crouch, (0.12 + 0.3 * prot) * (1 - 0.9 * smooth(5, 10, sp)));   // (at a run the crouched clip is let go: its feet keep their own time and would drag the stride off the floor)   // an athletic base with the ball, lower with a man on you
     if (G.ball.holder === p && !p.shoot && p.d && p.d.look && p.d.look.drib === 'low') crouch = Math.max(crouch, 0.3);   // a low dribbler gets down
     if (ms < 1 && (mv.k === 'legs' || mv.k === 'cross' || mv.k === 'btb')) crouch = Math.max(crouch, mv.k === 'legs' ? 0.55 : 0.35);   // low on a move   // the gather: down into the legs before the jump
     const dance = p.pose === 'celebrate' && !air && sp < 3 ? 1 : 0;   // (and the losers at the horn bend over: 'sad')
@@ -1284,9 +1287,20 @@
     set('Jump_Loop', jump); set('Dance_Loop', dance);
     /* the clips' feet match the ground at about these speeds (feet a second, at this player's size) */
     const scl = (p.ht || 78) / 12 / 6.1;
-    m.act.Walk_Loop.timeScale = Math.min(1.6, Math.max(0.6, sp / (4.5 * scl)));
-    m.act.Jog_Fwd_Loop.timeScale = Math.min(1.5, Math.max(0.7, sp / (11 * scl)));
-    m.act.Sprint_Loop.timeScale = Math.min(1.3, Math.max(0.8, sp / (18 * scl)));
+    /* One stride for all three clips. The clips as made do not fit the floor: the walk is a stroll (2.5 ft/s), the jog
+       and the sprint are long floating bounds whose feet go back at 16 and 25 ft/s. So they are not played, they are
+       placed: a single phase runs at a person's cadence for the speed (about 1.9 steps a second at a brisk walk, 2.75
+       at an 11 ft/s jog, 3.6 at an 18 ft/s run; a taller man takes longer, slower steps), and within each step the
+       time a foot is down is stretched so that it goes back exactly as fast as the floor does, the time in the air
+       squeezed to fit. Walk, jog and sprint strike the same foot at the same moment, so the blends between them hold. */
+    { const vN = sp / scl, cad = vN < 3.3 ? Math.max(0.9, 0.6 * vN) : vN < 11 ? 1.98 + (vN - 3.3) * 0.1 : Math.min(4.3, 2.75 + (vN - 11) * 0.121);
+      /* backing up (getting back on defense with his eyes on the ball): the same stride run the other way, a backpedal */
+      const fa = p.face + (p.spinA || 0), hv = Math.hypot(p.vx, p.vz), back = hv > 1.5 && (p.vx * Math.sin(fa) + p.vz * Math.cos(fa)) / hv < -0.35 ? -1 : 1;
+      m.gph = ((m.gph === undefined ? PB.rand() : m.gph) + back * dt * cad / 2 + 1) % 1; const ph = m.gph, Tc = 2 / cad;
+      const place = (a, t) => { if (!a) return; a.timeScale = 0; a.time = (((t % 1) + 1) % 1) * a.getClip().duration; };
+      place(m.act.Walk_Loop, 0.99 + ph);
+      for (const [n, K, travel] of GAIT) { const s = Math.min(0.45, Math.max(0.16, travel / Math.max(vN, 3) / Tc)), q = ph < 0.5 ? ph : ph - 0.5, a0 = ph < 0.5 ? K[0] : K[2], a1 = ph < 0.5 ? K[1] : K[3], a2 = ph < 0.5 ? K[2] : K[0] + 1;
+        place(m.act[n], q < s ? a0 + (a1 - a0) * q / s : a1 + (a2 - a1) * (q - s) / (0.5 - s)); } }
     if (m.act.Crouch_Fwd_Loop) m.act.Crouch_Fwd_Loop.timeScale = 1.6;
     if (m.head) { if (!m.headRest) m.headRest = m.head.quaternion.clone(); else m.head.quaternion.copy(m.headRest); }   // the turn below is fresh each frame
     const idle = m.idle;
@@ -1505,6 +1519,10 @@
   }
   /* where a player's hands are, in feet, for the ball (null for the simple figures) */
   const _h = V3();
+  R.clipDbg = (p, n) => { const m = meshes.get(p), a = m && m.act && m.act[n]; return a ? { t: a.time, d: a.getClip().duration, w: a.getEffectiveWeight() } : null; };
+  /* where his feet are (for the test tools: how much a planted foot slides) */
+  R.feet = p => { const m = meshes.get(p); if (!m || !m.bones) return null; m.root.updateMatrixWorld(true); const o = {};
+    for (const sd of ['L', 'R']) { const b = m.bones[bk(`DEF-foot.${sd}`)]; if (!b) return null; const v = b.getWorldPosition(V3()); o[sd] = { x: v.x, y: v.y, z: v.z }; } return o; };
   R.hands = p => {
     const m = meshes.get(p);
     if (!m || m.kind !== 'skin') return null;

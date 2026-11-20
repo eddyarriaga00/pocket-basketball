@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Walking and running, redone against how people move: one stride drives the walk, jog and sprint clips at a person's cadence for the speed (about 1.9 steps a second at a brisk walk, 2.75 at a jog, 3.6 at a run), and the foot on the floor goes back as fast as the floor does, so feet no longer skate (about half the ground speed before; under a tenth at a jog now). Backing up is a backpedal, not a moonwalk. A slow walk takes real steps instead of a shuffle. tools/gait.js measures it.
 - The fadeaway, done properly: pull the stick away from the rim as you shoot (a standstill works) and you hop back, lean, and kick the lead leg; out of a post-up it is a turnaround instead of the hook. The league's shot-makers fade now and then with a hand in their face.
 - More cut scenes: a timeout cuts to a camera drifting in low over the floor; the night a title is won, paper falls in the winners' colors, the flashes keep going and the cameras stay on the champions.
 - Cut scenes: the camera comes down out of the sky the first time you walk into the park; a slow pass along the sideline at the end of a quarter; at the final horn it finds the winners' best player and then pulls up over the floor. Black bars, a line of type, a tap skips.
