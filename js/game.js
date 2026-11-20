@@ -466,9 +466,14 @@
     let fade = false;
     if (forUser && !force) {
       if (kind !== 'dunk' && ['PF', 'C'].includes(p.d.pos) && d > 4 && d < 15 && (nearestDef(p).d < 4 || p.postUp > 0)) kind = 'hook';
-      if (p.postUp > 0) { p.postUp = 0; p.postHookT = G.t; }
-      else if (kind === 'jumper' && d > 8 && d < 22) { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, L = hyp(hx, hz) || 1; if ((p.vx * hx + p.vz * hz) / L < -3.5) fade = true; }
+      /* the stick pulled away from the rim as you go up is a fadeaway, even from a standstill; out of a post-up it is
+         the turnaround instead of the hook */
+      const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, L = hyp(hx, hz) || 1, w = stickWorld(), pull = w && w.m > 0.45 && (w.x * hx + w.z * hz) / L < -0.55;
+      if (p.postUp > 0) { p.postUp = 0; if (pull && d > 5 && d < 20 && kind !== 'dunk') { kind = 'jumper'; fade = 'turn'; } else p.postHookT = G.t; }
+      else if (kind === 'jumper' && d > 6 && d < 23.5 && (pull || (p.vx * hx + p.vz * hz) / L < -3.5)) fade = true;
     }
+    /* the league's shot-makers fade too, with a hand in their face */
+    else if (!forUser && !force && !G.drill && kind === 'jumper' && d > 8 && d < 21 && p.y === 0 && (p.r.mid >= 62 || bt(p, 'fade') > 0) && nearestDef(p).d < 5.5 && rand() < 0.55) fade = true;
     const js = kind === 'jumper' && p.d.look ? p.d.look.jumper : null;   // your jump shot: quick or high
     const T = (kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.5 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55) * (js === 'quick' ? 0.84 : js === 'high' ? 1.1 : 1);
     const peak = kind === 'jumper' ? 1.4 + p.r.vert * 0.014 : kind === 'dunk' ? 2.6 + p.r.vert * 0.02 : 1.8 + p.r.vert * 0.012;
@@ -488,8 +493,11 @@
       const st = STYLES[1 + Math.floor(rand() * 4)];
       p.pose = st[1]; p.spin = { total: st[4], t: 0, T: 2 * T * 0.82 }; p.spinA = 0; p.showoff = st[0];
     }
-    if (kind === 'jumper') { const k = fade ? 0.45 : 0.2; p.vx *= k; p.vz *= k; }   // a fadeaway keeps drifting back
-    if (fade) p.fadeT = G.t;
+    if (kind === 'jumper' && !fade) { p.vx *= 0.2; p.vz *= 0.2; }
+    /* a fadeaway hops back off the floor, away from the rim (and a little away from the hand in his face) */
+    if (fade) { p.fadeT = G.t; const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, L = hyp(hx, hz) || 1, back = clamp(-(p.vx * hx + p.vz * hz) / L * 0.5, 3.4, 4.8);
+      p.vx = -hx / L * back + p.vx * 0.15; p.vz = -hz / L * back + p.vz * 0.15; p.fadeV = { x: p.vx, z: p.vz };
+      if (forUser) toast(fade === 'turn' ? 'Turnaround' : 'Fadeaway', 'call'); }
     /* a defender close by goes up with him */
     for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25);
     if (kind === 'jumper' && rand() < 0.3) { const o = nearestDef(p).who; if (o && !o.isUser) CH('ch_shot', o); }
@@ -2167,6 +2175,7 @@
         if (p.y <= 0 && p.vy < -9 && R.puff) R.puff(p.x, p.z, clamp(-p.vy / 14, 0.7, 1.5));   // down hard: a puff where he lands
         if (p.y <= 0 && p.vy <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'windmill' || p.pose === 'hang') p.pose = ''; }
       }
+      if (p.fadeV) { if (p.y > 0 && G.t - p.fadeT < 1.6) { p.vx = p.fadeV.x; p.vz = p.fadeV.z; } else if (G.t - p.fadeT > 0.1) p.fadeV = null; }   // a fadeaway's hop carries him while he is in the air
       p.x += p.vx * dt; p.z += p.vz * dt;
       /* a hard cut squeaks the sneakers */
       if (live) {
@@ -2838,7 +2847,7 @@
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
         ${G.drill ? '' : `<details class="help pbox"><summary>Box score</summary>${liveBox()}</details>`}
         <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
-        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
+        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {
         /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */

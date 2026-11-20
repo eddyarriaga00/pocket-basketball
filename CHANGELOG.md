@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The fadeaway, done properly: pull the stick away from the rim as you shoot (a standstill works) and you hop back, lean, and kick the lead leg; out of a post-up it is a turnaround instead of the hook. The league's shot-makers fade now and then with a hand in their face.
 - More cut scenes: a timeout cuts to a camera drifting in low over the floor; the night a title is won, paper falls in the winners' colors, the flashes keep going and the cameras stay on the champions.
 - Cut scenes: the camera comes down out of the sky the first time you walk into the park; a slow pass along the sideline at the end of a quarter; at the final horn it finds the winners' best player and then pulls up over the floor. Black bars, a line of type, a tap skips.
 - Your close-up before the tip: you look into the camera instead of off at the ball.

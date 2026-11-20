@@ -1237,7 +1237,7 @@
     m.sway = (m.sway || 0) + (shift - (m.sway || 0)) * Math.min(1, dt * 18);
     m.body.position.x = -m.sway * (TPL.sideR < 0 ? 1 : -1);
     /* a fadeaway leans back in the air */
-    const lean = p.shoot && p.shoot.kind === 'dunk' && p.y > 0.3 ? (p.shoot.t / p.shoot.T < 0.6 ? -0.16 : 0.16) : p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
+    const lean = p.shoot && p.shoot.kind === 'dunk' && p.y > 0.3 ? (p.shoot.t / p.shoot.T < 0.6 ? -0.16 : 0.16) : p.fadeT !== undefined && G.t - p.fadeT < 1.5 && p.y > 0.05 ? -0.34 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     const plean = p.passT0 !== undefined && G.t - p.passT0 < 0.3 ? 0.16 * Math.sin(Math.PI * (G.t - p.passT0) / 0.3) : 0;
     const jk = p.shoot && p.shoot.kind === 'jumper' && !p.shoot.fade ? Math.min(1, p.shoot.t / (p.shoot.T * 0.82)) : -1, slean = jk < 0 ? 0 : jk < 0.4 ? 0.12 * (1 - jk / 0.4) + 0.02 : jk < 0.8 ? 0.02 : -0.05;
     // Sit into the stop, then extend through the set point.
@@ -1356,6 +1356,13 @@
     if ((p.pose === 'dunk1' || p.pose === 'windmill') && p.y > 0.5 && m.bones[bk('DEF-thigh.L')]) { const w = Math.min(1, (p.y - 0.5) * 1.6), f = p.face + (p.spinA || 0);
       for (const sd of ['L', 'R']) { const th = m.bones[bk(`DEF-thigh.${sd}`)], sh = m.bones[bk(`DEF-shin.${sd}`)], ft = m.bones[bk(`DEF-foot.${sd}`)], k = sd === 'L' ? 0.5 : 0.72;
         aim(th, sh, _t3.set(Math.sin(f) * k, -0.8, Math.cos(f) * k).normalize(), w); aim(sh, ft, _t3.set(-Math.sin(f) * 0.75, -0.66, -Math.cos(f) * 0.75).normalize(), w); } }
+    /* a fadeaway: the lead knee comes up and the foot kicks out at the defender, the other leg hangs back under him */
+    if (p.fadeT !== undefined && G.t - p.fadeT < 1.5 && p.y > 0.15 && m.bones[bk('DEF-thigh.L')]) { const w = Math.min(1, (p.y - 0.15) * 2.2), f = p.face + (p.spinA || 0), sx = Math.sin(f), cz = Math.cos(f);
+      const lead = (p.dribHand || 1) > 0 === (TPL.sideR < 0) ? 'R' : 'L', trail = lead === 'R' ? 'L' : 'R';
+      { const th = m.bones[bk(`DEF-thigh.${lead}`)], sh = m.bones[bk(`DEF-shin.${lead}`)], ft = m.bones[bk(`DEF-foot.${lead}`)];
+        aim(th, sh, _t3.set(sx * 0.82, -0.57, cz * 0.82).normalize(), w); aim(sh, ft, _t3.set(sx * 0.45, -0.89, cz * 0.45).normalize(), w); }
+      { const th = m.bones[bk(`DEF-thigh.${trail}`)], sh = m.bones[bk(`DEF-shin.${trail}`)], ft = m.bones[bk(`DEF-foot.${trail}`)];
+        aim(th, sh, _t3.set(sx * 0.1, -0.99, cz * 0.1).normalize(), w * 0.8); aim(sh, ft, _t3.set(-sx * 0.3, -0.95, -cz * 0.3).normalize(), w * 0.8); } }
     /* a layup goes up off one foot: the knee on the ball side drives */
     if (m.lay === 1 && p.y > 0.25 && m.bones[bk('DEF-thigh.L')]) { const right = (p.dribHand || 1) > 0, sd = right === (TPL.sideR < 0) ? 'R' : 'L', w = Math.min(1, (p.y - 0.25) * 2.5), f = p.face + (p.spinA || 0);
       const th = m.bones[bk(`DEF-thigh.${sd}`)], sh = m.bones[bk(`DEF-shin.${sd}`)], ft = m.bones[bk(`DEF-foot.${sd}`)];
