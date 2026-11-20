@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The park at night: a glow round every lamp, a boombox on the bench, trash cans, a rack of balls by the gym door.
+- The park's camera never ends up behind a backboard or looking straight down at you: pressed against the wall, a
+  fence or a hoop it swings round to the open side.
 - The game fills the phone's visible height (it follows the height the browser reports, and re-fits when that
   changes): on an iPhone a strip at the bottom could be left black.
 - A puff at the feet on a hard cut and where a player comes down from a big jump (dust on the park's asphalt, a pale

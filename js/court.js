@@ -1624,6 +1624,19 @@
       const pool2 = (x, z, r) => { const m = new T.Mesh(new T.PlaneGeometry(r * 2, r * 2), lm2); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); scene.add(m); };
       for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) pool2(x - Math.sign(x) * 4, z, 18);
       for (let z = -54; z <= 54; z += 12) pool2(FX - 3, z, 7); }
+    /* a glow round every lamp, and the park's furniture: a boombox on a bench, trash cans, a rack of balls by the gym */
+    { const hc = document.createElement('canvas'); hc.width = hc.height = 64; const hg = hc.getContext('2d'), gr3 = hg.createRadialGradient(32, 32, 1, 32, 32, 32);
+      gr3.addColorStop(0, 'rgba(255,240,205,.95)'); gr3.addColorStop(0.25, 'rgba(255,232,180,.4)'); gr3.addColorStop(1, 'rgba(255,230,180,0)'); hg.fillStyle = gr3; hg.fillRect(0, 0, 64, 64);
+      const ht = new T.CanvasTexture(hc); orphans.push(ht);
+      const hm = new T.SpriteMaterial({ map: ht, transparent: true, opacity: 0.75, depthWrite: false, blending: T.AdditiveBlending, fog: false });
+      const halo = (x, y, z, sz) => { const sp = new T.Sprite(hm); sp.position.set(x, y, z); sp.scale.setScalar(sz); scene.add(sp); };
+      for (const [x, z] of [[-34, -60], [33, -60], [-34, 60], [33, 60], [-34, 0]]) halo(x - Math.sign(x) * 1.5, 29.6, z, 13);
+      for (let z = -54; z <= 54; z += 12) halo(FX - 0.7, 13.5, z, 4);
+      const dark = new T.MeshLambertMaterial({ color: 0x1b1c20 }), grey = new T.MeshLambertMaterial({ color: 0x4d5158 }), ballM = new T.MeshLambertMaterial({ color: 0xd4682a });
+      const box = (w, h, d, x, y, z, m) => { const o = new T.Mesh(new T.BoxGeometry(w, h, d), m); o.position.set(x, y, z); scene.add(o); return o; };
+      box(1.1, 1.3, 2.6, -32, 2.95, 21.5, dark); for (const dz of [-0.75, 0.75]) { const sp = new T.Mesh(new T.CylinderGeometry(0.42, 0.42, 0.1, 14), grey); sp.rotation.z = Math.PI / 2; sp.position.set(-31.42, 2.95, 21.5 + dz); scene.add(sp); }
+      for (const [x, z] of [[-33.5, -48], [-33.5, 48], [33.2, -57.5]]) { const c = new T.Mesh(new T.CylinderGeometry(1.1, 0.9, 3, 10), grey); c.position.set(x, 1.5, z); scene.add(c); }
+      box(0.5, 3.2, 5, 34.4, 1.6, -17.5, dark); for (let i = 0; i < 6; i++) { const bl = new T.Mesh(new T.SphereGeometry(0.39, 10, 8), ballM); bl.position.set(34.2, 1.05 + Math.floor(i / 3) * 1.15, -18.6 + (i % 3) * 1.1); scene.add(bl); } }
     /* benches along the sidelines */
     const bm = new T.MeshLambertMaterial({ color: 0x6b4a32 });
     for (const z of [-24, 24]) for (const x of [-32]) { const b = new T.Mesh(new T.BoxGeometry(2, 1.4, 10), bm); b.position.set(x, 1.6, z); scene.add(b); const b2 = new T.Mesh(new T.BoxGeometry(0.4, 2.4, 10), bm); b2.position.set(x + Math.sign(x) * 1, 2.6, z); scene.add(b2); }
@@ -2198,9 +2211,13 @@
       const fx = Math.sin(yaw), fz = Math.cos(yaw), back = 24 * zoom, up = 13 * zoom;
       /* the camera stays inside the fence: against it, it rises a little instead of going through */
       const cx = anchor.x - fx * back, cz = anchor.z - fz * back, over = Math.max(0, Math.abs(cx) - 32) + Math.max(0, Math.abs(cz) - 58);
-      let px = PB.clamp(cx, -32, 32); const pz = PB.clamp(cz, -58, 58);
-      if (Math.abs(pz) > 42 && Math.abs(pz) < 56 && Math.abs(px) < 4) px = (px < 0 ? -1 : 1) * 4;   // never inside a stanchion
-      cam.position.set(px, up + over * 0.45, pz); cam.lookAt(anchor.x + fx * 8, 3.7, anchor.z + fz * 8);   // you a little above the middle: the controls are below
+      /* never behind a backboard or inside its stanchion: in line with a hoop the camera stops in front of the board */
+      const px = PB.clamp(cx, -32, 32), zl = 39.5 + PB.clamp((Math.abs(px) - 5) / 4, 0, 1) * 18.5, pz = PB.clamp(cz, -zl, zl);
+      /* squeezed against a fence, the wall or a hoop, the camera rises and looks down at you instead of losing you under the frame */
+      const sq = Math.hypot(cx - px, cz - pz), sk = PB.clamp(sq / 16, 0, 1), la = 8 * (1 - sk * 0.8);
+      /* and it swings round to the open side (the middle of the park behind it), the way a camera slides along a wall */
+      if (sk > 0.2 && dt) { let dy = Math.atan2(u.x, u.z) - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; yaw += dy * Math.min(1, dt * 2.2 * sk); }
+      cam.position.set(px, up + sq * 0.36, pz); cam.lookAt(anchor.x + fx * la, 3.7 - sk * 1.2, anchor.z + fz * la);   // you a little above the middle: the controls are below
       /* a regular standing between the lens and you steps out of the picture */
       for (const [p, m] of meshes) if (p !== u && p.npc) { const ax = u.x - px, az = u.z - pz, L = Math.hypot(ax, az) || 1, t = ((p.x - px) * ax + (p.z - pz) * az) / L;
         if (t > 0 && t < L - 1 && Math.abs(((p.x - px) * az - (p.z - pz) * ax) / L) < 3.2) { m.root.visible = false; hidNear.push(m); } }
