@@ -13,6 +13,8 @@ The order of work. [PLAN.md](PLAN.md) is the design. Update this file after ever
 
 (newest first)
 
+- `f1062f9`, before directional passing used the angle of the stick at every strength (2026-11-20).
+
 - `464dbda`, the pocket player night as it stood at 09:20, before the morning's fixes (post-up facing, half-court line, replay bystanders, unique names, the Safari-engine tests) (2026-11-18).
 - `1906848`, before the night of the pocket player: the pump fake, the Look card, benches and coaches, adaptive quality, the model's hair, faces and beards (2026-11-18).
 - `79c453b`, before the 240-clip booth pack (if the booth misbehaves, roll back `audio/vo.pack` and `js/vo.js` only) (2026-11-17).

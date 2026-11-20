@@ -1217,7 +1217,8 @@
     }
     r.wantBall = 1.2;
   }
-  function bestPass(p, dirx, dirz) {
+  function bestPass(p, aim) {
+    const aimLength = aim ? hyp(aim.x, aim.z) : 0;
     let best = null, bs = -1e9;
     const over = along(p.z, p.team) < RIM;   // over half court: never back to a trailer behind it
     for (const r of teamOf(p.team)) {
@@ -1231,7 +1232,10 @@
          play the point (a new player standing still there was given it, and whistled for eight seconds, trip after trip) */
       if (r.isUser && !G.auto && !p.isUser && r.slot !== 0 && along(r.z, r.team) > RIM - 1.5) s -= 8;
       /* with the stick held, the pass goes where the stick points: the teammate nearest that line, and nobody behind you */
-      if (dirx !== undefined) { const c = (dx * dirx + dz * dirz) / L; s = c > 0.3 ? s * 0.35 + c * c * 22 : s - 30; }
+      if (aimLength) {
+        const alignment = (dx * aim.x + dz * aim.z) / (L * aimLength);
+        s = alignment > 0.3 ? s * 0.35 + alignment * alignment * 22 : s - 30;
+      }
       if (s > bs) { bs = s; best = r; }
     }
     return best;
@@ -1751,8 +1755,7 @@
     const b = G.ball;
     if (b.holder === u) {
       if (u.shoot) return;
-      const w = stickWorld();
-      const r = bestPass(u, w ? w.x : undefined, w ? w.z : undefined);
+      const r = bestPass(u, stickWorld());
       if (r) { if (u.inb) { u.inb = false; G.inb = null; } passTo(u, r); }
       return;
     }
@@ -2554,7 +2557,7 @@
     /* what the screen marks for you: who your pass goes to, the man you guard */
     const u = G.user;
     if (u && !G.drill && G.phase === 'live') {
-      if (G.ball.holder === u && !u.shoot) { const w = stickWorld(); R.marks(bestPass(u, w ? w.x : undefined, w ? w.z : undefined), null); }
+      if (G.ball.holder === u && !u.shoot) R.marks(bestPass(u, stickWorld()), null);
       else if (G.ball.holder && G.ball.holder.team !== u.team) R.marks(null, G.pl.find(o => o.team !== u.team && o.slot === u.slot));
       else R.marks(null, null);
     } else R.marks(null, null);
