@@ -2226,7 +2226,8 @@
       /* a regular standing between the lens and you steps out of the picture */
       for (const [p, m] of meshes) if (p !== u && p.npc) { const ax = u.x - px, az = u.z - pz, L = Math.hypot(ax, az) || 1, t = ((p.x - px) * ax + (p.z - pz) * az) / L;
         if (t > 0 && t < L - 1 && Math.abs(((p.x - px) * az - (p.z - pz) * ax) / L) < 3.2) { m.root.visible = false; hidNear.push(m); } }
-      for (const s0 of stations) s0.sign.quaternion.copy(cam.quaternion);   // the signs face you
+      for (let i = 0; i < stations.length; i++) { const s0 = stations[i]; s0.sign.quaternion.copy(cam.quaternion);   // the signs face you, and the rings breathe
+        const w = 0.5 + 0.5 * Math.sin(G.t * 2.2 + i * 1.3); s0.ring.material.opacity = 0.62 + 0.33 * w; s0.sign.position.y = (s0.signY || (s0.signY = s0.sign.position.y)) + Math.sin(G.t * 1.6 + i) * 0.12; }
       camPos.copy(cam.position); camLook.set(anchor.x + fx * 8, 3.7, anchor.z + fz * 8);
       return;
     }
