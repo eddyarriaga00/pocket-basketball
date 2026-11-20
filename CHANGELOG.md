@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Small things: every game and the park fade up out of black; the park's rings breathe and their signs bob; the arena
+  lights show in the polish of the floor; a small celebration on every third straight make in the park and when a
+  letter is handed out in H-O-R-S-E. tools/parkmonkey.js does random things in the park and reports anything odd
+  (three runs, 370 actions: nothing).
 - The park at night: a glow round every lamp, a boombox on the bench, trash cans, a rack of balls by the gym door.
 - The park's camera never ends up behind a backboard or looking straight down at you: pressed against the wall, a
   fence or a hoop it swings round to the open side.

@@ -2866,6 +2866,7 @@
       if (R.showcase) R.showcase(null);
       $('#game').classList.remove('show', 'replaying');
       $('#game').hidden = false;
+      { const g = $('#game'); g.style.animation = 'none'; void g.offsetWidth; g.style.animation = 'gamein .45s ease-out'; }   // every game and the park come up out of black
       if (!bound) { bindControls(); bound = true; }
       R.setCam(Object.keys(R.CAMS).find(k => R.CAMS[k] === (PB.settings && PB.settings.cam)) || 'lock');
       /* Player lock's distance, from Settings */
