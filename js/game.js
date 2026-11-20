@@ -362,6 +362,12 @@
     e.style.transition = 'none'; e.style.opacity = '1'; void e.offsetWidth;
     clearTimeout(cut.h); cut.h = setTimeout(() => { e.style.transition = 'opacity .3s ease-out'; e.style.opacity = '0'; }, 170);
   }
+  /* a timeout: the camera drifts in low over the floor */
+  function timeoutCine(tc, why) {
+    if (!R.cine || G.drill) { toast(why ? 'Timeout: ' + why.toLowerCase() : 'Timeout', 'call'); return; }
+    const sd = rand() < 0.5 ? 1 : -1; G.deadT = Math.max(G.deadT || 0, 2.6);
+    cine([{ a: [sd * 0.5, sd * 0.15], r: [40, 30], h: [16, 9], ly: 4, dur: 2.4 }], 'Timeout', why || G.teams[tc].name);
+  }
   /* a cut scene: the camera leaves the play for a few moves of its own, black bars top and bottom, a line of type.
      A tap skips it. (In the park there are no bars and the controls stay: walking off ends it.) */
   let parkCine = false;
@@ -379,7 +385,7 @@
     if (G.coachTO !== undefined && !G.ftq && G.q <= 4) { const tc = G.coachTO; G.coachTO = undefined;
       if (G.to[tc] > 0) { G.to[tc]--; G.deadT = Math.max(t, 3.4); G.run = null;
         for (const p of G.pl) { if (p.energy !== undefined) p.energy = Math.min(1, p.energy + 0.35); }
-        AU().play('whistle'); toast(tc === 0 && G.user ? 'Timeout: your coach stops the run' : `Timeout · ${G.teams[tc].name}`, tc === 0 ? 'call' : 'opp'); feed(`Timeout · ${G.teams[tc].name}`);
+        AU().play('whistle'); timeoutCine(tc, tc === 0 && G.user ? 'Your coach stops the run' : null); feed(`Timeout · ${G.teams[tc].name}`);
         B('timeout', { prio: 3, follow: 0.4 }); if (AU().organ) setTimeout(() => AU().organ('walk'), 800); } }
     if (stintOver() && !G.ftq) G.then = () => sitDown(); }
   /* ---------- the bench: computer players tire as they play and rest on the bench; at a dead ball a tired man comes
@@ -2425,9 +2431,13 @@
       if (R.benchJump) R.benchJump(w);
       /* the cameras find the winners: close on their best player, then up and away over the floor */
       { const on = g.pl.filter(p => p.team === w), star = g.user && g.user.team === w ? g.user : on.slice().sort((a, b) => b.st.pts - a.st.pts)[0];
-        if (star && R.cine) { g.buzzT = 5.0; const fa = star.face || 0, ab = t => g.teams[t].ab || g.teams[t].id;
-          cine([{ focus: star, a: [fa - 0.7, fa + 0.45], r: [10, 7.5], h: [3, 4.6], ly: 4.4, dur: 2.6 }, { a: [0.7, 1.35], r: [58, 72], h: [18, 36], ly: 3, dur: 2.3 }],
-            'Final', `${ab(0)} ${g.score[0]} · ${ab(1)} ${g.score[1]}`, { skip: () => { if (G === g && g.phase === 'buzzer') g.buzzT = Math.min(g.buzzT, 0.25); } }); } }
+        if (star && R.cine) { const fa = star.face || 0, ab = t => g.teams[t].ab || g.teams[t].id, title = !!(opts.clinch && opts.clinch[w]);
+          /* the night a title is won: paper falls, the cameras stay longer, the flashes do not stop */
+          if (title) { if (R.confetti) R.confetti(g.teams[w].c1, g.teams[w].c2); if (R.hype) { R.hype(1.4); setTimeout(() => G === g && R.hype(1.2), 1500); setTimeout(() => G === g && R.hype(1.2), 3200); } AU().crowd.react('roar', 1); }
+          g.buzzT = title ? 9.2 : 5.0;
+          cine((title ? [{ focus: star, a: [fa + 0.9, fa - 0.5], r: [9, 7], h: [2.4, 4.4], ly: 4.6, dur: 3.2 }, { focus: star, a: [fa - 1.2, fa + 0.3], r: [17, 13], h: [5, 8], ly: 4.5, dur: 2.8 }] : [{ focus: star, a: [fa - 0.7, fa + 0.45], r: [10, 7.5], h: [3, 4.6], ly: 4.4, dur: 2.6 }])
+            .concat([{ a: [0.7, 1.35], r: [58, 72], h: [18, 36], ly: 3, dur: title ? 3.0 : 2.3 }]),
+            title ? 'Champions' : 'Final', title ? g.teams[w].name : `${ab(0)} ${g.score[0]} · ${ab(1)} ${g.score[1]}`, { skip: () => { if (G === g && g.phase === 'buzzer') g.buzzT = Math.min(g.buzzT, 0.25); } }); } }
       return;
     }
     (g.qsc = g.qsc || []).push(g.score.slice());   // the score at the end of each period, for the line score
@@ -2834,7 +2844,7 @@
         /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */
         G.to[0]--; ov.hidden = true; G.paused = false; AU().muffle(false);
         for (const p of G.pl) { if (p.energy !== undefined) p.energy = Math.min(1, p.energy + 0.4); p.shoot = null; p.drive = 0; }
-        AU().play('whistle'); toast('Timeout', 'call'); B('timeout', { prio: 3, follow: 0.4 }); if (AU().organ) setTimeout(() => AU().organ('walk'), 800);
+        AU().play('whistle'); timeoutCine(0); B('timeout', { prio: 3, follow: 0.4 }); if (AU().organ) setTimeout(() => AU().organ('walk'), 800);
         const late = G.q >= 4 && G.clock < 120;
         G.poss = null;
         dead(2.4, () => {
@@ -3118,7 +3128,7 @@
       raf = requestAnimationFrame(loop);
     },
     /* test hooks */
-    dbg: { state: () => G, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
+    dbg: { state: () => G, opts: () => opts, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
       auto: on => { G.auto = on; },
       replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },
       /* run the simulation ahead without drawing: sec seconds of game time */

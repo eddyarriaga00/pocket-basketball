@@ -120,7 +120,14 @@
   /* small things an arena does: the backboards light red at a horn; cameras flash in the stands after a big play */
   const leds = []; let hornT = 0, camFlash = 0, flashPts = null;
   R.horn = sec => { hornT = Math.max(hornT, sec || 1.5); };
+  /* a title won: paper in the winners' colors comes down over the floor */
+  let confPts = null, confV = null;
+  R.confetti = (c1, c2) => { if (confPts || !T.Points) return; const N = 420, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), cs = [new T.Color(c1 || '#ffffff'), new T.Color(c2 || '#ffffff'), new T.Color('#ffffff')]; confV = new Float32Array(N * 2);
+    for (let i = 0; i < N; i++) { pos[i * 3] = (Math.random() * 2 - 1) * 30; pos[i * 3 + 1] = 14 + Math.random() * 40; pos[i * 3 + 2] = (Math.random() * 2 - 1) * 50; confV[i * 2] = 5 + Math.random() * 5; confV[i * 2 + 1] = Math.random() * 6.28; const c = cs[i % 3]; col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3));
+    confPts = new T.Points(g, new T.PointsMaterial({ size: 0.55, vertexColors: true, transparent: true, opacity: 0.95, depthWrite: false })); confPts.frustumCulled = false; scene.add(confPts); };
   function arenaBits(dt) {
+    if (confPts) { const a = confPts.geometry.attributes.position; for (let i = 0; i < a.count; i++) { let y = a.getY(i) - confV[i * 2] * dt; if (y < 0.1) y = 0.1; else { const ph = confV[i * 2 + 1] += dt * 3; a.setX(i, a.getX(i) + Math.sin(ph) * dt * 2.2); } a.setY(i, y); } a.needsUpdate = true; }
     if (hornT > 0 || (leds[0] && leds[0].material.opacity > 0)) { hornT = Math.max(0, hornT - dt); for (const l of leds) l.material.opacity = hornT > 0 ? 0.9 : 0; }
     if (!flashPts && T.Points) { const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(new Float32Array(14 * 3), 3));
       flashPts = new T.Points(g, new T.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending })); flashPts.frustumCulled = false; scene.add(flashPts); }
@@ -1683,7 +1690,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; leds.length = 0; shocks.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; leds.length = 0; shocks.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }

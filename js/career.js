@@ -1806,7 +1806,7 @@
     if (C.rival && o.id === C.rival.team && rivalP()) opp5[PB.POS.indexOf(rivalP().pos)] = rivalP();
     const mine5 = liveFive(), benchOf = (id, five) => C.rosters[id].filter(p => !(p.out > 0) && !five.includes(p) && p.id !== C.me.id).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
-      floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, onEnd: r => result(r, g),
+      floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, clinch: (() => { const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
       stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
