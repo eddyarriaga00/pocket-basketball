@@ -417,6 +417,14 @@
     /* a layup, a floater or a hook goes up off one hand */
     if (H && p.shoot && (p.shoot.kind === 'layup' || p.shoot.kind === 'floater' || p.shoot.kind === 'hook')) { const h = p.dribHand < 0 ? H.l : H.r; return { x: h.x, y: h.y + 0.3, z: h.z }; }
     if (H && p.shoot && p.shoot.kind === 'dunk') { const h = H.r.y > H.l.y ? H.r : H.l; return { x: h.x, y: h.y + 0.25, z: h.z }; }   // a dunk: the ball rides in the hand that is up
+    if (H && p.shoot && p.shoot.gather) {
+      // As the guide hand comes away, carry the ball out on the shooting fingertips.
+      const phase = p.shoot.t / (p.shoot.T * 0.82);
+      const t = clamp((phase - 0.72) / 0.28, 0, 1);
+      const guide = 0.5 * (1 - t * t * (3 - 2 * t));
+      return { x: H.r.x + (H.l.x - H.r.x) * guide, y: Math.max(H.r.y, H.l.y) + 0.35,
+        z: H.r.z + (H.l.z - H.r.z) * guide };
+    }
     if (H) return p.shoot || p.pose === 'shoot' ? { x: (H.r.x + H.l.x) / 2, y: Math.max(H.r.y, H.l.y) + 0.35, z: (H.r.z + H.l.z) / 2 } : p.dribHand < 0 ? { x: H.l.x, y: H.l.y, z: H.l.z } : { x: H.r.x, y: H.r.y, z: H.r.z };
     const fx = Math.sin(p.face), fz = Math.cos(p.face);
     return { x: p.x + fx * 0.6 + fz * 0.5, y: p.ht / 12 * 0.95 + p.y + 1.5, z: p.z + fz * 0.6 - fx * 0.5 };
@@ -444,12 +452,15 @@
     const js = kind === 'jumper' && p.d.look ? p.d.look.jumper : null;   // your jump shot: quick or high
     const T = (kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.5 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55) * (js === 'quick' ? 0.84 : js === 'high' ? 1.1 : 1);
     const peak = kind === 'jumper' ? 1.4 + p.r.vert * 0.014 : kind === 'dunk' ? 2.6 + p.r.vert * 0.02 : 1.8 + p.r.vert * 0.012;
-    const tp = T * 0.82;
+    // A moving jumper uses the first beat of the meter to plant before rising to the same release point.
+    const gather = kind === 'jumper' && !fade && p.y === 0 ? T * 0.21 * clamp((sp - 4) / 5, 0, 1) : 0;
+    const tp = T * 0.82 - gather;
     p.jg = 2 * peak / (tp * tp); p.vy = p.jg * tp;
     if (js === 'high') p.highT = G.t;
-    p.shoot = { t: 0, T, kind, user: !!forUser, three: isThree(p.x, p.z, p.team), d, fade, js,
+    p.shoot = { t: 0, T, kind, gather, user: !!forUser, three: isThree(p.x, p.z, p.team), d, fade, js,
       /* AI: when it lets go (near the top, a little early or late) */
       aiRel: clamp(0.82 + PB.gauss() * (0.09 - p.r.mid * 0.0006), 0.55, 1.1) };
+    if (gather) p.shoot.pickup = { x: G.ball.x - p.x, y: G.ball.y, z: G.ball.z - p.z };
     p.pose = kind === 'dunk' ? (rand() < 0.55 ? 'dunk1' : 'celebrate') : 'shoot';
     /* a breakaway with nobody near: a flier shows off (a windmill, a reverse, a 360) */
     p.showoff = null;
@@ -519,6 +530,7 @@
 
   function release(p, meter) {
     const s = p.shoot; if (!s) return;
+    if (s.gather) p.pullFollowUntil = G.t + 0.32;
     p.shoot = null;
     G.possN = (G.possN || 0) + 1;   // a shot ends team control: a long rebound may be taken in the backcourt
     const b = G.ball;
@@ -2041,6 +2053,8 @@
       // Both the controlled player and his teammates show their hands as the pass arrives.
       if (live && b.state === 'pass' && b.to === p && b.dur - b.t < 0.45 && !p.shoot && !(p.reachT > 0)) p.pose = 'catch';
       else if (p.pose === 'catch') p.pose = '';
+      if (p.shoot && p.shoot.kind === 'jumper') p.pose = 'shoot';
+      else if (p.pullFollowUntil > G.t && !p.shoot && p.y > 0 && b.holder !== p && !(b.state === 'pass' && b.to === p) && live) p.pose = 'shoot';
       /* jump */
       if (p.spin) {
         const S = p.spin; S.t += dt; const k = Math.min(1, S.t / (S.T * 0.85)); p.spinA = S.total * k * k * (3 - 2 * k);
@@ -2053,8 +2067,9 @@
         const hy = Math.max(0.6, 10.25 - p.ht / 12 * 1.3); p.y += (hy - p.y) * Math.min(1, dt * 12);   // hands on the rim
         if (p.hangT <= 0) { p.vy = -2; p.pose = ''; }
       } else if (p.vy !== 0 || p.y > 0) {
-        p.y += p.vy * dt; p.vy -= p.jg * dt;
-        if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'windmill' || p.pose === 'hang') p.pose = ''; }
+        const flightDt = p.shoot && p.shoot.gather ? clamp(p.shoot.t - p.shoot.gather, 0, dt) : dt;
+        p.y += p.vy * flightDt; p.vy -= p.jg * flightDt;
+        if (p.y <= 0 && p.vy <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'windmill' || p.pose === 'hang') p.pose = ''; }
       }
       p.x += p.vx * dt; p.z += p.vz * dt;
       /* a hard cut squeaks the sneakers */
@@ -2149,6 +2164,12 @@
         b.x = cx + (b.x - cx) * k; b.z = cz + (b.z - cz) * k; b.y = cy + (b.y - cy) * k;
         const fwd = (b.x - p.x) * fx + (b.z - p.z) * fz; if (fwd < 0.25) { b.x += fx * (0.25 - fwd); b.z += fz * (0.25 - fwd); }
         if (b.y < p.y + ht * 0.5) b.y = p.y + ht * 0.5; }
+      if (p.shoot && p.shoot.pickup && p.shoot.t < p.shoot.gather) {
+        const from = p.shoot.pickup, t = p.shoot.t / p.shoot.gather, w = t * t * (3 - 2 * t);
+        b.x = p.x + from.x + (b.x - p.x - from.x) * w;
+        b.z = p.z + from.z + (b.z - p.z - from.z) * w;
+        b.y = from.y + (b.y - from.y) * w;
+      }
       /* stuffed: a jumping defender's hand on the ball while the shooter still has it up in the air is a block too */
       if (p.shoot) { if (p.shoot.kind !== 'dunk' && p.y > 0.4 && G.phase === 'live' && !G.drill) for (const o of G.pl) {
         if (o.team === p.team || o.y < 0.4) continue;
@@ -2469,7 +2490,7 @@
     snapT += dt;
     if (snapT < 1 / 30) return;
     snapT = 0;
-    tape.push({ t: G.t, pl: G.pl.map(p => SNAP.map(k => p[k])), shoot: G.pl.map(p => p.shoot ? { t: p.shoot.t, T: p.shoot.T, kind: p.shoot.kind, js: p.shoot.js, fade: p.shoot.fade } : null),
+    tape.push({ t: G.t, pl: G.pl.map(p => SNAP.map(k => p[k])), shoot: G.pl.map(p => p.shoot ? { t: p.shoot.t, T: p.shoot.T, kind: p.shoot.kind, js: p.shoot.js, fade: p.shoot.fade, gather: p.shoot.gather } : null),
       ball: [G.ball.x, G.ball.y, G.ball.z, G.ball.state, G.ball.holder ? G.pl.indexOf(G.ball.holder) : -1] });
     if (tape.length > 150) tape.shift();
   }

@@ -1218,7 +1218,10 @@
     const lean = p.shoot && p.shoot.kind === 'dunk' && p.y > 0.3 ? (p.shoot.t / p.shoot.T < 0.6 ? -0.16 : 0.16) : p.fadeT !== undefined && G.t - p.fadeT < 1.0 && p.y > 0.05 ? -0.24 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     const plean = p.passT0 !== undefined && G.t - p.passT0 < 0.3 ? 0.16 * Math.sin(Math.PI * (G.t - p.passT0) / 0.3) : 0;
     const jk = p.shoot && p.shoot.kind === 'jumper' && !p.shoot.fade ? Math.min(1, p.shoot.t / (p.shoot.T * 0.82)) : -1, slean = jk < 0 ? 0 : jk < 0.4 ? 0.12 * (1 - jk / 0.4) + 0.02 : jk < 0.8 ? 0.02 : -0.05;
-    const dlean = slean + plean + (drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0);   // over the ball; more at a run
+    // Sit into the stop, then extend through the set point.
+    const plantPhase = p.shoot && p.shoot.gather ? p.shoot.t / p.shoot.gather : 2;
+    const load = smooth(0, 0.72, plantPhase) * (1 - smooth(0.72, 1.6, plantPhase));
+    const dlean = 0.13 * load + slean + plean + (drib && lean === 0 ? 0.07 + 0.11 * (p.runD || 0) + 0.06 * prot : 0);   // over the ball; more at a run
     /* a runner leans into it: forward as he takes off, back as he stops, and banked into a cut */
     if (dt > 0) { const ax = (p.vx - (m.pvx === undefined ? p.vx : m.pvx)) / dt, az = (p.vz - (m.pvz === undefined ? p.vz : m.pvz)) / dt, f = p.face; m.pvx = p.vx; m.pvz = p.vz;
       const run = smooth(4, 9, Math.hypot(p.vx, p.vz)) * (p.y > 0.2 ? 0 : 1), fw = ax * Math.sin(f) + az * Math.cos(f), lat = ax * -Math.cos(f) + az * Math.sin(f);
@@ -1240,6 +1243,7 @@
     }
     let crouch = 0;   // (the stance is its own thing: plant(), below)
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
+    crouch = Math.max(crouch, 0.85 * load);
     if (fall > 0) crouch = 1;
     if (p.pose === 'sad') crouch = 0.55;
     if (drib) crouch = Math.max(crouch, 0.12 + 0.3 * prot);   // an athletic base with the ball, lower with a man on you
@@ -1322,7 +1326,7 @@
     /* planted feet: in a defensive stance (and standing over a dribble) the feet are set on the floor and step, one
        at a time, as he moves; the legs are solved to reach them. sw eases in and out so he drops into it */
     { const gs = m.gw * (1 - smooth(13, 17, sp)), rdy = m.rw > m.dw && m.rw > gs, sw = Math.max(gs, m.dw, m.rw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = ms < 1 && mv.k !== 'hesi' ? 0.05 : 0;
-      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
+      if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - low - 0.07 * m.gath - 0.08 * load - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
     /* a dunk: the knees tuck under him as he rises */
     if ((p.pose === 'dunk1' || p.pose === 'windmill') && p.y > 0.5 && m.bones[bk('DEF-thigh.L')]) { const w = Math.min(1, (p.y - 0.5) * 1.6), f = p.face + (p.spinA || 0);
       for (const sd of ['L', 'R']) { const th = m.bones[bk(`DEF-thigh.${sd}`)], sh = m.bones[bk(`DEF-shin.${sd}`)], ft = m.bones[bk(`DEF-foot.${sd}`)], k = sd === 'L' ? 0.5 : 0.72;
