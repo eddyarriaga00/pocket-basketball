@@ -503,6 +503,9 @@
       /* a leaper takes off from further out; yours goes up to dunk whenever he has a run at the rim */
       const dunkOk = p.r.dunk >= 55 && d < 7.5 + clamp(((p.r.vert || 70) - 70) * 0.05, 0, 1.4) && (sp > 5 || p.ht >= 82) && rand() < 0.35 + (p.r.dunk - 55) / 60 + 0.12 * bt(p, 'poster') + (forUser && sp > 5 ? 0.3 : 0);
       kind = dunkOk ? 'dunk' : 'layup';
+      /* yours: at the rim, Shoot is a dunk every time (standing under it too), not a roll of the dice. Only a player with
+         next to no dunking in him (under 35) lays it in */
+      if (forUser && !G.drill && (p.r.dunk || 0) >= 35 && d < (sp > 5 ? 7.5 + clamp(((p.r.vert || 70) - 70) * 0.05, 0, 1.4) : 5.5)) kind = 'dunk';
     } else if (d < 13 && sp > 7 && !isThree(p.x, p.z, p.team)) kind = 'floater';   // a runner on the move: lofted over the bigs
     if (force) kind = force;
     /* yours: a big who goes up contested in the paint shoots a hook; a jumper drifting away from the rim is a fadeaway */

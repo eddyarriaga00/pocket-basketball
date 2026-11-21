@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Fixed: you could not dunk on demand. A dunk needed a dunk rating of 55, a run at the rim and a lucky roll, so standing at the rim (or playing a shooter or playmaker build) Shoot always laid it in. Now Shoot at the rim is a dunk every time for your player: within 5.5 ft standing, about 7.5 to 9 ft on the run.
 - Fixed: a player who came down with a rebound could start a jump shot before his feet were back on the floor, and floated up a second time.
 - Dunks, reworked: he gets higher (more for a leaper and a dunker) and stays up longer, the arm now comes down through the rim (it used to stop above it), a new two-hand dunk with the ball taken back over the head, a longer hang on the rim with the body swinging and the rim springing when he lets go, show-off dunks on more breakaways, a leaper takes off from further out, your player goes up to dunk more often with a run at the rim, and a defender under a poster is sometimes put on the floor.
 - More small things on the floor: a blocker wags a finger once he lands, the man who was dunked on stands with his hands on his hips, tired players at a dead ball now also put their hands on their hips or wipe their brow (not only hands on knees), the losers at the final horn do not all stand the same way, and the officials make the T for a timeout and put an arm out on a turnover.
