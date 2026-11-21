@@ -21,7 +21,7 @@
   const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;   // (a browser refuses, loudly, before the first touch)
     try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
   /* Settings › Shot timing: how wide the green band is */
-  const timingEase = () => ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1);
+  const timingEase = () => ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1) * (PB.settings && PB.settings.meterOn === 'Off' ? 1.15 : 1);   // no meter on screen: shooting by the look of the jump earns a wider window
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
 
   let G = null, raf = 0, last = 0, opts = null;
@@ -2835,7 +2835,7 @@
     const u = G.user;
     const s = u && u.shoot && u.shoot.user ? u.shoot : null;
     const ftm = G.phase === 'ft' && G.ftq && G.ftq.shooter === u ? (G.ftMeter || 0.0001) : 0;
-    setHidden(m, !s && !ftm);
+    setHidden(m, (!s && !ftm) || (!ftm && !(G.drill && G.drill.kind !== 'free') && PB.settings && PB.settings.meterOn === 'Off'));   // (the meter stays for free throws and the contests)
     if (m.hidden) return;
     const v = s ? s.t / s.T : ftm;
     const w = (s ? 0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006 : 0.05 + u.r.ft * 0.0007) * timingEase();

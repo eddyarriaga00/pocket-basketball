@@ -1831,6 +1831,15 @@
         { const steel = lam(0x8a8d92); box(0.22, 0.22, 13, -42.6, 1.35, 100, steel); for (const dz of [-5.5, 0, 5.5]) box(0.2, 1.3, 0.2, -42.6, 0.65, 100 + dz, steel);
           box(4.2, 0.3, 6.5, -40.4, 0.9, -100, lam(0x6b4a32)).rotation.x = 0.27; box(4.2, 1.8, 0.3, -40.4, 0.9, -96.9, lam(0x4d5158));
           box(3, 3.2, 5.2, -41.6, 1.6, 40, lam(0xe8e4dc)); box(0.2, 5.4, 0.2, -41.6, 5.9, 40, steel); const um = new T.Mesh(new T.ConeGeometry(3.6, 1.5, 8), lam(new T.Color(home.c1).getHex())); um.position.set(-41.6, 9.2, 40); scene.add(um); person(-39.6, 41.5, Math.PI / 2, false); }
+        /* pigeons on the asphalt by the fence: walk at them and they go up, and come back when you have gone */
+        { const pg = lam(0x7d828c), pk = lam(0x55585e), flock = [];
+          for (let i = 0; i < 6; i++) { const g = new T.Group(), bd = new T.Mesh(new T.SphereGeometry(0.42, 8, 6), pg); bd.scale.set(0.8, 0.75, 1.3); bd.position.y = 0.42; g.add(bd);
+            const hd = new T.Mesh(new T.SphereGeometry(0.2, 6, 5), pk); hd.position.set(0, 0.82, 0.42); g.add(hd);
+            const hx = -27 + wrr(-3.5, 3.5), hz = 44 + wrr(-5, 5); g.position.set(hx, 0, hz); g.rotation.y = wr() * 6.28; g.userData.mv = 1; scene.add(g); fuseGroup(g); flock.push({ g, hx, hz, ph: wr() * 6.28, a: wr() * 6.28 }); }
+          let up = 0;   // 0 on the ground, else how long they have been away
+          parkMovers.push((t, dt, G) => { const u = G && G.user; if (!up && u && Math.hypot(u.x + 27, u.z - 44) < 8) up = 0.001; if (up) { up += dt; if (up > 14 && !(u && Math.hypot(u.x + 27, u.z - 44) < 16)) up = 0; }
+            for (const f of flock) { if (up) { const k = Math.min(1, up / 1.6), back = Math.max(0, Math.min(1, (up - 12.4) / 1.6)), e = k * (1 - back); f.g.position.set(f.hx + Math.cos(f.a) * 34 * e, 26 * e + (e > 0 && e < 1 ? Math.sin(t * 22 + f.ph) * 0.3 : 0), f.hz + Math.sin(f.a) * 34 * e); f.g.visible = e < 0.98; }
+              else { f.g.visible = true; f.g.position.set(f.hx, Math.max(0, Math.sin(t * 2.2 + f.ph) - 0.86) * 1.2, f.hz); f.g.rotation.y += Math.sin(t * 0.7 + f.ph) * dt * 0.8; } } }); }
         /* a few birds wheeling over the block by day */
         if (day) { const vc = document.createElement('canvas'); vc.width = 32; vc.height = 16; const vg = vc.getContext('2d'); vg.strokeStyle = 'rgba(30,32,38,.9)'; vg.lineWidth = 2.5; vg.lineCap = 'round'; vg.beginPath(); vg.moveTo(3, 4); vg.quadraticCurveTo(10, 3, 16, 12); vg.quadraticCurveTo(22, 3, 29, 4); vg.stroke();
           const vt = new T.CanvasTexture(vc); orphans.push(vt); const vm = new T.SpriteMaterial({ map: vt, transparent: true, depthWrite: false, fog: false });
@@ -2445,7 +2454,7 @@
       /* a regular standing between the lens and you steps out of the picture */
       for (const [p, m] of meshes) if (p !== u && p.npc) { const ax = u.x - px, az = u.z - pz, L = Math.hypot(ax, az) || 1, t = ((p.x - px) * ax + (p.z - pz) * az) / L;
         if (t > 0 && t < L - 1 && Math.abs(((p.x - px) * az - (p.z - pz) * ax) / L) < 3.2) { m.root.visible = false; hidNear.push(m); } }
-      if (dt > 0) for (let i = 0; i < parkMovers.length; i++) parkMovers[i](G.t, dt);
+      if (dt > 0) for (let i = 0; i < parkMovers.length; i++) parkMovers[i](G.t, dt, G);
       for (let i = 0; i < stations.length; i++) { const s0 = stations[i]; s0.sign.quaternion.copy(cam.quaternion);   // the signs face you, and the rings breathe
         const w = 0.5 + 0.5 * Math.sin(G.t * 2.2 + i * 1.3); s0.ring.material.opacity = 0.62 + 0.33 * w; s0.sign.position.y = (s0.signY || (s0.signY = s0.sign.position.y)) + Math.sin(G.t * 1.6 + i) * 0.12; }
       camPos.copy(cam.position); camLook.set(anchor.x + fx * 8, 3.7, anchor.z + fz * 8);

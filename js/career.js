@@ -413,6 +413,7 @@
       <p class="kick">Controls</p><div class="card set">
       ${opt('hand', ['Right-handed', 'Left-handed'], 'Buttons')}
       ${opt('btnSize', ['Normal', 'Large'], 'Button size')}
+      ${opt('meterOn', ['On', 'Off'], 'Shot meter', 'off: shoot by the look of the jump, with a wider green window')}
       ${opt('tapShoot', ['Pump fake', 'Shoot'], 'A quick tap on Shoot', 'a fake, or the shot let go at once')}</div>
       <button class="ghost" id="retips">Show the first-game tips again<small>the cards that explain each moment the first time it comes up</small></button>
       <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>
