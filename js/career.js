@@ -390,38 +390,27 @@
       return `<div class="srow${sw ? '' : ' wide'}"><label>${lab}${sub ? `<small>${sub}</small>` : ''}</label>${sw
         ? `<div class="seg sw" data-k="${k}"><button class="tog${S[k] !== 'Off' ? ' on' : ''}" role="switch" aria-checked="${S[k] !== 'Off'}" aria-label="${lab}" data-v="${S[k] !== 'Off' ? 'Off' : 'On'}"><i></i></button></div>`
         : `<div class="seg sm" data-k="${k}">${vals.map(v => `<button class="${S[k] == v ? 'on' : ''}" data-v="${v}">${typeof v === 'number' && k === 'qlen' ? v + ' min' : v}</button>`).join('')}</div>`}</div>`; };
+    const GROUPS = {
+      Game: [opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty'), opt('qlen', [2, 3, 5, 12], 'Quarter length'), opt('timing', ['Easy', 'Normal', 'Hard'], 'Shot timing', 'how wide the green band is'),
+        opt('season', [10, 20, 41, 82], 'Games in a career season', 'from next season on'), opt('replaysOn', ['On', 'Off'], 'Replays')],
+      Controls: [opt('hand', ['Right-handed', 'Left-handed'], 'Buttons'), opt('btnSize', ['Normal', 'Large'], 'Button size'), opt('meterOn', ['On', 'Off'], 'Shot meter', 'off: shoot by the look of the jump, with a wider green window'),
+        opt('tapShoot', ['Pump fake', 'Shoot'], 'A quick tap on Shoot', 'a fake, or the shot let go at once'), opt('vibrateOn', ['On', 'Off'], 'Vibration', 'Android')],
+      Camera: [opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera'), opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock distance'), opt('shakeOn', ['On', 'Off'], 'Camera shake', 'on dunks and blocks'),
+        opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players'), opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')],
+      Look: [opt('gfx', ['High', 'Low'], 'Graphics', 'Low for older phones'), opt('ball', ['Classic', 'Black', 'White', 'Street'], 'Ball', 'from your next game'), opt('fxOn', ['On', 'Off'], 'Comic hit effects', 'BLOCK!, SLAM!, stars')],
+      Sound: [opt('soundOn', ['On', 'Off'], 'Sound'), opt('musicOn', ['On', 'Off'], 'Menu music'), opt('commentaryOn', ['On', 'Off'], 'Commentary')],
+    };
+    if (!GROUPS[settings.tab] && settings.tab !== 'More') settings.tab = 'Game';
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Settings</h2>
-      <p class="kick">The game</p><div class="card set">
-      ${opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty')}
-      ${opt('qlen', [2, 3, 5, 12], 'Quarter length')}
-      ${opt('timing', ['Easy', 'Normal', 'Hard'], 'Shot timing', 'how wide the green band is')}
-      ${opt('season', [10, 20, 41, 82], 'Games in a career season', 'from next season on')}
-      ${opt('replaysOn', ['On', 'Off'], 'Replays')}</div>
-      <p class="kick">Sound</p><div class="card set">
-      ${opt('soundOn', ['On', 'Off'], 'Sound')}
-      ${opt('musicOn', ['On', 'Off'], 'Menu music')}
-      ${opt('commentaryOn', ['On', 'Off'], 'Commentary')}
-      ${opt('vibrateOn', ['On', 'Off'], 'Vibration', 'Android')}</div>
-      <p class="kick">Camera and look</p><div class="card set">
-      ${opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera')}
-      ${opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock distance')}
-      ${opt('gfx', ['High', 'Low'], 'Graphics', 'Low for older phones')}
-      ${opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players')}
-      ${opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')}
-      ${opt('ball', ['Classic', 'Black', 'White', 'Street'], 'Ball', 'from your next game')}
-      ${opt('fxOn', ['On', 'Off'], 'Comic hit effects', 'BLOCK!, SLAM!, stars')}
-      ${opt('shakeOn', ['On', 'Off'], 'Camera shake', 'on dunks and blocks')}</div>
-      <p class="kick">Controls</p><div class="card set">
-      ${opt('hand', ['Right-handed', 'Left-handed'], 'Buttons')}
-      ${opt('btnSize', ['Normal', 'Large'], 'Button size')}
-      ${opt('meterOn', ['On', 'Off'], 'Shot meter', 'off: shoot by the look of the jump, with a wider green window')}
-      ${opt('tapShoot', ['Pump fake', 'Shoot'], 'A quick tap on Shoot', 'a fake, or the shot let go at once')}</div>
-      <button class="ghost" id="retips">Show the first-game tips again<small>the cards that explain each moment the first time it comes up</small></button>
-      <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>
+      <div class="stabs">${Object.keys(GROUPS).map(k => `<button data-tab="${k}" class="${k === settings.tab ? 'on' : ''}">${k}</button>`).join('')}<button data-tab="More" class="${settings.tab === 'More' ? 'on' : ''}">More</button></div>
+      ${GROUPS[settings.tab] ? `<div class="card set">${GROUPS[settings.tab].join('')}</div>` : ''}
+      ${settings.tab === 'More' ? `<button class="ghost" id="retips">Show the first-game tips again<small>the cards that explain each moment the first time it comes up</small></button>
+      <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>` : ''}
       <p class="fine">Settings are kept on this device.</p></div>`);
+    scr().querySelectorAll('.stabs button').forEach(b => b.onclick = () => { settings.tab = b.dataset.tab; settings(); });
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
-    $('#edteams').onclick = () => editTeams();
-    $('#retips').onclick = () => { try { localStorage.removeItem('pbb.tips'); } catch (e) { /* fine */ } if (PB.Game && PB.Game.resetTips) PB.Game.resetTips(); $('#retips').firstChild.textContent = 'Tips are back on'; };
+    if ($('#edteams')) $('#edteams').onclick = () => editTeams();
+    if ($('#retips')) $('#retips').onclick = () => { try { localStorage.removeItem('pbb.tips'); } catch (e) { /* fine */ } if (PB.Game && PB.Game.resetTips) PB.Game.resetTips(); $('#retips').firstChild.textContent = 'Tips are back on'; };
     scr().querySelectorAll('.seg button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.k, v = b.dataset.v;
       S[k] = isNaN(+v) ? v : +v;

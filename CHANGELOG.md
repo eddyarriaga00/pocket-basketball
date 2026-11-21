@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Menus in tabs. Settings is six short pages (Game, Controls, Camera, Look, Sound, More) where it was one long scroll. The pause menu keeps Resume on top and puts the rest under Game, Coaching (the playbook and your defense), Stats (the box score) and Options (camera, sound, controls).
 - Dribbling you can win with. Read your man: a move against the way he is sliding, or while he is reaching or in the air, beats him nearly every time ("Wrong-footed"); the third move of a combo beats anybody. Every move costs the defender half a step even when he reads it, and you come out of every move quicker. A man you have beaten trails you for a couple of seconds, and the burst past him is longer and faster.
 - The escape dribble: swipe Move down and to one side (Y on a keyboard). Behind the back, away from him and out wide: the most room of any move, and the jumper after it has the step-back's space.
 - A defender's reach is less likely to take the ball from you in the middle of a move.

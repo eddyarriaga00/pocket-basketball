@@ -2335,6 +2335,7 @@
   }
   /* The Move button: tap for a crossover; swipe it for the move you want. kind: 'cross' (dir -1 left, 1 right on
      screen, 0 any), 'step' (step-back: room for the jumper), 'spin' (spin toward the rim). */
+  let pauseTab = 'game';
   function pressC(kind, dir) {
     const u = G.user; if (!u || G.phase !== 'live' || u.inb || sidelined()) return;
     if (G.drill && G.drill.kind === 'dunk') { if (!u.shoot && u.y <= 0) { const D = G.drill; D.style = (D.style + (kind === 'step' ? STYLES.length - 1 : 1)) % STYLES.length; toast(STYLES[D.style][0], 'call'); buzz(8); } return; }
@@ -3320,6 +3321,7 @@
     G.paused = on;
     AU().muffle(on);
     const ov = $('#pause');
+    if (on && ov.hidden) pauseTab = 'game';   // opened fresh: the first tab
     ov.hidden = !on;
     ov.classList.toggle('pmenu', !!(on && G.park && opts.menu));
     /* in the park, pause is the menu: every mode, your career, settings, and the map */
@@ -3338,7 +3340,11 @@
         ${opts.goals && G.user ? `<div class="pgoals"><b>Your goals</b>${opts.goals.map(g => { const v = g.k === 'grade' ? null : G.user.st[g.k] || 0; const ok = g.k === 'grade' ? LETTERS.indexOf(gradeLetter(G.grade)) >= g.n : g.k === 'tov' ? v <= g.n : v >= g.n;
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
         <button class="big" id="pr">Resume</button>
+        <div class="stabs ptabs"><button data-t="game">Game</button>${G.user && !G.drill && !G.switching ? '<button data-t="coach">Coaching</button>' : ''}${G.drill ? '' : '<button data-t="stats">Stats</button>'}<button data-t="opts">Options</button></div>
+        <section data-t="game">
         ${G.user && !G.drill && (G.poss === 0 || G.phase === 'dead') && G.to[0] > 0 ? `<button class="ghost" id="pto">Timeout <small>${G.to[0]} left this half</small></button>` : ''}
+        <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
+        <p class="fine ptip">${G.drill ? '' : 'Coaching has the playbook and your defense. Options has the camera, sound and the controls.'}</p></section><section data-t="coach">
         ${G.user && !G.drill && !G.switching ? (() => {
           const cur = G.play && (G.play.id || G.play.kind), dc = G.dplay && G.dplay.kind, dk = Object.keys(DBOOK);
           const bt = o => `<button class="ghost sm${cur === o.id ? ' on' : ''}" data-play="${o.id}">${o.name}</button>`, db = k => `<button class="ghost sm${dc === k ? ' on' : ''}" data-dplay="${k}">${DBOOK[k].name}</button>`;
@@ -3349,11 +3355,12 @@
           <b class="pdh">Defense <small>${G.dplay ? `${DPLAYS[dc][0]} · ${G.dplay.left + 1} more trip${G.dplay.left ? 's' : ''}` : 'for their next three trips'}</small></b>
           <div class="row3 r2">${dk.slice(0, 4).map(db).join('')}</div>
           <details class="help pcat"${dk.indexOf(dc) >= 4 ? ' open' : ''}><summary>Zones, traps and more<small>${dk.length - 4}</small></summary><div class="row3 r2">${dk.slice(4).map(db).join('')}</div></details></div>`; })() : ''}
-        <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
+        </section><section data-t="opts"><button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
-        ${G.drill ? '' : `<details class="help pbox"><summary>Box score</summary>${liveBox()}</details>`}
-        <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
-        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim, down and to a side for an escape dribble. Cross against the way he is sliding and he is beaten.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, Y escape dribble, I spin, O pick.</span></p></details></div>`;
+        <details class="help" open><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim, down and to a side for an escape dribble. Cross against the way he is sliding and he is beaten.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, Y escape dribble, I spin, O pick.</span></p></details></section>
+        <section data-t="stats">${G.drill ? '' : `<div class="pbox">${liveBox()}</div>`}</section></div>`;
+      { const tabs = [...ov.querySelectorAll('.ptabs button')], setTab = t => { if (!tabs.some(b => b.dataset.t === t)) t = 'game'; pauseTab = t; ov.querySelectorAll('section[data-t]').forEach(s => { s.hidden = s.dataset.t !== t; }); tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t)); };
+        tabs.forEach(b => { b.onclick = () => setTab(b.dataset.t); }); setTab(pauseTab); }
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {
         /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */
