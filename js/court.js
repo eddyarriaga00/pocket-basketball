@@ -1108,6 +1108,13 @@
     point: () => [[0.35, 0.75, 0.55], [0.25, 0.8, 0.55], [0.25, -0.9, 0.3], [0.2, -0.6, 0.75]],
     five: (k) => { const b = Math.max(0, Math.sin(k * 5)) * 0.12; return [[0.3, -0.5, 0.8], [0.08, 0.12 + b, 0.98], [0.25, -0.95, 0.2], [0.15, -0.9, 0.4]]; },   // a hand held out for the slap between free throws
     five2: (k) => { const b = Math.max(0, Math.sin(k * 5)) * 0.12; return [[0.32, -0.5, 0.8], [0.1, 0.12 + b, 0.98], [0.32, -0.5, 0.8], [0.1, 0.12 + b, 0.98]]; },
+    /* small things: the finger wagged after a block, hands on hips and a forearm across the brow for a tired man,
+       and two more from the officials (the T for a timeout, an arm out for whose ball it is) */
+    wag: (k) => { const s = 0.3 * Math.sin(k * 11); return [[0.45, 0.05, 0.89], [s, 0.94, 0.3], [0.25, -0.95, 0.2], [0.15, -0.9, 0.4]]; },
+    hips: (k) => { const b = 0.02 * Math.sin(k * 2.4); return [[0.72, -0.64 + b, -0.26], [-0.74, -0.52, 0.42], [0.72, -0.64 + b, -0.26], [-0.74, -0.52, 0.42]]; },
+    wipe: (k) => { const s = 0.14 * Math.sin(k * 3.2); return [[0.5, 0.36, 0.78], [-0.82 + s, 0.56, 0.02], [0.25, -0.95, 0.2], [0.15, -0.9, 0.4]]; },
+    sigt: () => [[0.3, 0.2, 0.93], [-0.9, 0.38, 0.2], [0.22, -0.4, 0.89], [-0.25, 0.95, 0.15]],
+    sigp: () => [[0.6, 0.1, 0.79], [0.6, 0.12, 0.79], [0.2, -0.95, 0.2], [0.12, -0.95, 0.28]],
     ugh: () => [[0.62, 0.52, 0.42], [-0.72, 0.66, -0.12], [0.62, 0.52, 0.42], [-0.72, 0.66, -0.12]],   // a miss he should have made, a pass thrown away: both hands to the head
     call: (k) => { const b = 0.07 * Math.sin(k * 8); return [[0.28, 0.9, 0.3], [0.12 + b, 0.98, 0.12], [0.35, -0.7, 0.6], [0.0, 0.3, 0.95]]; },   // open: a hand up for the ball, the other ready to catch
     /* more of them: the shrug (palms up), too small (a hand held low and patted down), night night (both hands a pillow by the

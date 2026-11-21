@@ -379,6 +379,7 @@
   }
   function turnover(p, why, giveTo, at) {
     for (const o of G.pl) { o.shoot = null; o.drive = 0; }
+    if (R.refSignal) R.refSignal('sigp', 1.3);   // whose ball: an arm out
     if (p && rand() < 0.4) { const m = G.pl.find(o => o.team === p.team && o !== p && !o.isUser); if (m) setTimeout(() => CH('ch_back', m), 500); }
     if (p) { p.st.tov++; if (p === G.user) grade(-3, why); }
     feed(`${why}${p ? ' · ' + p.name : ''}`);
@@ -399,7 +400,7 @@
   /* a timeout: the camera drifts in low over the floor */
   function timeoutCine(tc, why) {
     if (!R.cine || G.drill) { toast(why ? 'Timeout: ' + why.toLowerCase() : 'Timeout', 'call'); return; }
-    const sd = rand() < 0.5 ? 1 : -1; G.deadT = Math.max(G.deadT || 0, 2.6);
+    const sd = rand() < 0.5 ? 1 : -1; G.deadT = Math.max(G.deadT || 0, 2.6); if (R.refSignal) R.refSignal('sigt', 3);
     /* both fives walk to their benches and stand round the coach (the cut covers the walk); the camera goes to the
        huddle of the side that called it */
     if (!G.half && !G.park) { cut(); const g0 = G, was = G.pl.map(p => [p, p.x, p.z, p.face]); let back = () => { back = () => {}; if (G !== g0) return; cut(); for (const [p, x, z, f] of was) { p.x = x; p.z = z; p.face = f; p.vx = p.vz = 0; p.y = 0; p.vy = 0; } };   // and are back where they stood when it ends
@@ -688,7 +689,8 @@
     if (p.isUser) grade(-1, 'Got blocked');
     /* from behind at a run: the chase-down */
     { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, hl = hyp(hx, hz) || 1, behind = ((o.x - p.x) * hx + (o.z - p.z) * hz) / hl < -0.6, chase = behind && hyp(o.vx, o.vz) > 9;
-      toast(chase ? 'CHASE-DOWN BLOCK' : 'BLOCKED', 'blk'); feed(`${chase ? 'Chase-down block' : 'Block'} · ${o.name}`); if (chase) { R.benchJump && R.benchJump(o.team); if (o.isUser) grade(1, 'Chase-down block'); } }
+      toast(chase ? 'CHASE-DOWN BLOCK' : 'BLOCKED', 'blk'); feed(`${chase ? 'Chase-down block' : 'Block'} · ${o.name}`); if (chase) { R.benchJump && R.benchJump(o.team); if (o.isUser) grade(1, 'Chase-down block'); }
+      if (!G.drill && rand() < 0.6) { o.celebK = 'wag'; o.celebT = 1.7; } }   // not in here: the finger wagged once he is down
     AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
     b.state = 'loose'; b.holder = null; b.lastTouch = o.team; b.shot = null;
     G.reb = { team: p.team, t: G.t };   // a blocked shot is a missed shot: whoever comes up with it gets the rebound
@@ -1117,7 +1119,7 @@
       /* the officials: both arms up on a three */
       if (s.three && R.refSignal) R.refSignal('sig3', 1.3);
       /* a dunk on somebody: said out loud */
-      if (s.kind === 'dunk' && !G.drill) { const v = nearestDef(p); if (v.who && v.d < 3.4) { R.benchJump && R.benchJump(p.team); feed(`${p.name} dunks on ${v.who.name}`);
+      if (s.kind === 'dunk' && !G.drill) { const v = nearestDef(p); if (v.who && v.d < 3.4) { R.benchJump && R.benchJump(p.team); feed(`${p.name} dunks on ${v.who.name}`); v.who.celebK = 'hips'; v.who.celebT = 1.5;
         if (p.isUser) { setTimeout(() => toast('POSTERIZED', 'make'), 500); grade(1, 'Poster dunk'); buzz([30, 40, 30]); } else if (v.who.isUser) setTimeout(() => toast('Dunked on', 'opp'), 500); } }
       if (p.isUser && !G.drill) { const was = p.st.pts - s.pts, th = [10, 20, 30, 40, 50].find(v => was < v && p.st.pts >= v);
         if (th) { G.noteAt = -99; social('pts', p.st.pts); } else if (s.kind === 'dunk' && rand() < 0.6) social('dunk'); else if (s.three && rand() < 0.4) social('three'); }
@@ -2192,8 +2194,8 @@
       if (p.slap) { const k = (G.t - p.slap.t0) / 0.86, e = k >= 1 ? 0 : Math.sin(Math.PI * k); p.x = p.slap.x + p.slap.dx * e; p.z = p.slap.z + p.slap.dz * e; if (k >= 1) p.slap = null; }   // in for the slap and back to his spot on the lane
       if (p.celebT > 0) { p.celebT -= dt; if (!p.shoot && G.ball.holder !== p && p.y === 0) p.pose = p.celebT > 0 ? p.celebK || 'celebrate' : ''; }
       /* heavy legs at a stoppage: hands on the knees (you, when your stamina is low; one or two of the others late in a game) */
-      if (!live) { if ((G.phase === 'ft' || G.phase === 'dead') && !G.drill && p.y === 0 && !p.pose && b.holder !== p && !(G.ftq && G.ftq.shooter === p) && (p.isUser && !G.switching ? p.energy < 0.3 : G.q >= 3 && ((p.num || 0) + G.q + (G.possN || 0)) % 6 === 0)) { p.pose = 'sad'; p.tiredP = true; } }
-      else if (p.tiredP) { p.tiredP = false; if (p.pose === 'sad') p.pose = ''; }
+      if (!live) { if ((G.phase === 'ft' || G.phase === 'dead') && !G.drill && p.y === 0 && !p.pose && b.holder !== p && !(G.ftq && G.ftq.shooter === p) && (p.isUser && !G.switching ? p.energy < 0.3 : G.q >= 3 && ((p.num || 0) + G.q + (G.possN || 0)) % 6 === 0)) { p.pose = ['sad', 'hips', 'wipe'][((p.num || 0) + (G.possN || 0)) % 3]; p.tiredP = true; } }
+      else if (p.tiredP) { p.tiredP = false; if (p.pose === 'sad' || p.pose === 'hips' || p.pose === 'wipe') p.pose = ''; }
       if (p.wantBall > 0) p.wantBall -= dt;
       if (p.shoot) {
         p.shoot.t += dt;
@@ -2522,7 +2524,7 @@
       g.phase = 'buzzer'; g.buzzT = 2.8; g.buzzed = true;
       AU().play('horn', { len: 2 }); if (R.horn) R.horn(2.2); AU().crowd.react(g.score[g.home] > g.score[1 - g.home] ? 'roar' : 'applause', 1);
       const w = g.score[0] > g.score[1] ? 0 : 1, kinds = ['celebrate', 'flex', 'roar', 'three', 'point', 'chest'];
-      for (const p of g.pl) { p.shoot = null; p.drive = 0; p.vx *= 0.3; p.vz *= 0.3; p.pose = p.team === w ? (p.d && p.d.look && p.d.look.celeb) || kinds[Math.floor(rand() * kinds.length)] : 'sad'; }
+      for (const p of g.pl) { p.shoot = null; p.drive = 0; p.vx *= 0.3; p.vz *= 0.3; p.pose = p.team === w ? (p.d && p.d.look && p.d.look.celeb) || kinds[Math.floor(rand() * kinds.length)] : ['sad', 'hips', 'sad', 'ugh', 'hips'][p.slot || 0]; }
       if (R.benchJump) R.benchJump(w);
       /* the cameras find the winners: close on their best player, then up and away over the floor */
       { const on = g.pl.filter(p => p.team === w), star = g.user && g.user.team === w ? g.user : on.slice().sort((a, b) => b.st.pts - a.st.pts)[0];

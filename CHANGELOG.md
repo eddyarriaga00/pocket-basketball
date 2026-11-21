@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- More small things on the floor: a blocker wags a finger once he lands, the man who was dunked on stands with his hands on his hips, tired players at a dead ball now also put their hands on their hips or wipe their brow (not only hands on knees), the losers at the final horn do not all stand the same way, and the officials make the T for a timeout and put an arm out on a turnover.
 - Faster park: everything out there that stands still and is one plain color (trees, parked cars, posts, roofs, furniture) is joined into a few meshes, and each person at the fence and each passing car is one mesh. The first view of the park went from 192 draws a frame to 129. Jersey lettering on the side of a player the camera cannot see is no longer drawn. `tools/perf.js` prints draws, triangles and geometries for the park and an arena game.
 - Timeouts have a huddle: both fives stand round their benches while the camera goes to the side that called it, and are back on their spots when play resumes. A replay no longer starts under a cut scene's camera.
 - Between two free throws the nearest teammates step in for a hand slap. A scorer points to the man who passed him the ball. The end stands wave at a visiting shooter at the line.
