@@ -400,6 +400,12 @@
   function timeoutCine(tc, why) {
     if (!R.cine || G.drill) { toast(why ? 'Timeout: ' + why.toLowerCase() : 'Timeout', 'call'); return; }
     const sd = rand() < 0.5 ? 1 : -1; G.deadT = Math.max(G.deadT || 0, 2.6);
+    /* both fives walk to their benches and stand round the coach (the cut covers the walk); the camera goes to the
+       huddle of the side that called it */
+    if (!G.half && !G.park) { cut(); const g0 = G, was = G.pl.map(p => [p, p.x, p.z, p.face]); let back = () => { back = () => {}; if (G !== g0) return; cut(); for (const [p, x, z, f] of was) { p.x = x; p.z = z; p.face = f; p.vx = p.vz = 0; p.y = 0; p.vy = 0; } };   // and are back where they stood when it ends
+      for (const t of [0, 1]) { const zc = (t === 0 ? -1 : 1) * 19; teamOf(t).forEach((p, i, a) => { const an = (i - (a.length - 1) / 2) * 0.8; p.x = 22.2 - Math.cos(an) * 3.6; p.z = zc + Math.sin(an) * 3.6; p.vx = p.vz = 0; p.y = 0; p.vy = 0; p.hangT = 0; p.shoot = null; p.pose = ''; p.face = Math.atan2(25.5 - p.x, zc - p.z); }); }
+      const zc = (tc === 0 ? -1 : 1) * 19, s0 = tc === 0 ? 1 : -1;
+      cine([{ focus: { x: 21.6, z: zc }, a: [-Math.PI / 2 + s0 * 0.75, -Math.PI / 2 + s0 * 0.2], r: [27, 20], h: [12, 8.5], ly: 4, dur: 2.4 }], 'Timeout', why || G.teams[tc].name, { skip: () => back(), done: () => back() }); return; }
     cine([{ a: [sd * 0.5, sd * 0.15], r: [40, 30], h: [16, 9], ly: 4, dur: 2.4 }], 'Timeout', why || G.teams[tc].name);
   }
   /* a cut scene: the camera leaves the play for a few moves of its own, black bars top and bottom, a line of type.
@@ -1153,6 +1159,8 @@
       if (!p.isUser && !G.drill && (s.three || s.kind === 'dunk' || s.foul) && rand() < (clutchTime() ? 0.6 : s.foul ? 0.35 : 0.14)) celebrate(p, s.foul ? ['chest', 'flex'] : s.kind === 'dunk' ? ['roar', 'flex', 'toosmall'] : clutchTime() ? ['ice', 'nightnight', 'shh'] : ['three', 'shrug', 'point', 'goggles']);
       if (p.isUser && (s.three || s.kind === 'dunk' || s.foul)) { celebrate(p, s.foul ? ['chest', 'flex', 'toosmall'] : s.kind === 'dunk' ? ['roar', 'flex', 'chest', 'toosmall'] : clutchTime() ? ['ice', 'nightnight', 'shh', 'three'] : ['goggles', 'three', 'point', 'shrug', 'ice']); for (const m of G.pl) if (m.team === p.team && m !== p && hyp(m.x - p.x, m.z - p.z) < 20 && rand() < 0.6) { m.pose = 'celebrate'; setTimeout(() => { if (m.pose === 'celebrate') m.pose = ''; }, 1100); } if (rand() < 0.5) { const m = G.pl.find(o => o.team === p.team && !o.isUser); if (m) setTimeout(() => CH('ch_nice', m), 900); } }
       else if (!p.isUser && (s.kind === 'dunk' || s.foul || (s.three && p.r.three > 80)) && rand() < 0.35) celebrate(p, s.kind === 'dunk' ? ['roar', 'flex'] : s.foul ? ['chest'] : ['three', 'goggles']);
+      /* a bucket off a pass: a finger for the man who found him, on the way back */
+      if (ast && !(p.celebT > 0) && !G.drill && rand() < 0.45) { p.celebK = 'point'; p.celebT = 0.75; }
       if ((s.three || s.kind === 'dunk' || s.foul || G.clock <= 0.05) && R.benchJump) R.benchJump(p.team);
       if (p.isUser || (ast && ast.isUser)) {
         const v = (s.kind === 'dunk' ? 3 : s.three ? 2.5 : 1) + (s.foul ? 1 : 0) + (s.oop ? 1 : 0) + (G.clock <= 0.05 ? 4 : clutchTime() ? 1 : 0) + (p.isUser ? 0 : -0.8);
@@ -1261,7 +1269,12 @@
       AU().play('swish', { x: b.x }); if (home(p.team)) AU().crowd.react('applause', 0.8);
       if (p.isUser) grade(0.6, 'Free throw');
     } else { AU().play('rim', { x: b.ex, power: 0.6 }); if (home(p.team)) AU().crowd.react('aww', 0.6); else AU().crowd.react('roar', 0.4); if (p.isUser) grade(-0.6, 'Missed free throw'); }
-    if (q.n > 0) { b.state = 'drop'; b.t = 0; dead(0.9, startFT); return; }
+    if (q.n > 0) { b.state = 'drop'; b.t = 0;
+      /* between the two: the nearest teammates step in for a hand slap, make or miss */
+      if (!G.drill) { const near = G.pl.filter(m => m.team === p.team && m !== p && hyp(m.x - p.x, m.z - p.z) < 13).sort((a, c) => hyp(a.x - p.x, a.z - p.z) - hyp(c.x - p.x, c.z - p.z)).slice(0, 2);
+        for (const m of near) { const dx = p.x - m.x, dz = p.z - m.z, L = hyp(dx, dz) || 1, st = Math.max(0, L - 3.4) * 0.8; m.slap = { t0: G.t, x: m.x, z: m.z, dx: dx / L * st, dz: dz / L * st }; m.face = Math.atan2(dx, dz); m.celebK = 'five'; m.celebT = 0.85; }
+        if (near.length) { p.celebK = near.length > 1 ? 'five2' : 'five'; p.celebT = 0.85; setTimeout(() => { if (G && G.active !== false) AU().play('catch', { vol: 0.5 }); }, 380); } }
+      dead(0.9, startFT); return; }
     $('#ftmsg').hidden = true;
     G.ftq = null;
     if (s.made) { b.state = 'drop'; b.t = 0; G.poss = null; dead(1.0, () => { G.phase = 'live'; inboundOut(1 - p.team, { x: 0, z: hoopZ(p.team) }, true); }); }
@@ -2176,6 +2189,7 @@
       if (b.state === 'loose' && !p.isUser && p.y === 0 && b.vy < 0 && b.y > 8 && b.y < 13 && hyp(b.x - p.x, b.z - p.z) < 3.2 && rand() < dt * 6) {
         p.jg = GRAV * 1.5; p.vy = Math.sqrt(2 * p.jg * (1.6 + p.r.vert * 0.022)); p.pose = 'contest';
       }
+      if (p.slap) { const k = (G.t - p.slap.t0) / 0.86, e = k >= 1 ? 0 : Math.sin(Math.PI * k); p.x = p.slap.x + p.slap.dx * e; p.z = p.slap.z + p.slap.dz * e; if (k >= 1) p.slap = null; }   // in for the slap and back to his spot on the lane
       if (p.celebT > 0) { p.celebT -= dt; if (!p.shoot && G.ball.holder !== p && p.y === 0) p.pose = p.celebT > 0 ? p.celebK || 'celebrate' : ''; }
       /* heavy legs at a stoppage: hands on the knees (you, when your stamina is low; one or two of the others late in a game) */
       if (!live) { if ((G.phase === 'ft' || G.phase === 'dead') && !G.drill && p.y === 0 && !p.pose && b.holder !== p && !(G.ftq && G.ftq.shooter === p) && (p.isUser && !G.switching ? p.energy < 0.3 : G.q >= 3 && ((p.num || 0) + G.q + (G.possN || 0)) % 6 === 0)) { p.pose = 'sad'; p.tiredP = true; } }
@@ -2711,6 +2725,7 @@
     G.replayAt = G.t + 0.9; G.replayKind = kind;
   }
   function startReplay() {
+    if (R.cineOn && R.cineOn()) return;   // a cut scene is on (a timeout's huddle): the replay would move everyone out from under its camera
     const n = Math.min(tape.length, 80);      // the last two and a half seconds or so
     const live = { pl: G.pl.map(p => ({ ...p })), ball: { ...G.ball } };
     G.replay = { frames: tape.slice(-n), i: 0, live, kind: G.replayKind };

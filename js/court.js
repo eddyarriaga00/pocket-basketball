@@ -65,7 +65,8 @@
     placeTag('me', u, true);
     placeTag('ball', mode === 'You and the ball' && h && h !== u && !G.replay ? h : null, false);
     /* the park: everyone's handle over his head, the way a park shows who is out there (the near ones only) */
-    if (G && G.park) { const me = G.user; placeTag('pme', me, true); G.pl.forEach((p, i) => { if (p.npc) placeTag('npc' + i, me && Math.hypot(p.x - me.x, p.z - me.z) < 30 ? p : null, false); }); }
+    if (G && G.park) { const me = G.user, cd = q => Math.hypot(cam.position.x - q.x, cam.position.z - q.z), near = me ? cd(me) * 0.85 : 0;   // (a regular standing between you and the camera keeps his tag off your controls)
+      placeTag('pme', me, true); G.pl.forEach((p, i) => { if (p.npc) placeTag('npc' + i, me && Math.hypot(p.x - me.x, p.z - me.z) < 30 && cd(p) > near ? p : null, false); }); }
     const now = performance.now();
     for (const [p, o] of says) { if (now > o.until || !G || !G.park || !G.pl.includes(p)) { unsay(p); continue; } o.sp.position.set(p.x, 9.4 + (p.y || 0), p.z); }
   };
@@ -930,7 +931,7 @@
     const tex = numberTex(p.num, null, ink, edge);
     const numMat = new T.MeshLambertMaterial({ map: tex, transparent: true, alphaTest: 0.4, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     const H = TPL.H;
-    const put = (bone, dcl, obj) => { obj.position.copy(dcl.pos); obj.quaternion.copy(dcl.quat); bone.add(obj); };
+    const dcl = [], put = (bone, dc, obj) => { obj.position.copy(dc.pos); obj.quaternion.copy(dc.quat); bone.add(obj); dcl.push(obj); };
     put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
     put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
     if (TPL.decals.shorts && !(TPL.model && !PB.mannequin)) put(bones[bk('DEF-thigh.L')], TPL.decals.shorts, new T.Mesh(new T.PlaneGeometry(H * 0.045, H * 0.045), numMat));
@@ -1050,7 +1051,7 @@
     const headB = bones[bk('DEF-head')]; if (headB) headB.scale.setScalar(headS);
     const chest = bones[bk('DEF-spine.002')];
     const idle = { chest, base: new T.Quaternion(), applied: false, still: 0, breath: 0, phase: act.Idle_Loop.time * 3 };
-    return { kind: 'skin', idle, headS, root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
+    return { kind: 'skin', dcl, idle, headS, root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
   }
 
   /* turn a bone so the segment from it to `tip` points along `dir` (world), by `w` of the way */
@@ -1105,6 +1106,8 @@
     goggles: () => [[0.6, 0.4, 0.7], [-0.8, 0.55, -0.05], [0.6, 0.4, 0.7], [-0.8, 0.55, -0.05]],   // the three goggles: a hand ringed over each eye, elbows out
     three: (k) => { const b = 0.05 * Math.sin(k * 8); return [[0.3, 0.94 + b, 0.15], [0.12, 0.99, 0.05], [0.2, -0.97, 0.1], [0.15, -0.95, 0.25]]; },
     point: () => [[0.35, 0.75, 0.55], [0.25, 0.8, 0.55], [0.25, -0.9, 0.3], [0.2, -0.6, 0.75]],
+    five: (k) => { const b = Math.max(0, Math.sin(k * 5)) * 0.12; return [[0.3, -0.5, 0.8], [0.08, 0.12 + b, 0.98], [0.25, -0.95, 0.2], [0.15, -0.9, 0.4]]; },   // a hand held out for the slap between free throws
+    five2: (k) => { const b = Math.max(0, Math.sin(k * 5)) * 0.12; return [[0.32, -0.5, 0.8], [0.1, 0.12 + b, 0.98], [0.32, -0.5, 0.8], [0.1, 0.12 + b, 0.98]]; },
     ugh: () => [[0.62, 0.52, 0.42], [-0.72, 0.66, -0.12], [0.62, 0.52, 0.42], [-0.72, 0.66, -0.12]],   // a miss he should have made, a pass thrown away: both hands to the head
     call: (k) => { const b = 0.07 * Math.sin(k * 8); return [[0.28, 0.9, 0.3], [0.12 + b, 0.98, 0.12], [0.35, -0.7, 0.6], [0.0, 0.3, 0.95]]; },   // open: a hand up for the ball, the other ready to catch
     /* more of them: the shrug (palms up), too small (a hand held low and patted down), night night (both hands a pillow by the
@@ -1231,7 +1234,8 @@
     const drib = G.ball.holder === p && !p.shoot && !p.inb && G.phase !== 'ft', prot = drib ? p.prot || 0 : 0;
     /* shielding the ball: the shoulder turns toward the man, the ball hand away from him */
     m.shield = (m.shield || 0) + ((drib ? -(p.dribHand || 1) * 0.42 * prot : 0) - (m.shield || 0)) * Math.min(1, dt * 7);
-    m.root.rotation.y = p.face + m.shield + (p.spinA || 0) + (ms < 1 && mv.k === 'spin' ? mv.side * Math.PI * 2 * smooth(0, 1, ms) : 0);   // the turn of a reverse or a 360 in the air, or a spin move
+    m.root.rotation.y = p.face + m.shield + (p.spinA || 0) + (ms < 1 && mv.k === 'spin' ? mv.side * Math.PI * 2 * smooth(0, 1, ms) : 0);
+   // the turn of a reverse or a 360 in the air, or a spin move
     m.body.position.y = p.y;
     // Load the outside leg on the ball side, then drive the hips across as the other hand receives.
     const crossing = ms < 1 && (mv.k === 'cross' || mv.k === 'legs' || mv.k === 'btb');
@@ -1603,7 +1607,18 @@
     if (sub) { g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '600 32px Arial, sans-serif'; g.fillText(sub, 256, 128); }
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
   }
-  function parkDressing(home) {
+  /* scenery that never moves is drawn as one piece: every plain-colored box, trunk and treetop has its color written
+     into its corners and is joined into a single mesh (one draw instead of a few hundred) */
+  function fuse(meshes, inv) { const B = {}, v = new T.Vector3(), n3 = new T.Matrix3(), mx = new T.Matrix4();
+    for (const o of meshes) { const m = o.material, key = (m.isMeshBasicMaterial ? 'b' : 'l') + (m.flatShading ? 'f' : ''), b = B[key] || (B[key] = { p: [], n: [], c: [] });
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry, P = g.attributes.position, N = g.attributes.normal; mx.copy(o.matrixWorld); if (inv) mx.premultiply(inv); n3.getNormalMatrix(mx);
+      for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(mx); b.p.push(v.x, v.y, v.z); v.fromBufferAttribute(N, i).applyMatrix3(n3).normalize(); b.n.push(v.x, v.y, v.z); b.c.push(m.color.r, m.color.g, m.color.b); }
+      if (g !== o.geometry) g.dispose(); o.geometry.dispose(); o.removeFromParent(); }
+    return Object.keys(B).map(key => { const b = B[key], g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(b.p, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(b.n, 3)); g.setAttribute('color', new T.Float32BufferAttribute(b.c, 3));
+      return new T.Mesh(g, key[0] === 'b' ? new T.MeshBasicMaterial({ vertexColors: true }) : new T.MeshLambertMaterial({ vertexColors: true, flatShading: key.length > 1 })); }); }
+  const plain = o => o.isMesh && !o.isSkinnedMesh && (o.material.isMeshLambertMaterial || o.material.isMeshBasicMaterial) && !o.material.map && !o.material.transparent && o.material.side === T.FrontSide && o.material.fog !== false && o.renderOrder === 0;
+  function fuseGroup(g) { g.updateMatrixWorld(true); const ms = []; g.traverse(o => { if (plain(o)) ms.push(o); }); const mats = new Set(ms.map(o => o.material)); const out = fuse(ms, g.matrixWorld.clone().invert()); mats.forEach(m => m.dispose()); for (const m of out) g.add(m); return out[0]; }
+  function parkDressing(home) { const child0 = scene.children.length;
     /* every city's park is its own: the skyline, the trees, the street and who is standing at the fence all come
        from the city's name, so it is the same park every time you come back and a different one on the road */
     const CITY = PB.parkCity || home.city || 'The'; let wsd = 17; for (let i = 0; i < CITY.length; i++) wsd = (wsd * 31 + CITY.charCodeAt(i)) % 2147483646 + 1;
@@ -1726,7 +1741,7 @@
         if (!day) for (const sx of [-2.1, 2.1]) { const sp = new T.Sprite(hl); sp.position.set(sx, 2.6, 7.5); sp.scale.setScalar(3.4); g.add(sp); }
         g.position.set(x, 0, z); g.rotation.y = dir < 0 ? Math.PI : 0; scene.add(g); return g; };
       for (let i = 0; i < 5; i++) car(-46.5, -130 + i * 62 + wrr(-14, 14), 1);
-      for (const [lx, dir] of [[-52.5, 1], [-59, -1]]) { const g = car(lx, wrr(-200, 200), dir), v = wrr(26, 40) * dir; parkMovers.push((t, dt) => { g.position.z += v * dt; if (g.position.z * dir > 210) g.position.z = -210 * dir - wrr(0, 160) * dir; }); }
+      for (const [lx, dir] of [[-52.5, 1], [-59, -1]]) { const g = car(lx, wrr(-200, 200), dir), v = wrr(26, 40) * dir; g.userData.mv = 1; fuseGroup(g); parkMovers.push((t, dt) => { g.position.z += v * dt; if (g.position.z * dir > 210) g.position.z = -210 * dir - wrr(0, 160) * dir; }); }
       /* street lamps over the road */
       { const pole = lam(0x4d5158), lm0 = new T.MeshBasicMaterial({ color: day ? 0x8a8d92 : 0xfff1c8 });
         for (let z = -150; z <= 150; z += 60) { const p0 = new T.Mesh(new T.CylinderGeometry(0.3, 0.4, 22, 6), pole); p0.position.set(-43.5, 11, z + 15); scene.add(p0); box(5, 0.4, 0.5, -45.8, 22, z + 15, pole); box(2.2, 0.5, 1, -47.6, 21.8, z + 15, lm0);
@@ -1750,7 +1765,7 @@
           const lg = new T.Mesh(new T.BoxGeometry(1.25, sit ? 1.3 : 2.9, sit ? 2 : 0.8), legs); lg.position.set(0, sit ? 0.65 : 1.45, sit ? 0.6 : 0); g.add(lg);
           const bd = new T.Mesh(new T.BoxGeometry(1.5, 2.3, 0.9), shirts[Math.floor(wr() * shirts.length)]); bd.position.y = (sit ? 1.3 : 2.9) + 1.15; g.add(bd);
           const hd = new T.Mesh(new T.SphereGeometry(0.62, 10, 8), sk); hd.position.y = (sit ? 1.3 : 2.9) + 2.95; g.add(hd);
-          g.position.set(x, sit ? 2.3 : 0, z); g.rotation.y = face; g.scale.setScalar(h); scene.add(g); const ph = wr() * 6.28; parkMovers.push(t => { hd.position.x = Math.sin(t * 0.7 + ph) * 0.06; bd.rotation.z = Math.sin(t * 0.5 + ph) * 0.03; }); };
+          g.position.set(x, sit ? 2.3 : 0, z); g.rotation.y = face; g.scale.setScalar(h); g.userData.mv = 1; scene.add(g); const one = fuseGroup(g), ph = wr() * 6.28; parkMovers.push(t => { one.rotation.z = Math.sin(t * 0.5 + ph) * 0.02; one.rotation.y = Math.sin(t * 0.23 + ph * 2) * 0.12; }); };
         for (let i = 0; i < 6; i++) person(-37.6, wrr(-56, 56), Math.PI / 2 + wrr(-0.3, 0.3), false);
         for (let i = 0; i < 3; i++) { const zs = wr() < 0.5 ? -1 : 1; person(wrr(-28, 28), zs * 63.6, zs > 0 ? Math.PI : 0, false); }
         person(-32, -26.5, Math.PI / 2, true); person(-32, -22, Math.PI / 2, true); }
@@ -1762,6 +1777,9 @@
     /* the park's name painted over the far fence */
     const nm = new T.Mesh(new T.PlaneGeometry(26, 5), new T.MeshBasicMaterial({ map: signTex(`${(home.city || 'THE').toUpperCase()} PARK`, 'run it back', home.c1), transparent: true }));
     nm.position.set(0, 19, FZ + 0.5); nm.rotation.y = Math.PI; scene.add(nm);
+    /* everything above that stands still and is one plain color becomes one mesh */
+    { const ms = [], mats = new Set(); for (let i = child0; i < scene.children.length; i++) { const r = scene.children[i]; if (r.userData.mv) continue; r.updateMatrixWorld(true); r.traverse(o => { if (plain(o)) { ms.push(o); mats.add(o.material); } }); }
+      const out = fuse(ms); mats.forEach(m => m.dispose()); for (let i = scene.children.length - 1; i >= child0; i--) { const r = scene.children[i]; if (r.isGroup && !r.children.length) scene.remove(r); } for (const m of out) scene.add(m); }
   }
   /* the rings you walk into: a glowing circle on the ground, a column of light and a sign over it */
   R.setStations = list => {
@@ -2276,6 +2294,8 @@
     }
     arenaBits(dt);
     if (hype > 0) { hype = Math.max(0, hype - dt); const j = Math.abs(Math.sin(G.t * 14)) * 0.035 * Math.min(1, hype); for (const m of crowdMaps) m.offset.y = j; }
+    /* the end stands wave at a visiting shooter at the line */
+    if (crowdMaps[1]) crowdMaps[1].offset.x = (G.phase === 'ft' || G.phase === 'ftflight') && G.ftq && G.ftq.shooter && G.home !== undefined && G.ftq.shooter.team !== G.home ? Math.sin(G.t * 11) * 0.012 : 0;
     /* a glowing trail behind the ball on your shots */
     if (!trail) {
       trail = new T.Line(new T.BufferGeometry().setFromPoints(Array.from({ length: 24 }, () => new T.Vector3())), new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }));
@@ -2452,11 +2472,13 @@
         else { if (avg > avg0 * 0.85) setQuality(0); qLock = true; }   // nothing helped: it was never the drawing
       } else if (qLvl === 0) slow0 = 0;
     }
+    /* lettering that faces away from the camera is not drawn (each patch's own facing, as of the last frame) */
+    for (const m of meshes.values()) if (m.dcl) for (const o of m.dcl) { const e = o.matrixWorld.elements, dx = cam.position.x - e[12], dy = cam.position.y - e[13], dz = cam.position.z - e[14]; o.visible = e[8] * dx + e[9] * dy + e[10] * dz > -0.12 * Math.hypot(e[8], e[9], e[10]) * Math.hypot(dx, dy, dz); }
     renderer.render(scene, cam);
   };
   R.pixelCap = () => prCap;
   R.info = () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, tex: renderer.info.memory.textures });
-  R._scene = () => scene;   // for the test tools
+  R._scene = () => scene; R._cam = () => cam;   // for the test tools
   R.resize = () => {
     const el = renderer.domElement.parentElement;
     if (!el.clientWidth) return;   // the game view is hidden (a menu is up): size it when it shows

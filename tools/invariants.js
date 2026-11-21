@@ -25,7 +25,7 @@ const GAMES = +(process.argv[2] || 2);
         for (const p of G.pl) {
           if (![p.x, p.y, p.z, p.vx, p.vz].every(Number.isFinite)) note('player not a number', { t, q, who: p.name });
           if (p.y < -0.01) note('player under the floor', { t, who: p.name });
-          if (p.y > 0.05) { const a = (air.get(p) || 0) + 0.05; air.set(p, a); if (a > 2.5 && !(p.pose === 'hang')) note('in the air over 2.5 s', { t, q, who: p.name, pose: p.pose, y: +p.y.toFixed(1), ph }); } else air.set(p, 0);
+          if (p.y > 0.05) { const a = (air.get(p) || 0) + 0.05; air.set(p, a); if (a > 2.5 && !(p.pose === 'hang')) note('in the air over 2.5 s', { t, q, who: p.name, pose: p.pose, y: +p.y.toFixed(1), ph, vy: p.vy, hang: p.hangT, sh: p.shoot && p.shoot.kind, cine: !!(PB.R.cineOn && PB.R.cineOn()), then: String(G.then || '').slice(0, 60) }); } else air.set(p, 0);
           if (!p.inb && ph === 'live' && (Math.abs(p.x) > 26 || Math.abs(p.z) > 48)) note('player off the floor in live play', { t, q, who: p.name, x: +p.x.toFixed(0), z: +p.z.toFixed(0) });
           if (p.shoot && bl.holder !== p && bl.state === 'held') note('shooting without the ball', { t, q, who: p.name, kind: p.shoot.kind });
           if (p.st.fgm > p.st.fga || p.st.tpm > p.st.tpa || p.st.ftm > p.st.fta) note('more makes than attempts', { t, who: p.name });
