@@ -125,8 +125,9 @@
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.userData.keep = true; powTex.set(word, t); return t;
   }
   const fxSprite = () => { const mt = new T.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false, opacity: 0 }); mt.userData.shared = true; const m = new T.Sprite(mt); m.renderOrder = 20; return m; };
+  const fxOff = () => !!(PB.settings && PB.settings.fxOn === 'Off');
   R.pow = (word, x, y, z, size) => {
-    if (!scene) return;
+    if (!scene || fxOff()) return;
     let r = pows.find(o => o.t <= 0);
     if (!r) { if (pows.length > 4) return; r = { m: fxSprite(), t: 0 }; pows.push(r); }
     if (r.m.parent !== scene) scene.add(r.m);
@@ -134,7 +135,7 @@
     r.m.position.set(x, y, z); r.t = r.T = word ? 0.85 : 0.38; r.k = size || 1; r.m.visible = true;
   };
   R.dizzy = (p, sec) => {
-    if (!scene) return;
+    if (!scene || fxOff()) return;
     let r = dizzies.find(o => o.t <= 0);
     if (!r) { if (dizzies.length > 1) return; r = { s: [fxSprite(), fxSprite(), fxSprite()], t: 0 }; dizzies.push(r); }
     for (const m of r.s) { if (m.parent !== scene) scene.add(m); m.material.map = powTexture('*'); m.material.needsUpdate = true; m.visible = true; }
@@ -151,7 +152,7 @@
   /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
   let boardMsg = null;
   R.board = (text, secs) => { boardMsg = { text, t: secs || 3 }; };   // the scoreboard shows a message for a few seconds
-  R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk) shake = Math.max(shake, shk); if ((power || 1) >= 0.9) camFlash = Math.max(camFlash, 0.9 * (power || 1)); };
+  R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk && !(PB.settings && PB.settings.shakeOn === 'Off')) shake = Math.max(shake, shk); if ((power || 1) >= 0.9) camFlash = Math.max(camFlash, 0.9 * (power || 1)); };
   /* small things an arena does: the backboards light red at a horn; cameras flash in the stands after a big play */
   const leds = []; let hornT = 0, camFlash = 0, flashPts = null;
   R.horn = sec => { hornT = Math.max(hornT, sec || 1.5); };
@@ -1812,7 +1813,28 @@
           g.position.set(x, sit ? 2.3 : 0, z); g.rotation.y = face; g.scale.setScalar(h); g.userData.mv = 1; scene.add(g); const one = fuseGroup(g), ph = wr() * 6.28; parkMovers.push(t => { one.rotation.z = Math.sin(t * 0.5 + ph) * 0.02; one.rotation.y = Math.sin(t * 0.23 + ph * 2) * 0.12; }); };
         for (let i = 0; i < 6; i++) person(-37.6, wrr(-56, 56), Math.PI / 2 + wrr(-0.3, 0.3), false);
         for (let i = 0; i < 3; i++) { const zs = wr() < 0.5 ? -1 : 1; person(wrr(-28, 28), zs * 63.6, zs > 0 ? Math.PI : 0, false); }
-        person(-32, -26.5, Math.PI / 2, true); person(-32, -22, Math.PI / 2, true); }
+        person(-32, -26.5, Math.PI / 2, true); person(-32, -22, Math.PI / 2, true);
+        /* the sidewalk has traffic of its own: people walking by and (not in the snow) a kid or two on a skateboard, who
+           carves along and pops the board now and then; a rail and a kicker down the block, a cart with an umbrella */
+        const mover = (x, z0, v, board) => { const g = new T.Group(), fig = new T.Group(), sk = skin[Math.floor(wr() * 4)], h = wrr(0.84, 1.04), by = board ? 0.58 : 0, ph = wr() * 6.28;
+          const lg = new T.Mesh(new T.BoxGeometry(1.25, 2.9, 0.8), legs); lg.position.y = by + 1.45; fig.add(lg);
+          const bd = new T.Mesh(new T.BoxGeometry(1.5, 2.3, 0.9), shirts[Math.floor(wr() * shirts.length)]); bd.position.y = by + 4.05; fig.add(bd);
+          const hd = new T.Mesh(new T.SphereGeometry(0.62, 10, 8), sk); hd.position.y = by + 5.85; fig.add(hd);
+          if (board) { fig.rotation.y = 1.15; const dk = new T.Mesh(new T.BoxGeometry(1.05, 0.14, 3.7), lam(0x1b1c20)); dk.position.y = 0.5; g.add(dk);
+            for (const [wx, wz] of [[-0.45, 1.25], [0.45, 1.25], [-0.45, -1.25], [0.45, -1.25]]) { const w = new T.Mesh(new T.CylinderGeometry(0.2, 0.2, 0.18, 8), lam(0xe8e4dc)); w.rotation.z = Math.PI / 2; w.position.set(wx, 0.2, wz); g.add(w); } }
+          g.add(fig); g.position.set(x, 0, z0); g.rotation.y = v > 0 ? 0 : Math.PI; g.scale.setScalar(h); g.userData.mv = 1; scene.add(g); fuseGroup(g);
+          parkMovers.push((t, dt) => { g.position.z += v * dt; if (g.position.z * Math.sign(v) > 190) g.position.z = -190 * Math.sign(v);
+            if (board) { const u = (t * 0.3 + ph) % 1, hop = u < 0.14 ? Math.sin(u / 0.14 * Math.PI) : 0; g.position.y = hop * 1.5; g.rotation.x = hop > 0 ? -0.3 * Math.cos(u / 0.14 * Math.PI) * Math.sign(v) : 0; g.rotation.z = Math.sin(t * 1.3 + ph) * 0.09; g.position.x = x + Math.sin(t * 0.9 + ph) * 0.9; }
+            else g.position.y = Math.abs(Math.sin(t * 4.6 + ph)) * 0.14; }); };
+        for (let i = 0; i < 4; i++) { const d = wr() < 0.5 ? 1 : -1; mover(d > 0 ? -42.4 : -39.4, wrr(-180, 180), wrr(3.6, 5.2) * d, false); }
+        if (!SNOW) { mover(-41.2, wrr(-150, 150), wrr(12, 16), true); mover(-40.2, wrr(-150, 150), -wrr(10, 14), true); }
+        { const steel = lam(0x8a8d92); box(0.22, 0.22, 13, -42.6, 1.35, 100, steel); for (const dz of [-5.5, 0, 5.5]) box(0.2, 1.3, 0.2, -42.6, 0.65, 100 + dz, steel);
+          box(4.2, 0.3, 6.5, -40.4, 0.9, -100, lam(0x6b4a32)).rotation.x = 0.27; box(4.2, 1.8, 0.3, -40.4, 0.9, -96.9, lam(0x4d5158));
+          box(3, 3.2, 5.2, -41.6, 1.6, 40, lam(0xe8e4dc)); box(0.2, 5.4, 0.2, -41.6, 5.9, 40, steel); const um = new T.Mesh(new T.ConeGeometry(3.6, 1.5, 8), lam(new T.Color(home.c1).getHex())); um.position.set(-41.6, 9.2, 40); scene.add(um); person(-39.6, 41.5, Math.PI / 2, false); }
+        /* a few birds wheeling over the block by day */
+        if (day) { const vc = document.createElement('canvas'); vc.width = 32; vc.height = 16; const vg = vc.getContext('2d'); vg.strokeStyle = 'rgba(30,32,38,.9)'; vg.lineWidth = 2.5; vg.lineCap = 'round'; vg.beginPath(); vg.moveTo(3, 4); vg.quadraticCurveTo(10, 3, 16, 12); vg.quadraticCurveTo(22, 3, 29, 4); vg.stroke();
+          const vt = new T.CanvasTexture(vc); orphans.push(vt); const vm = new T.SpriteMaterial({ map: vt, transparent: true, depthWrite: false, fog: false });
+          for (let i = 0; i < 6; i++) { const sp = new T.Sprite(vm), r = wrr(40, 70), ph = wr() * 6.28, y = wrr(52, 70), w = wrr(0.16, 0.26); sp.scale.set(5, 2.5, 1); scene.add(sp); parkMovers.push(t => { const a = t * w + ph; sp.position.set(-30 + Math.cos(a) * r, y + Math.sin(a * 3) * 2, Math.sin(a) * r); sp.scale.y = 2.5 * (0.6 + 0.4 * Math.sin(t * 9 + ph)); }); } } }
       /* clouds that drift (not at night) */
       if (!night) { const cc = document.createElement('canvas'); cc.width = 128; cc.height = 64; const cg = cc.getContext('2d'); for (let j = 0; j < 6; j++) { const gx = 26 + j * 15, gy = 34 + (j % 2) * 6, gr = cg.createRadialGradient(gx, gy, 2, gx, gy, 24); gr.addColorStop(0, day ? 'rgba(255,255,255,.9)' : 'rgba(255,214,190,.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cg.fillStyle = gr; cg.fillRect(0, 0, 128, 64); }
         const ct = new T.CanvasTexture(cc); orphans.push(ct); const cm = new T.SpriteMaterial({ map: ct, transparent: true, depthWrite: false, fog: false, opacity: 0.9 });

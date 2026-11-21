@@ -53,11 +53,27 @@
     ['rich', 'Max money', 'Earn $100M in a career', C => (C.earnings || 0) >= 100],
     ['shoe', 'Signature shoe', 'Land a shoe deal', C => !!(C.endorse && C.endorse.brand)],
     ['hof', 'Hall of Famer', 'Make the Hall of Fame', C => !!(C.retired && C.retired.hof)],
+    ['rimrock', 'Rim rocker', 'Throw down your first dunk', C => !!(C.miles || {}).firstdunk],
+    ['dd', 'Double-double', 'Double figures in two stats', C => !!(C.miles || {}).dd],
+    ['glass', 'Glass eater', 'Grab 15 rebounds in a game', C => (C.highs || {}).reb >= 15],
+    ['general', 'Floor general', 'Hand out 10 assists in a game', C => (C.highs || {}).ast >= 10],
+    ['pickpocket', 'Pickpocket', 'Five steals in a game', C => (C.highs || {}).stl >= 5],
+    ['nofly', 'No-fly zone', 'Five blocks in a game', C => (C.highs || {}).blk >= 5],
+    ['flame', 'Flamethrower', 'Seven threes in a game', C => (C.highs || {}).tpm >= 7],
+    ['powin', 'Second season', 'Win a playoff game', C => !!(C.miles || {}).playoffwin],
+    ['ovr70', 'On the rise', 'Reach 70 overall', C => C.me.ovr >= 70],
+    ['vet', 'Veteran', 'Play five seasons', C => C.year >= 6],
+    ['decade', 'A decade in', 'Play ten seasons', C => C.year >= 11],
+    ['m25', 'Set for life', 'Earn $25M in a career', C => (C.earnings || 0) >= 25],
+    ['fanfav', 'Fan favorite', 'Reach the Fan favorite rank', C => rankOf(C.fans).i >= 3],
+    ['goat', 'The conversation', 'Reach the GOAT rank', C => rankOf(C.fans).i >= RANKS.length - 1],
+    ['badges5', 'Decorated', 'Own five badges', C => Object.values(C.me.badges || {}).filter(t => t > 0).length >= 5],
+    ['case5', 'Trophy case', 'Collect five trophies', C => C.trophies.length >= 5],
   ];
   function achCheck() {
     const got = load('pbb.ach') || {}, fresh = [];
     for (const [k, n, , ok] of ACH) { let v = false; try { v = !!ok(C); } catch (e) { v = false; } if (v && !got[k]) { got[k] = { t: Date.now(), who: PB.full(C.me) }; fresh.push(n); } }
-    if (fresh.length) { store('pbb.ach', got); for (const n of fresh) C.news.unshift(`Achievement: ${n}`); achToast(fresh); }
+    if (fresh.length) { store('pbb.ach', got); C.me.sp = (C.me.sp || 0) + fresh.length;   /* each one is worth a skill point */ for (const n of fresh) C.news.unshift(`Achievement: ${n} (+1 skill point)`); achToast(fresh); }
   }
   /* paper in the team's colors over whatever screen is up: a title is worth it */
   PB.confetti = (colors, sec) => {
@@ -130,7 +146,8 @@
   }
   function achievements() {
     const got = load('pbb.ach') || {};
-    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Achievements</h2><p class="mute">${Object.keys(got).length} of ${ACH.length}, across every career on this device.</p>
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Achievements</h2><p class="mute">${Object.keys(got).length} of ${ACH.length}, across every career on this device. Each one is worth a skill point to the player who earns it.</p>
+      <div class="achbar"><i style="width:${Math.round(Object.keys(got).length / ACH.length * 100)}%"></i></div>
       <div class="achgrid">${ACH.map(([k, n, d]) => `<div class="card ach ${got[k] ? 'got' : ''}"><i>${got[k] ? '★' : '☆'}</i><div><b>${n}</b><span>${d}</span><em>${got[k] ? esc(got[k].who) : 'Not yet'}</em></div></div>`).join('')}</div></div>`);
     $('#bk').onclick = title;
   }
@@ -349,10 +366,11 @@
     show(`<div class="page howto"><button class="back" id="bk">‹ Back</button><h2>How to play</h2>
       <div class="card"><h3>Moving</h3><p>Put your left thumb anywhere on the lower left and drag: the stick appears under it. Push to the edge to sprint (it drains your stamina bar; walking brings it back).</p></div>
       <div class="card"><h3>Shooting</h3><p>Hold <b>Shoot</b> and let go at the top of your jump, when the meter crosses the green band. A quick tap of <b>Shoot</b> is a pump fake: a defender who jumps at it is out of the play. The text after tells you how the release was and how covered you were. Close to the rim it is a layup, a dunk or a floater on the run; a big who goes up contested in the paint shoots a hook, and a jumper drifting away from the rim is a fadeaway (harder to make, harder to contest). Settings › Shot timing makes the band wider or narrower.</p></div>
+      <div class="card"><h3>Dunking</h3><p>At the rim, <b>Shoot</b> is a dunk: standing within a step or two of it, or from further out with a run. A good leaper takes off from further still. With nobody near on a breakaway a flier throws down a windmill, a reverse or a 360. Player › Look picks your dunk (tomahawk, two-hand, windmill) and your celebration.</p></div>
       <div class="card"><h3>Passing and moves</h3><p><b>Pass</b> goes to the teammate under the green arrow: the open man, or the one your stick points at. You can also tap a teammate on the floor to pass straight to him.<br>
-      <b>Move</b>: tap for a crossover, or swipe the button: left or right to cross that way, down for a step-back (room for the jumper), up for a spin to the rim. Near the rim, a sideways swipe is a euro step. A big inside sixteen feet who swipes down posts up instead: back your man down, then shoot a hook over him. <b>Pick</b> (over half court with the ball) calls your big to set a screen on your man, then roll.</p></div>
+      <b>Move</b>: tap for a crossover, or swipe the button: left or right to cross that way, down for a step-back (room for the jumper), up for a spin to the rim. Near the rim, a sideways swipe is a euro step. A big inside sixteen feet who swipes down posts up instead: back your man down, then shoot a hook over him. Moves chain: one inside a second and a half of the last builds a combo that is harder to guard, and beating your man gives you a second of extra speed. <b>Pick</b> (over half court with the ball) calls your big to set a screen on your man, then roll.</p></div>
       <div class="card"><h3>Without the ball</h3><p><b>Call</b> asks for it. <b>Cut</b> runs you to the rim and calls for it; a big enough leaper gets the alley-oop thrown up for him.</p></div>
-      <div class="card"><h3>Defense</h3><p>Slide to stay between your man and the rim: get set in front of a driver and you cut him off. <b>Steal</b> when the button lights up (the ball is on your side, or he is crossing over); a reach at a protected ball is mostly a foul. Every shot you guard is called, from Smothered to Left him open. Lift your thumb and you stay in front of your man by yourself (the red ring). The arrow on the floor in front of him shows where he is going: green while you are between him and the rim, red once he has a step on you. When he shows the ball without going up, it is a fake: stay down. <b>Jump</b> to contest, block and rebound; time it on a shot's way up and you can block it in the air, but touch it on the way down and it is goaltending. <b>Steal</b> to reach (too many reaches is a foul).</p></div>
+      <div class="card"><h3>Defense</h3><p>Slide to stay between your man and the rim: get set in front of a driver and you cut him off. <b>Steal</b> when the button lights up (the ball is on your side, or he is crossing over); a reach at a protected ball is mostly a foul. Every shot you guard is called, from Smothered to Left him open. A hand you get up yourself bothers a shot twice as much, and a block is timing: be near the top of your jump as he lets it go. Lift your thumb and you stay in front of your man by yourself (the red ring). The arrow on the floor in front of him shows where he is going: green while you are between him and the rim, red once he has a step on you. When he shows the ball without going up, it is a fake: stay down. <b>Jump</b> to contest, block and rebound; time it on a shot's way up and you can block it in the air, but touch it on the way down and it is goaltending. <b>Steal</b> to reach (too many reaches is a foul).</p></div>
       <div class="card"><h3>Calling plays</h3><p>Pause and call a play for the next three trips: <b>Get me the ball</b> (the others clear out), <b>Pick-and-roll</b>, or <b>Feed the post</b>. Get hot and the defense will send two at you: pass to the open man.</p></div>
       <div class="card"><h3>The rules</h3><p>Eight seconds to cross half court, no going back over it, three seconds in the lane (a warning comes first), the shot clock. Two fouls in the first quarter, three in the second or four in the third and the coach sits you for the rest of it; six and you are out.</p></div>
       <div class="card"><h3>Your grade and growth</h3><p>Every play moves your teammate grade. The grade, your goals, practice and badges earn skill points; the Player tab spends them (Auto-upgrade does it for you). The coach's trust decides whether you start.</p></div>
@@ -389,15 +407,19 @@
       ${opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock distance')}
       ${opt('gfx', ['High', 'Low'], 'Graphics', 'Low for older phones')}
       ${opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players')}
-      ${opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')}</div>
+      ${opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')}
+      ${opt('fxOn', ['On', 'Off'], 'Comic hit effects', 'BLOCK!, SLAM!, stars')}
+      ${opt('shakeOn', ['On', 'Off'], 'Camera shake', 'on dunks and blocks')}</div>
       <p class="kick">Controls</p><div class="card set">
       ${opt('hand', ['Right-handed', 'Left-handed'], 'Buttons')}
       ${opt('btnSize', ['Normal', 'Large'], 'Button size')}
       ${opt('tapShoot', ['Pump fake', 'Shoot'], 'A quick tap on Shoot', 'a fake, or the shot let go at once')}</div>
+      <button class="ghost" id="retips">Show the first-game tips again<small>the cards that explain each moment the first time it comes up</small></button>
       <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>
       <p class="fine">Settings are kept on this device.</p></div>`);
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
     $('#edteams').onclick = () => editTeams();
+    $('#retips').onclick = () => { try { localStorage.removeItem('pbb.tips'); } catch (e) { /* fine */ } if (PB.Game && PB.Game.resetTips) PB.Game.resetTips(); $('#retips').firstChild.textContent = 'Tips are back on'; };
     scr().querySelectorAll('.seg button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.k, v = b.dataset.v;
       S[k] = isNaN(+v) ? v : +v;
@@ -1738,7 +1760,8 @@
     legs: [[null, 'None'], ['one', 'Leg sleeve'], ['both', 'Both legs'], ['pads', 'Knee pads'], ['tights', 'Tights']],
     goggles: [[null, 'None'], ['black', 'Black'], ['team', 'Team']],
     tat: [[null, 'None'], [1, 'Arm band'], [2, 'Sleeve'], [3, 'Both'], [4, 'Forearm']],
-    celeb: [[null, 'Mixed'], ['flex', 'Flex'], ['roar', 'Roar'], ['goggles', 'Goggles'], ['three', 'Three up'], ['point', 'Point'], ['chest', 'Chest'], ['shrug', 'Shrug'], ['toosmall', 'Too small'], ['ice', 'Ice veins'], ['nightnight', 'Night night'], ['shh', 'Shush']],
+    celeb: [[null, 'Mixed'], ['flex', 'Flex'], ['roar', 'Roar'], ['goggles', 'Goggles'], ['three', 'Three up'], ['point', 'Point'], ['chest', 'Chest'], ['shrug', 'Shrug'], ['toosmall', 'Too small'], ['ice', 'Ice veins'], ['nightnight', 'Night night'], ['shh', 'Shush'], ['wag', 'Finger wag'], ['thump', 'Chest thump']],
+    dunk: [[null, 'Mixed'], ['dunk1', 'Tomahawk'], ['dunk2', 'Two-hand'], ['windmill', 'Windmill', 3]],
     drib: [[null, 'Standard'], ['low', 'Low, quick'], ['high', 'High, loose']],
   };
   function lookEditor(me) {
@@ -1749,7 +1772,7 @@
     return head('Head') + row('face', 'Face') + row('hair', 'Hair') + row('hairColor', 'Hair color') + row('beard', 'Facial hair') + row('band', 'Headband') + row('goggles', 'Goggles')
       + head('Body') + row('build', 'Build') + row('tat', 'Tattoos')
       + head('Gear') + row('sleeve', 'Arm sleeve') + row('tee', 'Undershirt') + row('bicep', 'Bicep band') + row('wrist', 'Wristbands') + row('legs', 'Legs') + row('socks', 'Socks') + row('shoe', 'Shoes') + row('shoeStyle', 'Shoe cut')
-      + head('Your game') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('drib', 'Dribble style') + row('celeb', 'Signature celebration') + '<p class="fine">Your look on the floor from your next game.</p>';
+      + head('Your game') + row('jumper', 'Jump shot (Quick: faster, a little less true · High: slower, harder to contest)') + row('drib', 'Dribble style') + row('dunk', 'Dunk') + row('celeb', 'Signature celebration') + '<p class="fine">Your look on the floor from your next game.</p>';
   }
   function badgeList() {
     return PB.BADGES.map(b => {

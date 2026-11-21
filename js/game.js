@@ -120,13 +120,13 @@
   /* the timeline, live: people watching react to what you just did (not after every play) */
   const HANDLES = ['@hoopsdad_22', '@courtside_kay', '@bucketsonly', '@nightcapnation', '@section_214', '@midrange_mary', '@film_room_fred', '@ankle_tax', '@sixth_man_sam', '@nosebleed_nate', '@tipoff_tess', '@highlight_reel'];
   const REACT = {
-    three: ['From DEEP', 'He is not missing tonight', 'Hand down, man down', 'Splash. Again.', 'Somebody guard him'],
-    dunk: ['OH MY', 'He put him in the rim', 'Rim is still shaking', 'Clip that. Clip it now', 'Sheesh'],
-    Steal: ['Cookies!', 'Pick-pocket', 'Hands everywhere tonight'], 'Picked it off': ['Read it the whole way', 'Free safety out there'],
-    Block: ['Get that out of here', 'Not in his house', 'Sent it to row five'], 'Chase-down block': ['Chased him DOWN', 'Never give up on a play'],
-    Assist: ['What a dime', 'He sees everything', 'Everybody eats'], 'Alley-oop': ['LOB CITY', 'Threw it to the moon'],
-    'Poster dunk': ['POSTER. Frame it', 'Somebody call his family', 'That man has a family'], 'Beat your man': ['Too quick', 'Left him standing there'],
-    pts: ['is cooking', 'has it going', 'cannot be stopped right now', 'is feeling it'],
+    three: ['From DEEP', 'He is not missing tonight', 'Hand down, man down', 'Splash. Again.', 'Somebody guard him', 'That is a bad shot for anyone else', 'Logo range', 'String music', 'He pulled from the parking lot', 'Net never moved'],
+    dunk: ['OH MY', 'He put him in the rim', 'Rim is still shaking', 'Clip that. Clip it now', 'Sheesh', 'Check the stanchion', 'He was up there a while', 'Somebody get the rim a doctor', 'Gravity took the night off', 'Two hands, no doubt'],
+    Steal: ['Cookies!', 'Pick-pocket', 'Hands everywhere tonight', 'Took his lunch', 'Clean as it gets', 'He never saw him'], 'Picked it off': ['Read it the whole way', 'Free safety out there', 'Jumped the lane', 'He knew where that was going'],
+    Block: ['Get that out of here', 'Not in his house', 'Sent it to row five', 'Return to sender', 'Wrong address', 'He timed that perfectly', 'Do not bring that in here'], 'Chase-down block': ['Chased him DOWN', 'Never give up on a play', 'Came from nowhere', 'Off the glass, from behind'],
+    Assist: ['What a dime', 'He sees everything', 'Everybody eats', 'Eyes in the back of his head', 'On a platter', 'That pass had a bow on it'], 'Alley-oop': ['LOB CITY', 'Threw it to the moon', 'Up top, and down hard', 'Just throw it near the rim'],
+    'Poster dunk': ['POSTER. Frame it', 'Somebody call his family', 'That man has a family'], 'Beat your man': ['Too quick', 'Left him standing there', 'He is still looking for him', 'That is a combo', 'Shook him out of his shoes'],
+    pts: ['is cooking', 'has it going', 'cannot be stopped right now', 'is feeling it', 'is putting on a show', 'has the whole building watching', 'is in a different gear tonight'],
   };
   function social(kind, extra) {
     if (!G || G.drill || G.park || !G.user || G.auto || G.switching || G.phase === 'end') return;
@@ -505,7 +505,7 @@
       kind = dunkOk ? 'dunk' : 'layup';
       /* yours: at the rim, Shoot is a dunk every time (standing under it too), not a roll of the dice. Only a player with
          next to no dunking in him (under 35) lays it in */
-      if (forUser && !G.drill && (p.r.dunk || 0) >= 35 && d < (sp > 5 ? 7.5 + clamp(((p.r.vert || 70) - 70) * 0.05, 0, 1.4) : 5.5)) kind = 'dunk';
+      if (forUser && !(G.drill && G.drill.kind !== 'free') && (p.r.dunk || 0) >= 35 && d < (sp > 5 ? 7.5 + clamp(((p.r.vert || 70) - 70) * 0.05, 0, 1.4) : 5.5)) kind = 'dunk';
     } else if (d < 13 && sp > 7 && !isThree(p.x, p.z, p.team)) kind = 'floater';   // a runner on the move: lofted over the bigs
     if (force) kind = force;
     /* yours: a big who goes up contested in the paint shoots a hook; a jumper drifting away from the rim is a fadeaway */
@@ -532,7 +532,8 @@
       /* AI: when it lets go (near the top, a little early or late) */
       aiRel: clamp(0.82 + PB.gauss() * (0.09 - p.r.mid * 0.0006), 0.55, 1.1) };
     if (gather) p.shoot.pickup = { x: G.ball.x - p.x, y: G.ball.y, z: G.ball.z - p.z };
-    p.pose = kind === 'dunk' ? (rand() < 0.55 ? 'dunk1' : 'dunk2') : 'shoot';
+    p.pose = kind === 'dunk' ? ((p.d.look && p.d.look.dunk) || (rand() < 0.55 ? 'dunk1' : 'dunk2')) : 'shoot';
+    if (p.pose === 'windmill') { p.spin = { total: 0, t: 0, T: 2 * T * 0.82 }; p.spinA = 0; }
     /* a breakaway with nobody near: a flier shows off (a windmill, a reverse, a 360) */
     p.showoff = null;
     if (kind === 'dunk' && nearestDef(p).d > 8 && (p.r.dunk || 0) + (p.r.vert || 0) >= 140 && rand() < 0.6) {
@@ -820,8 +821,12 @@
     ['Sprint', 'Push the stick all the way to the edge to run. It drains your stamina; walking brings it back.'],
     ['Shoot', 'Hold Shoot and let go at the top of your jump, when the meter is in the green.'],
     ['Knock one down', 'Make a shot. Closer is easier: walk in toward the rim and try a layup.'],
+    ['Dunk it', 'Walk right up to the rim and hold Shoot. At the rim, Shoot is a dunk.'],
     ['Dribble moves', 'Tap Move for a crossover. Swipe it down for a step-back, up for a spin.'],
+    ['String them together', 'Do two moves back to back, the second right after the first. A combo is harder to guard, and beating your man gives you a burst of speed.'],
     ['The menu', 'Tap Menu at the top left. Every mode, your career and the settings are in there, and the map takes you anywhere in the park.'],
+    ['Around the park', 'Each ring on the floor is something to do: pick-up games to 21, a shooting contest, the dunk contest, drills. The regulars will play you 1 on 1 or a game of HORSE: walk up to one. The doors on the wall are the modes: your career, the blacktop, the classic nights, the daily challenge, the closet for your look.', 1],
+    ['On defense', 'In a game, stay between your man and the rim. Jump as he shoots: a hand up bothers the shot, and a block is timing, near the top of your jump as he lets it go. Steal when the button lights up. Lift your thumb and you stay in front by yourself.', 1],
     ['The wall', 'Every door on the wall is a mode. Walk into the green MY CAREER ring.'],
   ];
   function tutStep(dt) {
@@ -833,14 +838,18 @@
       () => { const w = stickWorld(); if (w && w.m > 0.82) T0.run = (T0.run || 0) + dt; return T0.run > 0.8; },
       () => D.att > T0.att0,
       () => D.made > T0.made0 || D.att - T0.att0 >= 7,
+      () => (u.shoot && u.shoot.kind === 'dunk') || D.att - T0.att0 >= 6,
       () => !!T0.moved,
+      () => (u.comboN || 0) >= 2 && G.t - (u.comboT || -9) < 0.5,
       () => !!T0.menu && !G.paused,
+      () => !!T0.next,
+      () => !!T0.next,
       () => G.parkAt === 'career',
     ][T0.i];
     if (T0.i !== T0.shown) {
-      T0.shown = T0.i; T0.att0 = D.att; T0.made0 = D.made; T0.moved = false;
+      T0.shown = T0.i; T0.att0 = D.att; T0.made0 = D.made; T0.moved = false; T0.next = false; u.comboN = 0;
       const [t, d] = TUT[T0.i];
-      el.innerHTML = `<small>Tutorial · ${T0.i + 1} of ${TUT.length}</small><b>${t}</b><span>${d}</span><button id="tutx">Skip</button>`; el.hidden = false; el.classList.remove('ok'); placeCard();
+      el.innerHTML = `<small>Tutorial · ${T0.i + 1} of ${TUT.length}</small><b>${t}</b><span>${d}</span>${TUT[T0.i][2] ? '<button id="tutn">Next</button>' : ''}<button id="tutx">Skip</button>`; el.hidden = false; if ($('#tutn')) $('#tutn').onclick = () => { T0.next = true; }; el.classList.remove('ok'); placeCard();
       $('#tutx').onclick = () => { T0.done = true; el.hidden = true; placeCard(); if (opts.onTut) opts.onTut(false); };
       R.stationLit && R.stationLit(T0.i === TUT.length - 1 ? 'career' : G.parkAt);
       if (T0.i === TUT.length - 1) { const c0 = PARK.find(x => x.id === 'career'); G.guideXZ = { x: c0.x, z: c0.z, id: 'career' }; }
@@ -853,15 +862,15 @@
     hi: ['You got next?', 'Run it?', 'Who\'s this?', 'New face', 'You hoop?', '1 on 1 me', 'Let\'s get a run', 'Need one more', 'Nice kicks', 'You play for real?', 'Yo, {n}!', 'What\'s good, {n}', '{n} is here', 'Look who showed up', 'You staying a while?', 'Winner stays', 'Court\'s open', 'I got next after you', 'Been here since noon', 'Hot out here today'],
     make: ['Cash!', 'Wet', 'Too easy', 'Cookin\'', 'Splash', 'Okay okay', 'That\'s good', 'Bottoms', 'Net didn\'t move', 'Shooter!', 'Do it again', 'All day'],
     miss: ['Brick!', 'Front rim', 'Airball? Nah', 'Shoot it again', 'Keep shooting', 'Short', 'Left', 'Legs, {n}, legs', 'Off the back iron', 'Next one\'s good'],
-    move: ['Ooh!', 'Handles', 'Stop it', 'Ankles!', 'Yo chill', 'He got a bag', 'Shifty'],
+    move: ['Ooh!', 'Handles', 'Stop it', 'Ankles!', 'Yo chill', 'He got a bag', 'Shifty', 'Combo!', 'Too smooth', 'Slow down, {n}', 'Where\'d he go?'],
     streak: ['He can\'t miss!', 'Somebody guard {n}', 'That\'s three straight', 'Heat check!', 'Get him a contract'],
-    dunk: ['OHHH!', 'Put it DOWN', 'Rim\'s gonna break', 'He\'s got bounce', 'Do that in a game'],
+    dunk: ['OHHH!', 'Put it DOWN', 'Rim\'s gonna break', 'He\'s got bounce', 'Do that in a game', 'Hang on it!', '{n} got hops', 'That rim owe you money?', 'Again! Again!'],
   };
   /* the regulars talk to each other too: one says something, another answers */
   const BANTER = [['You see the game last night?', 'Don\'t remind me'], ['I\'m nice from the corner', 'You\'re nice from the bench'], ['Who\'s got ball?', 'Shoot for it'], ['That was a foul', 'Call your own'], ['Run it back', 'After water'],
     ['My knees, man', 'Stretch first, old head'], ['Next point wins', 'It was next point ten minutes ago'], ['You owe me a drink', 'Double or nothing'], ['I had 30 in high school', 'Against who?'], ['Pass the ball sometimes', 'Get open sometimes'],
     ['These rims are tight', 'It\'s not the rims'], ['Who\'s the new kid?', 'He can play a little'], ['Lights come on at eight', 'Then we go till eight'], ['New shoes?', 'Don\'t step on them'], ['You hooping tomorrow?', 'Every day'],
-    ['I\'m taking {n} first', 'Then I got {n} next'], ['Shirts or skins?', 'Shirts. Always shirts'], ['Check ball', 'Ball\'s in'], ['That boombox still work?', 'Louder than you'], ['Somebody sweep the court', 'Not it']];
+    ['I\'m taking {n} first', 'Then I got {n} next'], ['Shirts or skins?', 'Shirts. Always shirts'], ['Check ball', 'Ball\'s in'], ['That boombox still work?', 'Louder than you'], ['Somebody sweep the court', 'Not it'], ['Those kids on the boards again', 'Better than you on a board'], ['You see that kickflip?', 'I saw him fall after'], ['Cart guy got the good pretzels', 'After this game'], ['{n} been dunking on everybody', 'Not on me'], ['Hand down, man down', 'You never have a hand up'], ['First to 21?', 'Win by two']];
   /* walk up and talk to one: he has a tip, or something on his mind */
   const TALK = ['Pull the stick away from the rim when you shoot. Fadeaway. Can\'t block it', 'Let go at the top of the jump. That\'s the whole secret', 'Swipe Move down for a step-back. Works on me every time', 'Don\'t sprint everywhere. Legs go, the jumper goes',
     'Big men: back him down, then turn. Hook or the turnaround', 'The gym door resets every day. Do your workouts', 'Spin the wheel by the far fence. Free stuff, every day', 'Daily\'s different every day. I never miss it',
@@ -3242,6 +3251,7 @@
       raf = requestAnimationFrame(loop);
     },
     /* test hooks */
+    resetTips: () => { seenTips = {}; },
     dbg: { state: () => G, opts: () => opts, hoopZ, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
       auto: on => { G.auto = on; },
       replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },

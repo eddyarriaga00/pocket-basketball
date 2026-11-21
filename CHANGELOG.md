@@ -4,6 +4,13 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The park has more going on outside the fence: people walking the sidewalk, kids on skateboards who carve along and pop the board (not in the snow), a grind rail and a kicker ramp down the block, a cart with an umbrella in the home color and its vendor, and a few birds wheeling overhead by day.
+- Sixteen more achievements (first dunk, double-double, 15 rebounds, 10 assists, five steals, five blocks, seven threes, a playoff win, 70 overall, five and ten seasons, $25M, the Fan favorite and GOAT ranks, five badges, five trophies), a bar on the page showing how far along you are, and every achievement is now worth a skill point.
+- Your look: pick your dunk (tomahawk, two-hand, or the windmill from the Fan favorite rank) and two more signature celebrations (finger wag, chest thump).
+- Settings: comic hit effects and camera shake can each be switched off, and a button brings the first-game tips back.
+- The tutorial is eleven steps, up from seven: it now teaches the dunk and the dribble combo and walks you round the park and through defense. How to play has a Dunking card and covers combos and timed blocks.
+- More lines: about forty new reactions on the timeline, in the park and between the regulars.
+- In the park you can now dunk standing at the rim too (the rule added for games did not cover it).
 - Comic-book hits: a spiked burst with a word in it pops where a block (BLOCK!, NOPE!, SWAT! on a chase-down), a steal, a picked-off pass or a dunk lands; a small plain burst where a defender gets a hand into a shot; stars go round the head of a man put on the floor. A blocked ball is swatted harder and the game holds a beat longer on it.
 - Your defense counts for more: a hand you get up yourself bothers the shot twice as much as before, and your blocks are a matter of timing (up near the top of your jump as he lets it go), on jump shots too.
 - Dribbling: moves chain much sooner (a crossover is ready again in about half a second instead of over a second), moves strung together build a combo that is harder to stay in front of, and beating your man gives a second of extra speed with dust at your heels.
