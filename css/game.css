@@ -54,8 +54,14 @@ input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--panel
 #feed div.old{opacity:0}
 #toast{position:absolute;left:0;right:0;top:34%;text-align:center;font-family:var(--display);font-weight:900;font-size:34px;letter-spacing:.02em;
   color:#fff;text-shadow:0 3px 18px rgba(0,0,0,.6);opacity:0;transform:scale(.8);transition:opacity .2s,transform .2s;pointer-events:none;font-stretch:115%}
-#toast.on{opacity:1;transform:scale(1)}
-#toast.make{color:var(--acc)}#toast.opp{color:#ff8f9b;font-size:22px}#toast.blk{color:#7fd0ff}#toast.call{font-size:18px;color:var(--green)}#toast.judge{font-size:24px;color:var(--acc)}#toast.judge.miss{color:#ff8f9b}
+#toast.on{opacity:1;transform:scale(1) rotate(-2deg);animation:toastpop .3s cubic-bezier(.2,1.7,.4,1)}
+@keyframes toastpop{0%{transform:scale(.45) rotate(-7deg)}100%{transform:scale(1) rotate(-2deg)}}
+#toast{font-style:italic;text-shadow:2px 0 0 #0b0b0d,-2px 0 0 #0b0b0d,0 2px 0 #0b0b0d,0 -2px 0 #0b0b0d,2px 2px 0 #0b0b0d,-2px 2px 0 #0b0b0d,2px -2px 0 #0b0b0d,-2px -2px 0 #0b0b0d,0 5px 0 #0b0b0d,0 9px 20px rgba(0,0,0,.55)}
+#quip{position:absolute;left:50%;top:calc(34% + 58px);transform:translate(-50%,8px);width:max-content;max-width:calc(100% - 56px);padding:7px 14px;border-radius:14px 14px 14px 4px;background:rgba(10,10,14,.9);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:13px;line-height:1.25;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:2}
+#quip b{font-family:var(--display);font-weight:900;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-right:8px}
+#quip.on{opacity:1;transform:translate(-50%,0)}
+#game.show #quip,#game.cine #quip,#game.park #quip{display:none}
+#toast.make{color:var(--acc)}#toast.opp{color:#ff8f9b;font-size:22px}#toast.blk{color:#7fd0ff}#toast.call{left:50%;right:auto;width:max-content;max-width:calc(100% - 48px);padding:9px 16px;border-radius:18px;background:rgba(10,10,14,.92);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:15px;font-style:normal;font-stretch:100%;font-weight:800;line-height:1.25;text-shadow:none;transform:translate(-50%,8px)}#toast.call.on{animation:none;transform:translate(-50%,0)}#toast.judge{font-size:24px;color:var(--acc)}#toast.judge.miss{color:#ff8f9b}
 #rel{position:absolute;left:0;right:0;top:42%;text-align:center;font-family:var(--display);font-weight:800;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none}
 #rel.on{opacity:1}#rel.g{color:var(--green)}#rel.y{color:#fff}#rel.r{color:#ff8f9b}
 #ftmsg{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:rgba(8,8,10,.85);padding:6px 14px;border-radius:999px;font-weight:700;font-size:13px;pointer-events:none}
@@ -325,7 +331,7 @@ input[type=color]{height:44px;padding:4px}
 }
 /* play calls in the pause menu */
 .plays{margin:4px 0 8px;text-align:left}.plays b{display:block;font-size:12px;margin-bottom:6px}.plays b small{color:var(--mute);font-weight:500;margin-left:6px}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.row3 button{margin:0;padding:10px 4px;font-size:12px}.plays .row3{margin-bottom:10px}.plays .row3.r2{grid-template-columns:1fr 1fr}.plays button.on{background:#fff;color:#000;border-color:#fff}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.row3 button{margin:0;padding:10px 4px;font-size:12px}.plays .row3{margin-bottom:10px}.plays .row3.r2{grid-template-columns:1fr 1fr}.plays button.on{background:#fff;color:#000;border-color:#fff}.plays details.pcat{margin:0 0 6px;padding:0 10px;border-radius:12px}.plays details.pcat summary{font-size:13px;padding:10px 0}.plays details.pcat summary small{color:var(--mute);font-weight:500;margin-left:8px;font-size:11px}.plays details.pcat .row3{margin-bottom:10px}.plays details.pcat button{color:var(--ink)}.plays details.pcat button.on{color:#000}.plays .pdh{margin-top:12px}
 .pline{margin:0 0 10px;font-size:13px;color:var(--mute)}.pline b{color:var(--ink);font-family:var(--display);font-size:16px}
 /* the title over the 3D arena */
 .title.t3d{background:linear-gradient(180deg,rgba(9,9,11,.75) 0%,rgba(9,9,11,.15) 24%,rgba(9,9,11,0) 36%,rgba(9,9,11,.25) 52%,rgba(9,9,11,.88) 64%,var(--bg) 78%)}

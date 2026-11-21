@@ -4,6 +4,11 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The play book is 115 plays and 16 defenses. A play is now a formation, a man it is for, a screener and an action, so "Horns", "Floppy", "Elevator doors", "Spain pick", "UCLA cut", "Hammer", "Pistol", "Four corners" and the rest each put the five in different places and send the ball to a different man. Isolations and post-ups for every position, picks with either big, pin-downs and flares, backdoors, the give and go, handoffs and the weave, eleven formations. On defense: 2-3, 3-2 and 1-3-1 zones, box and one, traps, deny or double their scorer, gamble, no fouls, no threes, wall the rim. The pause menu files them under headings.
+- The opening is three camera shots where it was one sweep: a crane down from the rafters, a slide along the baseline at floor level, a jib swinging round center court, then the push in on you.
+- The coach and your teammates say something about what you just did, now and then: a line under the call after a three, a dime, a steal, a bad shot, getting crossed.
+- More cartoon: the points float up off the rim, stars fly off a dunk and a block, speech bubbles over a man who bit on a fake, and words for more of what you do (DIME!, ANKLES!, SHOOK!, CLAMPS!, BOARD!, AND 1!, HOT!). What is done to you comes in black.
+- The big calls on screen are drawn like a comic caption (outlined, tilted, popping in), with more words for a make than SPLASH and BUCKET; the small ones sit in a pill.
 - The play book: twelve plays on offense where there were three (pick-and-pop, five out, cutters, find the shooter, handoff, screen for me, drive and kick, push the pace, slow it down), and four calls on defense (press up, pack the paint, double the ball, full-court press). Pause to call one for three trips; tap it again to call it off.
 - Both benches call plays by themselves about every other trip, so the computer's offense is no longer the same look each time down.
 - A slightly quicker game: players move a touch faster, the computer decides sooner with the ball, inbounds and dead balls take less time. About a tenth more trips in a game.

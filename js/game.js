@@ -42,37 +42,207 @@
     [[5, 5], [-5, 5], [0, 15]],
   ];
 
-  /* ---------- the play book: what you can call from the pause menu (three trips each), and what the benches call by
-     themselves when you have called nothing ---------- */
-  const PLAYS = {
-    iso: ['Get me the ball', 'Everyone clears out. It is yours'],
-    pnr: ['Pick-and-roll', 'The big screens, then rolls to the rim'],
-    pnp: ['Pick-and-pop', 'The big screens, then steps out for the jumper'],
-    post: ['Feed the post', 'The ball goes down to the big on the block'],
-    five: ['Five out', 'All five behind the arc. The lane is empty'],
-    cut: ['Cutters', 'Teammates keep cutting to the rim. Hit them'],
-    shoot: ['Find the shooter', 'Your best shooter runs free. Get it to him'],
-    hand: ['Handoff', 'A wing comes to the ball and takes it going downhill'],
-    screen: ['Screen for me', 'Off the ball, a big frees you from your man'],
-    drive: ['Drive and kick', 'Shooters in the corners, a big by the rim'],
-    fast: ['Push the pace', 'Run. Early shots, early drives'],
-    slow: ['Slow it down', 'Work the clock, then go late'],
+  /* ---------- the play book ----------
+     A play is data: where the five stand (a formation), who it is for, who screens, and what happens (the kind:
+     an isolation, a ball screen, a post-up, a shot off a screen, a cut, a handoff, a drive, a tempo). You call one from
+     the pause menu for three trips; when you have called nothing the benches call their own. */
+  const mir = F => F.map(k => [-k[0], k[1]]);
+  const FORM = {
+    five: [[0, 27], [-17.5, 21.5], [17.5, 21.5], [-22.5, 3.5], [22.5, 3.5]],
+    four1: [[0, 27], [-18, 20], [18, 20], [-22.5, 3.5], [6, 6]],
+    horns: [[0, 28], [-22, 4], [22, 4], [-8, 17], [8, 17]],
+    high14: [[0, 29], [-20, 17], [20, 17], [-7, 17], [7, 17]],
+    low14: [[0, 29], [-22, 3.5], [22, 3.5], [-7, 4], [7, 4]],
+    box: [[0, 28], [-7, 5], [7, 5], [-7, 16], [7, 16]],
+    tri: [[-8, 26], [17, 20], [22, 4], [-15, 17], [8, 7]],
+    three2: [[0, 27], [-18, 20], [18, 20], [-7, 6], [7, 6]],
+    spread: [[0, 28], [-21, 12], [21, 12], [-22.5, 3.5], [22.5, 3.5]],
+    stack: [[0, 28], [8, 5], [18, 20], [8, 8.5], [-7, 6]],
+    overR: [[6, 27], [19, 19], [22.5, 4], [-16, 20], [8, 7]],
+    corners: [[0, 30], [-22, 22], [22, 22], [-22, 4], [22, 4]],
+    awayR: [[8, 27], [19, 20], [22.5, 4], [12, 10], [6, 5]],
+    sideR: [[16, 21], [-18, 20], [-22.5, 4], [0, 27], [9, 14]],
+    emptyR: [[14, 23], [-18, 20], [-22.5, 4], [-5, 27], [8, 16]],
+    drag: [[0, 30], [-22.5, 4], [22.5, 4], [-5, 25], [5, 25]],
+    spain: [[0, 29], [-22.5, 4], [0, 14], [22.5, 4], [4, 24]],
+    pistol: [[-14, 24], [-21, 14], [22.5, 4], [18, 20], [-4, 26]],
+    chicago: [[0, 28], [-22, 5], [22, 4], [-14, 12], [6, 24]],
+    hilo: [[0, 28], [-22, 5], [22, 5], [0, 16], [6, 5]],
   };
-  const DPLAYS = {
-    tight: ['Press up', 'Everybody up in their man. Risky against drivers'],
-    sag: ['Pack the paint', 'Sag off and wall the lane. Gives up jumpers'],
-    dbl: ['Double the ball', 'A second man goes at the handler. Someone is open'],
-    press: ['Full-court press', 'Pick them up as soon as they have it'],
+  FORM.overL = mir(FORM.overR); FORM.awayL = mir(FORM.awayR); FORM.sideL = mir(FORM.sideR); FORM.emptyL = mir(FORM.emptyR);
+  const BOOK = [], CATS = ['Isolation', 'Pick-and-roll', 'Post', 'Shooters', 'Cuts', 'Handoffs', 'Sets', 'Drives', 'Tempo'];
+  { const a = (cat, id, name, hint, kind, o) => BOOK.push(Object.assign({ cat, id, name, hint, kind }, o));
+    const POS = ['the point', 'the two', 'the three', 'the four', 'the five'];
+    a('Quick', 'iso', 'Get me the ball', 'Everyone clears out. It is yours', 'iso');
+    a('Quick', 'pnr', 'Pick-and-roll', 'The big screens, then rolls to the rim', 'pnr');
+    a('Quick', 'pnp', 'Pick-and-pop', 'The big screens, then steps out for the jumper', 'pnp');
+    a('Quick', 'post', 'Feed the post', 'The ball goes down to the big on the block', 'post');
+    a('Quick', 'five', 'Five out', 'All five behind the arc. The lane is empty', 'five');
+    a('Quick', 'cut', 'Cutters', 'Teammates keep cutting to the rim. Hit them', 'cut');
+    a('Quick', 'shoot', 'Find the shooter', 'Your best shooter runs free. Get it to him', 'shoot');
+    a('Quick', 'hand', 'Handoff', 'A wing comes to the ball and takes it going downhill', 'hand');
+    a('Quick', 'screen', 'Screen for me', 'Off the ball, a big frees you from your man', 'screen');
+    a('Quick', 'drive', 'Drive and kick', 'Shooters in the corners, a big by the rim', 'drive');
+    a('Quick', 'fast', 'Push the pace', 'Run. Early shots, early drives', 'fast');
+    a('Quick', 'slow', 'Slow it down', 'Work the clock, then go late', 'slow');
+    /* isolation */
+    a('Isolation', 'iso_top', 'Iso up top', 'You at the top, four flat along the baseline', 'iso', { who: 'u', f: 'low14', at: [0, 25] });
+    a('Isolation', 'iso_lw', 'Iso left wing', 'The left side is yours. Everyone else goes right', 'iso', { who: 'u', f: 'awayR', at: [-16, 20] });
+    a('Isolation', 'iso_rw', 'Iso right wing', 'The right side is yours. Everyone else goes left', 'iso', { who: 'u', f: 'awayL', at: [16, 20] });
+    a('Isolation', 'iso_le', 'Iso left elbow', 'You at the left elbow with room to work', 'iso', { who: 'u', f: 'awayR', at: [-8, 15] });
+    a('Isolation', 'iso_re', 'Iso right elbow', 'You at the right elbow with room to work', 'iso', { who: 'u', f: 'awayL', at: [8, 15] });
+    [[0, 25], [-16, 20], [16, 20], [-8, 15], [8, 15]].forEach((at, i) => a('Isolation', 'iso_' + (i + 1), 'Iso ' + POS[i], 'Clear out for ' + POS[i] + '. He goes one on one', 'iso', { who: i, f: i === 0 ? 'low14' : at[0] < 0 ? 'awayR' : 'awayL', at }));
+    a('Isolation', 'iso_star', 'Iso the scorer', 'The hot hand gets it with the floor cleared', 'iso', { who: 'x', f: 'low14', at: [0, 25] });
+    a('Isolation', 'iso_hold', 'Hold for one', 'Run the clock down, then it is yours', 'iso', { who: 'u', f: 'low14', at: [0, 27], slow: true });
+    /* the ball screen */
+    a('Pick-and-roll', 'pnr_high', 'High pick-and-roll', 'The five screens up top with four spread around', 'pnr', { scr: 4, f: 'four1' });
+    a('Pick-and-roll', 'pnr_hpop', 'High pick-and-pop', 'The five screens up top and pops to the line', 'pnp', { scr: 4, f: 'five' });
+    a('Pick-and-roll', 'pnr_sl', 'Side pick, left', 'The ball goes to the left wing and the big comes over', 'pnr', { who: 0, scr: 4, f: 'sideL', at: [-16, 21] });
+    a('Pick-and-roll', 'pnr_sr', 'Side pick, right', 'The ball goes to the right wing and the big comes over', 'pnr', { who: 0, scr: 4, f: 'sideR', at: [16, 21] });
+    a('Pick-and-roll', 'pnr_horns', 'Horns', 'Both bigs at the elbows. The five screens and rolls', 'pnr', { scr: 4, f: 'horns' });
+    a('Pick-and-roll', 'pnr_hornp', 'Horns pop', 'Both bigs at the elbows. The four screens and pops', 'pnp', { scr: 3, f: 'horns' });
+    a('Pick-and-roll', 'pnr_spread', 'Spread pick', 'Shooters wide, the lane open for the roll', 'pnr', { scr: 4, f: 'spread' });
+    a('Pick-and-roll', 'pnr_el', 'Empty corner, left', 'Pick on the left with nobody in that corner to help', 'pnr', { who: 0, scr: 4, f: 'emptyL', at: [-14, 23] });
+    a('Pick-and-roll', 'pnr_er', 'Empty corner, right', 'Pick on the right with nobody in that corner to help', 'pnr', { who: 0, scr: 4, f: 'emptyR', at: [14, 23] });
+    a('Pick-and-roll', 'pnr_4', 'Pick with the four', 'The power forward sets it and rolls', 'pnr', { scr: 3 });
+    a('Pick-and-roll', 'pnp_4', 'Pop with the four', 'The power forward sets it and steps out', 'pnp', { scr: 3 });
+    a('Pick-and-roll', 'pnr_drag', 'Double drag', 'Both bigs wait up top as the ball comes up', 'pnr', { scr: 4, f: 'drag', fast: true });
+    a('Pick-and-roll', 'pnr_step', 'Step-up screen', 'The big steps up on the wing, toward the baseline', 'pnr', { who: 0, scr: 4, f: 'sideR', at: [17, 17] });
+    a('Pick-and-roll', 'pnr_slip', 'Slip the screen', 'The big shows the screen and dives early', 'pnr', { scr: 4, slip: true });
+    a('Pick-and-roll', 'pnr_spain', 'Spain pick', 'A shooter waits behind the roll, then pops up top', 'pnr', { scr: 4, f: 'spain' });
+    a('Pick-and-roll', 'pnr_14', '1-4 high pick', 'Four across the foul line, then the five screens', 'pnr', { scr: 4, f: 'high14' });
+    a('Pick-and-roll', 'pnr_2', 'Pick for the two', 'The shooting guard gets it and the screen', 'pnr', { who: 1, scr: 4, at: [-15, 22] });
+    a('Pick-and-roll', 'pnr_3', 'Pick for the three', 'The small forward gets it and the screen', 'pnr', { who: 2, scr: 4, at: [15, 22] });
+    a('Pick-and-roll', 'pnr_gg', 'Guard screen', 'The two screens for the point, then pops', 'pnp', { who: 0, scr: 1 });
+    a('Pick-and-roll', 'pnr_me', 'Pick-and-roll for me', 'You get the ball, then the screen', 'pnr', { who: 'u' });
+    a('Pick-and-roll', 'pnp_me', 'Pick-and-pop for me', 'You get the ball, the big screens and pops', 'pnp', { who: 'u' });
+    a('Pick-and-roll', 'pnr_early', 'Early drag', 'A screen in transition before the defense is set', 'pnr', { scr: 4, fast: true });
+    /* the post */
+    a('Post', 'post_l', 'Post the five, left', 'The center on the left block', 'post', { who: 4, at: [-7, 6] });
+    a('Post', 'post_r', 'Post the five, right', 'The center on the right block', 'post', { who: 4, at: [7, 6] });
+    a('Post', 'post_4l', 'Post the four, left', 'The power forward on the left block', 'post', { who: 3, at: [-7, 6] });
+    a('Post', 'post_4r', 'Post the four, right', 'The power forward on the right block', 'post', { who: 3, at: [7, 6] });
+    a('Post', 'post_3', 'Post the three', 'The small forward takes his man down low', 'post', { who: 2, at: [7, 6] });
+    a('Post', 'post_2', 'Post the two', 'The shooting guard takes his man down low', 'post', { who: 1, at: [-7, 6] });
+    a('Post', 'post_1', 'Post the point', 'The point guard backs his man down', 'post', { who: 0, at: [7, 7] });
+    a('Post', 'post_me', 'Post me up', 'Get to the block. The ball finds you there', 'post', { who: 'u', at: [7, 6] });
+    a('Post', 'post_high', 'High post', 'The five catches at the elbow', 'post', { who: 4, at: [7, 15] });
+    a('Post', 'post_41', 'Four around one', 'The five inside, four shooters around him', 'post', { who: 4, f: 'four1', at: [6, 6] });
+    a('Post', 'post_tri', 'Triangle', 'Corner, wing and post on one side', 'post', { who: 4, f: 'tri', at: [8, 7] });
+    a('Post', 'post_hilo', 'High-low', 'The four at the foul line feeds the five under', 'post', { who: 4, f: 'hilo', at: [6, 5] });
+    a('Post', 'post_duck', 'Duck in', 'Your best big seals in front of the rim', 'post', { who: 'b', at: [0, 6] });
+    /* shots off screens */
+    a('Shooters', 'sh_pin2', 'Pin-down, two', 'The five screens down for the shooting guard', 'shoot', { who: 1, scr: 4, at: [-17, 20] });
+    a('Shooters', 'sh_pin3', 'Pin-down, three', 'The five screens down for the small forward', 'shoot', { who: 2, scr: 4, at: [17, 20] });
+    a('Shooters', 'sh_fl2', 'Flare, two', 'The two fades to the left side off the four', 'shoot', { who: 1, scr: 3, at: [-21, 12] });
+    a('Shooters', 'sh_fl3', 'Flare, three', 'The three fades to the right side off the four', 'shoot', { who: 2, scr: 3, at: [21, 12] });
+    a('Shooters', 'sh_floppy', 'Floppy', 'Your shooter starts under the rim and runs off a big', 'shoot', { who: 's', scr: 4, f: 'box', at: [18, 19] });
+    a('Shooters', 'sh_elev', 'Elevator doors', 'The shooter runs up the middle between two bigs', 'shoot', { who: 's', scr: 4, f: 'box', at: [0, 26] });
+    a('Shooters', 'sh_hammer', 'Hammer', 'A back screen frees the three in the far corner', 'shoot', { who: 2, scr: 3, at: [22.5, 3.5] });
+    a('Shooters', 'sh_stag', 'Stagger', 'The shooter comes off two screens to the wing', 'shoot', { who: 's', scr: 3, f: 'stack', at: [-18, 20] });
+    a('Shooters', 'sh_cl', 'Corner three, left', 'Your shooter in the left corner', 'shoot', { who: 's', f: 'four1', at: [-22.5, 3.5] });
+    a('Shooters', 'sh_cr', 'Corner three, right', 'Your shooter in the right corner', 'shoot', { who: 's', f: 'four1', at: [22.5, 3.5] });
+    a('Shooters', 'sh_top', 'Shooter up top', 'Your shooter lifts to the top of the arc', 'shoot', { who: 's', at: [0, 26.5] });
+    a('Shooters', 'sh_mepin', 'Pin-down for me', 'A big screens your man. Come up to the wing', 'screen', { who: 'u', scr: 4 });
+    a('Shooters', 'sh_mefl', 'Flare for me', 'The four screens your man. Fade to the side', 'screen', { who: 'u', scr: 3 });
+    a('Shooters', 'sh_4', 'Stretch four', 'The power forward spots up in the corner', 'shoot', { who: 3, at: [-22.5, 3.5] });
+    a('Shooters', 'sh_5', 'Trail three', 'The five trails the play to the top of the arc', 'shoot', { who: 4, at: [0, 26.5] });
+    a('Shooters', 'sh_zip', 'Zipper', 'The two comes straight up the lane off the five', 'shoot', { who: 1, scr: 4, f: 'box', at: [0, 25] });
+    a('Shooters', 'sh_iver', 'Iverson cut', 'The two runs over both elbows to the far wing', 'shoot', { who: 1, scr: 3, f: 'high14', at: [18, 20] });
+    /* cuts */
+    a('Cuts', 'cut_gng', 'Give and go', 'Pass, then cut hard for the return', 'gng');
+    a('Cuts', 'cut_bl', 'Backdoor, two', 'The shooting guard goes behind his man', 'cut', { who: 1 });
+    a('Cuts', 'cut_br', 'Backdoor, three', 'The small forward goes behind his man', 'cut', { who: 2 });
+    a('Cuts', 'cut_ucla', 'UCLA cut', 'The point passes to the wing and cuts off the high post', 'cut', { who: 0, f: 'high14' });
+    a('Cuts', 'cut_flex', 'Flex', 'The three cuts along the baseline off a screen', 'cut', { who: 2, f: 'box' });
+    a('Cuts', 'cut_prin', 'Princeton', 'Bigs high, and the two cuts backdoor', 'cut', { who: 1, f: 'high14' });
+    a('Cuts', 'cut_5', 'Five to the rim', 'The center dives. Throw it up to him', 'cut', { who: 4 });
+    a('Cuts', 'cut_4', 'Four dives', 'The power forward dives from the wing', 'cut', { who: 3 });
+    a('Cuts', 'cut_base', 'Baseline cut', 'The three slides along the baseline from the corner', 'cut', { who: 2, f: 'four1' });
+    a('Cuts', 'cut_split', 'Split cuts', 'Out of the triangle, everybody cuts off the post', 'cut', { f: 'tri' });
+    a('Cuts', 'cut_motion', 'Motion', 'Pass, cut, fill. Nobody stands still', 'cut', { f: 'three2' });
+    /* handoffs */
+    a('Handoffs', 'hand_2', 'Handoff, two', 'The shooting guard comes to take it', 'hand', { who: 1 });
+    a('Handoffs', 'hand_3', 'Handoff, three', 'The small forward comes to take it', 'hand', { who: 2 });
+    a('Handoffs', 'hand_4', 'Handoff, four', 'The power forward comes to take it', 'hand', { who: 3 });
+    a('Handoffs', 'hand_me', 'Handoff for me', 'Run to the ball. It is handed to you', 'hand', { who: 'u' });
+    a('Handoffs', 'hand_pistol', 'Pistol', 'A quick handoff on the left wing', 'hand', { who: 1, f: 'pistol' });
+    a('Handoffs', 'hand_chi', 'Chicago', 'A screen down, then a handoff on the move', 'hand', { who: 1, f: 'chicago' });
+    a('Handoffs', 'hand_weave', 'Weave', 'Handoff after handoff until someone turns the corner', 'hand', { again: true });
+    /* formations */
+    a('Sets', 'set_41', 'Four out, one in', 'Four on the arc, the five by the rim', 'set', { f: 'four1' });
+    a('Sets', 'set_horns', 'Horns set', 'Bigs at the elbows, wings in the corners', 'set', { f: 'horns' });
+    a('Sets', 'set_14h', '1-4 high', 'Four across the foul line', 'set', { f: 'high14' });
+    a('Sets', 'set_14l', '1-4 low', 'Four flat along the baseline', 'set', { f: 'low14' });
+    a('Sets', 'set_box', 'Box', 'Two on the blocks, two at the elbows', 'set', { f: 'box' });
+    a('Sets', 'set_tri', 'Triangle set', 'Corner, wing and post on the right', 'set', { f: 'tri' });
+    a('Sets', 'set_32', 'Three out, two in', 'Three on the arc, both bigs inside', 'set', { f: 'three2' });
+    a('Sets', 'set_spread', 'Spread', 'Everyone wide, as far from the lane as it gets', 'set', { f: 'spread' });
+    a('Sets', 'set_ol', 'Overload left', 'Four on the left side of the floor', 'set', { f: 'overL' });
+    a('Sets', 'set_or', 'Overload right', 'Four on the right side of the floor', 'set', { f: 'overR' });
+    a('Sets', 'set_stack', 'Stack', 'Two stacked on the right block', 'set', { f: 'stack' });
+    /* drives */
+    a('Drives', 'dr_1', 'Downhill, point', 'The point guard puts his head down and goes', 'drive', { who: 0 });
+    a('Drives', 'dr_2', 'Downhill, two', 'The shooting guard attacks from the wing', 'drive', { who: 1, at: [-16, 21] });
+    a('Drives', 'dr_3', 'Downhill, three', 'The small forward attacks from the wing', 'drive', { who: 2, at: [16, 21] });
+    a('Drives', 'dr_me', 'Clear the lane', 'You get it with all four behind the line', 'drive', { who: 'u', f: 'five' });
+    a('Drives', 'dr_ddm', 'Dribble drive', 'Four out, attack the gaps, the five waits for the dump-off', 'drive', { f: 'four1' });
+    a('Drives', 'dr_swing', 'Drive, kick, swing', 'Five out. Drive, kick it, and keep it moving', 'drive', { f: 'five' });
+    /* tempo */
+    a('Tempo', 't_7', 'Seven seconds', 'Five out and the first good look goes up', 'fast', { f: 'five' });
+    a('Tempo', 't_241', 'Two for one', 'Shoot early so you get the ball back before the horn', 'fast');
+    a('Tempo', 't_4c', 'Four corners', 'Spread to the corners and make them chase', 'slow', { f: 'corners' });
+    a('Tempo', 't_last', 'Last shot', 'Hold it high, then go with the clock nearly gone', 'slow', { f: 'high14' });
+  }
+  const PLAYS = {}; for (const b of BOOK) PLAYS[b.id] = [b.name, b.hint];
+  const ZONES = { z23: [[-9, 17], [9, 17], [-14, 6], [14, 6], [0, 4.5]], z32: [[0, 21], [-14, 16], [14, 16], [-7, 5], [7, 5]], z131: [[0, 23], [-14, 13], [14, 13], [0, 13], [0, 4.5]], box: [[-7, 15], [7, 15], [-7, 5], [7, 5]] };
+  const DBOOK = {
+    tight: { name: 'Press up', hint: 'Everybody up in their man. Risky against drivers', on: 0.86, off: 'tight' },
+    sag: { name: 'Pack the paint', hint: 'Sag off and wall the lane. Gives up jumpers', on: 1.25, off: 'sag' },
+    dbl: { name: 'Double the ball', hint: 'A second man goes at the handler. Someone is open', dbl: 'all' },
+    press: { name: 'Full-court press', hint: 'Pick them up as soon as they have it', on: 0.86, off: 'tight', press: true },
+    z23: { name: '2-3 zone', hint: 'Two up top, three along the baseline. Guards the paint', zone: 'z23' },
+    z32: { name: '3-2 zone', hint: 'Three on the arc, two under. Guards the line', zone: 'z32' },
+    z131: { name: '1-3-1 zone', hint: 'Long arms in every passing lane. Weak in the corners', zone: 'z131' },
+    box1: { name: 'Box and one', hint: 'Four in a box, one man glued to their scorer', zone: 'box', one: true, deny: true },
+    deny: { name: 'Deny the scorer', hint: 'Their best scorer does not catch it easily', deny: true },
+    dblstar: { name: 'Double the scorer', hint: 'Two go at their best scorer whenever he has it', dbl: 'star' },
+    trap: { name: 'Half-court trap', hint: 'Two jump the ball as it crosses half court', dbl: 'trap' },
+    ptrap: { name: 'Full-court trap', hint: 'Press, and trap the ball wherever it is', on: 0.86, off: 'tight', press: true, dbl: 'full' },
+    gamble: { name: 'Gamble for steals', hint: 'Hands in every lane. More steals, more fouls', steal: 1.6, foul: 1.5, on: 0.9 },
+    nofoul: { name: 'No fouls', hint: 'Hands back and feet set. Fewer fouls, softer defense', foul: 0.45, on: 1.12 },
+    nothree: { name: 'No threes', hint: 'Stay attached to everyone behind the line', off3: true },
+    wall: { name: 'Wall the rim', hint: 'Your five never leaves the lane', wall: true },
   };
-  const CPUPLAYS = ['pnr', 'pnr', 'pnp', 'five', 'cut', 'shoot', 'post', 'hand', 'drive'];
+  const DPLAYS = {}; for (const k in DBOOK) DPLAYS[k] = [DBOOK[k].name, DBOOK[k].hint];
+  const NOPLAY = {};
+  const CPUPLAYS = BOOK.filter(b => b.kind !== 'slow' && !b.slow && b.id !== 'iso' && b.id !== 'screen').map(b => b.id);
+  const mkPlay = (id, left) => ({ id, kind: BOOK.find(b => b.id === id).kind, def: BOOK.find(b => b.id === id), left, done: false });
   const playOf = team => !G || G.drill ? null : team === 0 && G.play ? G.play : !G.half && G.cp && G.cp.team === team ? G.cp : null;
-  const dplayOf = team => G && team === 0 && G.dplay && !G.drill ? G.dplay.kind : '';
-  /* who a play is for: the best shooter on the floor for 'shoot', the wing nearest the ball for a handoff */
+  const dplayOf = team => G && team === 0 && G.dplay && !G.drill ? DBOOK[G.dplay.kind] || NOPLAY : NOPLAY;
+  const pFast = P => !!P && (P.kind === 'fast' || !!(P.def && P.def.fast));
+  const pSlow = P => !!P && (P.kind === 'slow' || !!(P.def && P.def.slow));
+  /* a team's scorer: the points on the board tonight, then the ratings */
+  function star(team) { let best = null, bs = -1; for (const o of G.pl) if (o.team === team) { const s = (o.st ? o.st.pts : 0) * 2 + (o.r.three + o.r.close) / 20; if (s > bs) { bs = s; best = o; } } return best; }
+  function bigOf(team, not) { let best = null; for (const o of G.pl) { if (o.team !== team || o === not || o.slot < 3) continue; if (!best || o.r.close > best.r.close) best = o; } return best; }
+  /* who a play is for */
   function playWho(P, team, h) {
-    if (P.kind === 'iso' || P.kind === 'screen') return P.who || (team === 0 ? G.user : null);
-    if (P.kind === 'shoot') { let best = null; for (const o of teamOf(team)) if (o !== h && (!best || o.r.three > best.r.three)) best = o; return best; }
+    const w = P.def ? P.def.who : undefined;
+    if (typeof w === 'number') return G.pl.find(o => o.team === team && o.slot === w) || null;
+    if (w === 'u') return team === 0 && G.user ? G.user : star(team);
+    if (w === 'x') return star(team);
+    if (w === 'b') return bigOf(team, null);
+    if (P.kind === 'iso' || P.kind === 'screen') return team === 0 ? G.user : null;
+    if (w === 's' || P.kind === 'shoot') { let best = null; for (const o of teamOf(team)) if (o !== h && (!best || o.r.three > best.r.three)) best = o; return best; }
     if (P.kind === 'hand') { let best = null, bd = 1e9; for (const o of teamOf(team)) if (o !== h && o.slot < 3) { const d = hyp(o.x - h.x, o.z - h.z); if (d < bd) { bd = d; best = o; } } return best; }
     return null;
+  }
+  /* who screens: the man the play names, or the big nearest the one it is for */
+  function playScr(P, team, h, u) {
+    const sl = P.def ? P.def.scr : undefined, at = u || h;
+    let s = typeof sl === 'number' ? G.pl.find(o => o.team === team && o.slot === sl) : null;
+    if (!s || s === h || s === u || s.isUser) s = teamOf(team).filter(o => o.slot >= 3 && o !== h && o !== u && !o.isUser).sort((a, c) => hyp(a.x - at.x, a.z - at.z) - hyp(c.x - at.x, c.z - at.z))[0];
+    return s || null;
   }
 
   /* ---------- the shot model ---------- */
@@ -132,6 +302,7 @@
   /* ---------- HUD and feedback ---------- */
   function toast(txt, cls) {
     const t = $('#toast'); t.textContent = txt; t.className = 'on ' + (cls || ''); clearTimeout(toast.h);
+    t.style.fontSize = (!cls || cls === 'make' || cls === 'blk') && txt.length > 11 ? (txt.length > 16 ? '22px' : '27px') : '';   // a long call stays on one line
     toast.h = setTimeout(() => t.classList.remove('on'), 1500);   // (its kind stays on while it fades: it used to snap back to the big letters on the way out)
   }
   /* your phone, in the corner of the screen: a name and a line, one at a time, a few seconds each. In the park one
@@ -174,8 +345,60 @@
   }
   const LETTERS = ['F', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+'];
   const gradeLetter = s => LETTERS[clamp(Math.round(6 + s / 4), 0, 12)];
+  /* somebody says something about what you just did: the coach, or a teammate by name. One short line under the call,
+     now and then, never two on top of each other */
+  const QUIP = {
+    'Made three': ['Keep shooting', 'That is your shot', 'He cannot leave you', 'Automatic', 'Again. Same shot', 'They have to come out on you now', 'Let it fly all night'],
+    Scored: ['Good bucket', 'Easy money', 'That is how you finish', 'Take that every time', 'Strong move', 'Nice touch', 'Keep going at him'],
+    Assist: ['Great look', 'I owe you one', 'Good eyes', 'Keep finding me', 'That is the right play', 'Ball movement', 'You see the floor'],
+    Steal: ['Great hands', 'Go, go, go', 'He never saw you', 'That is a pick six', 'Active hands'],
+    'Picked it off': ['Read it the whole way', 'Jumped the lane', 'Great anticipation', 'Run with it'],
+    Block: ['Not in here', 'Great timing', 'Send it back', 'He will think twice now', 'Protect the rim'],
+    'Chase-down block': ['Never quit on a play', 'Where did you come from?', 'That is effort'],
+    'Smothered the shot': ['Clamps', 'He had nothing', 'That is defense', 'Lock him up'],
+    'Contested the shot': ['Good contest', 'Hand up every time', 'Make him work'],
+    'Contested miss': ['Good contest', 'He felt you there', 'That is a stop'],
+    'Poster dunk': ['Oh my', 'Put him on a poster', 'He will see that one tomorrow', 'Somebody check on him'],
+    'Alley-oop': ['Up top', 'Lob city', 'Throw it anywhere near the rim'],
+    'Beat your man': ['He cannot stay with you', 'Go at him again', 'Left him standing', 'Good move'],
+    'Cut him off': ['Good feet', 'Wall him off', 'Stay in front'],
+    'Pump fake': ['Got him in the air', 'He bites every time', 'Patience'],
+    'Free throw': ['Knock them down', 'Free points'],
+    'Lost the ball': ['Take care of it', 'Strong with the ball', 'Shake it off', 'Too loose'],
+    'Lost it on the spin': ['Not in traffic', 'Keep it simple', 'They were waiting for that'],
+    Intercepted: ['See the defender', 'Fake a pass to make a pass', 'Do not telegraph it'],
+    'Your man scored': ['Stay with him', 'That is your man', 'Get a hand up', 'Move your feet'],
+    'Left your man open': ['Find your man', 'Stay home', 'Do not lose him'],
+    'Got crossed': ['Shake it off', 'Stay down, do not reach', 'Watch his hips'],
+    'Got blocked': ['Go up strong', 'Use the pump fake', 'He was waiting on that'],
+    'Tough shot early': ['Better shot than that', 'Work for a good one', 'We have time. Move it'],
+    'Forced a bad shot': ['Better shot than that', 'Somebody was open', 'Not that one'],
+    'Shooting foul': ['Hands straight up', 'Do not bail him out', 'Stay down on the fake'],
+    Foul: ['Smart, not reckless', 'Watch the fouls', 'Move your feet, not your hands'],
+    Charge: ['See the defender set', 'Under control', 'Pull up next time'],
+    'Missed free throw': ['Take your time', 'Same routine every time'],
+    'Beaten off the dribble': ['Stay in front', 'Give him a step', 'Slide, slide'],
+    'Bit on a pump fake': ['Stay down', 'Feet on the floor', 'Make him shoot over you'],
+    Goaltending: ['On the way up, not down', 'Let it come off'],
+    Hot: ['Feed him', 'Get him the ball', 'Do not cool off now', 'He is feeling it'],
+    Rebound: ['Good board', 'Go get it', 'Clean the glass', 'Now run'],
+    'Offensive board': ['Second chance', 'Great effort', 'Go back up with it', 'Keep it alive'],
+  };
+  let quipT = -9;
+  function quip(why, always) {
+    const L = QUIP[why]; if (!L || !G || !G.user || G.drill || G.park || G.replay || G.t - quipT < 4.5 || (!always && rand() > 0.6)) return;
+    let e = $('#quip'); if (!e) { e = document.createElement('div'); e.id = 'quip'; $('#toast').after(e); }
+    quipT = G.t;
+    const mates = G.pl.filter(p => p.team === G.user.team && !p.isUser), m = mates[Math.floor(rand() * mates.length)];
+    const who = !m || rand() < 0.5 ? 'Coach' : m.name, line = L[Math.floor(rand() * L.length)];
+    clearTimeout(quip.h); quip.h = setTimeout(() => { if (!G) return; e.innerHTML = `<b>${who}</b>${line}`; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(quip.h2); quip.h2 = setTimeout(() => e.classList.remove('on'), 2400); }, 650);
+  }
+  /* a comic word where it happened (only for what you did or what was done to you, so the floor is not covered in them) */
+  const powAt = (word, p, size, dark, up) => { if (R.pow && p && !G.replay) R.pow(word, p.x, (p.ht || 78) / 12 * 0.62 + (p.y || 0) + (up || 0.6), p.z, size || 0.85, dark); };
+  const pickOf = a => a[Math.floor(rand() * a.length)];
   function grade(delta, why) {
     if (!G.user || G.switching) return;
+    quip(why);
     const before = gradeLetter(G.grade);
     G.grade = clamp(G.grade + delta, -26, 26);
     G.gradeLog.push([delta, why]);
@@ -207,7 +430,7 @@
   function tkoGo() {
     const k = G.tko; if (!k || k.on || k.m < 1 || !G.user || G.paused) return;
     k.on = true; k.until = G.t + TKO_LEN; k.miss = 0; k.n = (k.n || 0) + 1; if (G.ball.holder !== G.user && !G.user.shoot) celebrate(G.user, ['flex', 'roar']);
-    toast('Takeover', 'make'); B('hot', { prio: 6 }); AU().crowd.react('roar', 1); R.flash(0xffffff); buzz([30, 50, 30]);
+    toast('Takeover', 'make'); powAt('HEAT!', G.user, 1.15, false, 1.8); if (R.burst && G.user) R.burst(G.user.x, 4, G.user.z, 8, 0.8); B('hot', { prio: 6 }); AU().crowd.react('roar', 1); R.flash(0xffffff); buzz([30, 50, 30]);
     tkoHud();
   }
   /* a celebration after a big play: a flex, a roar, the three goggles, a chest thump, a point to the crowd */
@@ -220,7 +443,7 @@
     def: 'Defense. Stay between your man and the rim. STEAL when the button lights up. JUMP as he shoots.',
     mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
     ft: 'Free throw: hold SHOOT and let go in the green band.',
-    pick: 'PICK brings your big over to screen your man. Pause (top left) to call a play: twelve on offense, four on defense, three trips each.',
+    pick: 'PICK brings your big over to screen your man. Pause (top left) to call a play from the playbook, three trips each.',
     fake: 'A man right on you? Tap SHOOT quickly: a pump fake. If he jumps at it, go by him or shoot when he lands.',
   };
   let seenTips = null;
@@ -346,7 +569,7 @@
       if (G.dplay && p.team === 1) { G.dplay.left--; if (G.dplay.left < 0) G.dplay = null; }
       /* nobody called one: the bench does, about every other trip */
       G.cp = null;
-      if (!G.drill && !G.half && !G.park && !(p.team === 0 && G.play) && rand() < 0.5) { const k = CPUPLAYS[Math.floor(rand() * CPUPLAYS.length)]; G.cp = { kind: k, team: p.team, done: false };
+      if (!G.drill && !G.half && !G.park && !(p.team === 0 && G.play) && rand() < 0.5) { const k = CPUPLAYS[Math.floor(rand() * CPUPLAYS.length)]; G.cp = mkPlay(k, 0); G.cp.team = p.team;
         if (p.team === 0 && G.user && !G.auto && rand() < 0.5) feed(`Coach calls ${PLAYS[k][0].toLowerCase()}`); } }
     if (why === 'oreb') G.shotClock = Math.max(G.shotClock, 14);
   }
@@ -684,7 +907,7 @@
     { const u = G.user;
       if (u && p.team !== u.team && !G.drill && s.kind !== 'dunk' && !s.oop && (nd.who === u || u.slot === p.slot)) {
         const du = hyp(u.x - p.x, u.z - p.z), up = u.y > 0.3 || u.pose === 'contest';
-        if (du < 2.4 && up) { toast('Smothered', 'make'); grade(1.5, 'Smothered the shot'); }
+        if (du < 2.4 && up) { toast(pickOf(['Smothered', 'Clamped', 'Nothing there']), 'make'); powAt('CLAMPS!', G.user, 0.95, false, 1.5); grade(1.5, 'Smothered the shot'); }
         else if (du < 4.2 && up) { toast('Good contest', 'make'); grade(1, 'Contested the shot'); }
         else if (du < 4.2) toast('Hand down', 'call');
         else if (du < 8) toast('Late contest', 'call');
@@ -735,7 +958,7 @@
     if (p.isUser) grade(-1, 'Got blocked');
     /* from behind at a run: the chase-down */
     { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, hl = hyp(hx, hz) || 1, behind = ((o.x - p.x) * hx + (o.z - p.z) * hz) / hl < -0.6, chase = behind && hyp(o.vx, o.vz) > 9;
-      if (R.pow) R.pow(chase ? 'SWAT!' : rand() < 0.5 ? 'BLOCK!' : 'NOPE!', at.x, at.y + 0.9, at.z, 1.15); if (R.shock) R.shock(o.x, o.z, 7);
+      if (R.pow) { R.pow(chase ? 'SWAT!' : pickOf(['BLOCK!', 'NOPE!', 'DENIED!', 'GET OUT!']), at.x, at.y + 0.9, at.z, 1.15, G.user && o.team !== G.user.team); if (R.burst) R.burst(at.x, at.y, at.z, 5, 0.7); } if (R.shock) R.shock(o.x, o.z, 7);
       toast(chase ? 'CHASE-DOWN BLOCK' : 'BLOCKED', 'blk'); feed(`${chase ? 'Chase-down block' : 'Block'} · ${o.name}`); if (chase) { R.benchJump && R.benchJump(o.team); if (o.isUser) grade(1, 'Chase-down block'); }
       if (!G.drill && rand() < 0.6) { o.celebK = 'wag'; o.celebT = 1.7; } }   // not in here: the finger wagged once he is down
     AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
@@ -1177,7 +1400,7 @@
       /* a dunk on somebody: said out loud */
       if (s.kind === 'dunk' && !G.drill) { const v = nearestDef(p); if (v.who && v.d < 3.4) { R.benchJump && R.benchJump(p.team); feed(`${p.name} dunks on ${v.who.name}`); v.who.celebK = 'hips'; v.who.celebT = 1.5;
         if (!v.who.isUser && v.who.y === 0 && rand() < 0.4) { const dx = v.who.x - p.x, dz = v.who.z - p.z, L = hyp(dx, dz) || 1; ankles(v.who); v.who.vx = dx / L * 5; v.who.vz = dz / L * 5; }   // put on the floor
-        if (p.isUser) { setTimeout(() => toast('POSTERIZED', 'make'), 500); grade(1, 'Poster dunk'); buzz([30, 40, 30]); } else if (v.who.isUser) setTimeout(() => toast('Dunked on', 'opp'), 500); } }
+        if (p.isUser) { setTimeout(() => toast('POSTERIZED', 'make'), 500); grade(1, 'Poster dunk'); buzz([30, 40, 30]); } else if (v.who.isUser) { setTimeout(() => toast('Dunked on', 'opp'), 500); powAt('OUCH!', v.who, 0.95, true); } } }
       if (p.isUser && !G.drill) { const was = p.st.pts - s.pts, th = [10, 20, 30, 40, 50].find(v => was < v && p.st.pts >= v);
         if (th) { G.noteAt = -99; social('pts', p.st.pts); } else if (s.kind === 'dunk' && rand() < 0.6) social('dunk'); else if (s.three && rand() < 0.4) social('three'); }
       /* your badges at work, shown as they fire */
@@ -1210,7 +1433,20 @@
       let ast = null;
       if (b.passer && b.passer.team === p.team && b.passer !== p && G.t - b.passT < 3.2 && (p.hold || 0) < 2.4) { ast = b.passer; ast.st.ast++; }
       if (s.kind === 'dunk' && R.shock) R.shock(0, hoopZ(p.team) - dirOf(p.team) * 1.5, 10);
-      const call = s.kind === 'dunk' ? 'SLAM' : s.three ? 'SPLASH' : 'BUCKET';
+      const call = !p.isUser ? (s.kind === 'dunk' ? 'SLAM' : s.three ? 'SPLASH' : 'BUCKET')
+        : G.clock <= 0.05 ? 'AT THE BUZZER' : s.kind === 'dunk' ? pickOf(['SLAM', 'THROWN DOWN', 'FLUSH', 'HAMMER']) : s.three && s.d > 28 ? pickOf(['FROM DEEP', 'WAY DOWNTOWN', 'LIMITLESS'])
+        : s.three && s.fade ? 'STEP-BACK THREE' : s.three ? pickOf(['SPLASH', 'CASH', 'BANG', 'MONEY', 'WET', 'NOTHING BUT NET']) : s.fade ? pickOf(['FADEAWAY', 'OVER HIM']) : s.kind === 'hook' ? 'HOOK SHOT'
+        : s.kind === 'floater' ? pickOf(['FLOATER', 'TEARDROP']) : s.kind === 'layup' ? pickOf(['LAYUP', 'AT THE RIM', 'FINISHED']) : s.prob < 0.3 ? pickOf(['TOUGH SHOT', 'HOW?']) : pickOf(['BUCKET', 'COUNT IT', 'PURE', 'GOOD', 'MID-RANGE']);
+      /* the cartoon of it: the points float up off the rim; your threes, and-ones and assists get a word of their own */
+      if (R.pow && !G.drill && !G.replay && (p.team === 0 || p.isUser)) { const hz = hoopZ(p.team) - dirOf(p.team) * 1.2;
+        R.pow('+' + s.pts, rr(-0.8, 0.8), 10.6, hz, 0.8);
+        if (p.isUser && s.foul) R.pow('AND 1!', 3.2, 12.6, hz, 1.05);
+        else if (p.isUser && G.clock <= 0.05) R.pow('CLUTCH!', 3.2, 12.6, hz, 1.2);
+        else if (p.isUser && s.three) R.pow(pickOf(['SPLASH!', 'CASH!', 'WET!', 'SWISH!']), 3.2, 12.6, hz, 1.05);
+        else if (p.isUser && s.kind !== 'dunk' && s.prob > 0.55 && rand() < 0.5) R.pow(pickOf(['SWISH!', 'PURE!', 'SMOOTH!']), 3.2, 12.4, hz, 0.9);
+        if (ast && ast.isUser) powAt('DIME!', p, 0.95);
+        if (s.kind === 'dunk' && R.burst) R.burst(0, 10.2, hoopZ(p.team) - dirOf(p.team) * 0.6, 9, 1); }
+      if (p.isUser && (G.streak === 3 || G.streak === 5)) { setTimeout(() => { if (G && G.user) powAt(G.streak >= 5 ? 'FIRE!' : 'HOT!', G.user, 1, false, 1.4); }, 900); quip('Hot', true); }
       if (p.team === 0) toast(call + (s.foul ? ' · AND ONE' : ''), 'make'); else toast(`${p.name} scores`, 'opp');
       feed(`${p.name} ${s.oop ? 'alley-oop' : s.kind === 'dunk' ? 'dunk' : s.three ? 'three' : s.kind === 'layup' ? 'layup' : s.kind === 'hook' ? 'hook shot' : s.kind === 'floater' ? 'floater' : 'jumper'}${ast ? ` (${ast.name} ast)` : ''}`);
       if (p.isUser) { grade(s.three ? 4 : 3, s.three ? 'Made three' : 'Scored'); buzz([20, 30, 30]); }
@@ -1407,7 +1643,8 @@
     const dx = r.x - p.x, dz = r.z - p.z, length = hyp(dx, dz);
     return length > 3 && length < 36 && passObstruction(p, dx, dz, length) < 0.35;
   }
-  function postTarget(handler) {
+  function postTarget(handler, P) {
+    if (P && P.def && P.def.who !== undefined) return playWho(P, handler.team, handler);
     let best = null;
     for (const o of G.pl) {
       if (o.team !== handler.team || o === handler || o.slot < 3) continue;
@@ -1466,20 +1703,26 @@
     /* the play you called */
     const P = G.phase === 'live' && !p.inb ? playOf(p.team) : null;
     if (P && along(p.z, p.team) < RIM - 2) {
-      const u = playWho(P, p.team, p);
-      if ((P.kind === 'iso' || P.kind === 'screen') && u && u !== p && p.hold > 0.35 && nearestDef(u).d > 2.4 && entryOpen(p, u)) { passTo(p, u); return; }
-      if (P.kind === 'post' && p.think <= 0 && p.slot < 3 && p.hold > 0.5) {
-        const big = postTarget(p);
-        if (big && distHoop(big.x, big.z, p.team) < 17 && nearestDef(big).d > 1.8 && entryOpen(p, big)) {
+      const u = playWho(P, p.team, p), D = P.def || NOPLAY;
+      /* the play is for somebody: the ball goes to him first */
+      if ((P.kind === 'iso' || P.kind === 'screen' || (D.who !== undefined && (P.kind === 'pnr' || P.kind === 'pnp' || P.kind === 'drive'))) && u && u !== p && p.hold > 0.35 && nearestDef(u).d > 2.4 && entryOpen(p, u)) { passTo(p, u); return; }
+      if (P.kind === 'post') {
+        const big = postTarget(p, P);
+        if (big === p) { const dh = distHoop(p.x, p.z, p.team); if (p.post === undefined && p.hold > 0.4 && dh < 16 && dh > 6.5) p.post = 1.8 + rand(); }   // it is his own post-up: he backs his man down
+        else if (p.think <= 0 && (D.who !== undefined || p.slot < 3) && p.hold > 0.5 && big && distHoop(big.x, big.z, p.team) < 17 && nearestDef(big).d > 1.8 && entryOpen(p, big)) {
           passTo(p, big); return;
         }
       }
+      /* give and go (and a cut called for the man with the ball): pass it, cut, and look for it back */
+      if ((P.kind === 'gng' || (P.kind === 'cut' && u === p)) && !P.done && p.hold > 0.5 && p.think <= 0) {
+        const r = bestPass(p); if (r && nearestDef(r).d > 3) { P.done = true; passTo(p, r); p.cutT = 2.4; p.cut = 6; return; }
+      }
       /* the shooter has come free: it goes to him, and he lets it go */
-      if (P.kind === 'shoot' && u && p.think <= 0 && p.hold > 0.4 && nearestDef(u).d > 4 && distHoop(u.x, u.z, p.team) < 27 && entryOpen(p, u)) { u.playShot = G.t; passTo(p, u); return; }
+      if (P.kind === 'shoot' && u && u !== p && p.think <= 0 && p.hold > 0.4 && nearestDef(u).d > 4 && distHoop(u.x, u.z, p.team) < 27 && entryOpen(p, u)) { u.playShot = G.t; passTo(p, u); return; }
       /* the handoff: the wing arrives, takes it, and goes */
-      if (P.kind === 'hand' && !P.done && u && p.hold > 0.5 && hyp(u.x - p.x, u.z - p.z) < 6.5) { P.done = true; passTo(p, u); if (!u.isUser || G.auto) u.driveNext = G.t + 1; return; }
+      if (P.kind === 'hand' && !P.done && !(P.cd > G.t) && u && u !== p && p.hold > 0.5 && hyp(u.x - p.x, u.z - p.z) < 6.5) { P.done = !D.again; P.cd = G.t + 1.6; passTo(p, u); if ((!u.isUser || G.auto) && !D.again) u.driveNext = G.t + 1; return; }
       /* a cutter open at the rim */
-      if (P.kind === 'cut' && p.think <= 0 && p.hold > 0.3) {
+      if ((P.kind === 'cut' || P.kind === 'gng') && p.think <= 0 && p.hold > 0.3) {
         const c = teamOf(p.team).find(o => o !== p && (o.cutT > 0 || o.cutUser > 0) && distHoop(o.x, o.z, p.team) < 11 && nearestDef(o).d > 3.2 && entryOpen(p, o));
         if (c) { c.playShot = G.t; passTo(p, c); return; }
       }
@@ -1532,8 +1775,8 @@
     /* a play called for him a moment ago: open, he shoots it on the catch */
     if (p.playShot) { if (G.t - p.playShot > 1.3) delete p.playShot; else if (p.hold > 0.16 && (d < 6 ? nd > 2 : nd > 3.4 && ev > 0.8 && !(three && p.r.three < 58))) { delete p.playShot; startShot(p); return; } }
     /* slow it down: nothing until the shot clock is under nine, unless it is a layup */
-    if (P && P.kind === 'slow' && G.shotClock > 9 && !(d < 5 && nd > 4)) { p.drive = 0; p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 29; return; }
-    if (P && (P.kind === 'fast' || P.kind === 'drive' || P.kind === 'five') && p.drive <= 0 && p.hold > 0.25 && d < 32 && d > 8 && lane(p) > (P.kind === 'fast' ? 3 : 2.6) && rand() < 0.5) { p.drive = 1.6; return; }
+    if (pSlow(P) && G.shotClock > 9 && !(d < 5 && nd > 4)) { p.drive = 0; p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 29; return; }
+    if (P && (pFast(P) || P.kind === 'drive' || P.kind === 'five' || (P.kind === 'iso' && P.def && P.def.who !== undefined)) && p.drive <= 0 && p.hold > 0.25 && d < 32 && d > 8 && lane(p) > (pFast(P) ? 3 : 2.6) && rand() < 0.5) { p.drive = 1.6; return; }
     /* the last shot: shot clock off, the quarter's clock running down: hold it, then go with about six seconds left */
     if ((G.q < 4 || G.score[p.team] >= G.score[1 - p.team]) && G.clock < G.shotClock && G.clock > 6.5 && !(d < 5 && nd > 4)) { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 28; return; }
     if (G.clock < G.shotClock && G.clock <= 6.5 && G.clock > 1.2 && p.drive <= 0 && lane(p) > 3) p.drive = 1.4;
@@ -1542,7 +1785,7 @@
       passTo(p, roller); return;
     }
     if (G.shotClock < 2.5 || (d < 5.5 && p.hold > 0.15)) { startShot(p); return; }
-    const need = ((p.team === 1 ? G.diff.oppShootEV : 0.98) - (three ? 0.01 : 0)) * (P && P.kind === 'fast' ? 0.94 : 1);
+    const need = ((p.team === 1 ? G.diff.oppShootEV : 0.98) - (three ? 0.01 : 0)) * (pFast(P) ? 0.94 : 1);
     /* your pass found him open: he lets it fly on the catch instead of holding it until his man recovers */
     const userAssist = p.caughtFrom && p.caughtFrom.isUser && !G.auto;
     if (p.caughtFrom && G.t - p.caughtT < 0.9 && p.hold > 0.16 && nd > (userAssist ? 4.2 : 7)
@@ -1575,7 +1818,7 @@
         startMv(p, p.dribHand === from ? 'hesi' : ['cross', 'btb', 'legs'][Math.floor(rand() * 3)], from, p.dribHand); }
       if (def && rand() < clamp(0.12 + (p.r.handle - def.r.perD) * 0.006, 0.03, 0.4)) {
         def.stun = 0.6; p.drive = 1.2;
-        if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); AU().crowd.react('ooh', 0.8); }
+        if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); powAt('?', def, 0.8, true, 1.6); AU().crowd.react('ooh', 0.8); }
         if (rand() < 0.15) ankles(def);
       }
     }
@@ -1584,15 +1827,18 @@
     const s = SPOTS[p.slot][p.spot % SPOTS[p.slot].length];
     let x = s[0], d = s[1];
     /* the floor shrinks toward the ball a little */
-    const bh = G.ball.holder, P = playOf(p.team), wide = P && (P.kind === 'five' || P.kind === 'drive');
+    const bh = G.ball.holder, P = playOf(p.team), D = P && P.def || NOPLAY, F = D.f && FORM[D.f], mine = bh && bh.team === p.team, wide = P && !F && (P.kind === 'five' || P.kind === 'drive');
     if (p.cutT > 0 && !wide) { x = p.slot === 4 ? -s[0] * 0.5 : Math.sign(s[0] || 1) * 3; d = 4; }
     if (bh && bh.team === p.team && bh !== p) x += clamp(bh.x * 0.15, -3, 3);
     /* the play called for you: everyone else clears out to the corners and the wings */
-    if (P && P.kind === 'iso' && p.team === 0 && bh && bh.isUser && !p.isUser) { const k = [[-22, 3], [22, 3], [-17, 21], [17, 21], [0, 26]][p.slot]; x = k[0]; d = k[1]; }
+    if (P && P.kind === 'iso' && !F && mine && bh !== p && bh === playWho(P, p.team, bh)) { const k = [[-22, 3], [22, 3], [-17, 21], [17, 21], [0, 26]][p.slot]; x = k[0]; d = k[1]; }
     /* five out: everybody behind the line. Drive and kick: the same, with the center on the baseline by the rim */
     if (wide && bh && bh.team === p.team) { const k = [[0, 27], [-17.5, 21.5], [17.5, 21.5], [-22.5, 3.5], P.kind === 'drive' ? [6.5, 3.5] : [22.5, 3.5]][p.slot]; x = k[0]; d = k[1]; }
     /* slow it down: stand high and wide while the clock runs */
-    if (P && P.kind === 'slow' && G.shotClock > 9 && bh && bh.team === p.team) { const k = [[0, 30], [-19, 23], [19, 23], [-22, 6], [8, 14]][p.slot]; x = k[0]; d = k[1]; }
+    if (P && P.kind === 'slow' && !F && G.shotClock > 9 && mine) { const k = [[0, 30], [-19, 23], [19, 23], [-22, 6], [8, 14]][p.slot]; x = k[0]; d = k[1]; }
+    /* the play's formation, and the spot of the man it is for */
+    if (F && mine && !(p.cutT > 0)) { x = F[p.slot][0]; d = F[p.slot][1]; }
+    if (D.at && mine && !(p.cutT > 0) && p === playWho(P, p.team, bh)) { x = D.at[0]; d = D.at[1]; }
     /* in transition, run with the play */
     const c = toCourt(p.team, x, d);
     return c;
@@ -1602,14 +1848,13 @@
   function screenAI(p, dt) {
     const h = G.ball.holder;
     if (!h || h.team !== p.team || h === p) return false;
-    const P = playOf(p.team), pick = P && (P.kind === 'pnr' || P.kind === 'pnp');
+    const P = playOf(p.team), pick = P && (P.kind === 'pnr' || P.kind === 'pnp'), D = P && P.def || NOPLAY;
     if (P && !pick && !(p.pickUntil > G.t && p.screenFor === h && p.screen > 0)) { p.screen = 0; return false; }
     if (p.screenFor && p.screenFor !== h) p.screen = 0;
     if (p.screen === undefined) p.screen = 0;
     /* the pick-and-roll you called: the best big comes up to set it once each trip */
-    if (pick && !P.done && p.slot >= 3 && along(h.z, p.team) < 32) {
-      const big = teamOf(p.team).filter(o => o.slot >= 3 && o !== h && !o.isUser).sort((a, c) => hyp(a.x - h.x, a.z - h.z) - hyp(c.x - h.x, c.z - h.z))[0];
-      if (big === p) { p.screen = 3.2; P.done = true; }
+    if (pick && !P.done && along(h.z, p.team) < 32 && (D.who === undefined || h === playWho(P, p.team, h))) {
+      if (playScr(P, p.team, h, null) === p) { p.screen = D.slip ? 2.1 : 3.2; P.done = true; }
     }
     p.screen -= dt;
     if (p.screen <= 0) {
@@ -1641,44 +1886,47 @@
   }
   function offBallAI(p, dt) {
     const holder = G.ball.holder;
-    const P = holder && holder.team === p.team ? playOf(p.team) : null;
+    const P = holder && holder.team === p.team ? playOf(p.team) : null, D = P && P.def || NOPLAY;
+    const stay = () => { const spot = spotOf(p); p.tx = spot.x; p.tz = spot.z; p.screen = 0; if (G.ball.state === 'pass' && G.ball.to === p) { p.tx = G.ball.ex; p.tz = G.ball.ez; } };
     if (P && !(p.pickUntil > G.t && p.screenFor === holder && p.screen > 0) && along(holder.z, p.team) < RIM - 2) {
-      if (P.kind === 'iso' && holder.isUser) {
-        const spot = spotOf(p); p.tx = spot.x; p.tz = spot.z; p.screen = 0; return;
-      }
-      if (P.kind === 'post' && holder.slot < 3 && p === postTarget(holder)) {
+      const who = playWho(P, p.team, holder), pick = P.kind === 'pnr' || P.kind === 'pnp';
+      if (P.kind === 'iso' && holder === who) { stay(); return; }
+      if (P.kind === 'post' && (D.who !== undefined || holder.slot < 3) && p === postTarget(holder, P)) {
         const side = Math.abs(holder.x) > 3 ? Math.sign(holder.x) : Math.sign(p.x) || 1;
-        const block = toCourt(p.team, side * 7, 6);
+        const block = D.at ? toCourt(p.team, D.at[0], D.at[1]) : toCourt(p.team, side * 7, 6);
         p.tx = block.x; p.tz = block.z; p.screen = 0; return;
       }
-      if (P.kind === 'five' || P.kind === 'drive' || (P.kind === 'slow' && G.shotClock > 9)) {
-        if (!attacking(holder)) { const spot = spotOf(p); p.tx = spot.x; p.tz = spot.z; p.screen = 0; if (G.ball.state === 'pass' && G.ball.to === p) { p.tx = G.ball.ex; p.tz = G.ball.ez; } return; }
+      if (P.kind === 'five' || P.kind === 'drive' || P.kind === 'set' || (pSlow(P) && G.shotClock > 9)) {
+        if (!attacking(holder)) { stay(); return; }
       }
       /* the handoff: the wing runs to the ball, just outside the handler's shoulder */
-      if (P.kind === 'hand' && !P.done && p === playWho(P, p.team, holder) && along(holder.z, p.team) < 36) {
+      if (P.kind === 'hand' && !P.done && !(P.cd > G.t) && p === who && along(holder.z, p.team) < 36) {
         const sd = Math.sign(p.x - holder.x) || 1; p.tx = holder.x + sd * 2.6; p.tz = holder.z - dirOf(p.team) * 1.5; p.screen = 0;
         if (holder.isUser && !G.auto && hyp(p.x - holder.x, p.z - holder.z) < 4.5 && (P.near = (P.near || 0) + dt) > 1.6) P.done = true;   // you kept it: he goes back to his spot
         return;
       }
-      /* screen for me: off the ball, the nearest big walks into your man; caught on it, he is a step behind you */
-      if (P.kind === 'screen' && !P.done && p.slot >= 3) {
-        const u = playWho(P, p.team, holder);
-        if (u && u !== holder && u !== p) {
-          const big = teamOf(p.team).filter(o => o.slot >= 3 && o !== holder && o !== u && !o.isUser).sort((a, c) => hyp(a.x - u.x, a.z - u.z) - hyp(c.x - u.x, c.z - u.z))[0];
-          const dm = G.pl.find(o => o.team !== p.team && o.slot === u.slot);
-          if (big === p && dm) {
-            p.tx = dm.x + (dm.x - u.x) * 0.2; p.tz = dm.z + (dm.z - u.z) * 0.2 + dirOf(p.team) * 1.2; p.screen = 0;
-            if (hyp(dm.x - p.x, dm.z - p.z) < 2.8) { P.done = true; if (!dm.isUser && dm.stun <= 0) dm.stun = 0.8 * (1.2 - dm.r.perD / 160); if (u.isUser && !G.auto) toast('You are free', 'call'); CH('ch_screen', dm); }
-            return;
-          }
+      /* a screen away from the ball (screen for me, a pin-down, a flare): the screener walks into the man guarding
+         the one the play is for; caught on it, that defender is a step behind */
+      if ((P.kind === 'screen' || (P.kind === 'shoot' && D.scr !== undefined)) && !P.done && who && who !== holder && who !== p) {
+        const dm = G.pl.find(o => o.team !== p.team && o.slot === who.slot);
+        if (dm && playScr(P, p.team, holder, who) === p) {
+          p.tx = dm.x + (dm.x - who.x) * 0.2; p.tz = dm.z + (dm.z - who.z) * 0.2 + dirOf(p.team) * 1.2; p.screen = 0;
+          if (hyp(dm.x - p.x, dm.z - p.z) < 2.8) { P.done = true; if (!dm.isUser && dm.stun <= 0) dm.stun = 0.8 * (1.2 - dm.r.perD / 160); if (who.isUser && !G.auto) toast('You are free', 'call'); CH('ch_screen', dm); }
+          return;
         }
       }
+      /* a cut called for one man: he goes once the ball has settled */
+      if (P.kind === 'cut' && D.who !== undefined && p === who && !P.done && (holder.hold || 0) > 0.5) { P.done = true; p.cutT = 2.4; p.cut = 6; }
+      /* the man a play sends to a spot goes there and waits for it */
+      if (D.at && p === who && !(p.cutT > 0) && P.kind !== 'cut') { stay(); return; }
+      /* everyone else holds the formation (until somebody drives: then the usual spacing takes over) */
+      if (D.f && !(p.cutT > 0) && !attacking(holder) && !(P.kind === 'cut' && D.who === undefined) && !(pick && (p.screen > 0 || (!P.done && playScr(P, p.team, holder, null) === p)))) { stay(); return; }
     }
     if (screenAI(p, dt)) return;
     p.cut -= dt; p.cutT -= dt;
     if (p.cut < 0) {
       p.cut = rr(4, 9);
-      if (P && P.kind === 'cut') { p.cut = rr(3, 6); p.cutT = rr(1.3, 2); }
+      if (P && P.kind === 'cut' && D.who === undefined) { p.cut = rr(3, 6); p.cutT = rr(1.3, 2); }
       else if (P && P.kind === 'shoot' && p === playWho(P, p.team, holder)) { p.cut = rr(1.3, 2.2); p.spot = (p.spot + 1 + Math.floor(rand() * 2)) % 3; }
       else if (rand() < 0.45) p.cutT = rr(1.2, 2); else p.spot = (p.spot + 1 + Math.floor(rand() * 2)) % 3;
     }
@@ -1756,7 +2004,7 @@
   function defAI(p, dt) {
     const offT = 1 - p.team;
     if (p.helping > 0) p.helping -= dt * 0.1;   // slow on purpose: one "help!" from a man every several seconds
-    const man = p.switchUntil > G.t && p.switchPoss === G.possN && G.pl.includes(p.switchOn) ? p.switchOn : G.pl.find(o => o.team === offT && o.slot === p.slot);
+    let man = p.switchUntil > G.t && p.switchPoss === G.possN && G.pl.includes(p.switchOn) ? p.switchOn : G.pl.find(o => o.team === offT && o.slot === p.slot);
     /* help: a driver who has beaten his man into the paint draws the nearest defender, who steps in front of him */
     const drv = G.ball.holder;
     if (!p.isUser && drv && drv.team === offT && drv !== man && attacking(drv) && distHoop(drv.x, drv.z, offT) < 15) {
@@ -1800,19 +2048,36 @@
         return;
       }
     }
-    const DK = dplayOf(p.team);
-    /* double the ball: the nearest man who is not guarding it leaves his own and goes at the handler in the half court */
-    if (DK === 'dbl' && !p.isUser && hh && hh.team === offT && man !== hh && G.phase === 'live' && !hh.shoot && distHoop(hh.x, hh.z, offT) < 30) {
-      let near = null, nd = 1e9;
-      for (const o of G.pl) if (o.team === p.team && !o.isUser && o.slot !== hh.slot) { const d = hyp(o.x - hh.x, o.z - hh.z); if (d < nd) { nd = d; near = o; } }
-      if (near === p && nd < 22) { const dx = H.x - hh.x, dz = H.z - hh.z, L = hyp(dx, dz) || 1, sd = hh.x > 0 ? -1 : 1; p.tx = hh.x + dx / L * 2.2 + sd * 1.8; p.tz = hh.z + dz / L * 2.2; p.pose = 'guard'; return; }
+    const DD = dplayOf(p.team), st = DD.dbl === 'star' || DD.deny || DD.one ? star(offT) : null;
+    /* a called double or trap: the nearest man who is not guarding the ball leaves his own and goes at the handler */
+    if (DD.dbl && !p.isUser && hh && hh.team === offT && man !== hh && G.phase === 'live' && !hh.shoot) {
+      const dh = distHoop(hh.x, hh.z, offT);
+      if (DD.dbl === 'all' ? dh < 30 : DD.dbl === 'star' ? hh === st && dh < 30 : DD.dbl === 'trap' ? dh > 22 && dh < 50 : true) {
+        let near = null, nd = 1e9;
+        for (const o of G.pl) if (o.team === p.team && !o.isUser && o.slot !== hh.slot) { const d = hyp(o.x - hh.x, o.z - hh.z); if (d < nd) { nd = d; near = o; } }
+        if (near === p && nd < 24) { const dx = H.x - hh.x, dz = H.z - hh.z, L = hyp(dx, dz) || 1, sd = hh.x > 0 ? -1 : 1; p.tx = hh.x + dx / L * 2.2 + sd * 1.8; p.tz = hh.z + dz / L * 2.2; p.pose = 'guard'; return; }
+      }
     }
-    if (man === b.holder) {
+    /* a zone: each man has a piece of the floor that leans toward the ball; the one nearest the ball takes it.
+       Box and one: four in the zone, and the fifth stays man to man on their scorer */
+    let zs = null;
+    if (DD.zone && !p.isUser && !(DD.one && st && p.slot === st.slot) && b.state !== 'shot') {
+      const mates = teamOf(p.team).filter(o => !(DD.one && st && o.slot === st.slot)).sort((a, c) => a.slot - c.slot), Z = ZONES[DD.zone], i = mates.indexOf(p);
+      if (i >= 0 && Z[i]) {
+        zs = toCourt(offT, Z[i][0], Z[i][1]); zs.x += clamp(bx - zs.x, -8, 8) * 0.35; zs.z += clamp(bz - zs.z, -6, 6) * 0.25;
+        if (hh && hh.team === offT && distHoop(hh.x, hh.z, offT) < 28) {
+          let near = null, nd = 1e9; for (const o of mates) if (!o.isUser) { const d = hyp(o.x - hh.x, o.z - hh.z); if (d < nd) { nd = d; near = o; } }
+          if (near === p) { man = hh; zs = null; }
+        }
+      }
+    }
+    if (zs) { p.tx = zs.x; p.tz = zs.z; p.pose = ''; if (G.phase === 'live') p.offD = G.t; }
+    else if (man === b.holder) {
       /* he guards where the ball is going, not where it was: a good defender reads the first step and is already
          sliding there (he used to aim at the dribbler's feet, a step late on every drive) */
       const lead = p.isUser || p.stun > 0 || !man.isUser || G.auto ? 0 : 0.12 + p.r.perD / 99 * 0.2, mx = man.x + man.vx * lead, mz = man.z + man.vz * lead;
       const dx = H.x - mx, dz = H.z - mz, L = hyp(dx, dz) || 1;
-      const gap = clamp(3.2 + (L > 28 && DK !== 'press' ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400) * (p.isUser ? 1 : DK === 'tight' || DK === 'press' ? 0.86 : DK === 'sag' ? 1.25 : 1);
+      const gap = clamp(3.2 + (L > 28 && !DD.press ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400) * (p.isUser ? 1 : DD.on || 1);
       p.tx = mx + dx / L * gap; p.tz = mz + dz / L * gap;
       p.pose = 'guard';
       /* down by a few with the clock running out: foul to stop it */
@@ -1821,7 +2086,7 @@
         G.tf[p.team] = Math.max(G.tf[p.team], 5);   // late in a quarter every team is in the penalty
         toast('Foul to stop the clock', ''); contactFoul(p, man); return;
       }
-      if (!p.isUser && (man.drive > 0 || attacking(man) && !man.shoot) && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * (man.drive > 0 ? 1.05 : 0.45) * (1.3 - p.r.perD / 140)) { contactFoul(p, man); return; }
+      if (!p.isUser && (man.drive > 0 || attacking(man) && !man.shoot) && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * (man.drive > 0 ? 1.05 : 0.45) * (1.3 - p.r.perD / 140) * (DD.foul || 1)) { contactFoul(p, man); return; }
       /* a driver who runs into a defender set in his path: the charge */
       if (!p.isUser && man.drive > 0 && p.stun <= 0 && hyp(p.vx, p.vz) < 3 && hyp(man.x - p.x, man.z - p.z) < 2.4 && G.phase === 'live' && rand() < dt * 0.35) {
         man.st.tov++; man.st.pf++; if (man.isUser) grade(-2, 'Charge'); checkFoulOut(man);
@@ -1841,7 +2106,7 @@
       if (!p.isUser && p.stealCd < 0 && L < 30 && hyp(man.x - p.x, man.z - p.z) < 4.2 && !man.shoot) {
         p.stealCd = rr(1.5, 4);
         p.pose = 'reach'; p.reachT = 0.3;
-        const ch = clamp(0.02 + (p.r.steal - man.r.handle) * 0.0012, 0.005, 0.06) * G.diff.oppSteal * (man.move > 0 ? 1.6 : 1);
+        const ch = clamp(0.02 + (p.r.steal - man.r.handle) * 0.0012, 0.005, 0.06) * G.diff.oppSteal * (man.move > 0 ? 1.6 : 1) * (DD.steal || 1);
         if (rand() < ch) {
           p.st.stl++; feed(`Steal · ${p.name}`); toast(p.team === 0 ? 'STOLEN' : 'Picked off', p.team === 0 ? 'make' : 'opp');
           AU().play('steal', { x: p.x }); AU().crowd.react(home(p.team) ? 'roar' : 'groan', 0.8); B('steal', { prio: 3, follow: 0.35 }); if (rand() < 0.5) CH('ch_run', p);
@@ -1852,9 +2117,12 @@
     } else {
       const dx = H.x - man.x, dz = H.z - man.z, L = hyp(dx, dz) || 1;
       const db = hyp(bx - man.x, bz - man.z);
-      const gap = DK === 'tight' || DK === 'press' ? clamp(2.6 + db * 0.07, 2.6, 6) : DK === 'sag' ? clamp(5.5 + db * 0.26, 5.5, 15) : clamp(3.5 + db * 0.18, 3.5, 11);
+      const off = p.isUser ? '' : DD.deny && man === st ? 'deny' : DD.off3 ? (L > 21 ? 'tight' : '') : DD.off || '';
+      const gap = off === 'deny' ? 2.3 : off === 'tight' ? clamp(2.6 + db * 0.07, 2.6, 6) : off === 'sag' ? clamp(5.5 + db * 0.26, 5.5, 15) : clamp(3.5 + db * 0.18, 3.5, 11);
       let tx = man.x + dx / L * gap, tz = man.z + dz / L * gap;
-      tx += (bx - tx) * (DK === 'sag' ? 0.26 : 0.18); tz += (bz - tz) * 0.12;
+      tx += (bx - tx) * (off === 'sag' ? 0.26 : off === 'deny' ? 0.05 : 0.18); tz += (bz - tz) * (off === 'deny' ? 0.04 : 0.12);
+      /* wall the rim: the five stays in the lane, between the ball and the basket */
+      if (DD.wall && p.slot === 4 && !p.isUser) { const c = toCourt(offT, clamp(bx * 0.2, -3, 3), 4.5); tx = c.x; tz = c.z; }
       p.tx = tx; p.tz = tz; p.pose = '';
       if (L < 32 && G.phase === 'live' && b.state !== 'shot') p.offD = G.t;   // off the ball in the half court: down in a stance, seeing ball and man (the look only: it is not the on-ball stance that stops a drive)
       if (b.state === 'shot') {
@@ -2020,7 +2288,7 @@
       if (o.isUser || o.y > 0 || hyp(o.x - p.x, o.z - p.z) > 6.5) continue;
       const ch = clamp(0.62 - (o.r.perD || 60) * 0.005 + ((p.r.three || 60) + (p.r.mid || 60) - 120) * 0.002, 0.12, 0.6) / p.fakeN;
       if (rand() < ch) { o.jg = GRAV * 1.6; o.vy = Math.sqrt(2 * o.jg * (1.5 + o.r.vert * 0.02)); o.pose = 'contest'; o.bitT = G.t; bit = o; } }
-    if (p.isUser) { if (bit) { toast('He bit on the fake', 'make'); grade(0.3, 'Pump fake'); buzz(10); if (home(p.team)) AU().crowd.react('ooh', 0.5); }
+    if (p.isUser) { if (bit) { toast(pickOf(['He bit on the fake', 'Got him in the air', 'He jumped at it']), 'make'); { const v = nearestDef(p).who; if (v) powAt('!?', v, 0.8, false, 1.6); } grade(0.3, 'Pump fake'); buzz(10); if (home(p.team)) AU().crowd.react('ooh', 0.5); }
       else { /* the first few times, say what just happened: a tap is a fake, a hold is a shot */
         let n = 0; try { n = +localStorage.getItem('pbb.fakes') || 0; if (n < 5) localStorage.setItem('pbb.fakes', n + 1); } catch (e) { /* fine */ }
         toast(n < 5 ? 'Pump fake · hold Shoot to shoot' : 'Pump fake', 'call'); }
@@ -2113,7 +2381,7 @@
       if (u.comboN >= 2) { toast(`Combo x${u.comboN}`, 'call'); if (R.puff) R.puff(u.x, u.z, 0.9); }
       if (nd.who && nd.d < 6) {
         const ch = clamp(shake + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.62) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0);
-        if (rand() < ch) { nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.1;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else toast(kind === 'step' ? 'Created space' : 'Shook him', 'make'); grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+        if (rand() < ch) { nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.1;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
@@ -2427,7 +2695,7 @@
             h.vx -= ux * vin * k; h.vz -= uz * vin * k;
             const sd = (rx * -uz + rz * ux) > 0 ? -1 : 1; h.vx += -uz * sd * vin * k * 0.35; h.vz += ux * sd * vin * k * 0.35;
             if (!(h.bumpT > G.t)) { h.bumpT = G.t + 0.9; d.bodyT = G.t;
-              if (d.isUser) { grade(0.5, 'Cut him off'); toast('Cut off', 'make'); buzz(12); } else if (h.isUser) toast('Bumped', 'opp');
+              if (d.isUser) { grade(0.5, 'Cut him off'); toast(pickOf(['Cut off', 'Walled off', 'Nowhere to go']), 'make'); powAt('WALL!', d, 0.75); buzz(12); } else if (h.isUser) toast('Bumped', 'opp');
               AU().play('squeak', { x: d.x, vol: 0.7 }); }
             break;
           }
@@ -2560,7 +2828,7 @@
           toast('ALLEY-OOP', r.team === 0 ? 'make' : 'opp'); AU().crowd.react('ooh', 1);
         }
         else if (hyp(r.x - b.x, r.z - b.z) < 5) { r.oopJ = false; give(r); r.caughtT = G.t; r.caughtFrom = b.from;
-          if (G.play && G.play.kind === 'post' && r.team === 0 && r.slot >= 3 && (!r.isUser || G.auto) && distHoop(r.x, r.z, 0) < 17) r.post = 1.8 + rand();
+          { const PP = playOf(r.team); if (PP && PP.kind === 'post' && (PP.def && PP.def.who !== undefined ? r === playWho(PP, r.team, r) : r.slot >= 3) && (!r.isUser || G.auto) && distHoop(r.x, r.z, r.team) < 17) r.post = 1.8 + rand(); }
           r.pose = 'hold'; r.holdPoseT = 0.3; AU().play('catch', { x: r.x, vol: 0.7 }); }
         else { b.state = 'loose'; b.vx = (b.ex - b.sx) / b.dur * 0.5; b.vz = (b.ez - b.sz) / b.dur * 0.5; b.vy = 0; b.lastTouch = b.from.team; G.reb = null; }
       }
@@ -2623,6 +2891,7 @@
         if (fromShot) {
           got.st.reb++;
           const off = got.team === G.reb.team;
+          if (got.isUser && !G.drill && !G.park) powAt(off ? 'MINE!' : 'BOARD!', got, 0.8, false, 1.6);
           if (off) got.st.oreb++;
           if (got.isUser) grade(off ? 2 : 1.5, off ? 'Offensive board' : 'Rebound');
           feed(`${off ? 'Offensive rebound' : 'Rebound'} · ${got.name}`);
@@ -3051,10 +3320,16 @@
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
         <button class="big" id="pr">Resume</button>
         ${G.user && !G.drill && (G.poss === 0 || G.phase === 'dead') && G.to[0] > 0 ? `<button class="ghost" id="pto">Timeout <small>${G.to[0]} left this half</small></button>` : ''}
-        ${G.user && !G.drill && !G.switching ? `<div class="plays"><b>Offense <small>${G.play ? `${PLAYS[G.play.kind][0]} · ${G.play.left + 1} more trip${G.play.left ? 's' : ''}` : 'call a play for the next three trips'}</small></b>
-          <div class="row3">${Object.keys(PLAYS).map(k => `<button class="ghost sm${G.play && G.play.kind === k ? ' on' : ''}" data-play="${k}">${PLAYS[k][0]}</button>`).join('')}</div>
-          <b>Defense <small>${G.dplay ? `${DPLAYS[G.dplay.kind][0]} · ${G.dplay.left + 1} more trip${G.dplay.left ? 's' : ''}` : 'for their next three trips'}</small></b>
-          <div class="row3 r2">${Object.keys(DPLAYS).map(k => `<button class="ghost sm${G.dplay && G.dplay.kind === k ? ' on' : ''}" data-dplay="${k}">${DPLAYS[k][0]}</button>`).join('')}</div></div>` : ''}
+        ${G.user && !G.drill && !G.switching ? (() => {
+          const cur = G.play && (G.play.id || G.play.kind), dc = G.dplay && G.dplay.kind, dk = Object.keys(DBOOK);
+          const bt = o => `<button class="ghost sm${cur === o.id ? ' on' : ''}" data-play="${o.id}">${o.name}</button>`, db = k => `<button class="ghost sm${dc === k ? ' on' : ''}" data-dplay="${k}">${DBOOK[k].name}</button>`;
+          return `<div class="plays"><b>Offense <small>${G.play && PLAYS[cur] ? `${PLAYS[cur][0]} · ${G.play.left + 1} more trip${G.play.left ? 's' : ''}` : 'call a play for the next three trips'}</small></b>
+          <div class="row3">${BOOK.filter(o => o.cat === 'Quick').map(bt).join('')}</div>
+          <b>Playbook <small>${BOOK.length} plays · ${dk.length} defenses</small></b>
+          ${CATS.map(c => { const L = BOOK.filter(o => o.cat === c); return `<details class="help pcat"${L.some(o => o.id === cur) ? ' open' : ''}><summary>${c}<small>${L.length}</small></summary><div class="row3">${L.map(bt).join('')}</div></details>`; }).join('')}
+          <b class="pdh">Defense <small>${G.dplay ? `${DPLAYS[dc][0]} · ${G.dplay.left + 1} more trip${G.dplay.left ? 's' : ''}` : 'for their next three trips'}</small></b>
+          <div class="row3 r2">${dk.slice(0, 4).map(db).join('')}</div>
+          <details class="help pcat"${dk.indexOf(dc) >= 4 ? ' open' : ''}><summary>Zones, traps and more<small>${dk.length - 4}</small></summary><div class="row3 r2">${dk.slice(4).map(db).join('')}</div></details></div>`; })() : ''}
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
         ${G.drill ? '' : `<details class="help pbox"><summary>Box score</summary>${liveBox()}</details>`}
@@ -3077,8 +3352,8 @@
       };
       ov.querySelectorAll('[data-play]').forEach(bt => bt.onclick = () => {
         const k = bt.dataset.play;
-        if (G.play && G.play.kind === k) { G.play = null; pause(false); toast('Play off', 'call'); return; }
-        G.play = { kind: k, left: G.poss === 0 ? 2 : 3, done: false }; if (G.cp && G.cp.team === 0) G.cp = null;
+        if (G.play && (G.play.id || G.play.kind) === k) { G.play = null; pause(false); toast('Play off', 'call'); return; }
+        G.play = mkPlay(k, G.poss === 0 ? 2 : 3); if (G.cp && G.cp.team === 0) G.cp = null;
         pause(false); toast(`${PLAYS[k][0]}: ${PLAYS[k][1]}`, 'call'); feed(`You call ${PLAYS[k][0].toLowerCase()}`);
       });
       ov.querySelectorAll('[data-dplay]').forEach(bt => bt.onclick = () => {
@@ -3358,7 +3633,7 @@
     },
     /* test hooks */
     resetTips: () => { seenTips = {}; },
-    dbg: { plays: () => ({ PLAYS, DPLAYS }), state: () => G, opts: () => opts, hoopZ, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
+    dbg: { plays: () => ({ PLAYS, DPLAYS, book: BOOK.map(o => o.id), dbook: Object.keys(DBOOK) }), call: id => { G.play = mkPlay(id, 9); return G.play; }, dcall: id => { G.dplay = id ? { kind: id, left: 9 } : null; }, state: () => G, opts: () => opts, hoopZ, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
       auto: on => { G.auto = on; },
       replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },
       /* run the simulation ahead without drawing: sec seconds of game time */

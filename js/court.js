@@ -115,24 +115,50 @@
   /* comic-book hits: a spiked burst with a word in it where a block, a steal or a dunk lands (a small plain one where a
      hand gets up into a shot), and stars going round the head of a man who has been put on the floor */
   const pows = [], powTex = new Map(), dizzies = [];
-  function powTexture(word) {
-    if (powTex.has(word)) return powTex.get(word);
+  const CLOUDS = { 'SPLASH!': 1, 'CASH!': 1, 'WET!': 1, 'SWISH!': 1, 'DIME!': 1, 'BOARD!': 1, 'MINE!': 1, 'SMOOTH!': 1, 'PURE!': 1 };
+  function powTexture(word, dark) {
+    const key = (dark ? '~' : '') + word; if (powTex.has(key)) return powTex.get(key);
     const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.translate(128, 128);
-    if (word === '*') { g.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832 - 1.5708, r = i % 2 ? 44 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
-    else { const n = 13; g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * 6.2832, r = i % 2 ? 76 : i % 4 ? 120 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r * 0.84); } g.closePath(); }
-    g.lineJoin = 'round'; g.lineWidth = 13; g.strokeStyle = '#0b0b0d'; g.stroke(); g.fillStyle = '#ffffff'; g.fill();
-    if (word && word !== '*') { g.rotate(-0.1); g.font = `900 ${word.length > 6 ? 36 : word.length > 5 ? 42 : 50}px "Arial Black", Impact, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#0b0b0d'; g.fillText(word, 0, 3); }
-    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.userData.keep = true; powTex.set(word, t); return t;
+    const ink = dark ? '#ffffff' : '#0b0b0d', paper = dark ? '#0b0b0d' : '#ffffff', face = '"Arial Black", Impact, system-ui, sans-serif';
+    g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (word[0] === '+') {   // points going up off the rim: a bare number with a heavy outline
+      g.rotate(-0.08); g.font = `900 112px ${face}`; g.lineWidth = 22; g.strokeStyle = ink; g.strokeText(word, 0, 4); g.fillStyle = paper; g.fillText(word, 0, 4);
+    } else if (word === '!' || word === '?' || word === '!?' || word === '...') {   // a speech bubble over somebody's head
+      g.beginPath(); g.ellipse(0, -14, 92, 74, 0, 0, 6.2832); g.moveTo(-26, 52); g.lineTo(-44, 104); g.lineTo(14, 56); g.closePath();
+      g.lineWidth = 13; g.strokeStyle = ink; g.stroke(); g.fillStyle = paper; g.fill(); g.beginPath(); g.ellipse(0, -14, 86, 68, 0, 0, 6.2832); g.fill();
+      g.font = `900 ${word.length > 2 ? 70 : 96}px ${face}`; g.fillStyle = ink; g.fillText(word, 0, word === '...' ? -34 : -10);
+    } else {
+      if (word === '*') { g.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832 - 1.5708, r = i % 2 ? 44 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
+      else if (CLOUDS[word]) { g.beginPath(); const n = 9; for (let i = 0; i < n; i++) { const a = i / n * 6.2832, x = Math.cos(a) * 84, y = Math.sin(a) * 62; g.moveTo(x + 36, y); g.arc(x, y, 36, 0, 6.2832); } g.rect(-70, -50, 140, 100); }
+      else { const n = 13; g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * 6.2832, r = i % 2 ? 76 : i % 4 ? 120 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r * 0.84); } g.closePath(); }
+      g.lineWidth = 13; g.strokeStyle = ink; g.stroke(); g.fillStyle = paper; g.fill();
+      if (word && word !== '*') { g.rotate(-0.1); g.font = `900 ${word.length > 6 ? 36 : word.length > 5 ? 42 : 50}px ${face}`; g.fillStyle = ink; g.fillText(word, 0, 3); }
+    }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.userData.keep = true; powTex.set(key, t); return t;
   }
   const fxSprite = () => { const mt = new T.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false, opacity: 0 }); mt.userData.shared = true; const m = new T.Sprite(mt); m.renderOrder = 20; return m; };
   const fxOff = () => !!(PB.settings && PB.settings.fxOn === 'Off');
-  R.pow = (word, x, y, z, size) => {
+  R.pow = (word, x, y, z, size, dark) => {
     if (!scene || fxOff()) return;
     let r = pows.find(o => o.t <= 0);
-    if (!r) { if (pows.length > 4) return; r = { m: fxSprite(), t: 0 }; pows.push(r); }
+    if (!r) { if (pows.length > 7) return; r = { m: fxSprite(), t: 0 }; pows.push(r); }
     if (r.m.parent !== scene) scene.add(r.m);
-    r.m.material.map = powTexture(word || ''); r.m.material.needsUpdate = true; r.m.material.rotation = (Math.random() - 0.5) * 0.5;
-    r.m.position.set(x, y, z); r.t = r.T = word ? 0.85 : 0.38; r.k = size || 1; r.m.visible = true;
+    const num = !!word && word[0] === '+', bub = word === '!' || word === '?' || word === '!?' || word === '...';
+    r.m.material.map = powTexture(word || '', !!dark); r.m.material.needsUpdate = true; r.m.material.rotation = num || bub ? 0 : (Math.random() - 0.5) * 0.5;
+    r.m.position.set(x, y, z); r.t = r.T = num ? 1.05 : bub ? 1.0 : word ? 0.85 : 0.38; r.k = size || 1; r.rise = num ? 3.4 : bub ? 0.25 : 0.7; r.m.visible = true;
+  };
+  /* stars thrown out from a hit: off the rim on a dunk, off the floor where a man goes down */
+  const sparks = [];
+  R.burst = (x, y, z, n, power) => {
+    if (!scene || fxOff()) return;
+    for (let i = 0; i < (n || 6); i++) {
+      let r = sparks.find(o => o.t <= 0);
+      if (!r) { if (sparks.length > 17) return; r = { m: fxSprite(), t: 0 }; sparks.push(r); }
+      if (r.m.parent !== scene) scene.add(r.m);
+      r.m.material.map = powTexture('*'); r.m.material.needsUpdate = true; r.m.material.rotation = Math.random() * 6.28;
+      const a = Math.random() * 6.2832, s = (5 + Math.random() * 7) * (power || 1);
+      r.vx = Math.cos(a) * s; r.vz = Math.sin(a) * s; r.vy = 5 + Math.random() * 8 * (power || 1); r.m.position.set(x, y, z); r.t = r.T = 0.55 + Math.random() * 0.3; r.sp = (Math.random() - 0.5) * 12; r.m.visible = true;
+    }
   };
   R.dizzy = (p, sec) => {
     if (!scene || fxOff()) return;
@@ -143,7 +169,9 @@
   };
   function powTick(dt) {
     for (const r of pows) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= Math.max(dt, 0.004); const k = 1 - r.t / r.T, pop = k < 0.16 ? k / 0.16 * 1.3 : 1.3 - 0.3 * Math.min(1, (k - 0.16) / 0.14);
-      r.m.scale.setScalar(4.4 * r.k * pop); r.m.position.y += dt * 0.7; r.m.material.opacity = k > 0.72 ? Math.max(0, (1 - k) / 0.28) : 1; }
+      r.m.scale.setScalar(4.4 * r.k * pop); r.m.position.y += dt * (r.rise || 0.7); r.m.material.opacity = k > 0.72 ? Math.max(0, (1 - k) / 0.28) : 1; }
+    for (const r of sparks) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= Math.max(dt, 0.004); const k = 1 - r.t / r.T; r.vy -= 30 * dt;
+      r.m.position.x += r.vx * dt; r.m.position.y = Math.max(0.3, r.m.position.y + r.vy * dt); r.m.position.z += r.vz * dt; r.m.material.rotation += r.sp * dt; r.m.scale.setScalar(0.95 * (1 - k * 0.5)); r.m.material.opacity = Math.min(1, (1 - k) * 2.2); }
     for (const r of dizzies) { if (r.t <= 0) { for (const m of r.s) m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / r.T, p = r.p, y = (p.ht || 78) / 12 * 0.62 + (p.y || 0);
       r.s.forEach((m, i) => { const a = k * 9 + i * 2.094; m.position.set(p.x + Math.cos(a) * 1.15, y + Math.sin(a * 2) * 0.12, p.z + Math.sin(a) * 1.15); m.scale.setScalar(1.05); m.material.opacity = Math.min(1, r.t * 4); }); }
   }
@@ -1885,7 +1913,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0; pows.length = 0; dizzies.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
@@ -2407,9 +2435,14 @@
     if (intro > 0) {
       /* the opening: high over the arena, sweeping down toward center court */
       intro = G && G.phase === 'tip' && G.tipT > 0 ? Math.max(0, G.tipT - 0.4) : Math.max(0, intro - dt);   // in step with the tip
-      const k = 1 - intro / introT, a = 2.4 - k * 2.4;
-      cam.position.set(Math.sin(a) * (70 - k * 30), 48 - k * 26, Math.cos(a) * (70 - k * 30) - 10 * k);
-      cam.lookAt(0, 6 - k * 4, 0);
+      const k = 1 - intro / introT, ez = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+      if (introT < 5) { const a = 2.4 - k * 2.4; cam.position.set(Math.sin(a) * (70 - k * 30), 48 - k * 26, Math.cos(a) * (70 - k * 30) - 10 * k); cam.lookAt(0, 6 - k * 4, 0); }
+      else if (k < 0.3) {   // the crane: from the rafters behind one basket, down toward the floor
+        const u = ez(k / 0.3); cam.position.set(-30 + u * 22, 52 - u * 27, 84 - u * 22); cam.lookAt(u * 2, 3 + u * 3, -6 + u * 6); }
+      else if (k < 0.5) {   // floor level, sliding along the baseline under the basket, the whole court ahead
+        const u = ez((k - 0.3) / 0.2); cam.position.set(-13 + u * 26, 5.2 + u * 1.3, 45.5); cam.lookAt(-2 + u * 4, 3.4, 0); }
+      else {   // the jib: swinging round the players at center court as it comes down
+        const u = ez((k - 0.5) / 0.2), a = -1.15 + u * 1.5, r = 27 - u * 7; cam.position.set(Math.sin(a) * r, 15 - u * 7.5, Math.cos(a) * r); cam.lookAt(0, 4.4, 0); }
       /* the last stretch: close on your player, slowly circling */
       if (introFocus && intro < 2.4) { const f = introFocus, H = (f.ht || 78) / 12;
         /* from in front of him, on whichever side nobody stands in the way */
@@ -2417,8 +2450,8 @@
           for (const da of [0.35, -0.35, 0, 0.7, -0.7]) { const a0 = (f.face || 0) + da, cx = f.x + Math.sin(a0) * 8, cz = f.z + Math.cos(a0) * 8; let m = 99;
             for (const o of G.pl) { if (o === f) continue; const vx = cx - f.x, vz = cz - f.z, L2 = vx * vx + vz * vz, t = Math.max(0, Math.min(1, ((o.x - f.x) * vx + (o.z - f.z) * vz) / L2)); m = Math.min(m, Math.hypot(f.x + vx * t - o.x, f.z + vz * t - o.z)); }
             if (m > best + 0.3) { best = m; f.introA = a0; } } }
-        const aa = f.introA + (2.4 - intro) * 0.12;
-        cam.position.set(f.x + Math.sin(aa) * 8, H * 0.9, f.z + Math.cos(aa) * 8); cam.lookAt(f.x, H * 0.72, f.z); }
+        const q = (2.4 - intro) / 2.4, aa = f.introA + (2.4 - intro) * 0.16, rr0 = 10.2 - 2.4 * ez(q);   // a slow push in as it drifts round him, rising from his chest to his eyes
+        cam.position.set(f.x + Math.sin(aa) * rr0, H * (0.62 + 0.3 * ez(q)), f.z + Math.cos(aa) * rr0); cam.lookAt(f.x, H * (0.66 + 0.08 * ez(q)), f.z); }
       camPos.copy(cam.position); camLook.set(0, 2, 0);
       if (intro === 0) R.snap();
       return;
