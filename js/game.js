@@ -384,6 +384,8 @@
     'Beaten off the dribble': ['Stay in front', 'Give him a step', 'Slide, slide'],
     'Bit on a pump fake': ['Stay down', 'Feet on the floor', 'Make him shoot over you'],
     Goaltending: ['On the way up, not down', 'Let it come off'],
+    Lead: ['That is our lead. Keep it', 'Now get a stop', 'There it is', 'We are in front. Stay locked in', 'Big bucket'],
+    Green: ['Pure', 'You knew that was good', 'Same release every time', 'Textbook', 'Do not even watch it'],
     Hot: ['Feed him', 'Get him the ball', 'Do not cool off now', 'He is feeling it'],
     Rebound: ['Good board', 'Go get it', 'Clean the glass', 'Now run'],
     'Offensive board': ['Second chance', 'Great effort', 'Go back up with it', 'Keep it alive'],
@@ -1456,6 +1458,16 @@
       if (p.isUser) { grade(s.three ? 4 : 3, s.three ? 'Made three' : 'Scored'); buzz([20, 30, 30]); }
       /* the league celebrates too: a big shot late, an and-one, a dunk now and then */
       if (!p.isUser && !G.drill && (s.three || s.kind === 'dunk' || s.foul) && rand() < (clutchTime() ? 0.6 : s.foul ? 0.35 : 0.14)) celebrate(p, s.foul ? ['chest', 'flex'] : s.kind === 'dunk' ? ['roar', 'flex', 'toosmall'] : clutchTime() ? ['ice', 'nightnight', 'shh'] : ['three', 'shrug', 'point', 'goggles']);
+      if (p.isUser && !G.drill) { const mine = G.score[p.team], theirs = G.score[1 - p.team], was = mine - s.pts, late = G.q >= 4 && G.clock < 150;
+        const lead = was <= theirs && mine > theirs && mine + theirs >= 14 && G.t - (G.leadCelT || -99) > 18, tie = was < theirs && mine === theirs && late;
+        if (lead || tie) { G.leadCelT = G.t;
+          setTimeout(() => { if (!G || !G.user) return; toast(lead ? (was === theirs ? 'BREAKS THE TIE' : 'TAKES THE LEAD') : 'TIED UP', 'make'); powAt(lead ? 'LEAD!' : 'TIED!', G.user, 1.05, false, 1.7); }, 1250);
+          if (lead && R.benchJump) R.benchJump(p.team); if (home(p.team)) AU().crowd.react('roar', late ? 1.3 : 1); R.hype(late ? 1.3 : 0.9, late ? 0.5 : 0);
+          for (const m of G.pl) if (m.team === p.team && m !== p && rand() < 0.75) { m.pose = 'celebrate'; setTimeout(() => { if (m.pose === 'celebrate') m.pose = ''; }, 1300); }
+          quipT = -9; quip('Lead', true); if (!(s.three || s.kind === 'dunk' || s.foul)) celebrate(p, late ? ['roar', 'chest', 'ice', 'nightnight'] : ['flex', 'roar', 'chest', 'point']); }
+        /* a perfect release that drops: he knew it when it left his hand */
+        else if (s.timing === 'Excellent' && s.kind !== 'dunk' && !(s.three || s.foul)) { celebrate(p, ['point', 'shrug', 'ice', 'three']); if (rand() < 0.6) powAt('GREEN!', p, 0.9, false, 1.7); quip('Green'); }
+        else if (s.timing === 'Excellent' && s.three && rand() < 0.5) setTimeout(() => { if (G && G.user) powAt('GREEN!', G.user, 0.9, false, 1.7); }, 300); }
       if (p.isUser && (s.three || s.kind === 'dunk' || s.foul)) { celebrate(p, s.foul ? ['chest', 'flex', 'toosmall'] : s.kind === 'dunk' ? ['roar', 'flex', 'chest', 'toosmall'] : clutchTime() ? ['ice', 'nightnight', 'shh', 'three'] : ['goggles', 'three', 'point', 'shrug', 'ice']); for (const m of G.pl) if (m.team === p.team && m !== p && hyp(m.x - p.x, m.z - p.z) < 20 && rand() < 0.6) { m.pose = 'celebrate'; setTimeout(() => { if (m.pose === 'celebrate') m.pose = ''; }, 1100); } if (rand() < 0.5) { const m = G.pl.find(o => o.team === p.team && !o.isUser); if (m) setTimeout(() => CH('ch_nice', m), 900); } }
       else if (!p.isUser && (s.kind === 'dunk' || s.foul || (s.three && p.r.three > 80)) && rand() < 0.35) celebrate(p, s.kind === 'dunk' ? ['roar', 'flex'] : s.foul ? ['chest'] : ['three', 'goggles']);
       /* a bucket off a pass: a finger for the man who found him, on the way back */
@@ -1821,7 +1833,7 @@
       { const from = p.dribHand || 1, fx = Math.sin(p.face), fz = Math.cos(p.face); p.dribHand = (p.vx * -fz + p.vz * fx) >= 0 ? 1 : -1;
         startMv(p, p.dribHand === from ? 'hesi' : ['cross', 'btb', 'legs'][Math.floor(rand() * 3)], from, p.dribHand); }
       if (def && rand() < clamp(0.12 + (p.r.handle - def.r.perD) * 0.006, 0.03, 0.4)) {
-        def.stun = 0.6; p.drive = 1.2;
+        def.stun = 0.6; p.drive = 1.2; def.beatT = G.t; def.beatAmt = 0.9; def.beatSide = side;
         if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); powAt('?', def, 0.8, true, 1.6); AU().crowd.react('ooh', 0.8); }
         if (rand() < 0.15) ankles(def);
       }
@@ -2400,9 +2412,11 @@
         const wrong = Math.abs(dl) > 2 && Math.abs(ml) > 0.35 && dl * ml < 0, caught = dv.y > 0.3 || dv.reachT > 0;
         let ch = clamp(shake + 0.1 + (u.r.handle - dv.r.perD) * 0.008, 0.2, 0.7) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0) + (wrong ? 0.42 : 0) + (caught ? 0.5 : 0);
         if (u.comboN >= 3) ch = Math.max(ch, 0.8);   // the third move of a combo: nobody stays in front of that
-        if (!dv.isUser) { dv.stun = Math.max(dv.stun || 0, 0.15 + 0.05 * u.comboN); dv.respT = G.t + 1.3; }   // even a move he reads costs him half a step, and he gives you a step of room after it
+        if (!dv.isUser) { dv.stun = Math.max(dv.stun || 0, 0.15 + 0.05 * u.comboN); dv.respT = G.t + 1.3; }
+        dv.beatT = G.t; dv.beatAmt = 0.4; dv.beatSide = ml >= 0 ? -1 : 1;   // he leans at the fake   // even a move he reads costs him half a step, and he gives you a step of room after it
         u.mvAt = G.t;
-        if (rand() < Math.min(ch, 0.95)) { if (wrong || caught) feedMove(caught ? 'Caught him reaching' : 'Wrong-footed'); nd.who.lagT = G.t + 1.8; nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.5;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+        if (rand() < Math.min(ch, 0.95)) { if (wrong || caught) feedMove(caught ? 'Caught him reaching' : 'Wrong-footed'); nd.who.lagT = G.t + 1.8; dv.beatAmt = 1;
+          if (!dv.isUser && kind !== 'step' && kind !== 'escape') { dv.vx = -dx / L * 7; dv.vz = -dz / L * 7; }   /* a stumbling step the wrong way as you go the other */ if (R.puff) R.puff(dv.x, dv.z, 1.1); nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.5;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;

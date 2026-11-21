@@ -115,7 +115,7 @@
   /* comic-book hits: a spiked burst with a word in it where a block, a steal or a dunk lands (a small plain one where a
      hand gets up into a shot), and stars going round the head of a man who has been put on the floor */
   const pows = [], powTex = new Map(), dizzies = [];
-  const CLOUDS = { 'SPLASH!': 1, 'CASH!': 1, 'WET!': 1, 'SWISH!': 1, 'DIME!': 1, 'BOARD!': 1, 'MINE!': 1, 'SMOOTH!': 1, 'PURE!': 1 };
+  const CLOUDS = { 'GREEN!': 1, 'SPLASH!': 1, 'CASH!': 1, 'WET!': 1, 'SWISH!': 1, 'DIME!': 1, 'BOARD!': 1, 'MINE!': 1, 'SMOOTH!': 1, 'PURE!': 1 };
   function powTexture(word, dark) {
     const key = (dark ? '~' : '') + word; if (powTex.has(key)) return powTex.get(key);
     const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.translate(128, 128);
@@ -1334,6 +1334,13 @@
     /* ankles broken: down on the seat of his shorts, then back up */
     const ft = p.fallT !== undefined ? G.t - p.fallT : 9, fall = ft < 1.5 ? smooth(0, 0.22, ft) * (1 - smooth(1.05, 1.5, ft)) : 0;
     if (fall > 0) { m.body.rotation.x = m.lean - 1.25 * fall; m.body.position.y = p.y - 0.25 * fall; }
+    /* beaten off the dribble: he lunges at where the ball was, off balance, a knee going, and has to gather himself.
+       A move he only half read is the same thing smaller */
+    { const bt0 = p.beatT !== undefined ? G.t - p.beatT : 9;
+      if (bt0 < 0.75 && fall <= 0 && p.y <= 0.05) { const k = Math.sin(Math.min(1, bt0 / 0.75) * Math.PI) * (p.beatAmt || 1);
+        m.body.rotation.z += (p.beatSide || 1) * 0.5 * k; m.body.rotation.x += 0.26 * k; m.body.position.y -= 0.16 * k; } }
+    /* the blow-by: for the second after a move the handler drops his shoulder and leans into the run */
+    if (p.burstT > G.t && G.ball.holder === p && p.y <= 0.05 && !p.shoot) { const k = Math.min(1, (p.burstT - G.t) / 0.35) * Math.min(1, Math.hypot(p.vx, p.vz) / 9); m.body.rotation.x += 0.2 * k; m.body.position.y -= 0.07 * k; }
     /* how fast he is really moving: a man held up by a body in his way does not run in place */
     if (dt > 0) { const rs = m.lx === undefined ? 0 : Math.hypot(p.x - m.lx, p.z - m.lz) / dt; m.rs = (m.rs || 0) + (Math.min(rs, 30) - (m.rs || 0)) * Math.min(1, dt * 9); m.lx = p.x; m.lz = p.z; }
     const sp = Math.min(Math.hypot(p.vx, p.vz), (m.rs || 0) * 1.2 + 1.5), air = p.y > 0.3;

@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Celebrations for more than threes and dunks: a perfect release that drops (he knew it when it left his hand), the basket that takes the lead or breaks a tie (the bench up, teammates with their arms in the air, the crowd), and the one that ties it late.
+- Beating a man looks like it: the defender lunges at the fake, off balance with a knee going, and stumbles a step the wrong way with dust at his feet; a move he half reads is the same thing smaller. For the second after a move you drop your shoulder and lean into the run. The computer's crossovers get the same reaction out of their defenders.
 - More to set. Game: game speed, how often fouls are called, fatigue on or off, whether the coach calls plays for you, the opening before the tip. Camera: the freeze on big plays, slow motion on a shot to win it. Look: the big calls, the coach and teammate comments, the play-by-play. Sound: a volume each for the crowd, the commentary, the effects and the music.
 - Profile, on the title screen: every real game you have played in any mode. Your record, what you average, all-time totals, your best night.
 - What's new, on the title screen: the latest changes, read from this list.
