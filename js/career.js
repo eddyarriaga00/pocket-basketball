@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake' }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake', ball: 'Classic', fxOn: 'On', shakeOn: 'On', meterOn: 'On' }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   /* careers: up to six kept on this device, one of them current. A career saved by an older build (one slot) moves
@@ -408,6 +408,7 @@
       ${opt('gfx', ['High', 'Low'], 'Graphics', 'Low for older phones')}
       ${opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players')}
       ${opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')}
+      ${opt('ball', ['Classic', 'Black', 'White', 'Street'], 'Ball', 'from your next game')}
       ${opt('fxOn', ['On', 'Off'], 'Comic hit effects', 'BLOCK!, SLAM!, stars')}
       ${opt('shakeOn', ['On', 'Off'], 'Camera shake', 'on dunks and blocks')}</div>
       <p class="kick">Controls</p><div class="card set">

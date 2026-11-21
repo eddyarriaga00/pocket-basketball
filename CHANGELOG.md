@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Settings › Ball: the classic orange, a blacked-out one, an all-white one, or a red, white and blue street ball.
 - Settings › Shot meter: switch it off to shoot by the look of the jump, with a wider green window for doing it.
 - Pigeons on the asphalt by the park fence: walk at them and they go up, and come back when you have gone.
 - The park has more going on outside the fence: people walking the sidewalk, kids on skateboards who carve along and pop the board (not in the snow), a grind rail and a kicker ramp down the block, a cart with an umbrella in the home color and its vendor, and a few birds wheeling overhead by day.

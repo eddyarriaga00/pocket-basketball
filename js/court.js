@@ -2000,8 +2000,11 @@
     }
     /* the ball and the rings under you and the ball handler */
     const bc = document.createElement('canvas'); bc.width = 128; bc.height = 64;
-    const bg = bc.getContext('2d'); bg.fillStyle = '#d4682a'; bg.fillRect(0, 0, 128, 64);
-    bg.strokeStyle = '#2a140a'; bg.lineWidth = 2.4;
+    /* the ball you chose in Settings: the classic orange, a blacked-out one, a red, white and blue street ball, an all-white one */
+    const bk = (PB.settings && PB.settings.ball) || 'Classic', bg = bc.getContext('2d');
+    if (bk === 'Street') { for (let i = 0; i < 8; i++) { bg.fillStyle = ['#c8372d', '#f2f2f2', '#2f4fa8', '#f2f2f2'][i % 4]; bg.fillRect(i * 16, 0, 16, 64); } }
+    else { bg.fillStyle = bk === 'Black' ? '#1d1d21' : bk === 'White' ? '#ece9e2' : '#d4682a'; bg.fillRect(0, 0, 128, 64); }
+    bg.strokeStyle = bk === 'Black' ? '#8a8d92' : '#2a140a'; bg.lineWidth = 2.4;
     for (const x of [0, 32, 64, 96]) { bg.beginPath(); bg.moveTo(x, 0); bg.lineTo(x, 64); bg.stroke(); }
     bg.beginPath(); bg.moveTo(0, 32); bg.lineTo(128, 32); bg.stroke();
     const btx = new T.CanvasTexture(bc); btx.colorSpace = T.SRGBColorSpace;
