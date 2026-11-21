@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Shots are quicker: a jump shot takes about a seventh less time from the gather to the release, layups, floaters and hooks a little less, and the computer lets it go sooner when it is open. The green band is wider on the meter by the same amount, so the window to hit it lasts as long as before.
 - The play book is 115 plays and 16 defenses. A play is now a formation, a man it is for, a screener and an action, so "Horns", "Floppy", "Elevator doors", "Spain pick", "UCLA cut", "Hammer", "Pistol", "Four corners" and the rest each put the five in different places and send the ball to a different man. Isolations and post-ups for every position, picks with either big, pin-downs and flares, backdoors, the give and go, handoffs and the weave, eleven formations. On defense: 2-3, 3-2 and 1-3-1 zones, box and one, traps, deny or double their scorer, gamble, no fouls, no threes, wall the rim. The pause menu files them under headings.
 - The opening is three camera shots where it was one sweep: a crane down from the rafters, a slide along the baseline at floor level, a jib swinging round center court, then the push in on you.
 - The coach and your teammates say something about what you just did, now and then: a line under the call after a three, a dime, a steal, a bad shot, getting crossed.

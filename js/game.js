@@ -21,6 +21,7 @@
   const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;   // (a browser refuses, loudly, before the first touch)
     try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
   /* Settings › Shot timing: how wide the green band is */
+  const SHOTQ = 0.86;   // every jump shot is this much quicker than it was; the green band is that much wider on the meter, so it lasts as long as it did
   const timingEase = () => ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1) * (PB.settings && PB.settings.meterOn === 'Off' ? 1.15 : 1);   // no meter on screen: shooting by the look of the jump earns a wider window
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
 
@@ -782,7 +783,7 @@
     /* the league's shot-makers fade too, with a hand in their face */
     else if (!forUser && !force && !G.drill && kind === 'jumper' && d > 8 && d < 21 && p.y === 0 && (p.r.mid >= 62 || bt(p, 'fade') > 0) && nearestDef(p).d < 5.5 && rand() < 0.55) fade = true;
     const js = kind === 'jumper' && p.d.look ? p.d.look.jumper : null;   // your jump shot: quick or high
-    const T = (kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.58 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55) * (js === 'quick' ? 0.84 : js === 'high' ? 1.1 : 1);
+    const T = (kind === 'jumper' ? (0.82 - p.r.mid * 0.0012) * SHOTQ : kind === 'dunk' ? 0.58 : kind === 'floater' || kind === 'hook' ? 0.46 : 0.5) * (js === 'quick' ? 0.84 : js === 'high' ? 1.1 : 1);
     const peak = kind === 'jumper' ? 1.4 + p.r.vert * 0.014 : kind === 'dunk' ? 3.0 + p.r.vert * 0.022 + Math.max(0, (p.r.dunk || 55) - 55) * 0.008 : 1.8 + p.r.vert * 0.012;
     // A moving jumper uses the first beat of the meter to plant before rising to the same release point.
     const gather = kind === 'jumper' && !fade && p.y === 0 ? T * 0.21 * clamp((sp - 4) / 5, 0, 1) : 0;
@@ -807,7 +808,7 @@
       p.vx = -hx / L * back + p.vx * 0.15; p.vz = -hz / L * back + p.vz * 0.15; p.fadeV = { x: p.vx, z: p.vz };
       if (forUser) toast(fade === 'turn' ? 'Turnaround' : 'Fadeaway', 'call'); }
     /* a defender close by goes up with him */
-    for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25);
+    for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25) * SHOTQ;
     if (kind === 'jumper' && rand() < 0.3) { const o = nearestDef(p).who; if (o && !o.isUser) CH('ch_shot', o); }
   }
 
@@ -874,7 +875,7 @@
     let prob = baseProb(p, p.x, p.z, s.kind) * (s.js === 'quick' ? 0.97 : 1) * (s.fade ? 0.9 + 0.025 * bt(p, 'fade') : 1) * (s.kind === 'hook' ? 1 + 0.025 * bt(p, 'post') : 1);
     let timing = '';
     if (s.user) {
-      const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase() * (tkoOn() ? 1.4 : 1);
+      const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase() * (tkoOn() ? 1.4 : 1) * (s.kind === 'jumper' ? 1 / SHOTQ : 1.1);
       const err = meter - 0.82;
       const ae = Math.abs(err);
       if (ae <= w) { timing = 'Excellent'; prob = prob + (1 - prob) * 0.62; }
@@ -1794,14 +1795,14 @@
     if (p.drive > 0 && d < 15 && d > 5 && p.hold > 0.35 && lane(p) < 1.8 && rand() < (P && P.kind === 'drive' ? 0.85 : 0.4)) {
       const r = bestPass(p); if (r && nearestDef(r).d > 6 && (distHoop(r.x, r.z, p.team) < 8 || r.r.three >= 68 || r.isUser)) { p.drive = 0; tally('kick'); passTo(p, r); return; }
     }
-    if (p.hold > 0.5 && ev > need && nd > 4.2 && rand() < 0.62) { startShot(p); return; }
+    if (p.hold > 0.38 && ev > need && nd > 4.2 && rand() < 0.68) { startShot(p); return; }
     /* with you on him he may show the ball first: jump at the fake and he goes by you or shoots over you coming down */
     { const u = G.user; if (u && !G.auto && u.team !== p.team && d > 9 && p.hold > 0.7 && !(p.fakeCd > G.t) && u.y === 0 && hyp(u.x - p.x, u.z - p.z) < 5 && rand() < 0.004) { p.fakeT = G.t; p.fakeCd = G.t + 6; p.hold = 0.45; return; } }
-    if (p.hold > 0.9 && ev > need * 1.08 && nd > 3.2 && rand() < 0.35) { startShot(p); return; }
+    if (p.hold > 0.7 && ev > need * 1.08 && nd > 3.2 && rand() < 0.4) { startShot(p); return; }
     /* bigs on the block back their man down, then turn for the hook */
     if (p.slot >= 3 && !three && d > 5 && d < 16 && p.post === undefined && p.hold > 0.6 && p.r.close >= 60 && rand() < 0.065) { p.post = 1.6 + rand(); return; }
     if (p.post !== undefined && (p.post <= 0 || d < 7.5)) { delete p.post; startShot(p, false, 'hook'); return; }
-    if (p.hold > 0.5 && d < 10 && q > 0.48 && rand() < 0.7) { startShot(p); return; }
+    if (p.hold > 0.38 && d < 10 && q > 0.48 && rand() < 0.75) { startShot(p); return; }
     if (p.hold > 0.4 && p.drive <= 0 && d < 30 && lane(p) > 3.5 && rand() < 0.28 + (p.r.close + p.r.dunk + p.r.handle) / 99 / 5) { p.drive = 1.6; return; }
     const pr = p.hold > 3.2 ? 0.6 : p.hold > 1 ? 0.32 : 0.07;
     if (rand() < pr) {
@@ -3203,7 +3204,7 @@
     setHidden(m, (!s && !ftm) || (!ftm && !(G.drill && G.drill.kind !== 'free') && PB.settings && PB.settings.meterOn === 'Off'));   // (the meter stays for free throws and the contests)
     if (m.hidden) return;
     const v = s ? s.t / s.T : ftm;
-    const w = (s ? 0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006 : 0.05 + u.r.ft * 0.0007) * timingEase();
+    const w = (s ? (0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006) * (s.kind === 'jumper' ? 1 / SHOTQ : 1.1) * (tkoOn() ? 1.4 : 1) : 0.05 + u.r.ft * 0.0007) * timingEase();   // the band drawn is the band judged
     const p = R.toScreen(u.x, u.ht / 12 + u.y + 1.2, u.z);
     m.style.transform = `translate(${Math.round(p.x + 26)}px, ${Math.round(p.y - 70)}px)`;
     $('#mfill').style.height = `${Math.min(1, v) * 100}%`;
