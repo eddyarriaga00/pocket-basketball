@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake', ball: 'Classic', fxOn: 'On', shakeOn: 'On', meterOn: 'On' }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake', ball: 'Classic', fxOn: 'On', shakeOn: 'On', meterOn: 'On', speed: 'Normal', fouls: 'Normal', fatigueOn: 'On', coachPlays: 'On', introOn: 'On', freezeOn: 'On', slowOn: 'On', callsOn: 'On', quipsOn: 'On', feedOn: 'On', volCrowd: 'Normal', volMusic: 'Normal', volSfx: 'Normal', volBooth: 'Normal' }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   /* careers: up to six kept on this device, one of them current. A career saved by an older build (one slot) moves
@@ -170,6 +170,7 @@
         <button class="tile" id="clsc">${MIC.clock}<b>Classics</b><small>Replay the league's great nights</small></button>
       </div>
       <button class="mode" id="chat">${MIC.chat}<span><b>Chat</b><small>Talk with everyone playing.</small></span><em>›</em></button>
+      <div class="row2"><button class="ghost sm" id="prof">Profile</button><button class="ghost sm" id="about">What's new</button></div>
       <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
@@ -185,7 +186,7 @@
     $('#btop').onclick = () => blacktop();
     $('#clsc').onclick = () => classics();
     $('#seas').onclick = () => PB.Season.start();
-    $('#how').onclick = how;
+    $('#how').onclick = how; $('#prof').onclick = profile; $('#about').onclick = about;
     if ($('#chat')) $('#chat').onclick = () => { if (PB.online) PB.online.open(); };
     if ($('#hall')) $('#hall').onclick = recordBook;
     $('#set').onclick = settings;
@@ -384,6 +385,35 @@
     $('#bk').onclick = title;
   }
 
+  /* ---------- your profile: every real game you have played, in any mode ---------- */
+  function profile() {
+    const L = load('pbb.life') || { games: 0, wins: 0, streak: 0, bestStreak: 0, sum: {}, best: {} }, s = L.sum || {}, b = L.best || {}, g = Math.max(1, L.games);
+    const per = k => ((s[k] || 0) / g).toFixed(1), pct = (m, a) => s[a] ? Math.round((s[m] || 0) / s[a] * 100) + '%' : '–';
+    const tile = (v, l) => `<div class="pft"><b>${v}</b><small>${l}</small></div>`;
+    const ach = load('pbb.ach') || {}, achN = Array.isArray(ach) ? ach.length : Object.keys(ach.got || ach).length;
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Profile</h2>
+      ${L.games ? `<p class="kick">Every game you have played</p>
+      <div class="pfg">${tile(L.games, 'games')}${tile(`${L.wins}-${L.games - L.wins}`, 'record')}${tile(Math.round(L.wins / g * 100) + '%', 'won')}${tile(L.bestStreak || 0, 'best win streak')}</div>
+      <p class="kick">A game</p>
+      <div class="pfg">${tile(per('pts'), 'points')}${tile(per('reb'), 'rebounds')}${tile(per('ast'), 'assists')}${tile(per('stl'), 'steals')}${tile(per('blk'), 'blocks')}${tile(pct('fgm', 'fga'), 'field goals')}${tile(pct('tpm', 'tpa'), 'threes')}${tile(pct('ftm', 'fta'), 'free throws')}</div>
+      <p class="kick">All time</p>
+      <div class="pfg">${tile(s.pts || 0, 'points')}${tile(s.tpm || 0, 'threes made')}${tile(s.dunk || 0, 'dunks')}${tile(s.ast || 0, 'assists')}${tile(s.shake || 0, 'defenders beaten')}${tile(s.stl || 0, 'steals')}${tile(s.blk || 0, 'blocks')}${tile(L.street || 0, 'blacktop games')}</div>
+      <p class="kick">Best game</p>
+      <div class="pfg">${tile(b.pts || 0, 'points')}${tile(b.reb || 0, 'rebounds')}${tile(b.ast || 0, 'assists')}${tile(b.tpm || 0, 'threes')}${tile(b.dunk || 0, 'dunks')}${tile(b.stl || 0, 'steals')}${tile(b.blk || 0, 'blocks')}${tile(achN || 0, 'achievements')}</div>`
+      : '<div class="card"><p>Nothing here yet. Play a game in any mode and your numbers start adding up: your record, what you average, your best night.</p></div>'}
+      <p class="fine">Counted from full games and blacktop runs, in every mode. Kept on this device.</p></div>`);
+    $('#bk').onclick = title;
+  }
+  /* ---------- what's new: the top of the changelog, as shipped ---------- */
+  function about() {
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>What's new</h2><div class="card" id="wn"><p class="mute">Loading…</p></div>
+      <div class="card"><h3>About</h3><p>Pocket Basketball is a career game for your phone: one player, from draft night to the Hall of Fame. Every team and player is fictional. Nothing is sold here and nothing leaves your device but the chat, if you use it.</p></div></div>`);
+    $('#bk').onclick = title;
+    fetch('CHANGELOG.md').then(r => r.ok ? r.text() : Promise.reject()).then(t => { const e = $('#wn'); if (!e) return;
+      const items = t.split('\n').filter(l => l.startsWith('- ')).slice(0, 14).map(l => l.slice(2).replace(/[<>&]/g, ''));
+      e.innerHTML = items.length ? `<ul class="wn">${items.map(i => { const k = i.search(/[.:] /); return `<li>${k > 0 && k < 70 ? `<b>${i.slice(0, k + 1)}</b>${i.slice(k + 1)}` : i}</li>`; }).join('')}</ul>` : '<p class="mute">Nothing to show.</p>'; })
+      .catch(() => { const e = $('#wn'); if (e) e.innerHTML = '<p class="mute">The list of changes could not be loaded. Check your connection.</p>'; });
+  }
   function settings() {
     /* a row: the name on the left; a switch for on/off, a short run of choices otherwise */
     const opt = (k, vals, lab, sub) => { const sw = vals.length === 2 && vals[0] === 'On';
@@ -392,30 +422,52 @@
         : `<div class="seg sm" data-k="${k}">${vals.map(v => `<button class="${S[k] == v ? 'on' : ''}" data-v="${v}">${typeof v === 'number' && k === 'qlen' ? v + ' min' : v}</button>`).join('')}</div>`}</div>`; };
     const GROUPS = {
       Game: [opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty'), opt('qlen', [2, 3, 5, 12], 'Quarter length'), opt('timing', ['Easy', 'Normal', 'Hard'], 'Shot timing', 'how wide the green band is'),
-        opt('season', [10, 20, 41, 82], 'Games in a career season', 'from next season on'), opt('replaysOn', ['On', 'Off'], 'Replays')],
+        opt('speed', ['Normal', 'Fast', 'Faster'], 'Game speed', 'how fast everything on the floor moves'), opt('fouls', ['Fewer', 'Normal', 'More'], 'Fouls', 'how often the whistle blows'),
+        opt('fatigueOn', ['On', 'Off'], 'Fatigue', 'legs go as the game goes on'), opt('coachPlays', ['On', 'Off'], 'Coach calls plays', 'when you have not called one'),
+        opt('season', [10, 20, 41, 82], 'Games in a career season', 'from next season on'), opt('replaysOn', ['On', 'Off'], 'Replays'), opt('introOn', ['On', 'Off'], 'Opening and lineups', 'the camera work before the tip')],
       Controls: [opt('hand', ['Right-handed', 'Left-handed'], 'Buttons'), opt('btnSize', ['Normal', 'Large'], 'Button size'), opt('meterOn', ['On', 'Off'], 'Shot meter', 'off: shoot by the look of the jump, with a wider green window'),
         opt('tapShoot', ['Pump fake', 'Shoot'], 'A quick tap on Shoot', 'a fake, or the shot let go at once'), opt('vibrateOn', ['On', 'Off'], 'Vibration', 'Android')],
-      Camera: [opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera'), opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock distance'), opt('shakeOn', ['On', 'Off'], 'Camera shake', 'on dunks and blocks'),
+      Camera: [opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera'), opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock distance'), opt('shakeOn', ['On', 'Off'], 'Camera shake', 'on dunks and blocks'), opt('freezeOn', ['On', 'Off'], 'Freeze on big plays', 'the beat a block or a dunk lands on'), opt('slowOn', ['On', 'Off'], 'Slow motion', 'on a shot to tie or win it'),
         opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players'), opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')],
-      Look: [opt('gfx', ['High', 'Low'], 'Graphics', 'Low for older phones'), opt('ball', ['Classic', 'Black', 'White', 'Street'], 'Ball', 'from your next game'), opt('fxOn', ['On', 'Off'], 'Comic hit effects', 'BLOCK!, SLAM!, stars')],
-      Sound: [opt('soundOn', ['On', 'Off'], 'Sound'), opt('musicOn', ['On', 'Off'], 'Menu music'), opt('commentaryOn', ['On', 'Off'], 'Commentary')],
+      Look: [opt('gfx', ['High', 'Low'], 'Graphics', 'Low for older phones'), opt('ball', ['Classic', 'Black', 'White', 'Street'], 'Ball', 'from your next game'), opt('fxOn', ['On', 'Off'], 'Comic hit effects', 'BLOCK!, SLAM!, stars'), opt('callsOn', ['On', 'Off'], 'Big calls on screen', 'SPLASH, BLOCKED, STOLEN'),
+        opt('quipsOn', ['On', 'Off'], 'Coach and teammate comments'), opt('feedOn', ['On', 'Off'], 'Play-by-play', 'the lines under the scoreboard')],
+      Sound: [opt('soundOn', ['On', 'Off'], 'Sound'), opt('musicOn', ['On', 'Off'], 'Menu music'), opt('commentaryOn', ['On', 'Off'], 'Commentary'), opt('volCrowd', ['Low', 'Normal', 'High'], 'Crowd volume'), opt('volBooth', ['Low', 'Normal', 'High'], 'Commentary volume'),
+        opt('volSfx', ['Low', 'Normal', 'High'], 'Effects volume', 'the ball, the rim, sneakers'), opt('volMusic', ['Low', 'Normal', 'High'], 'Music volume')],
     };
     if (!GROUPS[settings.tab] && settings.tab !== 'More') settings.tab = 'Game';
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Settings</h2>
       <div class="stabs">${Object.keys(GROUPS).map(k => `<button data-tab="${k}" class="${k === settings.tab ? 'on' : ''}">${k}</button>`).join('')}<button data-tab="More" class="${settings.tab === 'More' ? 'on' : ''}">More</button></div>
       ${GROUPS[settings.tab] ? `<div class="card set">${GROUPS[settings.tab].join('')}</div>` : ''}
       ${settings.tab === 'More' ? `<button class="ghost" id="retips">Show the first-game tips again<small>the cards that explain each moment the first time it comes up</small></button>
-      <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>` : ''}
+      <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>
+      <p class="kick">Your save</p>
+      <button class="ghost" id="svout">Export my save<small>a file with your careers, records and settings</small></button>
+      <button class="ghost" id="svin">Import a save<small>replaces what is on this device with a file you exported</small></button>
+      <button class="ghost" id="setdef">Put settings back to default</button>
+      <button class="ghost" id="svwipe">Erase everything<small>careers, records, achievements, settings. It cannot be undone</small></button>` : ''}
       <p class="fine">Settings are kept on this device.</p></div>`);
     scr().querySelectorAll('.stabs button').forEach(b => b.onclick = () => { settings.tab = b.dataset.tab; settings(); });
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
     if ($('#edteams')) $('#edteams').onclick = () => editTeams();
+    if ($('#svout')) {
+      const keys = () => Object.keys(localStorage).filter(k => k.startsWith('pbb.'));
+      $('#svout').onclick = () => { const o = {}; for (const k of keys()) o[k] = localStorage.getItem(k);
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ pocketBasketball: 1, at: new Date().toISOString(), data: o })], { type: 'application/json' })); a.download = 'pocket-basketball-save.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+      $('#svin').onclick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+        inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; f.text().then(t => { let o = null; try { o = JSON.parse(t); } catch (e) { /* not a save */ }
+          if (!o || !o.pocketBasketball || !o.data) { alert('That file is not a Pocket Basketball save.'); return; }
+          if (!confirm('Replace everything on this device with the save in this file?')) return;
+          for (const k of keys()) localStorage.removeItem(k); for (const k in o.data) if (k.startsWith('pbb.')) localStorage.setItem(k, o.data[k]); location.reload(); }); };
+        inp.click(); };
+      $('#setdef').onclick = () => { if (!confirm('Put every setting back to its default?')) return; localStorage.removeItem(SET); location.reload(); };
+      $('#svwipe').onclick = () => { if (!confirm('Erase every career, record, achievement and setting on this device? This cannot be undone.')) return; if (!confirm('Last check: erase everything?')) return; for (const k of keys()) localStorage.removeItem(k); location.reload(); };
+    }
     if ($('#retips')) $('#retips').onclick = () => { try { localStorage.removeItem('pbb.tips'); } catch (e) { /* fine */ } if (PB.Game && PB.Game.resetTips) PB.Game.resetTips(); $('#retips').firstChild.textContent = 'Tips are back on'; };
     scr().querySelectorAll('.seg button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.k, v = b.dataset.v;
       S[k] = isNaN(+v) ? v : +v;
       S.sound = S.soundOn !== 'Off'; S.music = S.musicOn !== 'Off'; S.commentary = S.commentaryOn !== 'Off'; S.replays = S.replaysOn !== 'Off'; S.vibrate = S.vibrateOn !== 'Off'; S.radar = S.radarOn !== 'Off';
-      saveSettings(); if (PB.audio) PB.audio.music(true); if (k === 'gfx' && PB.R && PB.R.resize) PB.R.resize(); settings();
+      saveSettings(); if (PB.audio) { PB.audio.music(true); if (PB.audio.mix) PB.audio.mix(); } if (k === 'gfx' && PB.R && PB.R.resize) PB.R.resize(); settings();
     });
   }
 

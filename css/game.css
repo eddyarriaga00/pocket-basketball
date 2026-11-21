@@ -918,3 +918,8 @@ table.pbx td small{color:var(--mute)}
 .stabs button{flex:1 1 0;min-width:0;width:auto;margin:0;padding:9px 2px;white-space:nowrap;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--mute);font-family:var(--display);font-weight:800;font-size:11.5px;min-height:0}
 .stabs button.on{background:#fff;color:#000;border-color:#fff}
 #pause section[hidden]{display:none}#pause .ptip{margin:10px 2px 0}#pause .pbox{margin-top:4px}
+
+/* profile and what's new */
+.pfg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 16px}.pft{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px 4px 10px;text-align:center}
+.pft b{display:block;font-family:var(--display);font-weight:900;font-size:20px;line-height:1.1}.pft small{display:block;margin-top:4px;font-size:10.5px;color:var(--mute);line-height:1.2}
+ul.wn{margin:0;padding:0 0 0 18px}ul.wn li{margin:0 0 10px;font-size:13px;line-height:1.4;color:var(--mute)}ul.wn li b{color:var(--ink);font-weight:700}

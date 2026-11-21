@@ -62,7 +62,7 @@
     const meter = c.createAnalyser(); meter.fftSize = 2048; out.connect(meter);
     const verb = c.createConvolver(); verb.buffer = impulse(c, 1.9);
     chain(verb, gain(c, 0.45), master);
-    const mk = (lv, send) => { const g = gain(c, lv); g.connect(master); chain(g, gain(c, send), verb); return g; };
+    const mk = (lv, send) => { const g = gain(c, lv), v = gain(c, 1); g.connect(v); v.connect(master); chain(g, gain(c, send), verb); g.vol = v; return g; };   // (vol: Settings › Sound, apart from the ducking and fades done on the bus itself)
     const booth = gain(c, 1.4), pres = filt(c, 'peaking', 3000, 0.9); pres.gain.value = 2.5;
     chain(booth, filt(c, 'highpass', 85, 0.7), pres, comp(c, -20, 8, 2.5, 0.004, 0.18), master);
     /* the arena's speakers: band-limited, with the far wall coming back */
@@ -292,7 +292,10 @@
   }
 
   /* ---------- the public side ---------- */
+  const VOL = { Low: 0.45, Normal: 1, High: 1.5 };
   const A = PB.audio = {
+    /* Settings › Sound: how loud the crowd, the music, the effects and the booth are */
+    mix() { if (!bus) return; const s = S(), v = k => VOL[s[k]] || 1; bus.crowd.vol.gain.value = v('volCrowd'); bus.music.vol.gain.value = v('volMusic'); bus.sfx.vol.gain.value = v('volSfx'); bus.booth.gain.value = 1.4 * v('volBooth'); if (bus.pa && bus.pa.gain) bus.pa.gain.value = v('volBooth'); },
     ready: () => !!ctx,
     unlock() {
       if (!AC) return;
@@ -306,7 +309,7 @@
       }
       if (!ctx) {
         try { ctx = new AC({ latencyHint: 'interactive' }); } catch (e) { ctx = new AC(); }
-        bus = graph(ctx);
+        bus = graph(ctx); A.mix();
         loadPack();
         buildCrowd().catch(() => {});
       }

@@ -21,6 +21,8 @@
   const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;   // (a browser refuses, loudly, before the first touch)
     try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
   /* Settings › Shot timing: how wide the green band is */
+  const foulK = () => ({ Fewer: 0.5, More: 1.5 })[PB.settings && PB.settings.fouls] || 1;   // Settings › Game: how often the whistle blows
+  const tired = () => !(PB.settings && PB.settings.fatigueOn === 'Off');
   const SHOTQ = 0.86;   // every jump shot is this much quicker than it was; the green band is that much wider on the meter, so it lasts as long as it did
   const timingEase = () => ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1) * (PB.settings && PB.settings.meterOn === 'Off' ? 1.15 : 1);   // no meter on screen: shooting by the look of the jump earns a wider window
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
@@ -302,6 +304,7 @@
 
   /* ---------- HUD and feedback ---------- */
   function toast(txt, cls) {
+    if ((cls === 'make' || cls === 'blk') && PB.settings && PB.settings.callsOn === 'Off') return;   // Settings › Look: the big calls
     const t = $('#toast'); t.textContent = txt; t.className = 'on ' + (cls || ''); clearTimeout(toast.h);
     t.style.fontSize = (!cls || cls === 'make' || cls === 'blk') && txt.length > 11 ? (txt.length > 16 ? '22px' : '27px') : '';   // a long call stays on one line
     toast.h = setTimeout(() => t.classList.remove('on'), 1500);   // (its kind stays on while it fades: it used to snap back to the big letters on the way out)
@@ -340,7 +343,7 @@
     notify(HANDLES[Math.floor(rand() * HANDLES.length)], kind === 'pts' ? `#${u.num} ${line}: ${extra} points` : line, { quiet: true });
   }
   function feed(txt) {
-    const f = $('#feed'); const e = document.createElement('div'); e.textContent = txt; f.prepend(e);
+    const f = $('#feed'); f.style.display = PB.settings && PB.settings.feedOn === 'Off' ? 'none' : ''; const e = document.createElement('div'); e.textContent = txt; f.prepend(e);
     while (f.children.length > 3) f.lastChild.remove();
     setTimeout(() => e.classList.add('old'), 3500);
   }
@@ -387,7 +390,7 @@
   };
   let quipT = -9;
   function quip(why, always) {
-    const L = QUIP[why]; if (!L || !G || !G.user || G.drill || G.park || G.replay || G.t - quipT < 4.5 || (!always && rand() > 0.6)) return;
+    const L = QUIP[why]; if (!L || (PB.settings && PB.settings.quipsOn === 'Off') || !G || !G.user || G.drill || G.park || G.replay || G.t - quipT < 4.5 || (!always && rand() > 0.6)) return;
     let e = $('#quip'); if (!e) { e = document.createElement('div'); e.id = 'quip'; $('#toast').after(e); }
     quipT = G.t;
     const mates = G.pl.filter(p => p.team === G.user.team && !p.isUser), m = mates[Math.floor(rand() * mates.length)];
@@ -570,7 +573,7 @@
       if (G.dplay && p.team === 1) { G.dplay.left--; if (G.dplay.left < 0) G.dplay = null; }
       /* nobody called one: the bench does, about every other trip */
       G.cp = null;
-      if (!G.drill && !G.half && !G.park && !(p.team === 0 && G.play) && rand() < 0.5) { const k = CPUPLAYS[Math.floor(rand() * CPUPLAYS.length)]; G.cp = mkPlay(k, 0); G.cp.team = p.team;
+      if (!G.drill && !G.half && !G.park && !(p.team === 0 && (G.play || (PB.settings && PB.settings.coachPlays === 'Off'))) && rand() < 0.5) { const k = CPUPLAYS[Math.floor(rand() * CPUPLAYS.length)]; G.cp = mkPlay(k, 0); G.cp.team = p.team;
         if (p.team === 0 && G.user && !G.auto && rand() < 0.5) feed(`Coach calls ${PLAYS[k][0].toLowerCase()}`); } }
     if (why === 'oreb') G.shotClock = Math.max(G.shotClock, 14);
   }
@@ -730,7 +733,7 @@
   function fatigue(dt) {
     if (!G.bench) return;
     const Q = (G.qlen || 3) * 60, drain = 0.55 / (0.75 * Q), rest = 0.45 / (0.3 * Q);   // a starter's stint: most of a quarter
-    for (const p of G.pl) if (!p.isUser && !(G.user && p.d.id === G.user.d.id)) { const sp = hyp(p.vx, p.vz); p.energy = Math.max(0, (p.energy ?? 1) - dt * drain * (sp > 12 ? 1.4 : sp > 4 ? 1 : 0.6)); }
+    for (const p of G.pl) if (!p.isUser && !(G.user && p.d.id === G.user.d.id)) { const sp = hyp(p.vx, p.vz); p.energy = Math.max(0, (p.energy ?? 1) - dt * drain * (tired() ? 1 : 0) * (sp > 12 ? 1.4 : sp > 4 ? 1 : 0.6)); }
     for (const t of [0, 1]) for (const b of G.bench[t]) b.energy = Math.min(1, (b.energy ?? 1) + dt * rest);
   }
 
@@ -929,7 +932,7 @@
     let foul = null;
     /* contact on a drive that is not on the shot: a team foul; in the bonus (five in the quarter) it is two shots */
     if (nd.d < (s.kind === 'jumper' ? 3.4 : 5)) {
-      const fp = s.kind === 'jumper' ? 0.07 : s.kind === 'dunk' ? 0.3 : 0.34;
+      const fp = (s.kind === 'jumper' ? 0.07 : s.kind === 'dunk' ? 0.3 : 0.34) * foulK();
       if (rand() < fp) foul = nd.who;
     }
     const made = rand() < prob;
@@ -2088,7 +2091,7 @@
         G.tf[p.team] = Math.max(G.tf[p.team], 5);   // late in a quarter every team is in the penalty
         toast('Foul to stop the clock', ''); contactFoul(p, man); return;
       }
-      if (!p.isUser && (man.drive > 0 || attacking(man) && !man.shoot) && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * (man.drive > 0 ? 1.05 : 0.45) * (1.3 - p.r.perD / 140) * (DD.foul || 1)) { contactFoul(p, man); return; }
+      if (!p.isUser && (man.drive > 0 || attacking(man) && !man.shoot) && hyp(man.x - p.x, man.z - p.z) < 2.6 && G.phase === 'live' && rand() < dt * (man.drive > 0 ? 1.05 : 0.45) * (1.3 - p.r.perD / 140) * (DD.foul || 1) * foulK()) { contactFoul(p, man); return; }
       /* a driver who runs into a defender set in his path: the charge */
       if (!p.isUser && man.drive > 0 && p.stun <= 0 && hyp(p.vx, p.vz) < 3 && hyp(man.x - p.x, man.z - p.z) < 2.4 && G.phase === 'live' && rand() < dt * 0.35) {
         man.st.tov++; man.st.pf++; if (man.isUser) grade(-2, 'Charge'); checkFoulOut(man);
@@ -2544,7 +2547,7 @@
         if (p.energy === undefined) p.energy = 1;
         const spd = hyp(p.vx, p.vz), top = (11.5 + p.r.speed * 0.075);
         if (G.phase !== 'live') p.energy = Math.min(1, p.energy + dt * 0.06);
-        else if (spd > top * 0.8) p.energy = Math.max(0, p.energy - dt * (0.05 - p.r.speed * 0.00015));
+        else if (spd > top * 0.8 && tired()) p.energy = Math.max(0, p.energy - dt * (0.05 - p.r.speed * 0.00015));
         else if (spd < 6) p.energy = Math.min(1, p.energy + dt * 0.025);
       }
       if (p.move > 0) p.move -= dt;
@@ -3006,6 +3009,13 @@
     const res = { line, flow, qlen: G.qlen, drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, parkGo: G.parkGo || null, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner, half: G.half ? { target: G.target, ones: G.ones, n: G.pl.length / 2 } : null,
       shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
+    /* your profile: everything you have done in real games (full court and the blacktop), in every mode */
+    if (G.user && !G.park && !G.drill && !G.horse && G.t > 30) { try {
+      const L = JSON.parse(localStorage.getItem('pbb.life') || 'null') || { games: 0, wins: 0, streak: 0, bestStreak: 0, sum: {}, best: {} }, st = G.user.st, won = G.score[G.user.team] > G.score[1 - G.user.team];
+      L.games++; if (won) { L.wins++; L.streak++; L.bestStreak = Math.max(L.bestStreak, L.streak); } else L.streak = 0;
+      for (const k of ['pts', 'reb', 'ast', 'stl', 'blk', 'tpm', 'tpa', 'fgm', 'fga', 'ftm', 'fta', 'tov', 'dunk', 'shake']) { L.sum[k] = (L.sum[k] || 0) + (st[k] || 0); if (['pts', 'reb', 'ast', 'stl', 'blk', 'tpm', 'dunk'].includes(k)) L.best[k] = Math.max(L.best[k] || 0, st[k] || 0); }
+      if (G.half) L.street = (L.street || 0) + 1;
+      localStorage.setItem('pbb.life', JSON.stringify(L)); } catch (e) { /* a private window: nothing kept */ } }
     PB.Game.active = false;
     $('#game').hidden = true;
     if (opts.onEnd) opts.onEnd(res);
@@ -3185,6 +3195,8 @@
     pollPad();
     raf = requestAnimationFrame(frame);
     let dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now;   // a frame's timestamp can come before the clock we read
+    { const st = PB.settings || {}; if (st.freezeOn === 'Off') G.hitT = 0; if (st.slowOn === 'Off' && G.slowT) { G.slowT = 0; AU().muffle(false); }
+      if (!G.park && !G.replay) dt *= ({ Fast: 1.1, Faster: 1.2 })[st.speed] || 1; }   // Settings › Game: game speed
     if (G.hitT > 0) { G.hitT -= dt; dt = 0; }   // the beat a big play lands on: a block, a dunk, broken ankles hold for a few frames
     if (G.slowT) { if (G.ball.state === 'shot' && !G.replay) { dt *= 0.4; if (G.slowT === 1) { G.slowT = 2; AU().muffle(true); } } else { G.slowT = 0; if (!G.paused) AU().muffle(false); } }
     if (G.replay) {
@@ -3483,7 +3495,7 @@
         setTimeout(() => toast(`First to ${G.target}${G.by2 ? ', win by 2' : ''}`, 'call'), 400);
       }
       /* the opening: a sweep over the arena with the matchup on screen; a tap skips it */
-      else if (!o.drill && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario) {
+      else if (!o.drill && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario && !(PB.settings && PB.settings.introOn === 'Off')) {
         G.tipT = 8.4; R.setIntro(8.0, G.user);
         const iv = $('#intro');
         iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;

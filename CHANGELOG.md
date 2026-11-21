@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- More to set. Game: game speed, how often fouls are called, fatigue on or off, whether the coach calls plays for you, the opening before the tip. Camera: the freeze on big plays, slow motion on a shot to win it. Look: the big calls, the coach and teammate comments, the play-by-play. Sound: a volume each for the crowd, the commentary, the effects and the music.
+- Profile, on the title screen: every real game you have played in any mode. Your record, what you average, all-time totals, your best night.
+- What's new, on the title screen: the latest changes, read from this list.
+- Your save: export it to a file, import one, put the settings back to default, or erase everything (Settings › More).
 - Menus in tabs. Settings is six short pages (Game, Controls, Camera, Look, Sound, More) where it was one long scroll. The pause menu keeps Resume on top and puts the rest under Game, Coaching (the playbook and your defense), Stats (the box score) and Options (camera, sound, controls).
 - Dribbling you can win with. Read your man: a move against the way he is sliding, or while he is reaching or in the air, beats him nearly every time ("Wrong-footed"); the third move of a combo beats anybody. Every move costs the defender half a step even when he reads it, and you come out of every move quicker. A man you have beaten trails you for a couple of seconds, and the burst past him is longer and faster.
 - The escape dribble: swipe Move down and to one side (Y on a keyboard). Behind the back, away from him and out wide: the most room of any move, and the jumper after it has the step-back's space.
