@@ -1208,6 +1208,7 @@
       AU().play(rand() < 0.3 ? 'board' : 'rim', { x: b.ex, power: rr(0.5, 1) });
       if (R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1, 0.5);   // the iron shivers
       if (G.lastShot && G.lastShot.prob > 0.72 && !G.drill && rand() < 0.7) { p.celebK = 'ugh'; p.celebT = 1.1; }   // he had that one: hands to the head
+      if (s.kind === 'dunk' && !G.drill) { AU().crowd.react('ooh', 1); if (R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1, 0.85); b.vy = Math.max(b.vy || 0, 9); }   // a missed dunk: off the back iron and up, and the building lets him hear it
       if (p.isUser) G.streak = 0;
       if (p.isUser && tkoOn() && ++G.tko.miss >= 2) tkoEnd('Cooled off');
       if (rand() < 0.22) B('miss', { prio: 1, follow: 0.3 });
@@ -2262,7 +2263,7 @@
       } else if (p.vy !== 0 || p.y > 0) {
         const flightDt = p.shoot && p.shoot.gather ? clamp(p.shoot.t - p.shoot.gather, 0, dt) : dt;
         p.y += p.vy * flightDt; p.vy -= p.jg * flightDt;
-        if (p.y <= 0 && p.vy < -9 && R.puff) R.puff(p.x, p.z, clamp(-p.vy / 14, 0.7, 1.5));   // down hard: a puff where he lands
+        if (p.y <= 0 && p.vy < -9 && R.puff) { R.puff(p.x, p.z, clamp(-p.vy / 14, 0.7, 1.5)); if (p.vy < -13) AU().play('squeak', { x: p.x, vol: 0.45 }); }   // down hard: a puff where he lands
         if (p.y <= 0 && p.vy <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'dunk2' || p.pose === 'windmill' || p.pose === 'hang') p.pose = ''; }
       }
       if (p.fadeV) { if (p.y > 0 && G.t - p.fadeT < 1.6) { p.vx = p.fadeV.x; p.vz = p.fadeV.z; } else if (G.t - p.fadeT > 0.1) p.fadeV = null; }   // a fadeaway's hop carries him while he is in the air

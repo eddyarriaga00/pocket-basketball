@@ -273,7 +273,7 @@
     const net = new T.Mesh(new T.CylinderGeometry(0.75, 0.42, 1.5, 12, 3, true),
       new T.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.8 }));
     net.position.set(0, 9.25, s * 41.75); g.add(net);
-    nets.push({ mesh: net, s, swish: 0, rim, snap: 0 });
+    nets.push({ mesh: net, s, swish: 0, rim, snap: 0, grp: g });
     /* the red light round the backboard: on at the horn */
     { const lm = new T.MeshBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0, depthWrite: false }), led = new T.Group(); led.material = lm;
       for (const [w, h, x, y] of [[6.3, 0.16, 0, 1.83], [6.3, 0.16, 0, -1.83], [0.16, 3.82, 3.07, 0], [0.16, 3.82, -3.07, 0]]) { const e = new T.Mesh(new T.BoxGeometry(w, h, 0.14), lm); e.position.set(x, y, 0); led.add(e); }
@@ -2322,6 +2322,7 @@
       n.mesh.scale.set(1 - n.swish * 0.25, 1 + n.swish * 0.35, 1 - n.swish * 0.25);
       /* a dunk pulls the rim down and lets it go: it springs back, the net with it */
       if (n.snap > 0 || n.bent) { n.snap = Math.max(0, n.snap - dt * 1.9); const bend = n.snap * n.snap * Math.cos((1 - n.snap) * 21) * 0.15; n.bent = n.snap > 0;
+        n.grp.position.z = bend * 0.9 * n.s; n.grp.position.y = -Math.abs(bend) * 0.35;   // the whole stanchion rocks with it
         n.rim.rotation.x = Math.PI / 2 + bend * n.s; n.rim.position.y = 10 - Math.abs(bend) * 0.9; n.mesh.position.y = 9.25 - n.swish * 0.26 - Math.abs(bend) * 0.9; }
       else n.mesh.position.y = 9.25 - n.swish * 0.26;
     }
