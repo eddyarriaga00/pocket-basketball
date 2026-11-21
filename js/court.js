@@ -1125,8 +1125,11 @@
     shh: () => [[0.28, -0.42, 0.86], [-0.64, 0.74, 0.2], [0.3, -0.93, 0.12], [0.15, -0.9, 0.4]],
     ice: (k) => { const b = Math.max(0, Math.sin(k * 10)) * 0.12; return [[0.32, -0.5, 0.8], [-0.35, 0.12, 0.93], [0.12, -0.52 + b, 0.85], [-0.62, 0.2 - b, 0.76]]; },
     /* the dunk: the ball cocked back behind the head on the way up, then thrown down through the rim; k is the way there */
-    dunk1: (k) => { const e = smooth(0.45, 0.8, k), L = (a, b) => a.map((v, j) => v + (b[j] - v) * e);
-      return [L([0.2, 0.95, -0.12], [0.12, 0.88, 0.45]), L([0.1, 0.99, 0.02], [0.05, 0.8, 0.6]), L([0.7, 0.1, 0.4], [0.75, -0.35, 0.2]), L([0.4, 0.6, 0.6], [0.6, -0.5, 0.4])]; },
+    dunk1: (k) => { const e = smooth(0.45, 0.8, k), sl = smooth(1, 2, k), L = (a, b, c) => a.map((v, j) => { const u = v + (b[j] - v) * e; return u + (c[j] - u) * sl; });
+      return [L([0.2, 0.95, -0.12], [0.12, 0.88, 0.45], [0.14, 0.22, 0.96]), L([0.1, 0.99, 0.02], [0.05, 0.8, 0.6], [0.05, -0.5, 0.86]), L([0.7, 0.1, 0.4], [0.75, -0.35, 0.2], [0.7, -0.6, -0.2]), L([0.4, 0.6, 0.6], [0.6, -0.5, 0.4], [0.5, -0.8, -0.1])]; },
+    /* two hands: the ball taken back over the head, both arms brought down through the rim */
+    dunk2: (k) => { const e = smooth(0.4, 0.8, k), sl = smooth(1, 2, k), L = (a, b, c) => a.map((v, j) => { const u = v + (b[j] - v) * e; return u + (c[j] - u) * sl; });
+      const up = L([0.26, 0.92, -0.26], [0.2, 0.88, 0.42], [0.2, 0.26, 0.94]), fo = L([0.1, 0.95, -0.3], [0.06, 0.8, 0.6], [0.05, -0.48, 0.87]); return [up, fo, up, fo]; },
     hang: () => [[0.12, 0.98, 0.12], [0.04, 0.99, 0.12], [0.12, 0.98, 0.12], [0.04, 0.99, 0.12]],   // on the rim
     bpass: () => [[0.22, -0.55, 0.8], [0.05, -0.6, 0.8], [0.22, -0.55, 0.8], [0.05, -0.6, 0.8]],   // a bounce pass, pushed down
     sad: () => [[0.2, -0.75, 0.62], [0.05, -0.85, 0.5], [0.2, -0.75, 0.62], [0.05, -0.85, 0.5]],   // hands on knees
@@ -1251,7 +1254,7 @@
     m.sway = (m.sway || 0) + (shift - (m.sway || 0)) * Math.min(1, dt * 18);
     m.body.position.x = -m.sway * (TPL.sideR < 0 ? 1 : -1);
     /* a fadeaway leans back in the air */
-    const lean = p.shoot && p.shoot.kind === 'dunk' && p.y > 0.3 ? (p.shoot.t / p.shoot.T < 0.6 ? -0.16 : 0.16) : p.fadeT !== undefined && G.t - p.fadeT < 1.5 && p.y > 0.05 ? -0.34 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
+    const lean = p.shoot && p.shoot.kind === 'dunk' && p.y > 0.3 ? (p.shoot.t / p.shoot.T < 0.6 ? -0.24 : 0.2) : p.pose === 'hang' ? 0.3 * Math.sin((0.72 - (p.hangT || 0)) * 8.7) : (p.pose === 'dunk1' || p.pose === 'dunk2') && p.y > 0.3 ? 0.3 : p.fadeT !== undefined && G.t - p.fadeT < 1.5 && p.y > 0.05 ? -0.34 : ms < 1 && mv.k === 'hesi' ? (ms < 0.55 ? -0.12 : 0.22) : ms < 1 && mv.k !== 'spin' ? 0.12 : 0;   // a fadeaway leans back; a hesitation rises, then goes
     const plean = p.passT0 !== undefined && G.t - p.passT0 < 0.3 ? 0.16 * Math.sin(Math.PI * (G.t - p.passT0) / 0.3) : 0;
     const jk = p.shoot && p.shoot.kind === 'jumper' && !p.shoot.fade ? Math.min(1, p.shoot.t / (p.shoot.T * 0.82)) : -1, slean = jk < 0 ? 0 : jk < 0.4 ? 0.12 * (1 - jk / 0.4) + 0.02 : jk < 0.8 ? 0.02 : -0.05;
     // Sit into the stop, then extend through the set point.
@@ -1368,8 +1371,8 @@
       m.introL = (m.introL === undefined ? d : m.introL) + (d - (m.introL === undefined ? d : m.introL)) * Math.min(1, dt * 8); m.lookY = Math.max(-0.75, Math.min(0.75, m.introL)); } else m.introL = undefined;
     if (m.head && Math.abs(m.lookY || 0) > 0.01) { m.body.updateMatrixWorld(true); m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_up, m.lookY).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); }
     if (m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = (G.t + m.hg.userData.bph) % 3.8 < 0.13;
-    if (m.hg && m.hg.userData.faceM) { const fm = m.hg.userData.faceM, sh = (G.t + (m.bph2 || (m.bph2 = Math.random() * 3.8))) % 3.8 < 0.13, yl = /^(roar|flex|celebrate|dunk1|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2), mood = p.celebT > 0 ? (p.celebK === 'ugh' ? 'stern' : p.celebK === 'call' ? '' : 'happy') : p.pose === 'sad' ? (p.tiredP ? 'tired' : 'stern') : '', ix = yl ? fm.userData.yell : sh ? fm.userData.shut : (mood && fm.userData[mood]) || fm.userData.open; if (fm.geometry.index !== ix) fm.geometry.setIndex(ix); }   // the model blinks
-    if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
+    if (m.hg && m.hg.userData.faceM) { const fm = m.hg.userData.faceM, sh = (G.t + (m.bph2 || (m.bph2 = Math.random() * 3.8))) % 3.8 < 0.13, yl = /^(roar|flex|celebrate|dunk1|dunk2|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2), mood = p.celebT > 0 ? (p.celebK === 'ugh' ? 'stern' : p.celebK === 'call' ? '' : 'happy') : p.pose === 'sad' ? (p.tiredP ? 'tired' : 'stern') : '', ix = yl ? fm.userData.yell : sh ? fm.userData.shut : (mood && fm.userData[mood]) || fm.userData.open; if (fm.geometry.index !== ix) fm.geometry.setIndex(ix); }   // the model blinks
+    if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|dunk2|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
     m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
     abduct(m, p.face + (p.spinA || 0), ABD);
@@ -1378,7 +1381,7 @@
     { const gs = m.gw * (1 - smooth(13, 17, sp)), rdy = m.rw > m.dw && m.rw > gs, sw = Math.max(gs, m.dw, m.rw), k = sw > 0 ? gs / (gs + m.dw + 1e-6) : 0, low = crossing ? (mv.k === 'legs' ? 0.10 : 0.065) * Math.sin(ms * Math.PI) : ms < 1 && mv.k === 'spin' ? 0.05 : 0;
       if (sw > 0.02 && TPL.simpleGeo && !PB.mannequin) plant(p, m, G, dt, sw, rdy ? 0.21 : 0.25 + (0.05 + 0.08 * m.gd) * k, rdy ? 0.93 : 0.87 - (0.01 + 0.06 * m.gd) * k - 0.04 * prot * (1 - k) - 0.06 * (p.brakeD || 0) - low - 0.07 * m.gath - 0.08 * load - (m.land < 1 ? 0.06 * Math.sin(Math.PI * m.land) : 0)); else m.ft = null; }
     /* a dunk: the knees tuck under him as he rises */
-    if ((p.pose === 'dunk1' || p.pose === 'windmill') && p.y > 0.5 && m.bones[bk('DEF-thigh.L')]) { const w = Math.min(1, (p.y - 0.5) * 1.6), f = p.face + (p.spinA || 0);
+    if ((p.pose === 'dunk1' || p.pose === 'dunk2' || p.pose === 'windmill') && p.y > 0.5 && m.bones[bk('DEF-thigh.L')]) { const w = Math.min(1, (p.y - 0.5) * 1.6), f = p.face + (p.spinA || 0);
       for (const sd of ['L', 'R']) { const th = m.bones[bk(`DEF-thigh.${sd}`)], sh = m.bones[bk(`DEF-shin.${sd}`)], ft = m.bones[bk(`DEF-foot.${sd}`)], k = sd === 'L' ? 0.5 : 0.72;
         aim(th, sh, _t3.set(Math.sin(f) * k, -0.8, Math.cos(f) * k).normalize(), w); aim(sh, ft, _t3.set(-Math.sin(f) * 0.75, -0.66, -Math.cos(f) * 0.75).normalize(), w); } }
     /* a fadeaway: the lead knee comes up and the foot kicks out at the defender, the other leg hangs back under him */
@@ -1424,7 +1427,7 @@
     else if (pose === 'shoot' && fk >= 0) kk = 0.16 + 0.34 * Math.sin(Math.PI * Math.min(1, fk * 1.15));
     else if (pose === 'shoot' && ftk >= 0) kk = ftk;
     else if (pose === 'windmill') kk = p.spin ? p.spin.t / p.spin.T : 1;
-    else if (pose === 'dunk1') kk = p.shoot ? Math.min(1, p.shoot.t / p.shoot.T) : 1;
+    else if (pose === 'dunk1' || pose === 'dunk2') kk = p.shoot ? Math.min(1, p.shoot.t / p.shoot.T) : 1 + Math.min(1, Math.max(0, G.t - (p.dunkRel || 0)) / 0.16);
     else if (pose === 'flex' || pose === 'roar' || pose === 'thump' || pose === 'three' || pose === 'call' || pose === 'shrug' || pose === 'toosmall' || pose === 'ice' || pose === 'guard' || pose === 'ready' || pose === 'box' || pose === 'screen') kk = G.t + (m.gph0 || (m.gph0 = Math.random() * 6));
     const hi = pose === 'shoot' && p.shoot && p.shoot.js === 'high' ? 0.14 : 0;   // a high release: the ball goes up above the head
     /* dirOf's x is to the player's right when the model's right hand sits on -x facing +z (TPL.sideR < 0); each pose

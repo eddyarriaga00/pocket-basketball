@@ -494,12 +494,14 @@
   /* ---------- shooting ---------- */
   function startShot(p, forUser, force) {
     if (p.shoot || G.ball.holder !== p) return;
+    if (p.y > 0.05) return;   // still coming down with a rebound: a shot from here was a second jump off thin air
     const d = distHoop(p.x, p.z, p.team);
     const sp = hyp(p.vx, p.vz);
     let kind = 'jumper';
     if (G.drill && G.drill.kind === 'dunk') return dunkJump(p, d);
     if (d < 9) {
-      const dunkOk = p.r.dunk >= 55 && d < 7.5 && (sp > 5 || p.ht >= 82) && rand() < 0.35 + (p.r.dunk - 55) / 60 + 0.12 * bt(p, 'poster');
+      /* a leaper takes off from further out; yours goes up to dunk whenever he has a run at the rim */
+      const dunkOk = p.r.dunk >= 55 && d < 7.5 + clamp(((p.r.vert || 70) - 70) * 0.05, 0, 1.4) && (sp > 5 || p.ht >= 82) && rand() < 0.35 + (p.r.dunk - 55) / 60 + 0.12 * bt(p, 'poster') + (forUser && sp > 5 ? 0.3 : 0);
       kind = dunkOk ? 'dunk' : 'layup';
     } else if (d < 13 && sp > 7 && !isThree(p.x, p.z, p.team)) kind = 'floater';   // a runner on the move: lofted over the bigs
     if (force) kind = force;
@@ -516,8 +518,8 @@
     /* the league's shot-makers fade too, with a hand in their face */
     else if (!forUser && !force && !G.drill && kind === 'jumper' && d > 8 && d < 21 && p.y === 0 && (p.r.mid >= 62 || bt(p, 'fade') > 0) && nearestDef(p).d < 5.5 && rand() < 0.55) fade = true;
     const js = kind === 'jumper' && p.d.look ? p.d.look.jumper : null;   // your jump shot: quick or high
-    const T = (kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.5 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55) * (js === 'quick' ? 0.84 : js === 'high' ? 1.1 : 1);
-    const peak = kind === 'jumper' ? 1.4 + p.r.vert * 0.014 : kind === 'dunk' ? 2.6 + p.r.vert * 0.02 : 1.8 + p.r.vert * 0.012;
+    const T = (kind === 'jumper' ? 0.82 - p.r.mid * 0.0012 : kind === 'dunk' ? 0.58 : kind === 'floater' || kind === 'hook' ? 0.5 : 0.55) * (js === 'quick' ? 0.84 : js === 'high' ? 1.1 : 1);
+    const peak = kind === 'jumper' ? 1.4 + p.r.vert * 0.014 : kind === 'dunk' ? 3.0 + p.r.vert * 0.022 + Math.max(0, (p.r.dunk || 55) - 55) * 0.008 : 1.8 + p.r.vert * 0.012;
     // A moving jumper uses the first beat of the meter to plant before rising to the same release point.
     const gather = kind === 'jumper' && !fade && p.y === 0 ? T * 0.21 * clamp((sp - 4) / 5, 0, 1) : 0;
     const tp = T * 0.82 - gather;
@@ -527,10 +529,10 @@
       /* AI: when it lets go (near the top, a little early or late) */
       aiRel: clamp(0.82 + PB.gauss() * (0.09 - p.r.mid * 0.0006), 0.55, 1.1) };
     if (gather) p.shoot.pickup = { x: G.ball.x - p.x, y: G.ball.y, z: G.ball.z - p.z };
-    p.pose = kind === 'dunk' ? (rand() < 0.55 ? 'dunk1' : 'celebrate') : 'shoot';
+    p.pose = kind === 'dunk' ? (rand() < 0.55 ? 'dunk1' : 'dunk2') : 'shoot';
     /* a breakaway with nobody near: a flier shows off (a windmill, a reverse, a 360) */
     p.showoff = null;
-    if (kind === 'dunk' && nearestDef(p).d > 12 && (p.r.dunk || 0) + (p.r.vert || 0) >= 150 && rand() < 0.55) {
+    if (kind === 'dunk' && nearestDef(p).d > 8 && (p.r.dunk || 0) + (p.r.vert || 0) >= 140 && rand() < 0.6) {
       const st = STYLES[1 + Math.floor(rand() * 4)];
       p.pose = st[1]; p.spin = { total: st[4], t: 0, T: 2 * T * 0.82 }; p.spinA = 0; p.showoff = st[0];
     }
@@ -664,7 +666,8 @@
       if (rand() < fp) foul = nd.who;
     }
     const made = rand() < prob;
-    if (made && s.kind === 'dunk' && !G.drill && rand() < 0.6) p.hangPlan = true;
+    if (s.kind === 'dunk') p.dunkRel = G.t;   // the arm comes down through the rim from here
+    if (made && s.kind === 'dunk' && !G.drill && rand() < 0.75) p.hangPlan = true;
     const pts = G.half && G.ones ? (s.three ? 2 : 1) : s.three ? 3 : 2;   // (the blacktop can be played by ones and twos)
     b.state = 'shot'; b.holder = null; b.lastTouch = p.team;
     b.sx = hp.x; b.sy = hp.y; b.sz = hp.z; b.t = 0;
@@ -751,7 +754,7 @@
     horse: { secs: 0, spots: [[0, 18]], title: 'H-O-R-S-E' },
   };
   /* the dunk contest: [name, arms, how hard (the judges' bonus), how often it goes down, the turn in the air] */
-  const STYLES = [['Two-hand', 'celebrate', 0, 1, 0], ['Tomahawk', 'dunk1', 0.45, 0.96, 0], ['Reverse', 'dunk1', 0.75, 0.92, Math.PI],
+  const STYLES = [['Two-hand', 'dunk2', 0, 1, 0], ['Tomahawk', 'dunk1', 0.45, 0.96, 0], ['Reverse', 'dunk1', 0.75, 0.92, Math.PI],
     ['Windmill', 'windmill', 1.05, 0.88, 0], ['360', 'celebrate', 1.4, 0.8, Math.PI * 2]];
   /* each dunk: from a spot, with the ball; drive and jump (from as far as the free-throw line). Move changes the dunk.
      Five judges score it, six to ten each. */
@@ -1108,7 +1111,7 @@
       if (clutchTime()) p.st.clutch += s.pts;
       R.swish(hoopZ(p.team) > 0 ? 1 : -1);
       AU().play(s.kind === 'dunk' ? 'dunk' : s.prob > 0.55 || rand() < 0.62 ? 'swish' : 'rimin', { x: b.x });
-      if (s.kind === 'dunk' && !G.replay && !G.drill) G.hitT = 0.07;
+      if (s.kind === 'dunk' && !G.replay && !G.drill) G.hitT = 0.1;
       if (s.kind === 'dunk' && R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1);
       if (home(p.team)) AU().crowd.react('roar', s.kind === 'dunk' ? 1.2 : s.three ? 1 : 0.65);
       if (home(p.team) || s.kind === 'dunk') R.hype(s.kind === 'dunk' ? 1.4 : s.three ? 1 : 0.6, s.kind === 'dunk' ? 0.9 : 0); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.three ? 0.8 : 0.5);
@@ -1120,6 +1123,7 @@
       if (s.three && R.refSignal) R.refSignal('sig3', 1.3);
       /* a dunk on somebody: said out loud */
       if (s.kind === 'dunk' && !G.drill) { const v = nearestDef(p); if (v.who && v.d < 3.4) { R.benchJump && R.benchJump(p.team); feed(`${p.name} dunks on ${v.who.name}`); v.who.celebK = 'hips'; v.who.celebT = 1.5;
+        if (!v.who.isUser && v.who.y === 0 && rand() < 0.4) { const dx = v.who.x - p.x, dz = v.who.z - p.z, L = hyp(dx, dz) || 1; ankles(v.who); v.who.vx = dx / L * 5; v.who.vz = dz / L * 5; }   // put on the floor
         if (p.isUser) { setTimeout(() => toast('POSTERIZED', 'make'), 500); grade(1, 'Poster dunk'); buzz([30, 40, 30]); } else if (v.who.isUser) setTimeout(() => toast('Dunked on', 'opp'), 500); } }
       if (p.isUser && !G.drill) { const was = p.st.pts - s.pts, th = [10, 20, 30, 40, 50].find(v => was < v && p.st.pts >= v);
         if (th) { G.noteAt = -99; social('pts', p.st.pts); } else if (s.kind === 'dunk' && rand() < 0.6) social('dunk'); else if (s.three && rand() < 0.4) social('three'); }
@@ -2247,16 +2251,16 @@
         if (S.t > S.T * 0.5 && p.y <= 0) { p.face += S.total; p.spinA = 0; p.spin = null; }
       }
       /* after a made dunk: a moment hanging on the rim, then the drop */
-      if (p.hangPlan && p.vy <= 0 && p.y > 1 && !p.shoot) { p.hangPlan = false; p.hangT = 0.55; p.pose = 'hang'; }
+      if (p.hangPlan && p.vy <= 0 && p.y > 1 && !p.shoot && G.t - (p.dunkRel || 0) > 0.13) { p.hangPlan = false; p.hangT = 0.72; p.pose = 'hang'; if (R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1, 0.7); }
       if (p.hangT > 0) {
         p.hangT -= dt; p.vx = p.vz = 0; p.vy = 0; p.pose = 'hang';
         const hy = Math.max(0.6, 10.25 - p.ht / 12 * 1.3); p.y += (hy - p.y) * Math.min(1, dt * 12);   // hands on the rim
-        if (p.hangT <= 0) { p.vy = -2; p.pose = ''; }
+        if (p.hangT <= 0) { p.vy = -2; p.pose = ''; if (R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1, 0.6); }   // he lets go: the rim springs up
       } else if (p.vy !== 0 || p.y > 0) {
         const flightDt = p.shoot && p.shoot.gather ? clamp(p.shoot.t - p.shoot.gather, 0, dt) : dt;
         p.y += p.vy * flightDt; p.vy -= p.jg * flightDt;
         if (p.y <= 0 && p.vy < -9 && R.puff) R.puff(p.x, p.z, clamp(-p.vy / 14, 0.7, 1.5));   // down hard: a puff where he lands
-        if (p.y <= 0 && p.vy <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'windmill' || p.pose === 'hang') p.pose = ''; }
+        if (p.y <= 0 && p.vy <= 0) { p.y = 0; p.vy = 0; if (p.pose === 'contest' || p.pose === 'shoot' || p.pose === 'celebrate' || p.pose === 'dunk1' || p.pose === 'dunk2' || p.pose === 'windmill' || p.pose === 'hang') p.pose = ''; }
       }
       if (p.fadeV) { if (p.y > 0 && G.t - p.fadeT < 1.6) { p.vx = p.fadeV.x; p.vz = p.fadeV.z; } else if (G.t - p.fadeT > 0.1) p.fadeV = null; }   // a fadeaway's hop carries him while he is in the air
       p.x += p.vx * dt; p.z += p.vz * dt;
