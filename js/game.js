@@ -440,7 +440,7 @@
   function tkoTick() { const k = G.tko; if (k && k.on) { if (G.t > k.until) tkoEnd(); else tkoHud(); } }
   /* ---------- first-game tips: shown once each, the first time the moment comes up ---------- */
   const TIPS = {
-    ball: 'You have the ball. Hold SHOOT, let go at the top of the jump (green band). PASS finds the open man, or tap a teammate; swipe MOVE to break your man down.',
+    ball: 'You have the ball. Hold SHOOT, let go at the top of the jump (green band). PASS finds the open man, or tap a teammate; swipe MOVE to break your man down: against the way he is sliding beats him, down and to a side is an escape dribble.',
     def: 'Defense. Stay between your man and the rim. STEAL when the button lights up. JUMP as he shoots.',
     mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
     ft: 'Free throw: hold SHOOT and let go in the green band.',
@@ -2076,9 +2076,10 @@
     else if (man === b.holder) {
       /* he guards where the ball is going, not where it was: a good defender reads the first step and is already
          sliding there (he used to aim at the dribbler's feet, a step late on every drive) */
-      const lead = p.isUser || p.stun > 0 || !man.isUser || G.auto ? 0 : 0.12 + p.r.perD / 99 * 0.2, mx = man.x + man.vx * lead, mz = man.z + man.vz * lead;
+      const lead = p.isUser || p.stun > 0 || !man.isUser || G.auto || G.t - (man.mvAt || -9) < 0.6 ? 0 : 0.12 + p.r.perD / 99 * 0.2,   // (no reading the first step out of a dribble move)
+        mx = man.x + man.vx * lead, mz = man.z + man.vz * lead;
       const dx = H.x - mx, dz = H.z - mz, L = hyp(dx, dz) || 1;
-      const gap = clamp(3.2 + (L > 28 && !DD.press ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400) * (p.isUser ? 1 : DD.on || 1);
+      const gap = clamp(3.2 + (L > 28 && !DD.press ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400) * (p.isUser ? 1 : DD.on || 1) + (p.respT > G.t ? 1.4 : 0);
       p.tx = mx + dx / L * gap; p.tz = mz + dz / L * gap;
       p.pose = 'guard';
       /* down by a few with the clock running out: foul to stop it */
@@ -2107,7 +2108,7 @@
       if (!p.isUser && p.stealCd < 0 && L < 30 && hyp(man.x - p.x, man.z - p.z) < 4.2 && !man.shoot) {
         p.stealCd = rr(1.5, 4);
         p.pose = 'reach'; p.reachT = 0.3;
-        const ch = clamp(0.02 + (p.r.steal - man.r.handle) * 0.0012, 0.005, 0.06) * G.diff.oppSteal * (man.move > 0 ? 1.6 : 1) * (DD.steal || 1);
+        const ch = clamp(0.02 + (p.r.steal - man.r.handle) * 0.0012, 0.005, 0.06) * G.diff.oppSteal * (man.move > 0 ? 1.2 : 1) * (DD.steal || 1);
         if (rand() < ch) {
           p.st.stl++; feed(`Steal · ${p.name}`); toast(p.team === 0 ? 'STOLEN' : 'Picked off', p.team === 0 ? 'make' : 'opp');
           AU().play('steal', { x: p.x }); AU().crowd.react(home(p.team) ? 'roar' : 'groan', 0.8); B('steal', { prio: 3, follow: 0.35 }); if (rand() < 0.5) CH('ch_run', p);
@@ -2158,7 +2159,7 @@
 
   /* ---------- movement ---------- */
   function steer(p, dt, wantX, wantZ, speedMul) {
-    const max = maxSpeed(p) * (speedMul || 1) * (p.stun > 0 ? 0.25 : 1) * (p.move > 0 ? 1.45 : 1) * (p.burstT > G.t ? 1.14 : 1);
+    const max = maxSpeed(p) * (speedMul || 1) * (p.stun > 0 ? 0.25 : 1) * (p.move > 0 ? 1.45 : 1) * (p.burstT > G.t ? 1.2 : 1) * (p.lagT > G.t ? 0.84 : 1);   // (lagT: just beaten off the dribble, he is chasing from behind for a moment)
     let vx = wantX, vz = wantZ;
     const L = hyp(vx, vz);
     if (L > max) { vx *= max / L; vz *= max / L; }
@@ -2349,6 +2350,13 @@
       if (kind === 'step') {
         /* back, away from the man in front of you; the next jumper gets the room */
         dx = -hx / hl; dz = -hz / hl; sp = maxSpeed(u) * 1.25; u.move = 0.3; u.moveCd = 0.8; u.stepT = G.t; shake = 0.12; lbl = 'Step-back'; startMv(u, 'hesi', u.dribHand || 1, u.dribHand || 1);
+      } else if (kind === 'escape') {
+        /* the escape dribble: behind the back, away from him and out to one side. The most room of any move, and the
+           jumper after it gets the step-back's space */
+        const side = dir || (rand() < 0.5 ? 1 : -1), from = u.dribHand || 1;
+        dx = -hx / hl * 0.75 + Bs.rx * side * 0.8; dz = -hz / hl * 0.75 + Bs.rz * side * 0.8; sp = maxSpeed(u) * 1.5; u.move = 0.36; u.moveCd = 0.7; u.stepT = G.t; shake = 0.3; lbl = 'Escape dribble';
+        { const fx = Math.sin(u.face), fz = Math.cos(u.face); u.dribHand = (dx * -fz + dz * fx) >= 0 ? 1 : -1; }
+        startMv(u, 'btb', from, u.dribHand);
       } else if (kind === 'spin') {
         /* a spin: around the defender and on toward the rim */
         const side = rand() < 0.5 ? 1 : -1;
@@ -2380,9 +2388,17 @@
       /* moves strung together: each one inside a second and a half of the last is harder to stay in front of */
       u.comboN = u.comboT !== undefined && G.t - u.comboT < 1.5 ? Math.min(4, (u.comboN || 1) + 1) : 1; u.comboT = G.t; shake += 0.05 * (u.comboN - 1);
       if (u.comboN >= 2) { toast(`Combo x${u.comboN}`, 'call'); if (R.puff) R.puff(u.x, u.z, 0.9); }
-      if (nd.who && nd.d < 6) {
-        const ch = clamp(shake + (u.r.handle - nd.who.r.perD) * 0.008, 0.05, 0.62) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0);
-        if (rand() < ch) { nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.1;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+      u.burstT = Math.max(u.burstT || 0, G.t + 0.45);   // every move comes out of it quicker than it went in
+      if (nd.who && nd.d < 6.5) {
+        /* read him: a move against the way he is sliding, or while he is reaching or off his feet, beats him nearly
+           every time. That is the skill of it; the dice are only for a defender who is set and square */
+        const dv = nd.who, px = -hz / hl, pz = hx / hl, dl = dv.vx * px + dv.vz * pz, ml = (dx * px + dz * pz) / L;
+        const wrong = Math.abs(dl) > 2 && Math.abs(ml) > 0.35 && dl * ml < 0, caught = dv.y > 0.3 || dv.reachT > 0;
+        let ch = clamp(shake + 0.1 + (u.r.handle - dv.r.perD) * 0.008, 0.2, 0.7) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0) + (wrong ? 0.42 : 0) + (caught ? 0.5 : 0);
+        if (u.comboN >= 3) ch = Math.max(ch, 0.8);   // the third move of a combo: nobody stays in front of that
+        if (!dv.isUser) { dv.stun = Math.max(dv.stun || 0, 0.15 + 0.05 * u.comboN); dv.respT = G.t + 1.3; }   // even a move he reads costs him half a step, and he gives you a step of room after it
+        u.mvAt = G.t;
+        if (rand() < Math.min(ch, 0.95)) { if (wrong || caught) feedMove(caught ? 'Caught him reaching' : 'Wrong-footed'); nd.who.lagT = G.t + 1.8; nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.5;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
@@ -3255,6 +3271,7 @@
         if (G.paused) return;
         const dx = e.clientX - sx, dy = e.clientY - sy;
         if (hyp(dx, dy) < 18) pressC();
+        else if (dy > 0 && Math.min(Math.abs(dx), dy) / Math.max(Math.abs(dx), dy) > 0.5) pressC('escape', dx > 0 ? 1 : -1);   // down and to a side
         else if (Math.abs(dx) > Math.abs(dy)) pressC('cross', dx > 0 ? 1 : -1);
         else pressC(dy > 0 ? 'step' : 'spin');
       };
@@ -3276,6 +3293,7 @@
       else if (e.key === 'o' || e.key === 'O') pressD();
       else if (e.key === 'l' || e.key === 'L') pressC();
       else if (e.key === 'u' || e.key === 'U') pressC('step');
+      else if (e.key === 'y' || e.key === 'Y') pressC('escape');
       else if (e.key === 'i' || e.key === 'I') pressC('spin');
       else if (e.key === 't' || e.key === 'T') tkoGo();
       else if (e.key === 'Escape' || e.key === 'p') pause(!G.paused);
@@ -3335,7 +3353,7 @@
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
         ${G.drill ? '' : `<details class="help pbox"><summary>Box score</summary>${liveBox()}</details>`}
         <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
-        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, I spin, O pick.</span></p></details></div>`;
+        <details class="help"><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim, down and to a side for an escape dribble. Cross against the way he is sliding and he is beaten.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, Y escape dribble, I spin, O pick.</span></p></details></div>`;
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {
         /* a timeout: a breather, and late in the game the ball comes up to the frontcourt */
