@@ -112,6 +112,40 @@
     r.m.material.color.setHex(scene.background ? 0xb9b2a6 : 0xfff3df); r.m.position.set(x + (Math.random() - 0.5) * 0.5, 0.35, z + (Math.random() - 0.5) * 0.5); r.t = r.T = 0.45; r.k = k || 1; r.m.visible = true;
   };
   function puffTick(dt) { for (const r of puffs) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / r.T; r.m.scale.setScalar((0.8 + k * 2.2) * r.k); r.m.position.y = 0.35 + k * 0.5; r.m.material.opacity = Math.min(0.7, 0.55 * (1 - k) * r.k); } }
+  /* comic-book hits: a spiked burst with a word in it where a block, a steal or a dunk lands (a small plain one where a
+     hand gets up into a shot), and stars going round the head of a man who has been put on the floor */
+  const pows = [], powTex = new Map(), dizzies = [];
+  function powTexture(word) {
+    if (powTex.has(word)) return powTex.get(word);
+    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.translate(128, 128);
+    if (word === '*') { g.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832 - 1.5708, r = i % 2 ? 44 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
+    else { const n = 13; g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * 6.2832, r = i % 2 ? 76 : i % 4 ? 120 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r * 0.84); } g.closePath(); }
+    g.lineJoin = 'round'; g.lineWidth = 13; g.strokeStyle = '#0b0b0d'; g.stroke(); g.fillStyle = '#ffffff'; g.fill();
+    if (word && word !== '*') { g.rotate(-0.1); g.font = `900 ${word.length > 6 ? 36 : word.length > 5 ? 42 : 50}px "Arial Black", Impact, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#0b0b0d'; g.fillText(word, 0, 3); }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.userData.keep = true; powTex.set(word, t); return t;
+  }
+  const fxSprite = () => { const mt = new T.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false, opacity: 0 }); mt.userData.shared = true; const m = new T.Sprite(mt); m.renderOrder = 20; return m; };
+  R.pow = (word, x, y, z, size) => {
+    if (!scene) return;
+    let r = pows.find(o => o.t <= 0);
+    if (!r) { if (pows.length > 4) return; r = { m: fxSprite(), t: 0 }; pows.push(r); }
+    if (r.m.parent !== scene) scene.add(r.m);
+    r.m.material.map = powTexture(word || ''); r.m.material.needsUpdate = true; r.m.material.rotation = (Math.random() - 0.5) * 0.5;
+    r.m.position.set(x, y, z); r.t = r.T = word ? 0.85 : 0.38; r.k = size || 1; r.m.visible = true;
+  };
+  R.dizzy = (p, sec) => {
+    if (!scene) return;
+    let r = dizzies.find(o => o.t <= 0);
+    if (!r) { if (dizzies.length > 1) return; r = { s: [fxSprite(), fxSprite(), fxSprite()], t: 0 }; dizzies.push(r); }
+    for (const m of r.s) { if (m.parent !== scene) scene.add(m); m.material.map = powTexture('*'); m.material.needsUpdate = true; m.visible = true; }
+    r.p = p; r.t = r.T = sec || 1.4;
+  };
+  function powTick(dt) {
+    for (const r of pows) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= Math.max(dt, 0.004); const k = 1 - r.t / r.T, pop = k < 0.16 ? k / 0.16 * 1.3 : 1.3 - 0.3 * Math.min(1, (k - 0.16) / 0.14);
+      r.m.scale.setScalar(4.4 * r.k * pop); r.m.position.y += dt * 0.7; r.m.material.opacity = k > 0.72 ? Math.max(0, (1 - k) / 0.28) : 1; }
+    for (const r of dizzies) { if (r.t <= 0) { for (const m of r.s) m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / r.T, p = r.p, y = (p.ht || 78) / 12 * 0.62 + (p.y || 0);
+      r.s.forEach((m, i) => { const a = k * 9 + i * 2.094; m.position.set(p.x + Math.cos(a) * 1.15, y + Math.sin(a * 2) * 0.12, p.z + Math.sin(a) * 1.15); m.scale.setScalar(1.05); m.material.opacity = Math.min(1, r.t * 4); }); }
+  }
   function shockTick(dt) { for (const r of shocks) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / 0.55; r.m.scale.setScalar(1 + k * r.size); r.m.material.opacity = 0.8 * (1 - k) * (1 - k); } }
   let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
   /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
@@ -1820,7 +1854,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0; pows.length = 0; dizzies.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
@@ -2178,7 +2212,7 @@
 
   /* Pose every player from the game state. */
   R.update = (G, dt) => {
-    shockTick(dt); puffTick(dt);
+    shockTick(dt); puffTick(dt); powTick(dt);
     if (!G.replay) moveRefs(G, dt);
     benchT += dt;
     benchMesh.forEach((m0, t) => { const m = m0.userData.pl || m0; if (benchJ[t] > 0) { benchJ[t] = Math.max(0, benchJ[t] - dt); m.position.y = Math.abs(Math.sin(benchT * 11 + t)) * 0.7 * Math.min(1, benchJ[t]); } else m.position.y = 0; });

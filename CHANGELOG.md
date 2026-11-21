@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Comic-book hits: a spiked burst with a word in it pops where a block (BLOCK!, NOPE!, SWAT! on a chase-down), a steal, a picked-off pass or a dunk lands; a small plain burst where a defender gets a hand into a shot; stars go round the head of a man put on the floor. A blocked ball is swatted harder and the game holds a beat longer on it.
+- Your defense counts for more: a hand you get up yourself bothers the shot twice as much as before, and your blocks are a matter of timing (up near the top of your jump as he lets it go), on jump shots too.
+- Dribbling: moves chain much sooner (a crossover is ready again in about half a second instead of over a second), moves strung together build a combo that is harder to stay in front of, and beating your man gives a second of extra speed with dust at your heels.
 - Around the rim: the whole stanchion and backboard rock when a dunk pulls the rim down, a missed dunk kicks high off the back iron with a groan from the building, and sneakers squeak on a hard landing.
 - Fixed: you could not dunk on demand. A dunk needed a dunk rating of 55, a run at the rim and a lucky roll, so standing at the rim (or playing a shooter or playmaker build) Shoot always laid it in. Now Shoot at the rim is a dunk every time for your player: within 5.5 ft standing, about 7.5 to 9 ft on the run.
 - Fixed: a player who came down with a rebound could start a jump shot before his feet were back on the floor, and floated up a second time.
