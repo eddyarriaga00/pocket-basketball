@@ -42,6 +42,39 @@
     [[5, 5], [-5, 5], [0, 15]],
   ];
 
+  /* ---------- the play book: what you can call from the pause menu (three trips each), and what the benches call by
+     themselves when you have called nothing ---------- */
+  const PLAYS = {
+    iso: ['Get me the ball', 'Everyone clears out. It is yours'],
+    pnr: ['Pick-and-roll', 'The big screens, then rolls to the rim'],
+    pnp: ['Pick-and-pop', 'The big screens, then steps out for the jumper'],
+    post: ['Feed the post', 'The ball goes down to the big on the block'],
+    five: ['Five out', 'All five behind the arc. The lane is empty'],
+    cut: ['Cutters', 'Teammates keep cutting to the rim. Hit them'],
+    shoot: ['Find the shooter', 'Your best shooter runs free. Get it to him'],
+    hand: ['Handoff', 'A wing comes to the ball and takes it going downhill'],
+    screen: ['Screen for me', 'Off the ball, a big frees you from your man'],
+    drive: ['Drive and kick', 'Shooters in the corners, a big by the rim'],
+    fast: ['Push the pace', 'Run. Early shots, early drives'],
+    slow: ['Slow it down', 'Work the clock, then go late'],
+  };
+  const DPLAYS = {
+    tight: ['Press up', 'Everybody up in their man. Risky against drivers'],
+    sag: ['Pack the paint', 'Sag off and wall the lane. Gives up jumpers'],
+    dbl: ['Double the ball', 'A second man goes at the handler. Someone is open'],
+    press: ['Full-court press', 'Pick them up as soon as they have it'],
+  };
+  const CPUPLAYS = ['pnr', 'pnr', 'pnp', 'five', 'cut', 'shoot', 'post', 'hand', 'drive'];
+  const playOf = team => !G || G.drill ? null : team === 0 && G.play ? G.play : !G.half && G.cp && G.cp.team === team ? G.cp : null;
+  const dplayOf = team => G && team === 0 && G.dplay && !G.drill ? G.dplay.kind : '';
+  /* who a play is for: the best shooter on the floor for 'shoot', the wing nearest the ball for a handoff */
+  function playWho(P, team, h) {
+    if (P.kind === 'iso' || P.kind === 'screen') return P.who || (team === 0 ? G.user : null);
+    if (P.kind === 'shoot') { let best = null; for (const o of teamOf(team)) if (o !== h && (!best || o.r.three > best.r.three)) best = o; return best; }
+    if (P.kind === 'hand') { let best = null, bd = 1e9; for (const o of teamOf(team)) if (o !== h && o.slot < 3) { const d = hyp(o.x - h.x, o.z - h.z); if (d < bd) { bd = d; best = o; } } return best; }
+    return null;
+  }
+
   /* ---------- the shot model ---------- */
   /* Open-look make rate for this shooter from here, before the defense and the release. Rim ~.45-.75, mid .28-.52,
      three .20-.44 (an 80 shooter: about .39 wide open from three, the league's catch-and-shoot rate is about .36). */
@@ -93,7 +126,7 @@
       spot: 0, drive: 0, move: 0, moveCd: 0, reachT: 0, shoot: null, isUser: false,
       st: { pts: 0, reb: 0, oreb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, pf: 0, cs3: 0, mid: 0, lay: 0, dunk: 0, shake: 0, cmiss: 0, clutch: 0, fade: 0, hookm: 0 } };
   }
-  const maxSpeed = p => (11.5 + p.r.speed * 0.075) * (G.ball.holder === p ? 0.9 : 1) * (p.isUser && G.tko && G.tko.on ? 1.05 : 1) * (p.energy !== undefined ? 0.82 + 0.18 * Math.min(1, p.energy * 2) : 1);
+  const maxSpeed = p => (12 + p.r.speed * 0.078) * (G.ball.holder === p ? 0.9 : 1) * (p.isUser && G.tko && G.tko.on ? 1.05 : 1) * (p.energy !== undefined ? 0.82 + 0.18 * Math.min(1, p.energy * 2) : 1);
   const teamOf = t => G.pl.filter(p => p.team === t);
 
   /* ---------- HUD and feedback ---------- */
@@ -187,7 +220,7 @@
     def: 'Defense. Stay between your man and the rim. STEAL when the button lights up. JUMP as he shoots.',
     mate: 'A teammate has it. CALL asks for the ball, CUT runs you to the rim.',
     ft: 'Free throw: hold SHOOT and let go in the green band.',
-    pick: 'PICK brings your big over to screen your man. Pause (top left) to call a play for the next three trips.',
+    pick: 'PICK brings your big over to screen your man. Pause (top left) to call a play: twelve on offense, four on defense, three trips each.',
     fake: 'A man right on you? Tap SHOOT quickly: a pump fake. If he jumps at it, go by him or shoot when he lands.',
   };
   let seenTips = null;
@@ -309,7 +342,12 @@
     b.lastTouch = p.team;
     if (changed) { G.poss = p.team; G.shotClock = 24; G.callT = 0; G.possN = (G.possN || 0) + 1;
       if (G.phase === 'live' && !p.inb) G.transT = G.t;   // a live-ball change of hands (a steal, a board): the break is on
-      if (G.play && p.team === 0) { G.play.left--; G.play.done = false; if (G.play.left < 0) { G.play = null; } } }
+      if (G.play && p.team === 0) { G.play.left--; G.play.done = false; G.play.near = 0; if (G.play.left < 0) { G.play = null; } }
+      if (G.dplay && p.team === 1) { G.dplay.left--; if (G.dplay.left < 0) G.dplay = null; }
+      /* nobody called one: the bench does, about every other trip */
+      G.cp = null;
+      if (!G.drill && !G.half && !G.park && !(p.team === 0 && G.play) && rand() < 0.5) { const k = CPUPLAYS[Math.floor(rand() * CPUPLAYS.length)]; G.cp = { kind: k, team: p.team, done: false };
+        if (p.team === 0 && G.user && !G.auto && rand() < 0.5) feed(`Coach calls ${PLAYS[k][0].toLowerCase()}`); } }
     if (why === 'oreb') G.shotClock = Math.max(G.shotClock, 14);
   }
   /* the blacktop: the ball checked at the top of the key. The offense walks out to its spots above the arc and the defense
@@ -360,7 +398,7 @@
     G.ball.passer = null;
     /* after a basket the game clock keeps running, except in the last two minutes of the fourth and overtime */
     const stop = !baseline || (G.q >= 4 && G.clock < 120);
-    best.inb = true; G.inb = { p: best, t: 0, wait: rr(0.9, 1.6) * (stop ? 1 : 0.7), stop, walk: { x: wx, z: wz, t: 0 } };
+    best.inb = true; G.inb = { p: best, t: 0, wait: rr(0.7, 1.25) * (stop ? 1 : 0.7), stop, walk: { x: wx, z: wz, t: 0 } };
   }
   function inboundStep(dt) {
     const I = G.inb, p = I.p;
@@ -421,7 +459,7 @@
     el.classList.remove('cine', 'cinepark'); void e.offsetWidth; el.classList.add(o.park ? 'cinepark' : 'cine');
     const g = G; R.cine(shots, () => { el.classList.remove('cine', 'cinepark'); if (G === g && o.done) o.done(); });
   }
-  function dead(t, then) { G.phase = 'dead'; G.deadT = t; G.then = then; subs();
+  function dead(t, then) { G.phase = 'dead'; G.deadT = t <= 1.5 ? t * 0.8 : t; G.then = then; subs();
     /* a coach stops a run: a timeout called from the bench (yours or theirs). Legs come back, and the run is over */
     if (G.coachTO !== undefined && !G.ftq && G.q <= 4) { const tc = G.coachTO; G.coachTO = undefined;
       if (G.to[tc] > 0) { G.to[tc]--; G.deadT = Math.max(t, 3.4); G.run = null;
@@ -1426,17 +1464,32 @@
     // Start the shooting motion before time expires, including from the backcourt.
     if (Math.min(G.clock, G.shotClock) < 1.6) { startShot(p); return; }
     /* the play you called */
-    const P = p.team === 0 && G.play && G.phase === 'live' && !p.inb ? G.play : null;
+    const P = G.phase === 'live' && !p.inb ? playOf(p.team) : null;
     if (P && along(p.z, p.team) < RIM - 2) {
-      const u = G.user;
-      if (P.kind === 'iso' && u && u !== p && p.hold > 0.35 && nearestDef(u).d > 2.4 && entryOpen(p, u)) { passTo(p, u); return; }
+      const u = playWho(P, p.team, p);
+      if ((P.kind === 'iso' || P.kind === 'screen') && u && u !== p && p.hold > 0.35 && nearestDef(u).d > 2.4 && entryOpen(p, u)) { passTo(p, u); return; }
       if (P.kind === 'post' && p.think <= 0 && p.slot < 3 && p.hold > 0.5) {
         const big = postTarget(p);
-        if (big && distHoop(big.x, big.z, 0) < 17 && nearestDef(big).d > 1.8 && entryOpen(p, big)) {
+        if (big && distHoop(big.x, big.z, p.team) < 17 && nearestDef(big).d > 1.8 && entryOpen(p, big)) {
           passTo(p, big); return;
         }
       }
+      /* the shooter has come free: it goes to him, and he lets it go */
+      if (P.kind === 'shoot' && u && p.think <= 0 && p.hold > 0.4 && nearestDef(u).d > 4 && distHoop(u.x, u.z, p.team) < 27 && entryOpen(p, u)) { u.playShot = G.t; passTo(p, u); return; }
+      /* the handoff: the wing arrives, takes it, and goes */
+      if (P.kind === 'hand' && !P.done && u && p.hold > 0.5 && hyp(u.x - p.x, u.z - p.z) < 6.5) { P.done = true; passTo(p, u); if (!u.isUser || G.auto) u.driveNext = G.t + 1; return; }
+      /* a cutter open at the rim */
+      if (P.kind === 'cut' && p.think <= 0 && p.hold > 0.3) {
+        const c = teamOf(p.team).find(o => o !== p && (o.cutT > 0 || o.cutUser > 0) && distHoop(o.x, o.z, p.team) < 11 && nearestDef(o).d > 3.2 && entryOpen(p, o));
+        if (c) { c.playShot = G.t; passTo(p, c); return; }
+      }
+      /* the big has popped out behind the screen */
+      if (P.kind === 'pnp' && p.think <= 0) {
+        const pop = teamOf(p.team).find(o => o.screenFor === p && o.screen > 0 && o.screen <= 1.4 && nearestDef(o).d > 4.5 && entryOpen(p, o));
+        if (pop) { pop.playShot = G.t; passTo(p, pop); return; }
+      }
     }
+    if (p.driveNext) { if (G.t < p.driveNext && lane(p) > 2) p.drive = 1.5; delete p.driveNext; }
 
     /* the break: right after a steal or a board, with the defense not back, push it at the rim */
     if (G.transT !== undefined && G.t - G.transT < 3.5 && p.drive <= 0 && G.phase === 'live' && !p.inb) {
@@ -1460,7 +1513,7 @@
     if (p.drive > 0) { p.drive -= dt; p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 3; }
     if (p.post !== undefined) { p.post -= dt; p.tx = p.x * 0.8; p.tz = hoopZ(p.team) - dirOf(p.team) * 5; }
     if (p.think > 0 || p.shoot) return;
-    p.think = 0.28 + rand() * 0.12;
+    p.think = 0.23 + rand() * 0.1;
     const d = distHoop(p.x, p.z, p.team), nd = nearestDef(p).d;
     const back = along(p.z, p.team) > 44;      // still in the backcourt
     const q = baseProb(p, p.x, p.z, d < 6 ? 'layup' : 'jumper') * contest(p);
@@ -1476,6 +1529,11 @@
       if (u && u.slot === 0 && u.team === p.team && u !== p && p.hold > 0.6 && nearestDef(u).d > 4) { passTo(p, u); return; }
       return;
     }
+    /* a play called for him a moment ago: open, he shoots it on the catch */
+    if (p.playShot) { if (G.t - p.playShot > 1.3) delete p.playShot; else if (p.hold > 0.16 && (d < 6 ? nd > 2 : nd > 3.4 && ev > 0.8 && !(three && p.r.three < 58))) { delete p.playShot; startShot(p); return; } }
+    /* slow it down: nothing until the shot clock is under nine, unless it is a layup */
+    if (P && P.kind === 'slow' && G.shotClock > 9 && !(d < 5 && nd > 4)) { p.drive = 0; p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 29; return; }
+    if (P && (P.kind === 'fast' || P.kind === 'drive' || P.kind === 'five') && p.drive <= 0 && p.hold > 0.25 && d < 32 && d > 8 && lane(p) > (P.kind === 'fast' ? 3 : 2.6) && rand() < 0.5) { p.drive = 1.6; return; }
     /* the last shot: shot clock off, the quarter's clock running down: hold it, then go with about six seconds left */
     if ((G.q < 4 || G.score[p.team] >= G.score[1 - p.team]) && G.clock < G.shotClock && G.clock > 6.5 && !(d < 5 && nd > 4)) { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 28; return; }
     if (G.clock < G.shotClock && G.clock <= 6.5 && G.clock > 1.2 && p.drive <= 0 && lane(p) > 3) p.drive = 1.4;
@@ -1484,13 +1542,13 @@
       passTo(p, roller); return;
     }
     if (G.shotClock < 2.5 || (d < 5.5 && p.hold > 0.15)) { startShot(p); return; }
-    const need = (p.team === 1 ? G.diff.oppShootEV : 0.98) - (three ? 0.01 : 0);
+    const need = ((p.team === 1 ? G.diff.oppShootEV : 0.98) - (three ? 0.01 : 0)) * (P && P.kind === 'fast' ? 0.94 : 1);
     /* your pass found him open: he lets it fly on the catch instead of holding it until his man recovers */
     const userAssist = p.caughtFrom && p.caughtFrom.isUser && !G.auto;
     if (p.caughtFrom && G.t - p.caughtT < 0.9 && p.hold > 0.16 && nd > (userAssist ? 4.2 : 7)
       && d < 27 && ev > need * (userAssist ? 0.9 : 1.08) && !(three && p.r.three < 62)) { p.caughtFrom = null; startShot(p); return; }
     /* drive and kick: the lane has closed on a driver, and a teammate stands open: the ball goes out to him (or down to the big on the baseline) */
-    if (p.drive > 0 && d < 15 && d > 5 && p.hold > 0.35 && lane(p) < 1.8 && rand() < 0.4) {
+    if (p.drive > 0 && d < 15 && d > 5 && p.hold > 0.35 && lane(p) < 1.8 && rand() < (P && P.kind === 'drive' ? 0.85 : 0.4)) {
       const r = bestPass(p); if (r && nearestDef(r).d > 6 && (distHoop(r.x, r.z, p.team) < 8 || r.r.three >= 68 || r.isUser)) { p.drive = 0; tally('kick'); passTo(p, r); return; }
     }
     if (p.hold > 0.5 && ev > need && nd > 4.2 && rand() < 0.62) { startShot(p); return; }
@@ -1502,7 +1560,7 @@
     if (p.post !== undefined && (p.post <= 0 || d < 7.5)) { delete p.post; startShot(p, false, 'hook'); return; }
     if (p.hold > 0.5 && d < 10 && q > 0.48 && rand() < 0.7) { startShot(p); return; }
     if (p.hold > 0.4 && p.drive <= 0 && d < 30 && lane(p) > 3.5 && rand() < 0.28 + (p.r.close + p.r.dunk + p.r.handle) / 99 / 5) { p.drive = 1.6; return; }
-    const pr = p.hold > 4 ? 0.6 : p.hold > 1.2 ? 0.3 : 0.06;
+    const pr = p.hold > 3.2 ? 0.6 : p.hold > 1 ? 0.32 : 0.07;
     if (rand() < pr) {
       const r = bestPass(p);
       if (r && (!r.isUser || nearestDef(r).d > 5)) { passTo(p, r); return; }
@@ -1526,11 +1584,15 @@
     const s = SPOTS[p.slot][p.spot % SPOTS[p.slot].length];
     let x = s[0], d = s[1];
     /* the floor shrinks toward the ball a little */
-    if (p.cutT > 0) { x = p.slot === 4 ? -s[0] * 0.5 : Math.sign(s[0] || 1) * 3; d = 4; }
-    const bh = G.ball.holder;
+    const bh = G.ball.holder, P = playOf(p.team), wide = P && (P.kind === 'five' || P.kind === 'drive');
+    if (p.cutT > 0 && !wide) { x = p.slot === 4 ? -s[0] * 0.5 : Math.sign(s[0] || 1) * 3; d = 4; }
     if (bh && bh.team === p.team && bh !== p) x += clamp(bh.x * 0.15, -3, 3);
     /* the play called for you: everyone else clears out to the corners and the wings */
-    if (G.play && G.play.kind === 'iso' && p.team === 0 && bh && bh.isUser && !p.isUser) { const k = [[-22, 3], [22, 3], [-17, 21], [17, 21], [0, 26]][p.slot]; x = k[0]; d = k[1]; }
+    if (P && P.kind === 'iso' && p.team === 0 && bh && bh.isUser && !p.isUser) { const k = [[-22, 3], [22, 3], [-17, 21], [17, 21], [0, 26]][p.slot]; x = k[0]; d = k[1]; }
+    /* five out: everybody behind the line. Drive and kick: the same, with the center on the baseline by the rim */
+    if (wide && bh && bh.team === p.team) { const k = [[0, 27], [-17.5, 21.5], [17.5, 21.5], [-22.5, 3.5], P.kind === 'drive' ? [6.5, 3.5] : [22.5, 3.5]][p.slot]; x = k[0]; d = k[1]; }
+    /* slow it down: stand high and wide while the clock runs */
+    if (P && P.kind === 'slow' && G.shotClock > 9 && bh && bh.team === p.team) { const k = [[0, 30], [-19, 23], [19, 23], [-22, 6], [8, 14]][p.slot]; x = k[0]; d = k[1]; }
     /* in transition, run with the play */
     const c = toCourt(p.team, x, d);
     return c;
@@ -1540,13 +1602,14 @@
   function screenAI(p, dt) {
     const h = G.ball.holder;
     if (!h || h.team !== p.team || h === p) return false;
-    if (p.team === 0 && G.play && G.play.kind !== 'pnr' && !(p.pickUntil > G.t && p.screenFor === h && p.screen > 0)) { p.screen = 0; return false; }
+    const P = playOf(p.team), pick = P && (P.kind === 'pnr' || P.kind === 'pnp');
+    if (P && !pick && !(p.pickUntil > G.t && p.screenFor === h && p.screen > 0)) { p.screen = 0; return false; }
     if (p.screenFor && p.screenFor !== h) p.screen = 0;
     if (p.screen === undefined) p.screen = 0;
     /* the pick-and-roll you called: the best big comes up to set it once each trip */
-    if (p.team === 0 && G.play && G.play.kind === 'pnr' && !G.play.done && p.slot >= 3 && along(h.z, 0) < 32) {
-      const big = teamOf(0).filter(o => o.slot >= 3 && o !== h && !o.isUser).sort((a, c) => hyp(a.x - h.x, a.z - h.z) - hyp(c.x - h.x, c.z - h.z))[0];
-      if (big === p) { p.screen = 3.2; G.play.done = true; }
+    if (pick && !P.done && p.slot >= 3 && along(h.z, p.team) < 32) {
+      const big = teamOf(p.team).filter(o => o.slot >= 3 && o !== h && !o.isUser).sort((a, c) => hyp(a.x - h.x, a.z - h.z) - hyp(c.x - h.x, c.z - h.z))[0];
+      if (big === p) { p.screen = 3.2; P.done = true; }
     }
     p.screen -= dt;
     if (p.screen <= 0) {
@@ -1572,26 +1635,52 @@
         if (h.isUser || rand() < 0.15) B('pick_ana', { prio: 1 });
         if (rand() < 0.6) { if (sw && !sw.isUser && rand() < 0.5) CH('ch_switch', sw); else CH('ch_screen', d); }
       }
-    } else { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 5; }   // the roll
+    } else if (P && P.kind === 'pnp') { const c = toCourt(p.team, (h.x > 0 ? -1 : 1) * 9, p.r.three >= 62 ? 25.5 : 17); p.tx = c.x; p.tz = c.z; }   // the pop
+    else { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 5; }   // the roll
     return true;
   }
   function offBallAI(p, dt) {
     const holder = G.ball.holder;
-    if (holder && !(p.pickUntil > G.t && p.screenFor === holder && p.screen > 0) && p.team === 0 && holder.team === 0 && G.play && along(holder.z, 0) < RIM - 2) {
-      if (G.play.kind === 'iso' && holder.isUser) {
+    const P = holder && holder.team === p.team ? playOf(p.team) : null;
+    if (P && !(p.pickUntil > G.t && p.screenFor === holder && p.screen > 0) && along(holder.z, p.team) < RIM - 2) {
+      if (P.kind === 'iso' && holder.isUser) {
         const spot = spotOf(p); p.tx = spot.x; p.tz = spot.z; p.screen = 0; return;
       }
-      if (G.play.kind === 'post' && holder.slot < 3 && p === postTarget(holder)) {
+      if (P.kind === 'post' && holder.slot < 3 && p === postTarget(holder)) {
         const side = Math.abs(holder.x) > 3 ? Math.sign(holder.x) : Math.sign(p.x) || 1;
-        const block = toCourt(0, side * 7, 6);
+        const block = toCourt(p.team, side * 7, 6);
         p.tx = block.x; p.tz = block.z; p.screen = 0; return;
+      }
+      if (P.kind === 'five' || P.kind === 'drive' || (P.kind === 'slow' && G.shotClock > 9)) {
+        if (!attacking(holder)) { const spot = spotOf(p); p.tx = spot.x; p.tz = spot.z; p.screen = 0; if (G.ball.state === 'pass' && G.ball.to === p) { p.tx = G.ball.ex; p.tz = G.ball.ez; } return; }
+      }
+      /* the handoff: the wing runs to the ball, just outside the handler's shoulder */
+      if (P.kind === 'hand' && !P.done && p === playWho(P, p.team, holder) && along(holder.z, p.team) < 36) {
+        const sd = Math.sign(p.x - holder.x) || 1; p.tx = holder.x + sd * 2.6; p.tz = holder.z - dirOf(p.team) * 1.5; p.screen = 0;
+        if (holder.isUser && !G.auto && hyp(p.x - holder.x, p.z - holder.z) < 4.5 && (P.near = (P.near || 0) + dt) > 1.6) P.done = true;   // you kept it: he goes back to his spot
+        return;
+      }
+      /* screen for me: off the ball, the nearest big walks into your man; caught on it, he is a step behind you */
+      if (P.kind === 'screen' && !P.done && p.slot >= 3) {
+        const u = playWho(P, p.team, holder);
+        if (u && u !== holder && u !== p) {
+          const big = teamOf(p.team).filter(o => o.slot >= 3 && o !== holder && o !== u && !o.isUser).sort((a, c) => hyp(a.x - u.x, a.z - u.z) - hyp(c.x - u.x, c.z - u.z))[0];
+          const dm = G.pl.find(o => o.team !== p.team && o.slot === u.slot);
+          if (big === p && dm) {
+            p.tx = dm.x + (dm.x - u.x) * 0.2; p.tz = dm.z + (dm.z - u.z) * 0.2 + dirOf(p.team) * 1.2; p.screen = 0;
+            if (hyp(dm.x - p.x, dm.z - p.z) < 2.8) { P.done = true; if (!dm.isUser && dm.stun <= 0) dm.stun = 0.8 * (1.2 - dm.r.perD / 160); if (u.isUser && !G.auto) toast('You are free', 'call'); CH('ch_screen', dm); }
+            return;
+          }
+        }
       }
     }
     if (screenAI(p, dt)) return;
     p.cut -= dt; p.cutT -= dt;
     if (p.cut < 0) {
       p.cut = rr(4, 9);
-      if (rand() < 0.45) p.cutT = rr(1.2, 2); else p.spot = (p.spot + 1 + Math.floor(rand() * 2)) % 3;
+      if (P && P.kind === 'cut') { p.cut = rr(3, 6); p.cutT = rr(1.3, 2); }
+      else if (P && P.kind === 'shoot' && p === playWho(P, p.team, holder)) { p.cut = rr(1.3, 2.2); p.spot = (p.spot + 1 + Math.floor(rand() * 2)) % 3; }
+      else if (rand() < 0.45) p.cutT = rr(1.2, 2); else p.spot = (p.spot + 1 + Math.floor(rand() * 2)) % 3;
     }
     const s = spotOf(p);
     p.tx = s.x; p.tz = s.z;
@@ -1711,12 +1800,19 @@
         return;
       }
     }
+    const DK = dplayOf(p.team);
+    /* double the ball: the nearest man who is not guarding it leaves his own and goes at the handler in the half court */
+    if (DK === 'dbl' && !p.isUser && hh && hh.team === offT && man !== hh && G.phase === 'live' && !hh.shoot && distHoop(hh.x, hh.z, offT) < 30) {
+      let near = null, nd = 1e9;
+      for (const o of G.pl) if (o.team === p.team && !o.isUser && o.slot !== hh.slot) { const d = hyp(o.x - hh.x, o.z - hh.z); if (d < nd) { nd = d; near = o; } }
+      if (near === p && nd < 22) { const dx = H.x - hh.x, dz = H.z - hh.z, L = hyp(dx, dz) || 1, sd = hh.x > 0 ? -1 : 1; p.tx = hh.x + dx / L * 2.2 + sd * 1.8; p.tz = hh.z + dz / L * 2.2; p.pose = 'guard'; return; }
+    }
     if (man === b.holder) {
       /* he guards where the ball is going, not where it was: a good defender reads the first step and is already
          sliding there (he used to aim at the dribbler's feet, a step late on every drive) */
       const lead = p.isUser || p.stun > 0 || !man.isUser || G.auto ? 0 : 0.12 + p.r.perD / 99 * 0.2, mx = man.x + man.vx * lead, mz = man.z + man.vz * lead;
       const dx = H.x - mx, dz = H.z - mz, L = hyp(dx, dz) || 1;
-      const gap = clamp(3.2 + (L > 28 ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400);
+      const gap = clamp(3.2 + (L > 28 && DK !== 'press' ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400) * (p.isUser ? 1 : DK === 'tight' || DK === 'press' ? 0.86 : DK === 'sag' ? 1.25 : 1);
       p.tx = mx + dx / L * gap; p.tz = mz + dz / L * gap;
       p.pose = 'guard';
       /* down by a few with the clock running out: foul to stop it */
@@ -1756,9 +1852,9 @@
     } else {
       const dx = H.x - man.x, dz = H.z - man.z, L = hyp(dx, dz) || 1;
       const db = hyp(bx - man.x, bz - man.z);
-      const gap = clamp(3.5 + db * 0.18, 3.5, 11);
+      const gap = DK === 'tight' || DK === 'press' ? clamp(2.6 + db * 0.07, 2.6, 6) : DK === 'sag' ? clamp(5.5 + db * 0.26, 5.5, 15) : clamp(3.5 + db * 0.18, 3.5, 11);
       let tx = man.x + dx / L * gap, tz = man.z + dz / L * gap;
-      tx += (bx - tx) * 0.18; tz += (bz - tz) * 0.12;
+      tx += (bx - tx) * (DK === 'sag' ? 0.26 : 0.18); tz += (bz - tz) * 0.12;
       p.tx = tx; p.tz = tz; p.pose = '';
       if (L < 32 && G.phase === 'live' && b.state !== 'shot') p.offD = G.t;   // off the ball in the half court: down in a stance, seeing ball and man (the look only: it is not the on-ball stance that stops a drive)
       if (b.state === 'shot') {
@@ -2955,8 +3051,10 @@
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
         <button class="big" id="pr">Resume</button>
         ${G.user && !G.drill && (G.poss === 0 || G.phase === 'dead') && G.to[0] > 0 ? `<button class="ghost" id="pto">Timeout <small>${G.to[0]} left this half</small></button>` : ''}
-        ${G.user && !G.drill && !G.switching ? `<div class="plays"><b>Call a play <small>${G.play ? `${({ iso: 'Get me the ball', pnr: 'Pick-and-roll', post: 'Feed the post' })[G.play.kind]} · ${G.play.left + 1} more trip${G.play.left ? 's' : ''}` : 'for the next three trips'}</small></b>
-          <div class="row3"><button class="ghost sm" data-play="iso">Get me the ball</button><button class="ghost sm" data-play="pnr">Pick-and-roll</button><button class="ghost sm" data-play="post">Feed the post</button></div></div>` : ''}
+        ${G.user && !G.drill && !G.switching ? `<div class="plays"><b>Offense <small>${G.play ? `${PLAYS[G.play.kind][0]} · ${G.play.left + 1} more trip${G.play.left ? 's' : ''}` : 'call a play for the next three trips'}</small></b>
+          <div class="row3">${Object.keys(PLAYS).map(k => `<button class="ghost sm${G.play && G.play.kind === k ? ' on' : ''}" data-play="${k}">${PLAYS[k][0]}</button>`).join('')}</div>
+          <b>Defense <small>${G.dplay ? `${DPLAYS[G.dplay.kind][0]} · ${G.dplay.left + 1} more trip${G.dplay.left ? 's' : ''}` : 'for their next three trips'}</small></b>
+          <div class="row3 r2">${Object.keys(DPLAYS).map(k => `<button class="ghost sm${G.dplay && G.dplay.kind === k ? ' on' : ''}" data-dplay="${k}">${DPLAYS[k][0]}</button>`).join('')}</div></div>` : ''}
         <button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
         ${G.drill ? '' : `<details class="help pbox"><summary>Box score</summary>${liveBox()}</details>`}
@@ -2978,8 +3076,16 @@
         });
       };
       ov.querySelectorAll('[data-play]').forEach(bt => bt.onclick = () => {
-        G.play = { kind: bt.dataset.play, left: G.poss === 0 ? 2 : 3, done: false };
-        pause(false); toast(`Play: ${bt.textContent}`, 'call');
+        const k = bt.dataset.play;
+        if (G.play && G.play.kind === k) { G.play = null; pause(false); toast('Play off', 'call'); return; }
+        G.play = { kind: k, left: G.poss === 0 ? 2 : 3, done: false }; if (G.cp && G.cp.team === 0) G.cp = null;
+        pause(false); toast(`${PLAYS[k][0]}: ${PLAYS[k][1]}`, 'call'); feed(`You call ${PLAYS[k][0].toLowerCase()}`);
+      });
+      ov.querySelectorAll('[data-dplay]').forEach(bt => bt.onclick = () => {
+        const k = bt.dataset.dplay;
+        if (G.dplay && G.dplay.kind === k) { G.dplay = null; pause(false); toast('Back to straight man', 'call'); return; }
+        G.dplay = { kind: k, left: G.poss === 1 ? 2 : 3 };
+        pause(false); toast(`${DPLAYS[k][0]}: ${DPLAYS[k][1]}`, 'call'); feed(`You call ${DPLAYS[k][0].toLowerCase()}`);
       });
       /* sound and the booth, without leaving the game */
       if ($('#psnd')) $('#psnd').onclick = () => {
@@ -3252,7 +3358,7 @@
     },
     /* test hooks */
     resetTips: () => { seenTips = {}; },
-    dbg: { state: () => G, opts: () => opts, hoopZ, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
+    dbg: { plays: () => ({ PLAYS, DPLAYS }), state: () => G, opts: () => opts, hoopZ, parkGo: id => { if (G && G.park) { G.parkGo = id; finish(); } }, ft: n => { for (const p of G.pl) p.shoot = null; G.ftq = { shooter: G.user, n: n || 2, total: n || 2 }; startFT(); }, reelNow: label => { G.reelPend = { kind: 'dunk', val: 9, label: label || 'Test', at: G.t, q: G.q, clock: G.clock }; },
       auto: on => { G.auto = on; },
       replay: k => { replayCd = 0; wantReplay(k || 'dunk'); },
       /* run the simulation ahead without drawing: sec seconds of game time */

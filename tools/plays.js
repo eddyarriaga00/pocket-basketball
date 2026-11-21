@@ -21,7 +21,7 @@ const { serve } = require('./serve-test');
       Object.assign(game, { paused: true, phase: 'live', poss: 0, clock: 100, shotClock: 20, auto: true });
       const hold = () => {
         Object.assign(game.ball, { state: 'held', holder: guard, x: 8, z: 18 });
-        Object.assign(guard, { x: 8, z: 18, hold: 1, think: 0, shoot: null });
+        Object.assign(guard, { x: 8, z: 18, y: 0, vy: 0, hold: 1, think: 0, shoot: null });   // on the floor: the test starts during the opening tip, and nobody shoots in the air
       };
       defense.forEach(p => Object.assign(p, { x: -22, z: -34 }));
       hold();

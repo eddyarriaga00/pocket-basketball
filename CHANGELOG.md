@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The play book: twelve plays on offense where there were three (pick-and-pop, five out, cutters, find the shooter, handoff, screen for me, drive and kick, push the pace, slow it down), and four calls on defense (press up, pack the paint, double the ball, full-court press). Pause to call one for three trips; tap it again to call it off.
+- Both benches call plays by themselves about every other trip, so the computer's offense is no longer the same look each time down.
+- A slightly quicker game: players move a touch faster, the computer decides sooner with the ball, inbounds and dead balls take less time. About a tenth more trips in a game.
 - Settings › Ball: the classic orange, a blacked-out one, an all-white one, or a red, white and blue street ball.
 - Settings › Shot meter: switch it off to shoot by the look of the jump, with a wider green window for doing it.
 - Pigeons on the asphalt by the park fence: walk at them and they go up, and come back when you have gone.
