@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Lose your man without the ball: the same cut, stop and go or first step puts the man guarding you a step behind ("Open: call for it").
+- Who you beat matters: a stopper is back in the play in about a second, a poor defender takes two. The same trick twice in a row is read: mix them up. A man chasing you from behind no longer picks your pocket.
+- The help is real: the big comes up to meet your drive outside dunking range, holds his ground instead of being pushed under the rim, and stays between you and the basket when you slow down. Beat your man, then go round the big, pull up, float it or kick it out.
+- Fixed: standing still against a body with the stick held down counted as a first step and beat the defender for free.
 - Getting away with your feet, no button. A hard cut at speed, a stop and go, an explosive first step from a standstill: each snaps you onto the new line with a burst and puts your man a beat late, and against the way he is sliding it beats him outright. Fast players do it best.
 - A man you have beaten is beaten: for a second and a half he chases your hip instead of getting back in front, and you slide by his body instead of running into it. The help has to come stop you.
 - A step on your man now lasts: once you are nearer the rim than he is and going downhill, he chases from behind instead of sliding back in front of you.

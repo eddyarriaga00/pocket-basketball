@@ -2039,8 +2039,8 @@
     }
     /* the rim protector: with the ball coming downhill at the basket, the big man leaves his own man and stands in the
        lane between the ball and the rim, so a drive ends against a body and not at an empty basket */
-    if (!p.isUser && p.slot === 4 && drv && drv.isUser && !G.auto && drv.team === offT && drv !== man && G.phase === 'live' && attacking(drv) && distHoop(drv.x, drv.z, offT) < 19 && p.contestT === undefined) {
-      const hz = hoopZ(offT), dx = drv.x - 0, dz = drv.z - hz, L = hyp(dx, dz) || 1, out = Math.min(4.5, L * 0.5);
+    if (!p.isUser && p.slot === 4 && drv && drv.isUser && !G.auto && drv.team === offT && drv !== man && G.phase === 'live' && (attacking(drv) || (G.t - (p.protT || -9) < 0.7 && !drv.shoot && distHoop(drv.x, drv.z, offT) < 15)) && distHoop(drv.x, drv.z, offT) < 19 && p.contestT === undefined) {   // (once he has stepped up he stays between the ball and the rim while you are in the paint: slowing down does not send him home)
+      const hz = hoopZ(offT), dx = drv.x - 0, dz = drv.z - hz, L = hyp(dx, dz) || 1, out = clamp(L - 3.3, 3, 7.2);   // he comes up to meet the drive outside dunking range: you have to go round him, pull up, float it or kick it out
       p.tx = dx / L * out; p.tz = hz + dz / L * out; p.pose = 'guard'; p.protT = G.t;
       return;
     }
@@ -2113,7 +2113,7 @@
         G.poss = null; dead(0.9, () => give(p)); return;
       }
       /* tight on the ball, a poor handle loses it */
-      if (!p.isUser && !man.shoot && hyp(man.x - p.x, man.z - p.z) < 3.2 && G.phase === 'live' && rand() < dt * clamp(0.006 + (p.r.perD - man.r.handle) * 0.0002, 0.002, 0.015) * G.diff.oppSteal) {
+      if (!p.isUser && !man.shoot && !(p.lagT > G.t) && hyp(man.x - p.x, man.z - p.z) < 3.2 && G.phase === 'live' && rand() < dt * clamp(0.006 + (p.r.perD - man.r.handle) * 0.0002, 0.002, 0.015) * G.diff.oppSteal) {
         p.st.stl++; man.st.tov++; if (man.isUser) grade(-3, 'Lost the ball');
         AU().play('steal', { x: p.x }); AU().crowd.react(home(p.team) ? 'roar' : 'groan', 0.7); B('steal', { prio: 3, follow: 0.3 }); if (rand() < 0.5) CH('ch_run', p);
         toast(p.team === 0 ? 'STRIPPED' : 'Stripped', p.team === 0 ? 'make' : 'opp'); feed(`Steal · ${p.name}`);
@@ -2121,7 +2121,7 @@
       }
       /* reach for it now and then */
       p.stealCd = (p.stealCd || rr(1, 3)) - dt;
-      if (!p.isUser && p.stealCd < 0 && L < 30 && hyp(man.x - p.x, man.z - p.z) < 4.2 && !man.shoot) {
+      if (!p.isUser && p.stealCd < 0 && !(p.lagT > G.t) && L < 30 && hyp(man.x - p.x, man.z - p.z) < 4.2 && !man.shoot) {
         p.stealCd = rr(1.5, 4);
         p.pose = 'reach'; p.reachT = 0.3;
         const ch = clamp(0.02 + (p.r.steal - man.r.handle) * 0.0012, 0.005, 0.06) * G.diff.oppSteal * (man.move > 0 ? 1.2 : 1) * (DD.steal || 1);
@@ -2357,17 +2357,23 @@
      standstill. Each comes out with a burst, snaps you onto the new line, and puts the man guarding you a beat late;
      against the way he is sliding it beats him outright. And once you have a step on him (nearer the rim than he is,
      going downhill) he stays behind you: he chases, he does not slide back in front. */
+  /* how long a beaten man chases before he is back in the play: a stopper recovers in about a second, a poor defender takes two */
+  const lagFor = d => 1.0 + (99 - clamp(d.r.perD, 40, 99)) / 59 * 1.1;
+  /* the same trick twice in a row is read: mix them up */
+  const stale = (u, kind) => { const same = u.escK === kind && G.t - (u.escT || -9) < 7; u.escK = kind; u.escT = G.t; return same ? 0.16 : 0; };
   function footwork(u, w, dt) {
-    if (G.ball.holder !== u || u.shoot || u.move > 0 || u.postUp > 0 || u.inb || G.phase !== 'live' || (G.drill && G.drill.kind !== 'free')) { u.fwStill = 0; u.fwStop = 0; return; }
+    const bh0 = G.ball.holder, offBall = !!bh0 && bh0 !== u && bh0.team === u.team && !G.park;   // without the ball: a cut or a burst loses the man guarding you, and you are open for the pass
+    if ((bh0 !== u && !offBall) || u.shoot || u.move > 0 || u.postUp > 0 || u.inb || G.phase !== 'live' || (G.drill && G.drill.kind !== 'free')) { u.fwStill = 0; u.fwStop = 0; return; }
     const sp = hyp(u.vx, u.vz), top = maxSpeed(u), nd = nearestDef(u), dv = nd.who && !nd.who.isUser && nd.d < 6.5 ? nd.who : null;
     const hx = 0 - u.x, hz = hoopZ(u.team) - u.z, hl = hyp(hx, hz) || 1;
     /* a step on him: he trails */
-    if (dv && distHoop(u.x, u.z, u.team) < distHoop(dv.x, dv.z, u.team) - 0.7 && (u.vx * hx + u.vz * hz) / hl > 5.5) {
+    if (dv && !offBall && distHoop(u.x, u.z, u.team) < distHoop(dv.x, dv.z, u.team) - 0.7 && (u.vx * hx + u.vz * hz) / hl > 5.5) {
       dv.lagT = Math.max(dv.lagT || 0, G.t + 0.45);
       if (G.t > (u.fwStepT || 0)) { u.fwStepT = G.t + 4; feedMove('Got a step'); }
     }
     const push = w && w.m > 0.82;
-    if (sp < 2.6) u.fwStill = (u.fwStill || 0) + dt; else if (sp > 6) u.fwStill = 0;
+    if (sp < 2.6 && !(w && w.m > 0.3)) u.fwStill = (u.fwStill || 0) + dt; else if (sp > 6) u.fwStill = 0;   // standing still by choice (thumb off the stick), not held up by a body
+    if (G.t < (u.bumpT || 0)) { u.fwStill = 0; u.fwStop = 0; }   // just run into somebody: that is not a stop and go
     if (sp > top * 0.72) u.fwFast = G.t;
     if (!push) { if (sp < 4 && u.fwFast > G.t - 0.6 && !u.fwStop) u.fwStop = G.t; if (u.fwStop && G.t - u.fwStop > 0.75) u.fwStop = 0; return; }
     let kind = '';
@@ -2375,17 +2381,21 @@
     else if (u.fwStill > 0.35 && sp < 3) { kind = 'First step'; u.fwStill = 0; }
     else if (sp > top * 0.6 && (w.x * u.vx + w.z * u.vz) / sp < 0.22) kind = 'Hard cut';
     if (!kind || G.t < (u.fwCd || 0)) return;
-    u.fwCd = G.t + 0.85; u.fwStop = 0; u.fwStill = 0;
+    u.fwCd = G.t + (offBall ? 1.6 : 0.85); u.fwStop = 0; u.fwStill = 0;
     u.burstT = Math.max(u.burstT || 0, G.t + (kind === 'First step' ? 0.6 : 0.8));
     { const k = kind === 'First step' ? 0.62 : 0.8; u.vx = w.x * top * k; u.vz = w.z * top * k; }   // onto the new line at once
     if (R.puff) R.puff(u.x, u.z, 0.9); AU().play('squeak', { x: u.x, vol: 0.8 });
     if (!dv) return;
     const px = -hz / hl, pz = hx / hl, dl = dv.vx * px + dv.vz * pz, ml = w.x * px + w.z * pz;
     const wrong = Math.abs(dl) > 2 && Math.abs(ml) > 0.35 && dl * ml < 0, flat = hyp(dv.vx, dv.vz) < 1.5 && kind === 'First step', caught = dv.y > 0.3 || dv.reachT > 0;
-    const ch = clamp(({ 'Hard cut': 0.3, 'Stop and go': 0.42, 'First step': 0.26 })[kind] + ((u.r.speed * 0.6 + u.r.handle * 0.4) - dv.r.perD) * 0.007, 0.15, 0.7) + (wrong ? 0.4 : 0) + (flat ? 0.15 : 0) + (caught ? 0.5 : 0) + (tkoOn() ? 0.12 : 0);
+    const ch = clamp(({ 'Hard cut': 0.3, 'Stop and go': 0.42, 'First step': 0.26 })[kind] + ((u.r.speed * 0.6 + u.r.handle * 0.4) - dv.r.perD) * 0.007, 0.15, 0.7) + (wrong ? 0.4 : 0) + (flat ? 0.15 : 0) + (caught ? 0.5 : 0) + (tkoOn() ? 0.12 : 0) - stale(u, kind);
     dv.beatT = G.t; dv.beatSide = ml >= 0 ? -1 : 1; u.mvAt = G.t;
+    if (offBall) {   // he is a step behind you for a moment: call for it
+      if (rand() < Math.min(ch + 0.1, 0.9)) { dv.stun = Math.max(dv.stun || 0, 0.5); dv.lagT = G.t + lagFor(dv) * 0.8; dv.beatAmt = 0.7; if (G.t > (u.fwOpenT || 0)) { u.fwOpenT = G.t + 2.5; feedMove('Open: call for it'); } }
+      else dv.beatAmt = 0.25;
+      return; }
     if (rand() < Math.min(ch, 0.95)) {
-      dv.stun = Math.max(dv.stun || 0, 0.45); dv.lagT = G.t + 1.5; dv.beatAmt = 0.85; dv.respT = G.t + 1.2; u.st.shake++;
+      dv.stun = Math.max(dv.stun || 0, 0.45); dv.lagT = G.t + lagFor(dv) * 0.9; dv.beatAmt = 0.85; dv.respT = G.t + 1.2; u.st.shake++;
       feedMove(wrong ? kind + ': wrong-footed' : kind); if (R.puff) R.puff(dv.x, dv.z, 1); if (home(u.team)) AU().crowd.react('ooh', 0.5); buzz(12);
       if (rand() < 0.35) powAt(pickOf(['BYE!', 'LATER!', 'GONE!']), dv, 0.75);
     } else { dv.stun = Math.max(dv.stun || 0, 0.12); dv.beatAmt = 0.3; }
@@ -2449,13 +2459,13 @@
            every time. That is the skill of it; the dice are only for a defender who is set and square */
         const dv = nd.who, px = -hz / hl, pz = hx / hl, dl = dv.vx * px + dv.vz * pz, ml = (dx * px + dz * pz) / L;
         const wrong = Math.abs(dl) > 2 && Math.abs(ml) > 0.35 && dl * ml < 0, caught = dv.y > 0.3 || dv.reachT > 0;
-        let ch = clamp(shake + 0.1 + (u.r.handle - dv.r.perD) * 0.008, 0.2, 0.7) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0) + (wrong ? 0.42 : 0) + (caught ? 0.5 : 0);
+        let ch = clamp(shake + 0.1 + (u.r.handle - dv.r.perD) * 0.008, 0.2, 0.7) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0) + (wrong ? 0.42 : 0) + (caught ? 0.5 : 0) - (u.comboN >= 2 ? 0 : stale(u, kind));
         if (u.comboN >= 3) ch = Math.max(ch, 0.8);   // the third move of a combo: nobody stays in front of that
         if (!dv.isUser) { dv.stun = Math.max(dv.stun || 0, 0.15 + 0.05 * u.comboN); dv.respT = G.t + 1.3; }
         dv.beatT = G.t; dv.beatAmt = 0.4; dv.beatSide = ml >= 0 ? -1 : 1;   // he leans at the fake   // even a move he reads costs him half a step, and he gives you a step of room after it
         u.mvAt = G.t;
-        if (rand() < Math.min(ch, 0.95)) { if (wrong || caught) feedMove(caught ? 'Caught him reaching' : 'Wrong-footed'); nd.who.lagT = G.t + 1.8; dv.beatAmt = 1;
-          if (!dv.isUser && kind !== 'step' && kind !== 'escape') { dv.vx = -dx / L * 7; dv.vz = -dz / L * 7; }   /* a stumbling step the wrong way as you go the other */ if (R.puff) R.puff(dv.x, dv.z, 1.1); nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.5;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+        if (rand() < Math.min(ch, 0.95)) { if (wrong || caught) feedMove(caught ? 'Caught him reaching' : 'Wrong-footed'); nd.who.lagT = G.t + lagFor(nd.who) * 1.1; dv.beatAmt = 1;
+          if (!dv.isUser && kind !== 'step' && kind !== 'escape') { dv.vx = -dx / L * 7; dv.vz = -dz / L * 7; }   /* a stumbling step the wrong way as you go the other */ if (R.puff) R.puff(dv.x, dv.z, 1.1); nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.2;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
@@ -2784,7 +2794,9 @@
       const dx = c.x - a.x, dz = c.z - a.z, d = hyp(dx, dz), m = a.team !== c.team ? (slip ? 1.75 : 2.65) : 2.3;   // a defender's arms and chest need a little more room than a teammate's shoulder
       if (d < m && d > 0.001) {
         const push = (m - d) / 2, ux = dx / d, uz = dz / d;
-        a.x -= ux * push; a.z -= uz * push; c.x += ux * push; c.z += uz * push;
+        /* the big set in the lane against your drive holds his ground: you go round him, not through him */
+        const wa = bh === a && c.protT > G.t - 0.3 ? 2 : bh === c && a.protT > G.t - 0.3 ? 0 : 1;
+        a.x -= ux * push * wa; a.z -= uz * push * wa; c.x += ux * push * (2 - wa); c.z += uz * push * (2 - wa);
       }
     }
     /* (a man who is outside the lines, the inbounder after his pass, steps back in: he is not put back in) */
