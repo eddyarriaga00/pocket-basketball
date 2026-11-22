@@ -116,48 +116,106 @@
      hand gets up into a shot), and stars going round the head of a man who has been put on the floor */
   const pows = [], powTex = new Map(), dizzies = [];
   const CLOUDS = { 'GREEN!': 1, 'SPLASH!': 1, 'CASH!': 1, 'WET!': 1, 'SWISH!': 1, 'DIME!': 1, 'BOARD!': 1, 'MINE!': 1, 'SMOOTH!': 1, 'PURE!': 1 };
+  /* the calls a referee or the rule book makes sit in a slanted caption box instead of a burst */
+  const BOXES = { 'TWEET!': 1, 'OUT!': 1, 'TRAVEL!': 1, 'CHARGE!': 1, 'TICK TOCK!': 1, 'NO NO!': 1, 'OOPS!': 1, 'AND 1!': 1, 'BUZZER!': 1, 'BACKCOURT!': 1, 'HACK!': 1 };
   function powTexture(word, dark) {
     const key = (dark ? '~' : '') + word; if (powTex.has(key)) return powTex.get(key);
-    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.translate(128, 128);
+    const c = document.createElement('canvas'); c.width = c.height = 320; const g = c.getContext('2d'); g.translate(160, 160); g.scale(1.18, 1.18);
     const ink = dark ? '#ffffff' : '#0b0b0d', paper = dark ? '#0b0b0d' : '#ffffff', face = '"Arial Black", Impact, system-ui, sans-serif';
     g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    if (word[0] === '+') {   // points going up off the rim: a bare number with a heavy outline
+    if (word === 'drop') {   // a bead of sweat
+      g.beginPath(); g.moveTo(0, -70); g.bezierCurveTo(44, -8, 52, 20, 52, 34); g.arc(0, 34, 52, 0, Math.PI); g.bezierCurveTo(-52, 20, -44, -8, 0, -70); g.closePath();
+      g.lineWidth = 16; g.strokeStyle = '#0b0b0d'; g.stroke(); g.fillStyle = '#ffffff'; g.fill(); g.beginPath(); g.ellipse(-18, 30, 9, 20, 0.4, 0, 6.2832); g.fillStyle = 'rgba(11,11,13,.22)'; g.fill();
+    } else if (word === 'lines') {   // speed lines flying out from a hit
+      for (let i = 0; i < 22; i++) { const a = i / 22 * 6.2832 + (i % 3) * 0.05, r0 = 52 + (i * 37 % 26), r1 = 104 + (i * 53 % 28), w = 0.035 + (i % 4) * 0.012;
+        g.beginPath(); g.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); g.lineTo(Math.cos(a - w) * r0, Math.sin(a - w) * r0); g.lineTo(Math.cos(a + w) * r0, Math.sin(a + w) * r0); g.closePath();
+        g.lineWidth = 5; g.strokeStyle = ink; g.stroke(); g.fillStyle = paper; g.fill(); }
+    } else if (word[0] === '+') {   // points going up off the rim: a bare number with a heavy outline
       g.rotate(-0.08); g.font = `900 112px ${face}`; g.lineWidth = 22; g.strokeStyle = ink; g.strokeText(word, 0, 4); g.fillStyle = paper; g.fillText(word, 0, 4);
     } else if (word === '!' || word === '?' || word === '!?' || word === '...') {   // a speech bubble over somebody's head
       g.beginPath(); g.ellipse(0, -14, 92, 74, 0, 0, 6.2832); g.moveTo(-26, 52); g.lineTo(-44, 104); g.lineTo(14, 56); g.closePath();
       g.lineWidth = 13; g.strokeStyle = ink; g.stroke(); g.fillStyle = paper; g.fill(); g.beginPath(); g.ellipse(0, -14, 86, 68, 0, 0, 6.2832); g.fill();
       g.font = `900 ${word.length > 2 ? 70 : 96}px ${face}`; g.fillStyle = ink; g.fillText(word, 0, word === '...' ? -34 : -10);
     } else {
-      if (word === '*') { g.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832 - 1.5708, r = i % 2 ? 44 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
-      else if (CLOUDS[word]) { g.beginPath(); const n = 9; for (let i = 0; i < n; i++) { const a = i / n * 6.2832, x = Math.cos(a) * 84, y = Math.sin(a) * 62; g.moveTo(x + 36, y); g.arc(x, y, 36, 0, 6.2832); } g.rect(-70, -50, 140, 100); }
-      else { const n = 13; g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * 6.2832, r = i % 2 ? 76 : i % 4 ? 120 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r * 0.84); } g.closePath(); }
-      g.lineWidth = 13; g.strokeStyle = ink; g.stroke(); g.fillStyle = paper; g.fill();
-      if (word && word !== '*') { g.rotate(-0.1); g.font = `900 ${word.length > 6 ? 36 : word.length > 5 ? 42 : 50}px ${face}`; g.fillStyle = ink; g.fillText(word, 0, 3); }
+      const shape = () => { g.beginPath();
+        if (word === '*') { for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832 - 1.5708, r = i % 2 ? 44 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
+        else if (CLOUDS[word]) { const n = 9; for (let i = 0; i < n; i++) { const a = i / n * 6.2832, x = Math.cos(a) * 84, y = Math.sin(a) * 62; g.moveTo(x + 36, y); g.arc(x, y, 36, 0, 6.2832); } g.rect(-70, -50, 140, 100); }
+        else if (BOXES[word]) { const P = [[-116, -44], [-58, -52], [-46, -70], [-30, -54], [112, -62], [120, 44], [52, 50], [40, 70], [26, 52], [-108, 60]]; P.forEach((q, i) => g[i ? 'lineTo' : 'moveTo'](q[0], q[1])); g.closePath(); }
+        else { const n = 13; for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * 6.2832, r = i % 2 ? 76 : i % 4 ? 120 : 104; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r * 0.84); } g.closePath(); } };
+      /* printed the way a comic prints it: a hard shadow dropped behind the shape, and dots shading its lower corner */
+      if (word !== '*') { g.save(); g.translate(8, 9); shape(); g.fillStyle = ink; g.fill(); g.lineWidth = 13; g.strokeStyle = ink; g.stroke(); g.restore(); }
+      shape(); g.lineWidth = 13; g.strokeStyle = ink; g.stroke(); g.fillStyle = paper; g.fill();
+      if (word && word !== '*') {
+        g.save(); shape(); g.clip(); g.fillStyle = ink; for (let y = -10; y < 120; y += 13) for (let x = -130 + (y / 13 % 2 ? 6.5 : 0); x < 130; x += 13) { const k = (x + y * 1.4 - 20) / 190; if (k > 0) { g.globalAlpha = 0.2; g.beginPath(); g.arc(x, y, Math.min(5, 1 + k * 5), 0, 6.2832); g.fill(); } } g.restore();
+        const lines = word.length > 7 && word.includes(' ') ? word.split(' ') : [word], longest = Math.max(...lines.map(l => l.length)), fs = lines.length > 1 ? (longest > 5 ? 36 : 42) : longest > 7 ? 31 : longest > 6 ? 36 : longest > 5 ? 42 : 50;
+        g.rotate(-0.1); g.font = `900 ${fs}px ${face}`; lines.forEach((l, k) => { const y = 3 + (k - (lines.length - 1) / 2) * fs * 0.98; g.lineWidth = 7; g.strokeStyle = paper; g.strokeText(l, 0, y); g.fillStyle = ink; g.fillText(l, 0, y); });
+      }
     }
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.userData.keep = true; powTex.set(key, t); return t;
   }
   const fxSprite = () => { const mt = new T.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false, opacity: 0 }); mt.userData.shared = true; const m = new T.Sprite(mt); m.renderOrder = 20; return m; };
   const fxOff = () => !!(PB.settings && PB.settings.fxOn === 'Off');
+  /* Out of the way: a word never sits on you, on the ball or the man holding it, on the rim being shot at, or under the
+     scoreboard and the buttons. Where it would, it is pushed off to the side of what it covers (on the screen, then
+     worked back into the world), kept inside the clear middle of the picture, and made smaller if there is still no room. */
+  let fxG = null, lastZoom = null, lastZoomAt = 0; const _fa = new T.Vector3(), _fb = new T.Vector3(), _fr = new T.Vector3(), _fu = new T.Vector3();
+  function clearOf(r, world) {
+    const G = fxG; if (!cam || !G || !G.pl) return;
+    const asp = W / H || 0.5, tanH = Math.tan(cam.fov * Math.PI / 360), crit = [], u = G.user, b = G.ball;
+    if (u) { crit.push([u.x, (u.ht || 78) / 12 * 0.5 + (u.y || 0), u.z, 0.13]);
+      let nm = null, nd = 9; for (const o of G.pl) if (o.team !== u.team) { const d = Math.hypot(o.x - u.x, o.z - u.z); if (d < nd) { nd = d; nm = o; } }   // and the man in front of you
+      if (nm) crit.push([nm.x, (nm.ht || 78) / 12 * 0.5 + (nm.y || 0), nm.z, 0.1]); }
+    for (const o of pows) if (o !== r && o.t > 0.15 && o.wob) crit.push([o.m.position.x, o.m.position.y, o.m.position.z, 0.1]);   // nor on another word
+    if (b) { const h = b.holder; if (h && h !== u) crit.push([h.x, (h.ht || 78) / 12 * 0.5 + (h.y || 0), h.z, 0.11]); if (!h) { crit.push([b.x, b.y, b.z, 0.07]); if (b.state === 'shot') crit.push([0, 10, Math.sign(b.ez || b.z || 1) * 41.75, 0.1]); } }
+    _fr.setFromMatrixColumn(cam.matrixWorld, 0); _fu.setFromMatrixColumn(cam.matrixWorld, 1);
+    for (let pass = 0; pass < 5; pass++) {
+      _fa.copy(r.m.position).project(cam); if (_fa.z > 1) return;
+      const dist = cam.position.distanceTo(r.m.position), half = dist * tanH, rad = world * r.k * 0.36 / half;   // the burst's radius as a share of half the screen's height
+      let mx = 0, my = 0;
+      for (const c of crit) { _fb.set(c[0], c[1], c[2]).project(cam); if (_fb.z > 1) continue; let dx = (_fa.x - _fb.x) * asp, dy = _fa.y - _fb.y; const d = Math.hypot(dx, dy), need = c[3] + rad;
+        /* off to the side of him, toward whichever half of the screen has the room, and a little up: not straight up, where the play he is looking at is */
+        if (d < need) { let ux, uy; if (Math.abs(dx) < need * 0.55) { ux = (_fb.x > 0 ? -1 : 1) * 0.92; uy = 0.39; } else { ux = dx / d; uy = dy / d; } mx += _fb.x * asp + ux * need * 1.06 - _fa.x * asp; my += _fb.y + uy * need * 1.06 - _fa.y; } }
+      /* the clear middle: below the scoreboard, above the stick and the buttons, inside the edges */
+      const x0 = _fa.x * asp + mx, y0 = _fa.y + my, xl = Math.max(0.05, asp - rad * 0.8), xc = Math.max(-xl, Math.min(xl, x0)), yc = Math.max(-0.36 + rad * 0.5, Math.min(0.62 - rad * 0.5, y0));
+      mx += xc - x0; my += yc - y0;
+      if (Math.abs(mx) < 0.004 && Math.abs(my) < 0.004) return;
+      r.m.position.addScaledVector(_fr, mx * half).addScaledVector(_fu, my * half);
+      if (pass >= 2) r.k *= 0.86;   // no room where it wants to be: smaller
+    }
+  }
   R.pow = (word, x, y, z, size, dark) => {
     if (!scene || fxOff()) return;
     let r = pows.find(o => o.t <= 0);
     if (!r) { if (pows.length > 7) return; r = { m: fxSprite(), t: 0 }; pows.push(r); }
     if (r.m.parent !== scene) scene.add(r.m);
     const num = !!word && word[0] === '+', bub = word === '!' || word === '?' || word === '!?' || word === '...';
-    r.m.material.map = powTexture(word || '', !!dark); r.m.material.needsUpdate = true; r.m.material.rotation = num || bub ? 0 : (Math.random() - 0.5) * 0.5;
+    r.m.material.map = powTexture(word || '', !!dark); r.m.material.needsUpdate = true; r.rot = r.m.material.rotation = num || bub ? 0 : (Math.random() - 0.5) * 0.5; r.wob = word && !num && !bub ? 1 : 0;
     r.m.position.set(x, y, z); r.t = r.T = num ? 1.05 : bub ? 1.0 : word ? 0.85 : 0.38; r.k = size || 1; r.rise = num ? 3.4 : bub ? 0.25 : 0.7; r.m.visible = true;
+    if (word && !num) { clearOf(r, 4.4); if (lastZoom && performance.now() - lastZoomAt < 30) lastZoom.m.position.copy(r.m.position); }   // the speed lines thrown with it go where it goes
   };
   /* stars thrown out from a hit: off the rim on a dunk, off the floor where a man goes down */
   const sparks = [];
-  R.burst = (x, y, z, n, power) => {
+  /* speed lines: a ring of them thrown out from a big hit, behind the word */
+  const zooms = [];
+  R.zoom = (x, y, z, size, dark) => {
+    if (!scene || fxOff()) return;
+    let r = zooms.find(o => o.t <= 0);
+    if (!r) { if (zooms.length > 2) return; r = { m: fxSprite(), t: 0 }; r.m.renderOrder = 19; zooms.push(r); }
+    if (r.m.parent !== scene) scene.add(r.m);
+    r.m.material.map = powTexture('lines', !!dark); r.m.material.needsUpdate = true; r.m.material.rotation = Math.random() * 6.28;
+    r.m.position.set(x, y, z); r.t = r.T = 0.42; r.k = size || 1; r.m.visible = true; lastZoom = r; lastZoomAt = performance.now();
+  };
+  /* kind 'drop': beads of sweat instead of stars */
+  R.burst = (x, y, z, n, power, kind) => {
     if (!scene || fxOff()) return;
     for (let i = 0; i < (n || 6); i++) {
       let r = sparks.find(o => o.t <= 0);
       if (!r) { if (sparks.length > 17) return; r = { m: fxSprite(), t: 0 }; sparks.push(r); }
       if (r.m.parent !== scene) scene.add(r.m);
-      r.m.material.map = powTexture('*'); r.m.material.needsUpdate = true; r.m.material.rotation = Math.random() * 6.28;
+      const drop = kind === 'drop';
+      r.m.material.map = powTexture(drop ? 'drop' : '*'); r.m.material.needsUpdate = true; r.m.material.rotation = drop ? 0 : Math.random() * 6.28;
       const a = Math.random() * 6.2832, s = (5 + Math.random() * 7) * (power || 1);
-      r.vx = Math.cos(a) * s; r.vz = Math.sin(a) * s; r.vy = 5 + Math.random() * 8 * (power || 1); r.m.position.set(x, y, z); r.t = r.T = 0.55 + Math.random() * 0.3; r.sp = (Math.random() - 0.5) * 12; r.m.visible = true;
+      r.vx = Math.cos(a) * s; r.vz = Math.sin(a) * s; r.vy = 5 + Math.random() * 8 * (power || 1); r.m.position.set(x, y, z); r.t = r.T = 0.55 + Math.random() * 0.3; r.sp = drop ? 0 : (Math.random() - 0.5) * 12; r.sz = drop ? 0.5 : 0.95; r.m.visible = true;
     }
   };
   R.dizzy = (p, sec) => {
@@ -169,9 +227,11 @@
   };
   function powTick(dt) {
     for (const r of pows) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= Math.max(dt, 0.004); const k = 1 - r.t / r.T, pop = k < 0.16 ? k / 0.16 * 1.3 : 1.3 - 0.3 * Math.min(1, (k - 0.16) / 0.14);
-      r.m.scale.setScalar(4.4 * r.k * pop); r.m.position.y += dt * (r.rise || 0.7); r.m.material.opacity = k > 0.72 ? Math.max(0, (1 - k) / 0.28) : 1; }
+      r.m.scale.setScalar(4.4 * r.k * pop); r.m.position.y += dt * (r.rise || 0.7); r.m.material.opacity = k > 0.72 ? Math.max(0, (1 - k) / 0.28) : 1;
+      if (r.wob) r.m.material.rotation = r.rot + Math.sin(k * 26) * 0.16 * Math.max(0, 1 - k * 2.6); }   // it lands with a shake, then holds still
+    for (const r of zooms) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= Math.max(dt, 0.004); const k = 1 - r.t / r.T; r.m.scale.setScalar(r.k * (4.5 + k * 6.5)); r.m.material.opacity = Math.min(1, (1 - k) * 1.6); }
     for (const r of sparks) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= Math.max(dt, 0.004); const k = 1 - r.t / r.T; r.vy -= 30 * dt;
-      r.m.position.x += r.vx * dt; r.m.position.y = Math.max(0.3, r.m.position.y + r.vy * dt); r.m.position.z += r.vz * dt; r.m.material.rotation += r.sp * dt; r.m.scale.setScalar(0.95 * (1 - k * 0.5)); r.m.material.opacity = Math.min(1, (1 - k) * 2.2); }
+      r.m.position.x += r.vx * dt; r.m.position.y = Math.max(0.3, r.m.position.y + r.vy * dt); r.m.position.z += r.vz * dt; r.m.material.rotation += r.sp * dt; r.m.scale.setScalar((r.sz || 0.95) * (1 - k * 0.5)); r.m.material.opacity = Math.min(1, (1 - k) * 2.2); }
     for (const r of dizzies) { if (r.t <= 0) { for (const m of r.s) m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / r.T, p = r.p, y = (p.ht || 78) / 12 * 0.62 + (p.y || 0);
       r.s.forEach((m, i) => { const a = k * 9 + i * 2.094; m.position.set(p.x + Math.cos(a) * 1.15, y + Math.sin(a * 2) * 0.12, p.z + Math.sin(a) * 1.15); m.scale.setScalar(1.05); m.material.opacity = Math.min(1, r.t * 4); }); }
   }
@@ -1956,7 +2016,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
@@ -2356,6 +2416,7 @@
 
   /* Pose every player from the game state. */
   R.update = (G, dt) => {
+    fxG = G;
     shockTick(dt); puffTick(dt); powTick(dt);
     if (!G.replay) moveRefs(G, dt);
     benchT += dt;

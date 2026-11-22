@@ -702,6 +702,8 @@
     if (R.refSignal) R.refSignal('sigp', 1.3);   // whose ball: an arm out
     if (p && rand() < 0.4) { const m = G.pl.find(o => o.team === p.team && o !== p && !o.isUser); if (m) setTimeout(() => CH('ch_back', m), 500); }
     if (p) { p.st.tov++; if (p === G.user) grade(-3, why); }
+    { const w = /travel/i.test(why) ? 'TRAVEL!' : /shot clock|second/i.test(why) ? 'TICK TOCK!' : /backcourt/i.test(why) ? 'BACKCOURT!' : /out of bounds/i.test(why) ? 'OUT!' : /charge|offensive/i.test(why) ? 'CHARGE!' : /stolen|steal|picked/i.test(why) ? '' : 'OOPS!';
+      if (w) { if (p) powAt(w, p, 0.85, false, 1.7); else if (at && R.pow && !G.replay) R.pow(w, at.x, 4.2, at.z, 0.85); } }
     feed(`${why}${p ? ' · ' + p.name : ''}`);
     G.poss = null;
     const spot = at || { x: G.ball.x, z: G.ball.z };
@@ -786,6 +788,8 @@
   }
   /* tiring and resting, on the floor and on the bench */
   function fatigue(dt) {
+    /* a tired man on the move throws off beads of sweat */
+    if (R.burst && !G.replay && G.phase === 'live') for (const p of G.pl) if (p.energy !== undefined && p.energy < 0.3 && hyp(p.vx, p.vz) > 5 && rand() < dt * 1.1) R.burst(p.x, (p.ht || 78) / 12 * 0.6 + (p.y || 0), p.z, 2, 0.32, 'drop');
     if (!G.bench) return;
     const Q = (G.qlen || 3) * 60, drain = 0.55 / (0.75 * Q), rest = 0.45 / (0.3 * Q);   // a starter's stint: most of a quarter
     for (const p of G.pl) if (!p.isUser && !(G.user && p.d.id === G.user.d.id)) { const sp = hyp(p.vx, p.vz); p.energy = Math.max(0, (p.energy ?? 1) - dt * drain * (tired() ? 1 : 0) * (sp > 12 ? 1.4 : sp > 4 ? 1 : 0.6)); }
@@ -1006,7 +1010,7 @@
     b.apex = s.kind === 'dunk' ? 0.2 : s.kind === 'layup' ? 2 : s.kind === 'floater' || s.kind === 'hook' ? 5.5 : 3.5 + d * 0.2;
     G.shotLog[G.shotLog.length - 1].made = made;
     b.shot = { oop: !!s.oop, shooter: p, made, pts, three: !!s.three, foul, kind: s.kind, timing, prob, d: s.d, style: s.style, fade: !!s.fade, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
-    if (foul) { foul.st.pf++; foul.celebK = 'call'; foul.celebT = 1.5; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); if (R.refSignal) R.refSignal('sigf', 1.4); checkFoulOut(foul); }
+    if (foul) { foul.st.pf++; foul.celebK = 'call'; foul.celebT = 1.5; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); if (R.refSignal) R.refSignal('sigf', 1.4); powAt(pickOf(['TWEET!', 'HACK!', 'TWEET!']), foul, 0.8, false, 1.7); checkFoulOut(foul); }
   }
 
   function blockShot(o, p, at) {
@@ -1017,7 +1021,7 @@
     if (p.isUser) grade(-1, 'Got blocked');
     /* from behind at a run: the chase-down */
     { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, hl = hyp(hx, hz) || 1, behind = ((o.x - p.x) * hx + (o.z - p.z) * hz) / hl < -0.6, chase = behind && hyp(o.vx, o.vz) > 9;
-      if (R.pow) { R.pow(chase ? 'SWAT!' : pickOf(['BLOCK!', 'NOPE!', 'DENIED!', 'GET OUT!']), at.x, at.y + 0.9, at.z, 1.15, G.user && o.team !== G.user.team); if (R.burst) R.burst(at.x, at.y, at.z, 5, 0.7); } if (chase) B('chasedown', { prio: 5 }); if (R.shock) R.shock(o.x, o.z, 7);
+      if (R.pow) { R.pow(chase ? 'SWAT!' : pickOf(['BLOCK!', 'NOPE!', 'DENIED!', 'GET OUT!']), at.x, at.y + 0.9, at.z, 1.15, G.user && o.team !== G.user.team); if (R.burst) R.burst(at.x, at.y, at.z, 5, 0.7); if (R.zoom) R.zoom(at.x, at.y + 0.9, at.z, 1.1, G.user && o.team !== G.user.team); } if (chase) B('chasedown', { prio: 5 }); if (R.shock) R.shock(o.x, o.z, 7);
       toast(chase ? 'CHASE-DOWN BLOCK' : 'BLOCKED', 'blk'); feed(`${chase ? 'Chase-down block' : 'Block'} · ${o.name}`); if (chase) { R.benchJump && R.benchJump(o.team); if (o.isUser) grade(1, 'Chase-down block'); }
       if (!G.drill && rand() < 0.6) { o.celebK = 'wag'; o.celebT = 1.7; } }   // not in here: the finger wagged once he is down
     AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
@@ -1050,7 +1054,7 @@
         s.made = true; s.gt = true;
         if (G.shotLog && G.shotLog.length) G.shotLog[G.shotLog.length - 1].made = true;
         if (o.isUser) grade(-2, 'Goaltending');
-        AU().play('whistle'); shotLands(); B('goaltend', { prio: 5 }); toast('GOALTENDING', o.team === 0 ? 'opp' : 'make'); feed(`Goaltending · ${o.name}`); tally('goaltend');
+        AU().play('whistle'); shotLands(); B('goaltend', { prio: 5 }); toast('GOALTENDING', o.team === 0 ? 'opp' : 'make'); powAt('NO NO!', o, 0.9, false, 1.8); feed(`Goaltending · ${o.name}`); tally('goaltend');
         return;
       }
       if (u < 0.4 && o.isUser && rand() < 0.15 + o.r.block / 300) {
@@ -1458,7 +1462,8 @@
       AU().play(s.kind === 'dunk' ? 'dunk' : s.prob > 0.55 || rand() < 0.62 ? 'swish' : 'rimin', { x: b.x });
       if (s.kind === 'dunk' && !G.replay && !G.drill) G.hitT = 0.1;
       if (s.kind === 'dunk' && R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1);
-      if (s.kind === 'dunk' && R.pow && !G.drill) R.pow(s.oop ? 'OOP!' : rand() < 0.5 ? 'SLAM!' : 'BOOM!', rr(-1.5, 1.5), 12.4, hoopZ(p.team) - dirOf(p.team) * 0.5, 1.2);
+      if (s.kind === 'dunk' && R.pow && !G.drill) { const hzd = hoopZ(p.team) - dirOf(p.team) * 0.5, px = rr(-1.5, 1.5), on = nearestDef(p).d < 3.6;   // a man under him as it goes down: he is on the poster
+        if (R.zoom) R.zoom(px, 12.4, hzd, 1.25); R.pow(s.oop ? 'OOP!' : on ? pickOf(['POSTER!', 'ON HIM!']) : pickOf(['SLAM!', 'BOOM!', 'BAM!', 'JAM!']), px, 12.4, hzd, 1.2); }
       if (home(p.team)) AU().crowd.react('roar', s.kind === 'dunk' ? 1.2 : s.three ? 1 : 0.65);
       if (home(p.team) || s.kind === 'dunk') R.hype(s.kind === 'dunk' ? 1.4 : s.three ? 1 : 0.6, s.kind === 'dunk' ? 0.9 : 0); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.three ? 0.8 : 0.5);
       if (s.foul) { AU().crowd.react('roar', 1.1); }
@@ -1514,6 +1519,8 @@
         R.pow('+' + s.pts, rr(-0.8, 0.8), 10.6, hz, 0.8);
         if (p.isUser && s.foul) R.pow('AND 1!', 3.2, 12.6, hz, 1.05);
         else if (p.isUser && G.clock <= 0.05) R.pow('CLUTCH!', 3.2, 12.6, hz, 1.2);
+        else if (G.clock <= 0.05 && !G.half) R.pow('BUZZER!', 3.2, 12.6, hz, 1.15);
+        else if (s.three && s.d > 27.5) R.pow(pickOf(['DEEP!', 'RANGE!', 'LOGO!']), 3.2, 12.6, hz, 1.05);
         else if (p.isUser && s.three) R.pow(pickOf(['SPLASH!', 'CASH!', 'WET!', 'SWISH!']), 3.2, 12.6, hz, 1.05);
         else if (p.isUser && s.kind !== 'dunk' && s.prob > 0.55 && rand() < 0.5) R.pow(pickOf(['SWISH!', 'PURE!', 'SMOOTH!']), 3.2, 12.4, hz, 0.9);
         if (ast && ast.isUser) { powAt('DIME!', p, 0.95); if (rand() < 0.6) setTimeout(() => B('dime', { prio: 3, follow: 0.5 }), 1400); }
@@ -1576,6 +1583,7 @@
       }
       AU().play(rand() < 0.3 ? 'board' : 'rim', { x: b.ex, power: rr(0.5, 1) });
       if (R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1, 0.5);   // the iron shivers
+      if (R.pow && !G.drill && !G.replay && rand() < (s.kind === 'dunk' ? 1 : 0.4)) R.pow(s.kind === 'dunk' ? pickOf(['DOH!', 'CLANG!']) : pickOf(['CLANK!', 'BRICK!', 'DOINK!', 'BONK!']), b.ex + rr(-0.6, 0.6), 11.6, b.ez, s.kind === 'dunk' ? 0.95 : 0.7, true);
       if (G.lastShot && G.lastShot.prob > 0.72 && !G.drill && rand() < 0.7) { p.celebK = 'ugh'; p.celebT = 1.1; }   // he had that one: hands to the head
       if (s.kind === 'dunk' && !G.drill) { AU().crowd.react('ooh', 1); if (R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1, 0.85); b.vy = Math.max(b.vy || 0, 9); }   // a missed dunk: off the back iron and up, and the building lets him hear it
       if (p.isUser) G.streak = 0;
@@ -1844,7 +1852,7 @@
       const a = along(p.z, p.team);
       if (a > 26) {
         const back = G.pl.filter(o => o.team !== p.team && along(o.z, p.team) < a - 3).length;
-        if (back <= 1 && lane(p) > 4) { p.drive = 1.6; G.transT = -99; G.breakUntil = G.t + 2.2; tally('break'); if (rand() < 0.4) feed('On the break'); }
+        if (back <= 1 && lane(p) > 4) { p.drive = 1.6; G.transT = -99; G.breakUntil = G.t + 2.2; tally('break'); powAt(pickOf(['GO!', 'RUN!', 'ZOOM!']), p, 0.75, false, 1.7); if (rand() < 0.4) feed('On the break'); }
       }
     }
     /* pressure: a man in his face now and then makes him travel or lose it off his foot */
@@ -2203,7 +2211,7 @@
       /* a driver who runs into a defender set in his path: the charge */
       if (!p.isUser && man.drive > 0 && p.stun <= 0 && hyp(p.vx, p.vz) < 3 && hyp(man.x - p.x, man.z - p.z) < 2.4 && G.phase === 'live' && rand() < dt * 0.35) {
         man.st.tov++; man.st.pf++; if (man.isUser) grade(-2, 'Charge'); checkFoulOut(man);
-        AU().play('whistle'); toast('Offensive foul', man.team === 0 ? 'opp' : ''); feed(`Charge · ${man.name}`); B('turnover', { prio: 2 });
+        AU().play('whistle'); toast('Offensive foul', man.team === 0 ? 'opp' : ''); powAt('CHARGE!', man, 0.9, false, 1.7); feed(`Charge · ${man.name}`); B('turnover', { prio: 2 });
         for (const o of G.pl) { o.shoot = null; o.drive = 0; }
         G.poss = null; dead(0.9, () => give(p)); return;
       }
@@ -2576,7 +2584,7 @@
   /* a dribble move the body and ball act out: the ball's path from hand to hand (court.js poses the arms from p.mv) */
   const MV_T = { cross: 0.32, btb: 0.4, legs: 0.38, hesi: 0.5, spin: 0.5 };
   /* an ankle-breaker: the beaten defender goes down and needs a moment to get up */
-  function ankles(d) { if (!G.replay) G.hitT = 0.07; d.fallT = G.t; d.stun = 1.5; d.vx *= 0.3; d.vz *= 0.3; if (R.shock) R.shock(d.x, d.z, 5); if (R.dizzy) R.dizzy(d, 1.5); }
+  function ankles(d) { if (!G.replay) G.hitT = 0.07; d.fallT = G.t; d.stun = 1.5; d.vx *= 0.3; d.vz *= 0.3; if (R.shock) R.shock(d.x, d.z, 5); if (R.dizzy) R.dizzy(d, 1.5); if (R.zoom) R.zoom(d.x, 3.2, d.z, 0.9); }
   function startMv(p, k, a, b, side) {
     const ball = G.ball;
     p.mv = { k, t0: G.t, T: MV_T[k], a, b, side: side || 1, bn: false };
@@ -3049,7 +3057,7 @@
       b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
       /* the backboard */
       for (const s of [1, -1]) if (Math.abs(b.x) < 3 && b.y > 9.5 && b.y < 13 && (b.z - s * 42.6) * s > 0 && (b.z - s * 42.6) * s < 0.6 && b.vz * s > 0) b.vz = -b.vz * 0.6;
-      if (b.y < 0.39) { b.y = 0.39; b.vy = Math.abs(b.vy) > 2 ? -b.vy * 0.6 : 0; b.vx *= 0.86; b.vz *= 0.86; }
+      if (b.y < 0.39) { if (b.vy < -14 && R.puff) R.puff(b.x, b.z, 0.7); b.y = 0.39; b.vy = Math.abs(b.vy) > 2 ? -b.vy * 0.6 : 0; b.vx *= 0.86; b.vz *= 0.86; }
       if (b.vy === 0) { b.vx *= 1 - dt * 1.5; b.vz *= 1 - dt * 1.5; }
       /* play is stopped: the ball stays in the building (it dies against the boards round the floor) */
       if (G.phase !== 'live') { if (Math.abs(b.x) > 28) { b.x = Math.sign(b.x) * 28; b.vx *= -0.3; } if (Math.abs(b.z) > 50.5) { b.z = Math.sign(b.z) * 50.5; b.vz *= -0.3; } return; }
@@ -3493,6 +3501,17 @@
       const rows = on.concat(off).map(r => `<tr class="${r.user ? 'me' : ''}"><td>${r.on ? '' : '<small>'}${r.name}${r.on ? '' : '</small>'}</td><td>${mm(r.st.secs)}</td><td><b>${r.st.pts}</b></td><td>${r.st.reb}</td><td>${r.st.ast}</td><td>${r.st.fgm}-${r.st.fga}</td><td>${r.st.pf || 0}</td><td>${(r.st.pm || 0) > 0 ? '+' : ''}${r.st.pm || 0}</td></tr>`).join('');
       return `<h4>${G.teams[t].name} <small>${G.score[t]}</small></h4><table class="std pbx"><tr><th></th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>FG</th><th>PF</th><th>+/-</th></tr>${rows}</table>`; }).join('');
   }
+  /* the pause menu's first page: the score by quarter and the two teams side by side */
+  function teamCompare() {
+    const KS = ['fgm', 'fga', 'tpm', 'tpa', 'reb', 'ast', 'tov', 'stl', 'blk'];
+    const tot = t => { const a = {}; for (const k of KS) a[k] = 0; for (const st of G.pl.filter(p => p.team === t).map(p => p.st).concat(((G.bench && G.bench[t]) || []).map(x => x.st))) for (const k of KS) a[k] += (st && st[k]) || 0; return a; };
+    const A = tot(0), B2 = tot(1), pc = (m, n) => n ? Math.round(m / n * 100) : 0;
+    const rows = [['Field goals', `${A.fgm}/${A.fga}`, `${B2.fgm}/${B2.fga}`, pc(A.fgm, A.fga), pc(B2.fgm, B2.fga)], ['Threes', `${A.tpm}/${A.tpa}`, `${B2.tpm}/${B2.tpa}`, A.tpm, B2.tpm], ['Rebounds', A.reb, B2.reb, A.reb, B2.reb], ['Assists', A.ast, B2.ast, A.ast, B2.ast],
+      ['Steals', A.stl, B2.stl, A.stl, B2.stl], ['Blocks', A.blk, B2.blk, A.blk, B2.blk], ['Turnovers', A.tov, B2.tov, -A.tov, -B2.tov]];
+    const marks = (G.qsc || []).concat([G.score.slice()]), qs = marks.map((m, i) => [m[0] - (i ? marks[i - 1][0] : 0), m[1] - (i ? marks[i - 1][1] : 0)]);
+    const line = G.half ? '' : `<table class="pls"><tr><th></th>${qs.map((q, i) => `<th>${i < 4 ? i + 1 : 'OT'}</th>`).join('')}<th>T</th></tr>${[0, 1].map(t => `<tr><td>${G.teams[t].ab || G.teams[t].id}</td>${qs.map(q => `<td>${q[t]}</td>`).join('')}<td><b>${G.score[t]}</b></td></tr>`).join('')}</table>`;
+    return `<div class="pcmp">${line}${rows.map(([n, a, b, x, y]) => `<div><b class="${x > y ? 'w' : ''}">${a}</b><span>${n}</span><b class="${y > x ? 'w' : ''}">${b}</b></div>`).join('')}</div>`;
+  }
   function pause(on) {
     G.paused = on;
     AU().muffle(on);
@@ -3509,17 +3528,19 @@
       return;
     }
     if (on) {
-      ov.innerHTML = `<div class="card"><h2>Paused</h2>
-        ${G.drill ? '' : `<div class="pmatch">${[0, 1].map(i => { const t = G.teams[i]; return `<div><i style="background:${t.c1};color:${PB.ink ? PB.ink(t.c1, t.c2) : '#fff'}">${t.ab || t.id}</i><b>${G.score[i]}</b><s>${'•'.repeat(Math.max(0, G.to ? G.to[i] : 0))}</s></div>`; }).join(`<span><small>${$('#qt').textContent}</small>${$('#clk').textContent}</span>`)}</div>`}
-        <p class="mute pc">${G.drill ? (opts.warm ? 'Shootaround: tip off when you are ready' : '') : G.user ? `Your grade ${gradeLetter(G.grade)}` : ''}</p>
+      /* the sheet keeps its size from tab to tab: the score and the tabs stay put at the top, Resume stays under your
+         thumb at the bottom, and only the part between them scrolls */
+      ov.innerHTML = `<div class="card pz${G.drill ? '' : ' full'}"><div class="pzh"><div class="pzt"><h2>Paused</h2>${G.user && !G.drill ? `<span class="pzg">Grade <b>${gradeLetter(G.grade)}</b></span>` : ''}</div>
+        ${G.drill ? '' : `<div class="pmatch">${[0, 1].map(i => { const t = G.teams[i]; return `<div><i style="background:${t.c1};color:${PB.ink ? PB.ink(t.c1, t.c2) : '#fff'}">${t.ab || t.id}</i><b>${G.score[i]}</b><s>${G.to ? `<em>TO</em> ${'•'.repeat(Math.max(0, G.to[i])) || '0'}` : ''}</s></div>`; }).join(`<span><small>${$('#qt').textContent}</small>${$('#clk').textContent}</span>`)}</div>`}
+        ${G.drill && opts.warm ? '<p class="mute pc">Shootaround: tip off when you are ready</p>' : ''}
         ${G.user && !G.drill ? (() => { const st = G.user.st; return `<p class="pline"><b>${st.pts}</b> pts · <b>${st.reb}</b> reb · <b>${st.ast}</b> ast · ${st.fgm}/${st.fga} FG · ${st.tpm}/${st.tpa} 3PT${st.pf ? ` · ${st.pf} PF` : ''}</p>`; })() : ''}
+        <div class="stabs ptabs"><button data-t="game">Game</button>${G.user && !G.drill && !G.switching ? '<button data-t="coach">Coaching</button>' : ''}${G.drill ? '' : '<button data-t="stats">Stats</button>'}<button data-t="opts">Options</button></div></div><div class="pzb">
+        <section data-t="game">
         ${opts.goals && G.user ? `<div class="pgoals"><b>Your goals</b>${opts.goals.map(g => { const v = g.k === 'grade' ? null : G.user.st[g.k] || 0; const ok = g.k === 'grade' ? LETTERS.indexOf(gradeLetter(G.grade)) >= g.n : g.k === 'tov' ? v <= g.n : v >= g.n;
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
-        <button class="big" id="pr">Resume</button>
-        <div class="stabs ptabs"><button data-t="game">Game</button>${G.user && !G.drill && !G.switching ? '<button data-t="coach">Coaching</button>' : ''}${G.drill ? '' : '<button data-t="stats">Stats</button>'}<button data-t="opts">Options</button></div>
-        <section data-t="game">
         ${G.user && !G.drill && (G.poss === 0 || G.phase === 'dead') && G.to[0] > 0 ? `<button class="ghost" id="pto">Timeout <small>${G.to[0]} left this half</small></button>` : ''}
         <button class="ghost" id="ps">${G.drill ? (opts.warm ? 'Tip off' : 'Finish') : 'Sim to the end'}</button>
+        ${G.drill ? '' : teamCompare()}
         <p class="fine ptip">${G.drill ? '' : 'Coaching has the playbook and your defense. Options has the camera, sound and the controls.'}</p></section><section data-t="coach">
         ${G.user && !G.drill && !G.switching ? (() => {
           const cur = G.play && (G.play.id || G.play.kind), dc = G.dplay && G.dplay.kind, dk = Object.keys(DBOOK);
@@ -3534,8 +3555,8 @@
         </section><section data-t="opts"><button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
         <details class="help" open><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint. With the ball your feet beat a man too: cut hard the other way at speed, stop and go, or explode from a standstill. Once you are past him he stays behind you.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim, down and to a side for an escape dribble. Cross against the way he is sliding and he is beaten.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, Y escape dribble, I spin, O pick.</span></p></details></section>
-        <section data-t="stats">${G.drill ? '' : `<div class="pbox">${liveBox()}</div>`}</section></div>`;
-      { const tabs = [...ov.querySelectorAll('.ptabs button')], setTab = t => { if (!tabs.some(b => b.dataset.t === t)) t = 'game'; pauseTab = t; ov.querySelectorAll('section[data-t]').forEach(s => { s.hidden = s.dataset.t !== t; }); tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t)); };
+        <section data-t="stats">${G.drill ? '' : `<div class="pbox">${liveBox()}</div>`}</section></div><div class="pzf"><button class="big" id="pr">Resume</button></div></div>`;
+      { const tabs = [...ov.querySelectorAll('.ptabs button')], setTab = t => { if (!tabs.some(b => b.dataset.t === t)) t = 'game'; pauseTab = t; ov.querySelectorAll('section[data-t]').forEach(s => { s.hidden = s.dataset.t !== t; }); tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t)); const bd = ov.querySelector('.pzb'); if (bd) bd.scrollTop = 0; };
         tabs.forEach(b => { b.onclick = () => setTab(b.dataset.t); }); setTab(pauseTab); }
       $('#pr').onclick = () => pause(false);
       if ($('#pto')) $('#pto').onclick = () => {
