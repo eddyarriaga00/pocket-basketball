@@ -125,6 +125,26 @@
     "who": "pbp",
     "text": "From way downtown!",
     "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Bang! From three!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Rains it in from deep!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Splash! Count it!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "He buries the triple!",
+    "ex": 0.75
    }
   ],
   "three_ana": [
@@ -151,6 +171,16 @@
    {
     "who": "ana",
     "text": "Feet set, shoulders square. Textbook.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Leave him open and that is what happens.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Feet set, eyes on the rim. Money.",
     "ex": 0.5
    }
   ],
@@ -184,6 +214,11 @@
     "who": "pbp",
     "text": "Rocks the rim!",
     "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Slams it home!",
+    "ex": 0.9
    }
   ],
   "dunk_ana": [
@@ -200,6 +235,16 @@
    {
     "who": "ana",
     "text": "That's how you take it to the rim.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "That gets the whole bench up.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "You feel that one in the cheap seats.",
     "ex": 0.55
    }
   ],
@@ -233,6 +278,16 @@
     "who": "pbp",
     "text": "Gets to the cup.",
     "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Lays it up and in.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Kisses it off the glass.",
+    "ex": 0.55
    }
   ],
   "jumper": [
@@ -260,6 +315,21 @@
     "who": "pbp",
     "text": "Smooth from fifteen.",
     "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Pulls up, got it.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Mid-range, good.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Knocks it down.",
+    "ex": 0.55
    }
   ],
   "jumper_ana": [
@@ -277,6 +347,16 @@
     "who": "ana",
     "text": "Created his own space there.",
     "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "That mid-range game is a lost art.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "He got to his spot and rose up.",
+    "ex": 0.45
    }
   ],
   "and1": [
@@ -293,6 +373,16 @@
    {
     "who": "pbp",
     "text": "Count it, and the foul!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "And the foul! Count it!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "He scores through the contact!",
     "ex": 0.85
    }
   ],
@@ -321,6 +411,11 @@
     "who": "pbp",
     "text": "Rattles out.",
     "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Front rim.",
+    "ex": 0.4
    }
   ],
   "miss_ana": [
@@ -338,6 +433,16 @@
     "who": "ana",
     "text": "Rushed it a little there.",
     "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "Good look. It just did not fall.",
+    "ex": 0.4
+   },
+   {
+    "who": "ana",
+    "text": "He rushed that one a little.",
+    "ex": 0.4
    }
   ],
   "block": [
@@ -365,6 +470,11 @@
     "who": "pbp",
     "text": "Not in this house!",
     "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Swatted away!",
+    "ex": 0.85
    }
   ],
   "block_ana": [
@@ -381,6 +491,16 @@
    {
     "who": "ana",
     "text": "Went straight up. Clean.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "Perfect timing. He waited for it.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "That will make them think twice.",
     "ex": 0.55
    }
   ],
@@ -409,6 +529,21 @@
     "who": "pbp",
     "text": "Jumps the passing lane!",
     "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Picked his pocket!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Stolen! Going the other way!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "He took it right from him!",
+    "ex": 0.75
    }
   ],
   "steal_ana": [
@@ -425,6 +560,16 @@
    {
     "who": "ana",
     "text": "Lazy pass, and they made them pay.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Quick hands. He was waiting on that.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Careless with the ball, and he paid for it.",
     "ex": 0.5
    }
   ],
@@ -443,6 +588,16 @@
     "who": "pbp",
     "text": "Loses the handle.",
     "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "Lost the handle.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Gives it away.",
+    "ex": 0.45
    }
   ],
   "turnover_ana": [
@@ -455,6 +610,16 @@
     "who": "ana",
     "text": "Too much dribbling on that possession.",
     "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "You cannot give away possessions like that.",
+    "ex": 0.4
+   },
+   {
+    "who": "ana",
+    "text": "That is a wasted trip.",
+    "ex": 0.4
    }
   ],
   "shotclock": [
@@ -484,6 +649,11 @@
     "who": "pbp",
     "text": "Kept alive on the glass!",
     "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Keeps it alive!",
+    "ex": 0.55
    }
   ],
   "foul": [
@@ -496,6 +666,16 @@
     "who": "pbp",
     "text": "Called for the foul.",
     "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "He got him on the arm.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Contact, and the official calls it.",
+    "ex": 0.45
    }
   ],
   "shake": [
@@ -518,6 +698,16 @@
     "who": "pbp",
     "text": "Left him in the dust!",
     "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Shook him!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "He lost him with the crossover!",
+    "ex": 0.75
    }
   ],
   "hot": [
@@ -540,6 +730,16 @@
     "who": "pbp",
     "text": "Can't miss right now!",
     "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "He cannot miss right now!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Somebody put a hand up, he is on fire!",
+    "ex": 0.75
    }
   ],
   "hot_ana": [
@@ -552,6 +752,16 @@
     "who": "ana",
     "text": "That's confidence. You can see it.",
     "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "Just keep giving him the ball.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "The basket looks like an ocean to him.",
+    "ex": 0.5
    }
   ],
   "run": [
@@ -569,6 +779,11 @@
     "who": "pbp",
     "text": "Timeout might be coming. This is a run.",
     "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "They are on a run, and this building is rocking.",
+    "ex": 0.6
    }
   ],
   "end_q": [
@@ -622,6 +837,16 @@
     "who": "pbp",
     "text": "Here we go. Every possession matters now.",
     "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Biggest shot of the night!",
+    "ex": 0.8
+   },
+   {
+    "who": "pbp",
+    "text": "Ice water in his veins!",
+    "ex": 0.8
    }
   ],
   "clutch_ana": [
@@ -634,6 +859,16 @@
     "who": "ana",
     "text": "Execution wins this. Get a good look.",
     "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "That is who you want with the ball late.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "Big players make big plays.",
+    "ex": 0.55
    }
   ],
   "buzzer": [
@@ -645,6 +880,16 @@
    {
     "who": "pbp",
     "text": "Beat the buzzer! Are you kidding me?!",
+    "ex": 0.95
+   },
+   {
+    "who": "pbp",
+    "text": "At the horn! He got it!",
+    "ex": 0.95
+   },
+   {
+    "who": "pbp",
+    "text": "Beats the buzzer! Unbelievable!",
     "ex": 0.95
    }
   ],
@@ -668,6 +913,16 @@
     "who": "pbp",
     "text": "Final horn sounds. That's it!",
     "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "And that will do it. What a night.",
+    "ex": 0.6
+   },
+   {
+    "who": "pbp",
+    "text": "That is the ball game.",
+    "ex": 0.6
    }
   ],
   "final_ana": [
@@ -684,6 +939,16 @@
    {
     "who": "ana",
     "text": "That's a statement win.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "A lot to like from that performance.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "They will sleep well tonight.",
     "ex": 0.45
    }
   ],
@@ -924,6 +1189,11 @@
     "who": "pbp",
     "text": "Up top... and slams it home!",
     "ex": 0.92
+   },
+   {
+    "who": "pbp",
+    "text": "Up top! And he hammers it!",
+    "ex": 0.9
    }
   ],
   "stepback": [
@@ -936,6 +1206,11 @@
     "who": "pbp",
     "text": "Steps back... and buries it!",
     "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "Step-back! Got it!",
+    "ex": 0.8
    }
   ],
   "fouledout": [
@@ -1672,6 +1947,453 @@
    {
     "who": "pbp",
     "text": "Final seconds. Everything comes down to this.",
+    "ex": 0.6
+   }
+  ],
+  "lead": [
+   {
+    "who": "pbp",
+    "text": "And that gives them the lead!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "They are back in front!",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "Lead change! What a game we have.",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "He puts them on top!",
+    "ex": 0.75
+   }
+  ],
+  "lead_ana": [
+   {
+    "who": "ana",
+    "text": "That is a momentum bucket right there.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Now go get a stop and make it count.",
+    "ex": 0.5
+   }
+  ],
+  "tied": [
+   {
+    "who": "pbp",
+    "text": "Tie game!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "And we are all even!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Knotted up. Here we go.",
+    "ex": 0.7
+   }
+  ],
+  "perfect_ana": [
+   {
+    "who": "ana",
+    "text": "That release was perfect. He knew it.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Textbook form. Same shot every time.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "You could hear that one snap the net.",
+    "ex": 0.5
+   }
+  ],
+  "blowby": [
+   {
+    "who": "pbp",
+    "text": "Blows right by him!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Got a step, and he is gone!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "First step is too quick!",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "Left his man in the dust!",
+    "ex": 0.7
+   }
+  ],
+  "blowby_ana": [
+   {
+    "who": "ana",
+    "text": "You cannot guard that first step.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "He set him up, then went the other way.",
+    "ex": 0.5
+   }
+  ],
+  "ankles": [
+   {
+    "who": "pbp",
+    "text": "Oh! He broke his ankles!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "He put him on the floor!",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "Somebody help that man up!",
+    "ex": 0.9
+   }
+  ],
+  "ankles_ana": [
+   {
+    "who": "ana",
+    "text": "That is going to be all over the internet.",
+    "ex": 0.6
+   },
+   {
+    "who": "ana",
+    "text": "He is going to hear about that one.",
+    "ex": 0.6
+   }
+  ],
+  "poster": [
+   {
+    "who": "pbp",
+    "text": "Oh my! He dunked on him!",
+    "ex": 0.95
+   },
+   {
+    "who": "pbp",
+    "text": "Put him on a poster!",
+    "ex": 0.95
+   },
+   {
+    "who": "pbp",
+    "text": "Right over the top of him!",
+    "ex": 0.95
+   }
+  ],
+  "poster_ana": [
+   {
+    "who": "ana",
+    "text": "Do not jump with him. Just do not.",
+    "ex": 0.65
+   },
+   {
+    "who": "ana",
+    "text": "Frame that one and hang it up.",
+    "ex": 0.65
+   }
+  ],
+  "deep": [
+   {
+    "who": "pbp",
+    "text": "From way downtown! Got it!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "He pulled up from the logo!",
+    "ex": 0.85
+   },
+   {
+    "who": "pbp",
+    "text": "That was thirty feet, easy!",
+    "ex": 0.85
+   }
+  ],
+  "deep_ana": [
+   {
+    "who": "ana",
+    "text": "You have to pick him up at half court.",
+    "ex": 0.55
+   },
+   {
+    "who": "ana",
+    "text": "There is no bad shot for him tonight.",
+    "ex": 0.55
+   }
+  ],
+  "dime": [
+   {
+    "who": "pbp",
+    "text": "What a pass!",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Threaded the needle!",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Beautiful find!",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "He saw that before anyone else did.",
+    "ex": 0.65
+   }
+  ],
+  "dime_ana": [
+   {
+    "who": "ana",
+    "text": "That is unselfish basketball.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "The pass made that bucket.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "He draws two and finds the open man.",
+    "ex": 0.5
+   }
+  ],
+  "chasedown": [
+   {
+    "who": "pbp",
+    "text": "Chase-down block! Where did he come from?",
+    "ex": 0.9
+   },
+   {
+    "who": "pbp",
+    "text": "From behind! He pinned it on the glass!",
+    "ex": 0.9
+   }
+  ],
+  "board": [
+   {
+    "who": "pbp",
+    "text": "He goes up and gets it.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "Strong rebound in traffic.",
+    "ex": 0.5
+   }
+  ],
+  "playcall_ana": [
+   {
+    "who": "ana",
+    "text": "They are running a set here. Watch the weak side.",
+    "ex": 0.4
+   },
+   {
+    "who": "ana",
+    "text": "Good call out of the timeout.",
+    "ex": 0.4
+   },
+   {
+    "who": "ana",
+    "text": "Nice design. Everybody knows their spot.",
+    "ex": 0.4
+   }
+  ],
+  "zone_ana": [
+   {
+    "who": "ana",
+    "text": "They have gone to a zone. Move the ball.",
+    "ex": 0.4
+   },
+   {
+    "who": "ana",
+    "text": "A zone look now. Somebody has to hit a shot.",
+    "ex": 0.4
+   }
+  ],
+  "trap_ana": [
+   {
+    "who": "ana",
+    "text": "Here comes the trap. Get rid of it.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "They are sending two at the ball.",
+    "ex": 0.45
+   }
+  ],
+  "blowout_ana": [
+   {
+    "who": "ana",
+    "text": "This one is getting away from them.",
+    "ex": 0.4
+   },
+   {
+    "who": "ana",
+    "text": "They need a run, and they need it now.",
+    "ex": 0.4
+   }
+  ],
+  "close_ana": [
+   {
+    "who": "ana",
+    "text": "Buckle up. This is going down to the wire.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "One possession game. Every trip matters.",
+    "ex": 0.5
+   }
+  ],
+  "start_q": [
+   {
+    "who": "pbp",
+    "text": "Back underway.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "And we are back at it.",
+    "ex": 0.45
+   },
+   {
+    "who": "pbp",
+    "text": "Here we go again.",
+    "ex": 0.45
+   }
+  ],
+  "dunkedon": [
+   {
+    "who": "pbp",
+    "text": "Oh, he got dunked on!",
+    "ex": 0.8
+   },
+   {
+    "who": "pbp",
+    "text": "Right in his face!",
+    "ex": 0.8
+   }
+  ],
+  "crossed_ana": [
+   {
+    "who": "ana",
+    "text": "He got caught leaning there.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Stay down and move your feet.",
+    "ex": 0.5
+   }
+  ],
+  "wall_ana": [
+   {
+    "who": "ana",
+    "text": "Great job walling off the lane.",
+    "ex": 0.45
+   },
+   {
+    "who": "ana",
+    "text": "Nothing easy at the rim tonight.",
+    "ex": 0.45
+   }
+  ],
+  "finals_intro": [
+   {
+    "who": "pbp",
+    "text": "This is it. The Finals.",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Two teams left. One trophy.",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Welcome to the Finals. It does not get bigger than this.",
+    "ex": 0.65
+   }
+  ],
+  "finals_intro_ana": [
+   {
+    "who": "ana",
+    "text": "Everything they have worked for comes down to this.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "Legacies are made on this floor.",
+    "ex": 0.5
+   }
+  ],
+  "cup_intro": [
+   {
+    "who": "pbp",
+    "text": "Welcome to the Cup final. One game, one trophy.",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Win tonight and the Cup is yours.",
+    "ex": 0.65
+   }
+  ],
+  "cup_intro_ana": [
+   {
+    "who": "ana",
+    "text": "No series, no second chances. Just tonight.",
+    "ex": 0.5
+   }
+  ],
+  "champ": [
+   {
+    "who": "pbp",
+    "text": "They have done it! Champions!",
+    "ex": 0.95
+   },
+   {
+    "who": "pbp",
+    "text": "It is over! They are the champions!",
+    "ex": 0.95
+   },
+   {
+    "who": "pbp",
+    "text": "Raise the trophy! What a moment!",
+    "ex": 0.95
+   }
+  ],
+  "champ_ana": [
+   {
+    "who": "ana",
+    "text": "They earned every bit of that.",
+    "ex": 0.6
+   },
+   {
+    "who": "ana",
+    "text": "Nobody can ever take this away from them.",
     "ex": 0.6
    }
   ]
