@@ -4,6 +4,12 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The Cup: an in-season tournament in your career. Early in the season some of your games are cup nights, group games on a painted floor against the four teams drawn with you. Win the group or be the best runner-up in your conference and the next games become a quarterfinal, a semifinal and the final. Win it for a trophy, five skill points, a bonus and an achievement. The table and the last eight are on the League tab. (Seasons of ten games or more.)
+- League leaders read like the real league: shown per game at full length, with a scoring champion in the low thirties and a middling starter around sixteen, the best rebounder about fourteen, the best passer about twelve, and the leaders in steals, blocks and threes where they belong. A threes column too.
+- Spending skill points no longer redraws the page from the top: the screen stays where you were.
+- The park camera knows when you are playing: at a hoop with the ball, going at the rim or squared up to it, it comes round behind you to face that rim; turn away, walk off to the wall or just stand around, and it leaves the view alone.
+- In games the default camera turns a little toward the rim from the wings and corners, so the basket stays in the middle of the picture.
+- Courts: a second ring round the center circle, coaching-box and substitution marks, the club's name down both sidelines, and the lights off the varnish.
 - The booth says more: about 120 new recorded lines. New calls for taking the lead, a tie game, a perfect release, a blow-by, broken ankles, a poster, a three from way out, a great pass, a chase-down block, a play called from the bench, a zone or a trap, a blowout and a game going down to the wire; and more ways to call a three, a dunk, a layup, a miss, a block, a steal, a turnover and a foul.
 - Your phone has more on it: over 200 new posts. More reactions to what you do (and to what goes wrong: a turnover, a bad shot, getting blocked or crossed), and the rest of the timeline now talks about the game itself now and then: the score, the crowd, the refs, the nachos. Twenty more accounts, and no post repeats until many others have been seen.
 - After a career game the timeline has more voices: a beat writer, a referee, a coach in the stands, a grandmother, a kid in the driveway.

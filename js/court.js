@@ -236,6 +236,14 @@
     for (let i = 0; i < 3000; i++) g.fillRect(PB.rand() * cv.width, PB.rand() * cv.height, 1 + PB.rand() * 2, 4 + PB.rand() * 18);
     g.globalAlpha = 1;
     }
+    /* a cup night: the whole floor painted in the home color (the grain still shows through), a paler runway from rim
+       to rim, the trophy at center court */
+    if (home.cup && !home.street) {
+      g.globalAlpha = 0.74; g.fillStyle = home.c1; g.fillRect(0, 0, cv.width, cv.height);
+      g.globalAlpha = 0.2; g.fillStyle = '#ffffff'; g.fillRect(X(-8), 0, 16 * PX, cv.height);
+      g.globalAlpha = 0.16; g.fillStyle = '#000000'; g.fillRect(0, 0, X(-22), cv.height); g.fillRect(X(22), 0, cv.width - X(22), cv.height);
+      g.globalAlpha = 1;
+    }
     /* every floor its own design too: 0 the classic (a solid key), 1 a darker stain inside the three-point line,
        2 a two-tone key (the second color in the circle and under the rim), 3 an open key (wood, edged in the color) */
     const design = home.court !== undefined ? home.court : (hh >>> 3) % 4;
@@ -281,12 +289,26 @@
       /* lane hash marks */
       for (const d of [7, 8, 11, 14]) for (const sx of [-1, 1]) line([[sx * 8, bz - s * d], [sx * 8.7, bz - s * d]]);
     }
+    /* the small marks a real floor has: the coaching boxes (a hash 28 feet from each baseline on both sidelines), the
+       substitution box at the table, and a second ring round the center circle in the other color */
+    if (!home.street) { for (const sz of [-1, 1]) for (const sx of [-1, 1]) line([[sx * 25, sz * 19], [sx * 22, sz * 19]]);
+      line([[-25, -4], [-23.6, -4]]); line([[-25, 4], [-23.6, 4]]); }
+    if (!home.street) { g.save(); g.strokeStyle = home.c2; g.globalAlpha = 0.85; g.lineWidth = 0.34 * PX; g.beginPath(); g.arc(X(0), Z(0), 6.55 * PX, 0, 7); g.stroke(); g.restore(); }
+    /* the club's name down both sidelines, the way it is painted on the apron */
+    if (!home.street) for (const sx of [-1, 1]) { g.save(); g.translate(X(sx * 23.55), Z(0)); g.rotate(sx > 0 ? -Math.PI / 2 : Math.PI / 2); g.globalAlpha = 0.5; g.fillStyle = home.cup ? '#ffffff' : home.c1; g.font = `900 ${1.5 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(`${home.city} ${home.name}`.toUpperCase(), 0, 0); g.restore(); }
+    if (home.cup && !home.street) {   // the trophy, in white, behind the logo
+      g.save(); g.translate(X(0), Z(0)); g.globalAlpha = 0.22; g.fillStyle = '#ffffff'; const u = PX;
+      g.beginPath(); g.moveTo(-3.2 * u, -4.6 * u); g.lineTo(3.2 * u, -4.6 * u); g.quadraticCurveTo(3 * u, 0.6 * u, 0.7 * u, 1.6 * u); g.lineTo(0.7 * u, 3.4 * u); g.lineTo(2.2 * u, 3.4 * u); g.lineTo(2.2 * u, 4.6 * u); g.lineTo(-2.2 * u, 4.6 * u); g.lineTo(-2.2 * u, 3.4 * u); g.lineTo(-0.7 * u, 3.4 * u); g.lineTo(-0.7 * u, 1.6 * u); g.quadraticCurveTo(-3 * u, 0.6 * u, -3.2 * u, -4.6 * u); g.fill();
+      g.restore(); }
+    /* the lights off the varnish: soft pale ovals down the length of the floor */
+    if (!home.street) { g.save(); for (let i = 0; i < 7; i++) { const cz = -40 + i * 13.3, rg = g.createRadialGradient(X(0), Z(cz), 2, X(0), Z(cz), 13 * PX); rg.addColorStop(0, 'rgba(255,255,255,0.075)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = rg; g.fillRect(0, Z(cz) - 13 * PX, cv.width, 26 * PX); } g.restore(); }
     /* center logo, readable from behind the team attacking +z (player lock, the default camera); the baseline names
        each read the right way up as you attack toward them */
     g.save(); g.translate(X(0), Z(0)); g.rotate(Math.PI);
     g.fillStyle = home.c2; g.font = `900 ${3 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(home.ab || home.id, 0, 0); g.restore();
-    for (const [z, rot, txt] of [[44.9, Math.PI, home.name], [-44.9, 0, home.city]]) {
+    for (const [z, rot, txt] of [[44.9, Math.PI, home.cup ? 'The Cup' : home.name], [-44.9, 0, home.cup ? 'The Cup' : home.city]]) {
       g.save(); g.fillStyle = 'rgba(255,255,255,.85)'; g.font = `800 ${2.2 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.translate(X(0), Z(z)); g.rotate(rot); g.fillText(txt.toUpperCase(), 0, 0); g.restore();
     }
@@ -2272,10 +2294,11 @@
   /* cameras: 'lock' (player lock, behind you toward the rim in play), 'broadcast' (the sideline), 'overhead' */
   R.CAMS = { lock: 'Player lock', broadcast: 'Broadcast', overhead: 'Overhead' };
   let snap = false; R.snap = () => { snap = true; };
-  let parkYaw = null; R.parkYaw = y => { parkYaw = y; };
+  let parkYaw = null, parkLock = 0; R.parkYaw = y => { parkYaw = y; };
   R.setCam = m => { camMode = R.CAMS[m] ? m : 'lock'; R.resize(); };
   R.getCam = () => camMode;
   /* player lock framing: how far behind you, how high, how far ahead it looks, the lens */
+  let lockLean = 0;
   R.lock = { back: 42, up: 32, ahead: 8, fov: 52 };   // high and wide: you, the lane and the rim, and most of the floor
   R.getZoom = () => zoom;
 
@@ -2482,7 +2505,16 @@
       const u = G.user, sp = Math.hypot(u.vx, u.vz);
       if (parkYaw !== null) { yaw = parkYaw; parkYaw = null; snap = true; }
       else if (yaw === undefined || yaw === null) { yaw = Math.atan2(0 - u.x, 41.75 - u.z); }
-      if (sp > 4) { const want = Math.atan2(u.vx, u.vz); let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; if (Math.abs(dy) < 2.6) yaw += dy * Math.min(1, dt * 1.1); }
+      /* Are you playing at a hoop? On the court, within shooting range of the nearer rim, and either going up for a
+         shot, moving toward it, or standing facing it. Then the camera comes round behind you to face that rim, and
+         stays there. Walking away from it, off toward the wall or a ring, or standing looking somewhere else, it
+         does not: the view is yours (it only follows the way you walk, slowly, as before). */
+      const hz0 = u.z < 0 ? -41.75 : 41.75, hdx = 0 - u.x, hdz = hz0 - u.z, hd = Math.hypot(hdx, hdz) || 1, toRim = (u.vx * hdx + u.vz * hdz) / hd;
+      const faceRim = Math.cos((u.face || 0) - Math.atan2(hdx, hdz)), hasBall = b.holder === u || !!u.shoot || (b.state === 'shot' && b.shot && b.shot.shooter === u);
+      const hooping = hasBall && Math.abs(u.x) < 27 && hd < 31 && hd > 2.5 && (!!u.shoot || b.state === 'shot' || toRim > 2.5 || (sp < 4 && faceRim > 0.45) || (parkLock > 0.5 && toRim > -3.5 && faceRim > -0.2));
+      parkLock += ((hooping ? 1 : 0) - parkLock) * Math.min(1, dt * (hooping ? 3 : 7));   // it lets go at once when you turn away
+      if (hooping && parkLock > 0.05 && hd > 6) { let dy = Math.atan2(hdx, hdz) - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; yaw += dy * Math.min(1, dt * (u.shoot ? 4.5 : 2.4) * parkLock); }
+      if (sp > 4 && parkLock < 0.5) { const want = Math.atan2(u.vx, u.vz); let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; if (Math.abs(dy) < 2.6) yaw += dy * Math.min(1, dt * 1.1) * (1 - parkLock); }
       anchor.lerp(new T.Vector3(u.x, 0, u.z), Math.min(1, dt * 6)); if (!dt || snap) { anchor.set(u.x, 0, u.z); snap = false; }
       const fx = Math.sin(yaw), fz = Math.cos(yaw), back = 24 * zoom, up = 13 * zoom;
       /* the camera stays inside the fence: against it, it rises a little instead of going through */
@@ -2511,7 +2543,10 @@
       /* in a drill the camera stands behind you facing the rim, wherever you are on the arc */
       /* (close to the rim, or past it, that angle would spin: there it keeps the last one it had from farther out) */
       if (G.drill && (Math.hypot(me0.x, 41.75 - me0.z) > 8 || drillYaw === null)) drillYaw = Math.atan2(0 - me0.x, 41.75 - Math.min(me0.z, 41));
-      const want = G.drill ? drillYaw : lockDir > 0 ? 0 : Math.PI;
+      const base = lockDir > 0 ? 0 : Math.PI;
+      let lean = 0; if (!G.drill && !G.park) { const hz1 = lockDir > 0 ? 41.75 : -41.75, dzr = (hz1 - me0.z) * lockDir; if (dzr > 6 && dzr < 46) { let a = Math.atan2(0 - me0.x, hz1 - me0.z) - base; while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; lean = PB.clamp(a * 0.38, -0.3, 0.3) * PB.clamp((46 - dzr) / 14, 0, 1); } }
+      lockLean += (lean - lockLean) * Math.min(1, dt * 1.8);
+      const want = G.drill ? drillYaw : base + lockLean;
       let dy = want - yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
       if (Math.abs(Math.abs(dy) - Math.PI) < 0.01) dy = Math.PI * 0.999;   // a half turn always swings the same way
       yaw += dy * Math.min(1, dt * 4);

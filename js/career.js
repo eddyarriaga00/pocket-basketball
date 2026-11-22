@@ -40,6 +40,7 @@
     ['td', 'Triple-double', 'Double figures in three stats', C => !!(C.miles || {}).td],
     ['winner', 'Ice in the veins', 'Hit a game-winner', C => !!(C.miles || {}).winner],
     ['allstar', 'All-Star', 'Make an All-Star team', C => C.trophies.some(t => /^All-Star,/.test(t))],
+    ['cup', 'Cup winner', 'Win the in-season tournament', C => C.trophies.some(t => /^Cup champion/.test(t))],
     ['potw', 'Player of the Week', 'Win a Player of the Week', C => C.trophies.some(t => /Player of the Week/.test(t))],
     ['three', 'From way downtown', 'Win the 3-Point Contest', C => C.trophies.some(t => /3-Point Contest champion/.test(t))],
     ['dunk', 'Above the rim', 'Win the Dunk Contest', C => C.trophies.some(t => /Dunk Contest champion/.test(t))],
@@ -105,6 +106,9 @@
     store('pbb.career.' + id, C); store(IDX, list);
   }
 
+  /* the hub drawn again in place after a tap that changes one thing (an attribute, a badge, a jersey): where you had
+     scrolled to stays put and nothing fades in again */
+  const stay = () => { const s = scr(), y = s.scrollTop, wy = window.scrollY; s.classList.add('still'); hub(); s.scrollTop = y; window.scrollTo(0, wy); clearTimeout(stay.h); stay.h = setTimeout(() => s.classList.remove('still'), 600); };
   function show(html) { const s = scr(); s.classList.remove('over3d'); if (PB.R && PB.R.showcase) PB.R.showcase(null); s.innerHTML = html; s.hidden = false; s.scrollTop = 0; }
   const badge = t => `<i class="tb" style="background:${t.c1};color:${PB.ink(t.c1, t.c2)}">${esc(t.ab || t.id)}</i>`;
   const tname = t => `${t.city} ${t.name}`;
@@ -1159,6 +1163,7 @@
     if (C.rival && n >= 10) { const k = Math.floor(n * 0.6); sched.splice(k, 0, C.rival.team); sched.length = n; }
     sched.sort(() => PB.rand() - 0.5);
     C.games = sched.map((o, i) => ({ opp: o, home: i % 2 === 0, done: false }));
+    setupCup(n);
     /* back-to-backs: about one game in seven is the second of two nights; your legs start the game heavier */
     for (let i = 1; i < C.games.length; i++) if (!C.games[i - 1].b2b && PB.rand() < 0.15) C.games[i].b2b = true;
     for (const id in C.rosters) for (const p of C.rosters[id]) p.out = 0;
@@ -1169,6 +1174,80 @@
     C.startOvr = C.me.ovr;
     if (C.rival) C.rival.season = zero();
     C.news.unshift(`Season ${C.year} begins: ${n} games, ${PB.TEAMS.length} teams.`);
+  }
+
+  /* ---------- the Cup: the in-season tournament ----------
+     Early in the season a handful of your games are cup nights: group games against the four teams drawn with you (three
+     groups of five in each conference), played on a painted floor, counting in the standings like any other. Win the
+     group, or be the best second-place team in the conference, and the next games on your schedule become the
+     knockout rounds: a quarterfinal, a semifinal, the final. Lose once and it is over. */
+  const CUP_ROUNDS = { QF: 'Cup quarterfinal', SF: 'Cup semifinal', F: 'Cup final' };
+  function setupCup(n) {
+    C.cup = null;
+    if (n < 10) return;
+    const groups = [];
+    for (const conf of ['East', 'West']) { const ids = PB.TEAMS.filter(t => t.conf === conf).map(t => t.id).sort(() => PB.rand() - 0.5); for (let i = 0; i < 3; i++) groups.push({ conf, name: `${conf} ${'ABC'[i]}`, ids: ids.slice(i * 5, i * 5 + 5) }); }
+    const mine = groups.findIndex(g => g.ids.includes(C.team)), opps = groups[mine].ids.filter(id => id !== C.team).sort(() => PB.rand() - 0.5).slice(0, n >= 20 ? 4 : 3);
+    const first = Math.max(1, Math.floor(n * 0.12)), gap = Math.max(1, Math.floor(n * 0.07)), at = opps.map((o, i) => first + i * gap);
+    opps.forEach((o, i) => { const g = C.games[at[i]]; if (g) { g.opp = o; g.cup = 'group'; g.b2b = false; } });
+    const rec = {}; for (const g of groups) for (const id of g.ids) rec[id] = { w: 0, l: 0, pd: 0 };
+    C.cup = { groups, mine, rec, need: opps.length, played: 0, stage: 'group', last: at[at.length - 1] };
+  }
+  /* the other groups' nights, as yours are played: every other team gets as many cup games as you have had */
+  function cupSimOthers() {
+    const K = C.cup; if (!K) return;
+    for (const g of K.groups) { const ids = g.ids.filter(id => id !== C.team);
+      for (const id of ids) { const r = K.rec[id]; while (r.w + r.l < K.played) { const o = ids.filter(x => x !== id)[Math.floor(PB.rand() * (ids.length - 1))] || ids[0], win = PB.rand() < winP(id, o, true), m = 3 + Math.floor(PB.rand() * 14); if (win) r.w++; else r.l++; r.pd += win ? m : -m; } } }
+  }
+  const cupRank = g => g.ids.slice().sort((a, b) => (C.cup.rec[b].w - C.cup.rec[a].w) || (C.cup.rec[b].pd - C.cup.rec[a].pd) || strength(b) - strength(a));
+  /* after a cup night of yours: the tables move, and at the end of the group stage the eight are named */
+  function cupAfter(g, res) {
+    const K = C.cup; if (!K || !g.cup) return;
+    const t = PB.team(C.team), margin = Math.abs(res.us - res.them);
+    if (g.cup === 'group') {
+      const r = K.rec[C.team], ro = K.rec[g.opp]; if (res.win) { r.w++; if (ro) ro.l++; } else { r.l++; if (ro) ro.w++; } r.pd += res.win ? margin : -margin; if (ro) ro.pd += res.win ? -margin : margin;
+      K.played++; cupSimOthers();
+      if (K.played < K.need) return;
+      /* the eight: three group winners and the best runner-up in each conference */
+      const qual = {};
+      for (const conf of ['East', 'West']) { const gs = K.groups.filter(x => x.conf === conf), wins = gs.map(x => cupRank(x)[0]), seconds = gs.map(x => cupRank(x)[1]).sort((a, b) => (K.rec[b].w - K.rec[a].w) || (K.rec[b].pd - K.rec[a].pd));
+        qual[conf] = wins.concat(seconds[0]).sort((a, b) => (K.rec[b].w - K.rec[a].w) || (K.rec[b].pd - K.rec[a].pd)); }
+      K.qual = qual; const conf = t.conf, seed = qual[conf].indexOf(C.team);
+      if (seed < 0) { K.stage = 'out'; K.note = `Out in the group stage (${r.w}-${r.l})`; C.news.unshift(`The Cup: the ${t.name} go ${r.w}-${r.l} in ${K.groups[K.mine].name} and miss the knockout rounds`); cupFinish(); return; }
+      K.stage = 'QF'; K.seed = seed + 1; K.opp = qual[conf][3 - seed]; K.other = qual[conf].filter(id => id !== C.team && id !== K.opp);   // (the other quarterfinal in your half)
+      const nx = C.games[C.gi + 1]; if (nx) { nx.opp = K.opp; nx.cup = 'QF'; nx.home = seed < 2; nx.b2b = false; }
+      C.news.unshift(`The Cup: the ${t.name} are through to the quarterfinals (${r.w}-${r.l}) and draw the ${PB.team(K.opp).name}`);
+      return;
+    }
+    /* a knockout night */
+    if (!res.win) { K.stage = 'out'; K.note = `Lost the ${CUP_ROUNDS[g.cup].toLowerCase()} to the ${PB.team(g.opp).name}`; C.news.unshift(`The Cup: the ${t.name} go out in the ${g.cup === 'F' ? 'final' : g.cup === 'SF' ? 'semifinals' : 'quarterfinals'}`);
+      if (g.cup === 'F') { C.me.sp += 2; C.news.unshift('Cup runners-up: +2 skill points'); } cupFinish(); return; }
+    const pickW = (a, b) => (a && b) ? (PB.rand() < winP(a, b, true) ? a : b) : (a || b);
+    if (g.cup === 'QF') { K.stage = 'SF'; K.opp = pickW(K.other[0], K.other[1]); C.me.sp += 1; }
+    else if (g.cup === 'SF') { K.stage = 'F'; const oc = t.conf === 'East' ? 'West' : 'East', q = K.qual[oc]; K.opp = pickW(pickW(q[0], q[3]), pickW(q[1], q[2])); C.me.sp += 1; }
+    else { K.stage = 'won'; K.note = `Cup champions, beating the ${PB.team(g.opp).name}`; C.trophies.push(`Cup champion, season ${C.year}`); C.me.sp += 5; C.fans = Math.round((C.fans || 0) * 1.08 + 5000); C.earnings = (C.earnings || 0) + 0.5;
+      C.news.unshift(`THE CUP IS YOURS. The ${t.name} win the in-season tournament: +5 skill points, a $500K bonus for every player`); cupFinish(); return; }
+    const nx = C.games[C.gi + 1]; if (nx) { nx.opp = K.opp; nx.cup = K.stage; nx.home = false; nx.neutral = true; nx.b2b = false; C.news.unshift(`The Cup: on to the ${K.stage === 'F' ? 'final' : 'semifinals'} against the ${PB.team(K.opp).name}`); }
+    else { K.stage = 'out'; cupFinish(); }
+  }
+  /* the rest of the bracket, played out so the season has a cup winner either way */
+  function cupFinish() {
+    const K = C.cup; if (!K || K.champ) return;
+    if (K.stage === 'won') { K.champ = C.team; return; }
+    if (!K.qual) return;
+    const pickW = (a, b) => a === b ? a : PB.rand() < winP(a, b, true) ? a : b, fin = conf => { const q4 = K.qual[conf].filter(id => id !== C.team), a = q4[0], b2 = q4[1] || a, c2 = q4[2] || a, d2 = q4[3] || b2; return pickW(pickW(a, d2), pickW(b2, c2)); };
+    K.champ = pickW(fin('East'), fin('West'));
+    C.news.unshift(`The ${PB.team(K.champ).name} win the Cup`);
+  }
+  function cupCard() {
+    const K = C.cup; if (!K) return '';
+    const g = K.groups[K.mine], rows = cupRank(g), t = PB.team(C.team);
+    const head = K.stage === 'group' ? `Group stage · ${K.played} of ${K.need} played` : K.stage === 'won' ? 'Champions' : K.stage === 'out' ? (K.note || 'Out') : `${CUP_ROUNDS[K.stage]} next`;
+    return `<div class="card cup" style="--c1:${t.c1}"><h3>The Cup <small>${head}</small></h3>
+      <p class="mute">Group ${esc(g.name)}: win it, or be the best runner-up in the ${g.conf}, and you play for the trophy.</p>
+      ${rows.map((id, i) => { const r = K.rec[id], x = PB.team(id); return `<p class="cuprow${id === C.team ? ' me' : ''}"><span>${i + 1}</span>${badge(x)}<i>${esc(x.name)}</i><em>${r.w}-${r.l}</em><small>${r.pd > 0 ? '+' : ''}${r.pd}</small></p>`; }).join('')}
+      ${K.stage !== 'group' && K.qual ? `<p class="kick">The last eight</p><p class="mute">${['East', 'West'].map(cf => K.qual[cf].map(id => PB.team(id).ab).join(' · ')).join('<br>')}</p>` : ''}
+      ${K.champ ? `<p class="cupwin">${K.champ === C.team ? 'The Cup is yours' : `Cup winners: ${esc(tname(PB.team(K.champ)))}`}</p>` : ''}</div>`;
   }
 
   function draft() {
@@ -1231,11 +1310,13 @@
     const r = pl.r, q = QF(), sq = Math.sqrt(q);
     const mins = rl === 'Starter' ? 35 : rl === 'Sixth man' ? 24 : 13;
     const usage = Math.max(0.15, (pl.ovr - 40) / 50) * mins / 32;
-    const tpa = Math.round(Math.max(0, (r.three - 40) / 10 * usage * q + PB.gauss() * sq)), fga2 = Math.round(Math.max(q >= 0.5 ? 1 : 0, (9 * usage + (r.close + r.mid - 100) / 20) * q + PB.gauss() * 2 * sq));
+    /* shaped to the real league: a scoring champion in the low thirties and a middling starter near fifteen; the best rebounder about fourteen, the best passer about eleven, two and a half steals, three and a half blocks */
+    const u2 = Math.pow(usage, 1.75), uc = Math.min(usage, 1.05), pw = (v, lo, span, e) => Math.pow(PB.clamp((v - lo) / span, 0, 1), e);
+    const tpa = Math.round(Math.max(0, (r.three - 38) / 7 * usage * q + PB.gauss() * sq)), fga2 = Math.round(Math.max(q >= 0.5 ? 1 : 0, (8.9 * u2 + (r.close + r.mid - 100) / 24) * q + PB.gauss() * 2 * sq));
     const tpm = binom(tpa, 0.2 + r.three / 99 * 0.2), fgm2 = binom(fga2, 0.38 + (r.close + r.mid) / 198 * 0.2);
-    const fta = Math.round(Math.max(0, (r.close + r.dunk) / 40 * usage * q + PB.gauss() * sq)), ftm = binom(fta, 0.45 + r.ft / 99 * 0.45);
-    const line = { pts: fgm2 * 2 + tpm * 3 + ftm, reb: Math.max(0, Math.round(Math.max(0, r.reb - 35) / 4.2 * usage * q + PB.gauss() * 1.5 * sq)), ast: Math.max(0, Math.round(Math.max(0, r.pass - 35) / 5.5 * usage * q + PB.gauss() * 1.5 * sq)),
-      stl: binom(3, r.steal / 250 * q * mins / 32), blk: binom(3, r.block / 250 * q * mins / 32), tov: binom(4, 0.25 * q * mins / 32), fga: tpa + fga2, fgm: tpm + fgm2, tpa, tpm, fta, ftm, min: Math.round(mins * q * 10) / 10 };
+    const fta = Math.round(Math.max(0, (r.close + r.dunk) / 34 * u2 * q + PB.gauss() * sq)), ftm = binom(fta, 0.45 + r.ft / 99 * 0.45);
+    const line = { pts: fgm2 * 2 + tpm * 3 + ftm, reb: Math.max(0, Math.round(14.4 * pw(r.reb, 35, 60, 1.9) * uc * q + PB.gauss() * 1.5 * sq)), ast: Math.max(0, Math.round(11.2 * pw(r.pass, 35, 61, 2) * uc * q + PB.gauss() * 1.5 * sq)),
+      stl: binom(5, PB.clamp(pw(r.steal, 35, 60, 2.3) * 0.44, 0.02, 0.6) * q * mins / 32), blk: binom(6, PB.clamp(pw(r.block, 40, 58, 2.8) * 0.62, 0.01, 0.62) * q * mins / 32), tov: binom(4, 0.25 * q * mins / 32), fga: tpa + fga2, fgm: tpm + fgm2, tpa, tpm, fta, ftm, min: Math.round(mins * q * 10) / 10 };
     /* the badge counters a simmed game earns, roughly */
     line.ct = { tpm, cs3: Math.round(tpm * 0.6), mid: Math.round(fgm2 * (r.mid / (r.mid + r.close))), lay: Math.round(fgm2 * 0.5), dunk: binom(fgm2, Math.max(0, r.dunk - 50) / 120),
       shake: binom(2, Math.max(0, r.handle - 55) / 200), ast: line.ast, reb: line.reb, stl: line.stl, blk: line.blk, cmiss: binom(4, r.perD / 250), clutch: PB.rand() < 0.15 ? binom(3, 0.5) * 2 : 0 };
@@ -1548,7 +1629,7 @@
         return `<tr class="${id === C.team ? 'me' : ''} ${i === 6 ? 'cut' : i === 10 ? 'cut2' : ''}"><td>${i + 1}</td><td>${badge(x)} ${x.name}${C.rival && id === C.rival.team ? ' <small class="rv-dot">rival</small>' : ''}</td><td>${st.w}</td><td>${st.l}</td><td>${gb ? gb : '–'}</td><td>${(k => k ? (k > 0 ? 'W' : 'L') + Math.abs(k) : '–')((C.streaks || {})[id] || 0)}</td><td>${strength(id)}</td></tr>`; }).join('');
       /* your conference first; the standings and the leaders a tap apart */
       const mine = PB.team(C.team).conf, confs = mine === 'West' ? ['West', 'East'] : ['East', 'West'];
-      body = (C.phase === 'playoffs' ? bracketCard() : '') + `<div class="seg sm ltabs"><button data-l="stand" class="${ltab === 'stand' ? 'on' : ''}">Standings</button><button data-l="lead" class="${ltab === 'lead' ? 'on' : ''}">Leaders</button><button data-l="awards" class="${ltab === 'awards' ? 'on' : ''}">Awards</button><button data-l="sched" class="${ltab === 'sched' ? 'on' : ''}">Schedule</button></div>`
+      body = (C.phase === 'playoffs' ? bracketCard() : '') + (C.cup && ltab === 'stand' && C.phase === 'regular' ? cupCard() : '') + `<div class="seg sm ltabs"><button data-l="stand" class="${ltab === 'stand' ? 'on' : ''}">Standings</button><button data-l="lead" class="${ltab === 'lead' ? 'on' : ''}">Leaders</button><button data-l="awards" class="${ltab === 'awards' ? 'on' : ''}">Awards</button><button data-l="sched" class="${ltab === 'sched' ? 'on' : ''}">Schedule</button></div>`
         + (ltab === 'lead' ? leadersCard() : ltab === 'awards' ? awardsCard() : ltab === 'sched' ? scheduleCard() : confs.map(c => `<div class="card"><h3>${c}${c === mine ? ' <small>your conference</small>' : ''}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>GB</th><th>STRK</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
         + `<p class="fine">The top six in each conference make the playoffs (the solid line); seven to ten play in for the last two places (the dashed line).</p>`);
     } else {
@@ -1596,7 +1677,7 @@
     if ($('#pcard')) $('#pcard').onclick = playerCard;
     scr().querySelectorAll('img[data-kit]').forEach(img => { const k = img.dataset.kit, key = `${C.team}|${k}|${C.me.num}|${JSON.stringify(C.me.look || {})}`;
       kitCache[key] = kitCache[key] || (!PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait(C.me, PB.team(C.team), 300, { body: true, kit: k, back: k === 'assoc' }) : null); if (kitCache[key]) img.src = kitCache[key]; });
-    scr().querySelectorAll('.kitpick').forEach(b => b.onclick = () => { C.homeKit = b.dataset.k; save(); hub(); });
+    scr().querySelectorAll('.kitpick').forEach(b => b.onclick = () => { C.homeKit = b.dataset.k; save(); stay(); });
     if ($('#sim5')) $('#sim5').onclick = () => simMany(5);
     if ($('#simall')) $('#simall').onclick = () => simMany(999);
     if ($('#asg')) $('#asg').onclick = () => allStarGame(true);
@@ -1610,7 +1691,7 @@
       me.look = me.look || {}; me.look.shoe = br[1]; me.look.shoePick = '';
       C.news.unshift(`${me.last} signs a shoe deal with ${br[0]}: ${M(amt)} a year`);
       C.feed.unshift({ who: '@' + br[0].toLowerCase(), text: `Welcome to the family, ${PB.full(me)}. Your colorway drops next week.` });
-      save(); hub();
+      save(); stay();
     });
     if ($('#nobrand')) $('#nobrand').onclick = () => { C.endorse.tier = (C.endorse.offer || 0) + 1; delete C.endorse.offer; delete C.endorse.brands; save(); hub(); };
     scr().querySelectorAll('[data-look] button').forEach(b => b.onclick = () => {
@@ -1642,7 +1723,7 @@
       C.coachTalk = false;
       if (avgG >= 8.5) { C.trust = Math.min(100, C.trust + 8); C.news.unshift(`${C.me.last} asks the coach for more minutes, and gets them`); }
       else { C.trust = Math.max(0, C.trust - 6); C.news.unshift(`${C.me.last} asks for more minutes; the coach is not convinced`); }
-      save(); hub();
+      save(); stay();
     };
     if ($('#auto')) $('#auto').onclick = () => {
       /* spend on the attributes that count most at your position, cheapest first among those, up to each ceiling */
@@ -1655,7 +1736,7 @@
         const opts = w.filter(k => me.r[k] < A.cap[k] && cost(me.r[k]) <= me.sp).sort((a, b) => cost(me.r[a]) - cost(me.r[b]) || w.indexOf(a) - w.indexOf(b));
         if (opts.length) { const k = opts[0]; me.sp -= cost(me.r[k]); me.r[k]++; spent = true; }
       }
-      me.ovr = PB.ovr(me.r, me.pos); save(); hub();
+      me.ovr = PB.ovr(me.r, me.pos); save(); stay();
     };
     if ($('#simpi')) $('#simpi').onclick = () => { while (C.po.round < 2) simPlayoffRound(); hub(); };
     if ($('#simrd')) $('#simrd').onclick = () => { simPlayoffRound(); hub(); };
@@ -1663,7 +1744,7 @@
     scr().querySelectorAll('.bar.up button').forEach(b => b.onclick = () => {
       const k = b.dataset.k, c = cost(me.r[k]);
       if (me.sp < c) return;
-      me.sp -= c; me.r[k]++; me.ovr = PB.ovr(me.r, me.pos); save(); hub();
+      me.sp -= c; me.r[k]++; me.ovr = PB.ovr(me.r, me.pos); save(); stay();
     });
   }
   const kitCache = {};
@@ -1841,7 +1922,7 @@
   function nextGame() {
     if (C.phase === 'regular') {
       const g = C.games[C.gi];
-      return g && { opp: g.opp, home: g.home, label: `Game ${C.gi + 1} of ${C.games.length} · ${g.home ? 'Home' : 'Away'}${g.b2b ? ' · Back-to-back' : ''}`, g };
+      return g && { opp: g.opp, home: g.home, label: `${g.cup ? (g.cup === 'group' ? 'Cup night · ' + (C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Group stage') : CUP_ROUNDS[g.cup]) + ' · ' : ''}Game ${C.gi + 1} of ${C.games.length} · ${g.neutral ? 'Neutral floor' : g.home ? 'Home' : 'Away'}${g.b2b ? ' · Back-to-back' : ''}`, g };
     }
     if (C.phase === 'playoffs') {
       const sr = mySeries();
@@ -1887,7 +1968,7 @@
     if (C.rival && o.id === C.rival.team && rivalP()) opp5[PB.POS.indexOf(rivalP().pos)] = rivalP();
     const mine5 = liveFive(), benchOf = (id, five) => C.rosters[id].filter(p => !(p.out > 0) && !five.includes(p) && p.id !== C.me.id).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
-      floor: g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po, clinch: (() => { const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
+      floor: g.cup ? Object.assign({}, g.home || g.neutral ? t : o, { cup: true }) : g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po || (!!g.cup && g.cup !== 'group'), clinch: (() => { const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
       stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
@@ -2044,6 +2125,7 @@
     }
     /* every fifth game the coach has a word: where you stand and what he wants */
     if (!g.po && (C.gi + 1) % 5 === 0) C.coachTalk = true;
+    if (!g.po && g.cup) cupAfter(g, res);
     if (!g.po) {
       C.gi++;
       /* the All-Star picks come out at the halfway mark */
@@ -2640,8 +2722,8 @@
     if (!rows.length) return '';
     const cat = (k, lbl) => { const top = rows.slice().sort((a, b) => b[k] - a[k]).slice(0, 5);
       const mine = rows.filter(r => r.me)[0], rank = mine ? rows.slice().sort((a, b) => b[k] - a[k]).indexOf(mine) + 1 : 0;
-      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}" style="--w:${(r[k] / (top[0][k] || 1)).toFixed(2)}"><span>${i + 1}</span><i>${esc(r.name)} <small>${PB.team(r.team).ab}</small></i><em>${r[k].toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span><i>You</i><em>${mine[k].toFixed(1)}</em></p>` : ''}</div>`; };
-    return `<div class="card leaders"><h3>League leaders <small>a game, ${S.qlen || 3}-minute quarters</small></h3>${cat('ptspg', 'Points')}${cat('rebpg', 'Rebounds')}${cat('astpg', 'Assists')}${cat('stlpg', 'Steals')}${cat('blkpg', 'Blocks')}</div>`;
+      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}" style="--w:${(r[k] / (top[0][k] || 1)).toFixed(2)}"><span>${i + 1}</span><i>${esc(r.name)} <small>${PB.team(r.team).ab}</small></i><em>${(r[k] / QF()).toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span><i>You</i><em>${(mine[k] / QF()).toFixed(1)}</em></p>` : ''}</div>`; };
+    return `<div class="card leaders"><h3>League leaders <small>per game, at full length (48 minutes)</small></h3>${cat('ptspg', 'Points')}${cat('rebpg', 'Rebounds')}${cat('astpg', 'Assists')}${cat('stlpg', 'Steals')}${cat('blkpg', 'Blocks')}${cat('tpmpg', 'Threes made')}</div>`;
   }
   /* a coach for every bench: the same name all career (kept on the save) */
   function coachOf(tid) { const K = C.coaches || (C.coaches = {}); if (!K[tid]) K[tid] = PB.randName(); return K[tid]; }
@@ -2677,7 +2759,7 @@
     const ladder = (title, list, k, fmt) => { const top = list.slice().sort((a, b) => b[k] - a[k]), five = top.slice(0, 5), mine = top.find(r => r.me), rk = mine ? top.indexOf(mine) + 1 : 0;
       if (!five.length) return '';
       return `<div class="card awteam"><h3>${title}</h3>${five.map((r, i) => `<p class="${r.me ? 'me' : ''}"><i>${i + 1}. ${esc(r.name)}</i><small>${PB.team(r.team).ab}</small><em>${fmt(r)}</em></p>`).join('')}${mine && rk > 5 ? `<p class="me"><i>${rk}. You</i><small></small><em>${fmt(mine)}</em></p>` : ''}</div>`; };
-    const pra = r => `${r.ptspg.toFixed(1)} / ${r.rebpg.toFixed(1)} / ${r.astpg.toFixed(1)}`, sb = r => `${r.stlpg.toFixed(1)} stl · ${r.blkpg.toFixed(1)} blk`;
+    const pra = r => `${(r.ptspg / q).toFixed(1)} / ${(r.rebpg / q).toFixed(1)} / ${(r.astpg / q).toFixed(1)}`, sb = r => `${(r.stlpg / q).toFixed(1)} stl · ${(r.blkpg / q).toFixed(1)} blk`;
     const race = rows.length ? ladder('MVP race', rows, 'mv', pra) + ladder('Defensive Player of the Year race', rows, 'df', sb) + ladder('Rookie of the Year race', rows.filter(r => r.rookie), 'mv', pra)
       : '<div class="card"><p class="mute">The races take shape once a few games are played.</p></div>';
     const past = (C.awardsLog || []).map(z => `<div class="card awteam"><h3>Season ${z.year}${z.champ ? ` <small>champions: ${PB.team(z.champ).name}</small>` : ''}</h3>${z.list.map(([t, n, tm]) => `<p class="${n === PB.full(C.me) ? 'me' : ''}"><i>${t}</i><small>${esc(n)} · ${PB.team(tm).ab}</small></p>`).join('')}
@@ -2971,7 +3053,7 @@
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 
-  PB.Career = { title, hub, park, get: () => C, gameStats };
+  PB.Career = { title, hub, park, get: () => C, gameStats, dbg: { simLine, binom } };
   PB.boot = () => {
     /* without WebGL the menus and the career still work; only the court cannot be drawn */
     try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }
