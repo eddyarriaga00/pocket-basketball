@@ -1923,8 +1923,10 @@
   /* ---------- the next game: the schedule, or a playoff series ---------- */
   /* what the booth opens with tonight */
   function introCall(g) {
+    if (g.cup === 'F') return 'cup_intro';
     if (g.po) {
       const sr = mySeries(); if (!sr || sr.bo === 1) return 'po_intro';
+      if (sr.conf === 'Finals' && sr.wa + sr.wb === 0) return 'finals_intro';
       const need = Math.ceil(sr.bo / 2), mine = sr.a === C.team ? sr.wa : sr.wb, theirs = sr.a === C.team ? sr.wb : sr.wa;
       return mine + theirs === 6 ? 'g7' : theirs === need - 1 ? 'elim' : mine === need - 1 ? 'closeout' : 'po_intro';
     }

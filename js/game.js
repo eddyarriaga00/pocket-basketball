@@ -3064,7 +3064,7 @@
       { const on = g.pl.filter(p => p.team === w), star = g.user && g.user.team === w ? g.user : on.slice().sort((a, b) => b.st.pts - a.st.pts)[0];
         if (star && R.cine) { const fa = star.face || 0, ab = t => g.teams[t].ab || g.teams[t].id, title = !!(opts.clinch && opts.clinch[w]);
           /* the night a title is won: paper falls, the cameras stay longer, the flashes do not stop */
-          if (title) { if (R.trophyTo && opts.stage) { R.trophyTo(star); star.pose = 'celebrate'; } if (R.burst) for (let k = 0; k < 4; k++) setTimeout(() => { if (G === g) R.burst(star.x + rr(-6, 6), 7 + rr(0, 4), star.z + rr(-6, 6), 8, 1.1); }, 500 + k * 900);
+          if (title) { B('champ', { prio: 7, follow: 1 }); if (R.trophyTo && opts.stage) { R.trophyTo(star); star.pose = 'celebrate'; } if (R.burst) for (let k = 0; k < 4; k++) setTimeout(() => { if (G === g) R.burst(star.x + rr(-6, 6), 7 + rr(0, 4), star.z + rr(-6, 6), 8, 1.1); }, 500 + k * 900);
             if (R.confetti) R.confetti(g.teams[w].c1, g.teams[w].c2); if (R.hype) { R.hype(1.4); setTimeout(() => G === g && R.hype(1.2), 1500); setTimeout(() => G === g && R.hype(1.2), 3200); } AU().crowd.react('roar', 1); }
           g.buzzT = title ? 9.2 : 5.0;
           cine((title ? [{ focus: star, a: [fa + 0.9, fa - 0.5], r: [9, 7], h: [2.4, 4.4], ly: 4.6, dur: 3.2 }, { focus: star, a: [fa - 1.2, fa + 0.3], r: [17, 13], h: [5, 8], ly: 4.5, dur: 2.8 }] : [{ focus: star, a: [fa - 0.7, fa + 0.45], r: [10, 7.5], h: [3, 4.6], ly: 4.4, dur: 2.6 }])
