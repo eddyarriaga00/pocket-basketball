@@ -401,11 +401,19 @@ input[type=color]{height:44px;padding:4px}
 #btns,#stickzone,#hud .sub,#radar{transition:opacity .35s}
 #game:has(#intro:not([hidden])) :is(#btns,#stickzone,#hud .sub,#radar){opacity:0;pointer-events:none}
 /* the Look card's preview: you head to toe, and up close */
-.lookpv{display:flex;gap:10px;margin:4px 0 12px}
-.lookpv img{flex:1;min-width:0;height:210px;object-fit:contain;border-radius:12px;background:linear-gradient(160deg,var(--tc) 0%,rgba(255,255,255,.04) 75%)}
-.lookpv img.hd{object-fit:cover}
-.createpv{display:flex;flex-direction:column;align-items:center;margin:4px 0 10px;border-radius:16px;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.12),rgba(255,255,255,0) 70%)}
-.createpv img{height:240px;width:auto}.createpv p{margin:0 0 8px;font-size:12px;letter-spacing:.08em;color:rgba(255,255,255,.6);text-transform:uppercase}
+/* the pictures of your player stay at the top of the screen while the choices scroll under them */
+.lookpv,.createpv{position:sticky;top:0;z-index:4}
+.lookpv{display:flex;gap:10px;margin:4px -14px 12px;padding:8px 14px;background:var(--panel);box-shadow:0 10px 14px -10px rgba(0,0,0,.8)}
+.lookpv > *{flex:1;min-width:0;height:190px;border-radius:12px;background:linear-gradient(160deg,var(--tc) 0%,rgba(255,255,255,.04) 75%)}
+.lookpv img.hd,.createpv img.hd{object-fit:cover}
+.pvb{position:relative;padding:0;border:0;overflow:hidden;display:block}
+.pvb img{display:block;width:100%;height:100%;object-fit:contain}
+.pvb span{position:absolute;right:8px;bottom:8px;padding:4px 9px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em}
+.createpv{margin:4px -16px 10px;padding:8px 16px 2px;background:var(--bg);box-shadow:0 10px 14px -10px rgba(0,0,0,.9)}
+.createpv .pvrow{display:flex;gap:10px}
+.createpv .pvrow > *{flex:1;min-width:0;height:190px;border-radius:14px;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.14),rgba(255,255,255,.03) 75%)}
+.createpv p{margin:7px 0 6px;font-size:11px;letter-spacing:.08em;color:rgba(255,255,255,.6);text-transform:uppercase;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-height:560px){.lookpv,.createpv{position:static}}
 /* the starter's lower third */
 #intro.spot{justify-content:flex-end;padding-bottom:calc(150px + env(safe-area-inset-bottom));background:none}
 #intro .lt{display:flex;flex-direction:row;align-items:center;gap:12px;margin:0 16px;padding:10px 16px 10px 0;background:rgba(9,9,11,.88);border-radius:14px;overflow:hidden;border-left:6px solid var(--c);animation:ltin .35s ease-out}

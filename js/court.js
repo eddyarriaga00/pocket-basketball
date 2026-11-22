@@ -1674,7 +1674,7 @@
       m.mixer.update(0.3); m.body.updateMatrixWorld(true); abduct(m, 0, ABD);
       const H = (player.ht || 78) / 12;
       const c = new T.PerspectiveCamera(28, W / Hh, 0.1, 60);
-      if (o.body) { const z = o.back ? -1 : 1, d = o.tight ? 12 : 14.5; c.position.set(0.6 * z, H * 0.55, d * z); c.lookAt(0, H * 0.5, 0); }
+      if (o.body) { const z = o.back ? -1 : 1, Hc = o.refH || H, d = o.refH ? 16.6 : o.tight ? 12 : 14.5; c.position.set(0.6 * z, Hc * 0.55, d * z); c.lookAt(0, Hc * 0.5, 0); }   // refH: the camera set for a man of that height whoever stands there, so a taller player looks taller
       else { const mdl = TPL.model && !PB.mannequin && m.head, hp = mdl ? m.head.getWorldPosition(V3()) : m.hg.getWorldPosition(V3()); if (mdl) hp.y += 0.218 * (m.sc || 1) + 0.22;   // the model's head sits above its bone
         hp.y -= 0.22; const dz = (o.close ? 3.15 : 4.1) * (mdl ? 1.22 : 1); hp.y += mdl ? (o.close ? 0.06 : -0.05) : o.close ? 0.3 : 0.12; c.position.set(hp.x + dz * 0.1, hp.y + 0.12, hp.z + dz); c.lookAt(hp); }
       rr.render(sc, c);

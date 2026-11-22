@@ -959,8 +959,10 @@
       const r = startRatings(st);
       const bars = PB.ATTRS.map(([k, n]) => `<div class="bar"><span>${n}</span><i><u style="width:${r[k]}%"></u><s style="left:${A.cap[k]}%"></s></i><b>${r[k]}</b></div>`).join('');
       /* you, as you build him: in a plain practice jersey */
-      const pv = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? PB.R.portrait({ id: 'me', first: st.first || 'You', last: st.last || '', pos: st.pos, ht: st.ht, skin: st.skin, num: st.num ?? 1, r: {}, look: st.look },
-        { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' }, 400, { body: true }) : null;
+      /* two pictures that stay on screen while you scroll the choices: all of him (tap to turn him around) and his
+         face up close, where the hair, the beard and the face you pick can actually be seen */
+      const ok3d = !PB.noGL && PB.R.modelReady && PB.R.modelReady(), pd = { id: 'me', first: st.first || 'You', last: st.last || '', pos: st.pos, ht: st.ht, skin: st.skin, num: st.num ?? 1, r: {}, look: st.look }, pt = { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' };
+      const pv = ok3d ? PB.R.portrait(pd, pt, 400, { body: true, refH: 7.4, back: !!st.back }) : null, pvh = ok3d ? PB.R.portrait(pd, pt, 320, { close: true }) : null;
       const S0 = st.step, last = S0 === STEPS.length - 1;
       const body = [
         /* 1. who you are */
@@ -983,12 +985,13 @@
         <p class="fine">Gear, tattoos and the rest are in the Look card once you are in the league.</p>`][S0];
       show(`<div class="page builder"><button class="back" id="bk">‹ ${S0 ? STEPS[S0 - 1] : 'Back'}</button><h2>Create your My Player</h2>
         <div class="steps">${STEPS.map((n, i) => `<button data-step="${i}" class="${i === S0 ? 'on' : i < S0 ? 'done' : ''}"><i>${i + 1}</i>${n}</button>`).join('')}</div>
-        ${pv ? `<div class="createpv"><img alt="" src="${pv}"><p>${esc(st.first || 'Your')} ${esc(st.last || 'player')} · ${PB.fmtH(st.ht)} · ${st.wt} lb · ${st.pos} · ${esc(st.arch)} · ${PB.ovr(r, st.pos)} OVR</p></div>` : ''}
+        ${pv ? `<div class="createpv"><div class="pvrow"><button class="pvb" id="turn" aria-label="Turn him around"><img alt="" src="${pv}"><span>${st.back ? 'Front' : 'Back'} ↻</span></button>${pvh ? `<img class="hd" alt="" src="${pvh}">` : ''}</div><p>${esc(st.first || 'Your')} ${esc(st.last || 'player')} · ${PB.fmtH(st.ht)} · ${st.wt} lb · ${st.pos} · ${esc(st.arch)} · ${PB.ovr(r, st.pos)} OVR</p></div>` : ''}
         ${body}
         <button class="big" id="go">${last ? (st.path === 'undrafted' ? 'Start your career' : 'Enter the draft') : `Next: ${STEPS[S0 + 1]}`}</button></div>`);
       const keep = () => { if ($('#fn')) { const tx = id => $(id).value.replace(/[<>]/g, '').trim().slice(0, 24); st.first = tx('#fn'); st.last = tx('#ln'); st.from = tx('#ht'); st.num = PB.clamp(+$('#num').value || 0, 0, 99); } };
       const stay = f => { keep(); const y = scr().scrollTop, wy = window.scrollY; f(); draw(); scr().scrollTop = y; window.scrollTo(0, wy); };
       $('#bk').onclick = () => { keep(); if (st.step) { st.step--; draw(); } else myPlayers(); };
+      if ($('#turn')) $('#turn').onclick = () => stay(() => { st.back = !st.back; });
       scr().querySelectorAll('[data-step]').forEach(b => b.onclick = () => { keep(); const to = +b.dataset.step; if (to > 0 && (!st.first || !st.last)) { alert('Give your player a first and last name.'); return; } st.step = to; draw(); scr().scrollTop = 0; });
       scr().querySelectorAll('#pos button').forEach(b => b.onclick = () => stay(() => { st.pos = b.dataset.v; st.ht = Math.round((PB.HEIGHT[st.pos][0] + PB.HEIGHT[st.pos][1]) / 2); st.wt = undefined; }));
       scr().querySelectorAll('.arch button[data-v]').forEach(b => b.onclick = () => stay(() => { st.arch = b.dataset.v; }));
@@ -1670,7 +1673,7 @@
         <p class="fine">Skill points come from your teammate grade after every game, more for a win. Each point higher costs more.</p>
         ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
         <div class="card locker"><h3>Locker room <small>what your team wears at home</small></h3><div class="kits">${['icon', 'assoc', 'statement', 'city'].map(k => `<button class="kitpick ${(C.homeKit || 'icon') === k ? 'on' : ''}" data-k="${k}"><img alt="" data-kit="${k}"><span>${{ icon: 'Icon', assoc: 'Assoc.', statement: 'Statement', city: 'City' }[k]}</span></button>`).join('')}</div></div>
-        <div class="card look"><h3>Look</h3>${(() => { const f = bodyShot(), h = portrait(); return f || h ? `<div class="lookpv">${f ? `<img alt="" src="${f}" style="--tc:${t.c1}">` : ''}${h ? `<img class="hd" alt="" src="${h}" style="--tc:${t.c1}">` : ''}</div>` : ''; })()}${lookEditor(me)}</div>
+        <div class="card look"><h3>Look</h3>${(() => { const f = bodyShot(true), h = portrait(); return f || h ? `<div class="lookpv">${f ? `<button class="pvb" id="lturn" aria-label="Turn him around" style="--tc:${t.c1}"><img alt="" src="${f}"><span>${lookBack ? 'Front' : 'Back'} ↻</span></button>` : ''}${h ? `<img class="hd" alt="" src="${h}" style="--tc:${t.c1}">` : ''}</div>` : ''; })()}${lookEditor(me)}</div>
         <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
         <div class="card"><h3>Business</h3><p class="fine">${C.endorse && C.endorse.brand ? `Shoe deal: ${C.endorse.brand}, ${M(C.endorse.pay)} a year. ` : ''}${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
         ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>
@@ -1747,6 +1750,7 @@
       save(); stay();
     });
     if ($('#nobrand')) $('#nobrand').onclick = () => { C.endorse.tier = (C.endorse.offer || 0) + 1; delete C.endorse.offer; delete C.endorse.brands; save(); hub(); };
+    if ($('#lturn')) $('#lturn').onclick = () => { lookBack = !lookBack; const y0 = scr().scrollTop, y1 = window.scrollY; hub(); scr().scrollTop = y0; window.scrollTo(0, y1); };
     scr().querySelectorAll('[data-look] button').forEach(b => b.onclick = () => {
       const k = b.parentElement.dataset.look, v = b.dataset.v || null, tm = PB.team(C.team);
       me.look[k + 'Pick'] = v || '';
@@ -1832,11 +1836,11 @@
     if (!matchCache.has(key)) { if (matchCache.size > 40) matchCache.clear(); matchCache.set(key, PB.R.portrait(p, team, 120, { close: true })); }
     return matchCache.get(key);
   }
-  let bodyCache = { key: '', url: null };
-  function bodyShot() {
+  let bodyCache = { key: '', url: null }, lookBack = false;   // lookBack: the Look card is showing him from behind
+  function bodyShot(look) {   // look: for the Look card, head to shoes (the shoes and socks are things you pick there), from the side you turned him to
     if (PB.noGL || !PB.R.modelReady || !PB.R.modelReady()) return null;
-    const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num + (C.homeKit || '');
-    if (bodyCache.key !== key) bodyCache = { key, url: PB.R.portrait(C.me, PB.team(C.team), 340, { body: true, tight: true, kit: C.homeKit || 'icon' }) };
+    const key = C.team + JSON.stringify(C.me.look || {}) + C.me.skin + C.me.num + (C.homeKit || '') + (look ? (lookBack ? 'b' : 'f') : '');
+    if (bodyCache.key !== key) bodyCache = { key, url: PB.R.portrait(C.me, PB.team(C.team), 340, { body: true, tight: !look, kit: C.homeKit || 'icon', back: !!look && lookBack }) };
     return bodyCache.url;
   }
   /* your player card: a 1080 by 1350 image for a feed, in your team's colors */
