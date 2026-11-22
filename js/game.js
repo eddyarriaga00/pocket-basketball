@@ -2095,7 +2095,8 @@
         mx = man.x + man.vx * lead, mz = man.z + man.vz * lead;
       const dx = H.x - mx, dz = H.z - mz, L = hyp(dx, dz) || 1;
       const gap = clamp(3.2 + (L > 28 && !DD.press ? (L - 28) * 0.3 : 0), 3, 9) * (1.12 - p.r.perD / 400) * (p.isUser ? 1 : DD.on || 1) + (p.respT > G.t ? 1.4 : 0);
-      p.tx = mx + dx / L * gap; p.tz = mz + dz / L * gap;
+      { const g2 = p.lagT > G.t && !p.isUser && man.isUser && !G.auto ? -1.2 : gap;   // beaten: he chases your hip from behind, he does not get back in front until it wears off
+        p.tx = mx + dx / L * g2; p.tz = mz + dz / L * g2; }
       p.pose = 'guard';
       /* down by a few with the clock running out: foul to stop it */
       const behind = G.score[1 - p.team] - G.score[p.team];
@@ -2216,6 +2217,7 @@
       }
     }
     const w = stickWorld();
+    footwork(u, w, dt);
     const off = G.ball.holder ? G.ball.holder.team === 0 : G.poss === 0;
     if (w) {
       G.idle = 0;
@@ -2351,6 +2353,43 @@
   /* The Move button: tap for a crossover; swipe it for the move you want. kind: 'cross' (dir -1 left, 1 right on
      screen, 0 any), 'step' (step-back: room for the jumper), 'spin' (spin toward the rim). */
   let pauseTab = 'game';
+  /* Getting away with your feet, no button: a hard cut at speed, a stop and go, an explosive first step from a
+     standstill. Each comes out with a burst, snaps you onto the new line, and puts the man guarding you a beat late;
+     against the way he is sliding it beats him outright. And once you have a step on him (nearer the rim than he is,
+     going downhill) he stays behind you: he chases, he does not slide back in front. */
+  function footwork(u, w, dt) {
+    if (G.ball.holder !== u || u.shoot || u.move > 0 || u.postUp > 0 || u.inb || G.phase !== 'live' || (G.drill && G.drill.kind !== 'free')) { u.fwStill = 0; u.fwStop = 0; return; }
+    const sp = hyp(u.vx, u.vz), top = maxSpeed(u), nd = nearestDef(u), dv = nd.who && !nd.who.isUser && nd.d < 6.5 ? nd.who : null;
+    const hx = 0 - u.x, hz = hoopZ(u.team) - u.z, hl = hyp(hx, hz) || 1;
+    /* a step on him: he trails */
+    if (dv && distHoop(u.x, u.z, u.team) < distHoop(dv.x, dv.z, u.team) - 0.7 && (u.vx * hx + u.vz * hz) / hl > 5.5) {
+      dv.lagT = Math.max(dv.lagT || 0, G.t + 0.45);
+      if (G.t > (u.fwStepT || 0)) { u.fwStepT = G.t + 4; feedMove('Got a step'); }
+    }
+    const push = w && w.m > 0.82;
+    if (sp < 2.6) u.fwStill = (u.fwStill || 0) + dt; else if (sp > 6) u.fwStill = 0;
+    if (sp > top * 0.72) u.fwFast = G.t;
+    if (!push) { if (sp < 4 && u.fwFast > G.t - 0.6 && !u.fwStop) u.fwStop = G.t; if (u.fwStop && G.t - u.fwStop > 0.75) u.fwStop = 0; return; }
+    let kind = '';
+    if (u.fwStop && G.t - u.fwStop > 0.1) { kind = 'Stop and go'; u.fwStop = 0; }
+    else if (u.fwStill > 0.35 && sp < 3) { kind = 'First step'; u.fwStill = 0; }
+    else if (sp > top * 0.6 && (w.x * u.vx + w.z * u.vz) / sp < 0.22) kind = 'Hard cut';
+    if (!kind || G.t < (u.fwCd || 0)) return;
+    u.fwCd = G.t + 0.85; u.fwStop = 0; u.fwStill = 0;
+    u.burstT = Math.max(u.burstT || 0, G.t + (kind === 'First step' ? 0.6 : 0.8));
+    { const k = kind === 'First step' ? 0.62 : 0.8; u.vx = w.x * top * k; u.vz = w.z * top * k; }   // onto the new line at once
+    if (R.puff) R.puff(u.x, u.z, 0.9); AU().play('squeak', { x: u.x, vol: 0.8 });
+    if (!dv) return;
+    const px = -hz / hl, pz = hx / hl, dl = dv.vx * px + dv.vz * pz, ml = w.x * px + w.z * pz;
+    const wrong = Math.abs(dl) > 2 && Math.abs(ml) > 0.35 && dl * ml < 0, flat = hyp(dv.vx, dv.vz) < 1.5 && kind === 'First step', caught = dv.y > 0.3 || dv.reachT > 0;
+    const ch = clamp(({ 'Hard cut': 0.3, 'Stop and go': 0.42, 'First step': 0.26 })[kind] + ((u.r.speed * 0.6 + u.r.handle * 0.4) - dv.r.perD) * 0.007, 0.15, 0.7) + (wrong ? 0.4 : 0) + (flat ? 0.15 : 0) + (caught ? 0.5 : 0) + (tkoOn() ? 0.12 : 0);
+    dv.beatT = G.t; dv.beatSide = ml >= 0 ? -1 : 1; u.mvAt = G.t;
+    if (rand() < Math.min(ch, 0.95)) {
+      dv.stun = Math.max(dv.stun || 0, 0.45); dv.lagT = G.t + 1.5; dv.beatAmt = 0.85; dv.respT = G.t + 1.2; u.st.shake++;
+      feedMove(wrong ? kind + ': wrong-footed' : kind); if (R.puff) R.puff(dv.x, dv.z, 1); if (home(u.team)) AU().crowd.react('ooh', 0.5); buzz(12);
+      if (rand() < 0.35) powAt(pickOf(['BYE!', 'LATER!', 'GONE!']), dv, 0.75);
+    } else { dv.stun = Math.max(dv.stun || 0, 0.12); dv.beatAmt = 0.3; }
+  }
   function pressC(kind, dir) {
     const u = G.user; if (!u || G.phase !== 'live' || u.inb || sidelined()) return;
     if (G.drill && G.drill.kind === 'dunk') { if (!u.shoot && u.y <= 0) { const D = G.drill; D.style = (D.style + (kind === 'step' ? STYLES.length - 1 : 1)) % STYLES.length; toast(STYLES[D.style][0], 'call'); buzz(8); } return; }
@@ -2723,7 +2762,7 @@
           if (u && !G.auto && h.team !== u.team && vin > 5 && hl < 30 && hl > 5 && u.slot === h.slot && hyp(u.x - h.x, u.z - h.z) < 6 && (u.x - h.x) * ux + (u.z - h.z) * uz < -1 && !(G.t - (u.beatT || -9) < 6)) {
             u.beatT = G.t; toast('Beaten: get back in front', 'opp'); grade(-0.5, 'Beaten off the dribble'); } }
         if (vin > 3) for (const d of G.pl) {
-          if (d.team === h.team || d.pose !== 'guard' || d.y > 0.2 || d.stun > 0) continue;
+          if (d.team === h.team || d.pose !== 'guard' || d.y > 0.2 || d.stun > 0 || d.lagT > G.t) continue;
           const rx = d.x - h.x, rz = d.z - h.z, ahead = rx * ux + rz * uz, side = Math.abs(rx * -uz + rz * ux);
           if (ahead > 0.6 && ahead < 3.0 && side < 1.7) {
             const k = clamp(0.55 + (d.r.perD - h.r.handle) * 0.008 + (h.move > 0 ? -0.25 : 0), 0.15, 0.8);
@@ -2741,7 +2780,8 @@
     const n = G.pl.length;
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
       const a = G.pl[i], c = G.pl[j];
-      const dx = c.x - a.x, dz = c.z - a.z, d = hyp(dx, dz), m = a.team !== c.team ? 2.65 : 2.3;   // a defender's arms and chest need a little more room than a teammate's shoulder
+      const bh = G.ball.holder, slip = bh && ((a === bh && (c.lagT > G.t || G.t - (c.beatT || -9) < 0.8)) || (c === bh && (a.lagT > G.t || G.t - (a.beatT || -9) < 0.8)));   // a man just beaten is no wall: the handler slides by his hip
+      const dx = c.x - a.x, dz = c.z - a.z, d = hyp(dx, dz), m = a.team !== c.team ? (slip ? 1.75 : 2.65) : 2.3;   // a defender's arms and chest need a little more room than a teammate's shoulder
       if (d < m && d > 0.001) {
         const push = (m - d) / 2, ux = dx / d, uz = dz / d;
         a.x -= ux * push; a.z -= uz * push; c.x += ux * push; c.z += uz * push;
@@ -3383,7 +3423,7 @@
           <details class="help pcat"${dk.indexOf(dc) >= 4 ? ' open' : ''}><summary>Zones, traps and more<small>${dk.length - 4}</small></summary><div class="row3 r2">${dk.slice(4).map(db).join('')}</div></details></div>`; })() : ''}
         </section><section data-t="opts"><button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
-        <details class="help" open><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim, down and to a side for an escape dribble. Cross against the way he is sliding and he is beaten.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, Y escape dribble, I spin, O pick.</span></p></details></section>
+        <details class="help" open><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint. With the ball your feet beat a man too: cut hard the other way at speed, stop and go, or explode from a standstill. Once you are past him he stays behind you.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim, down and to a side for an escape dribble. Cross against the way he is sliding and he is beaten.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, Y escape dribble, I spin, O pick.</span></p></details></section>
         <section data-t="stats">${G.drill ? '' : `<div class="pbox">${liveBox()}</div>`}</section></div>`;
       { const tabs = [...ov.querySelectorAll('.ptabs button')], setTab = t => { if (!tabs.some(b => b.dataset.t === t)) t = 'game'; pauseTab = t; ov.querySelectorAll('section[data-t]').forEach(s => { s.hidden = s.dataset.t !== t; }); tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t)); };
         tabs.forEach(b => { b.onclick = () => setTab(b.dataset.t); }); setTab(pauseTab); }
