@@ -1759,6 +1759,28 @@
     return best;
   }
 
+  /* The open man. A teammate whose defender is not on him (gone to help, beaten, a step late) with a clear line to him
+     and a shot he can make from where he stands: the best such look on the floor, or nobody. You count whenever you
+     are open; a computer teammate only where he is a threat (at the rim, or a shooter at his range). The man with the
+     ball keeps it when he is open himself with as good a shot (ev: what his own shot is worth, nd: how near his man is). */
+  function openMan(p, ev, nd) {
+    let best = null, bs = 0;
+    for (const r of teamOf(p.team)) {
+      if (r === p || r.inb || along(r.z, r.team) > 44) continue;
+      if (p.caughtFrom === r && G.t - p.caughtT < 1.6) continue;   // not straight back to the man who just gave it to him
+      const dr = distHoop(r.x, r.z, p.team); if (dr > 27) continue;
+      const od = nearestDef(r).d; if (od < (r.isUser && !G.auto ? 5 : dr < 9 ? 4.5 : 8)) continue;
+      const dx = r.x - p.x, dz = r.z - p.z, L = hyp(dx, dz); if (L < 5 || L > 38 || passObstruction(p, dx, dz, L) >= 0.3) continue;
+      let v;
+      if (r.isUser && !G.auto) v = 1.2;
+      else { const three = isThree(r.x, r.z, p.team); if (three ? r.r.three < 62 : dr >= 9 && r.r.mid < 60) continue;
+        v = baseProb(r, r.x, r.z, dr < 6 ? 'layup' : 'jumper') * (three ? 3 : 2); }
+      v += Math.min(od, 10) * 0.02;
+      if (v > bs) { bs = v; best = r; }
+    }
+    return best && bs > 1 && (nd <= 4.2 || bs > ev + 0.12) ? best : null;
+  }
+
   /* ---------- the AI ---------- */
   function lane(p) {
     /* is the way to the rim open? no defender near the line in the next 14 feet */
@@ -1873,6 +1895,12 @@
     const userAssist = p.caughtFrom && p.caughtFrom.isUser && !G.auto;
     if (p.caughtFrom && G.t - p.caughtT < 0.9 && p.hold > 0.16 && nd > (userAssist ? 4.2 : 7)
       && d < 27 && ev > need * (userAssist ? 0.9 : 1.08) && !(three && p.r.three < 62)) { p.caughtFrom = null; startShot(p); return; }
+    /* the open man gets it now, not after a few seconds of dribbling (a driver with the lane in front of him keeps
+       going instead); what he does with it is his own read, as with any pass */
+    if (p.hold > 0.3 && d > 6 && !(p.drive > 0 && lane(p) > 2.5) && !(G.openCd && G.openCd[p.team] > G.t)) {
+      const r = openMan(p, ev, nd);
+      if (r) { (G.openCd || (G.openCd = [0, 0]))[p.team] = G.t + 4.5; p.drive = 0; tally('open'); passTo(p, r); return; }   // one such read every few seconds: the ball is not a hot potato
+    }
     /* drive and kick: the lane has closed on a driver, and a teammate stands open: the ball goes out to him (or down to the big on the baseline) */
     if (p.drive > 0 && d < 15 && d > 5 && p.hold > 0.35 && lane(p) < 1.8 && rand() < (P && P.kind === 'drive' ? 0.85 : 0.4)) {
       const r = bestPass(p); if (r && nearestDef(r).d > 6 && (distHoop(r.x, r.z, p.team) < 8 || r.r.three >= 68 || r.isUser)) { p.drive = 0; tally('kick'); passTo(p, r); return; }
