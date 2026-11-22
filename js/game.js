@@ -513,6 +513,14 @@
     seenTips[k] = 1; try { localStorage.setItem('pbb.tips', JSON.stringify(seenTips)); } catch (e) { /* fine */ }
     const t = $('#tipcard'); t.textContent = TIPS[k]; t.hidden = false; clearTimeout(tip.h); tip.h = setTimeout(() => { t.hidden = true; }, 6500);
   }
+  /* your night as it builds: every ten points from twenty on, and a double-double or a triple-double the moment it is one */
+  function featCheck() {
+    const u = G.user; if (!u || G.drill || G.park || G.switching || G.half) return;
+    const st = u.st, n = ['pts', 'reb', 'ast', 'stl', 'blk'].filter(k => (st[k] || 0) >= 10).length;
+    if (n >= 2 && n > (G.featN || 0)) { G.featN = n; const w = n >= 3 ? 'Triple-double' : 'Double-double'; toast(w, 'make'); feed(`${w} · ${u.name}`); powAt(n >= 3 ? 'TRIPLE DOUBLE!' : 'DOUBLE DOUBLE!', u, 1.1, false, 1.8); AU().crowd.react('applause', 0.8); }
+    const m = Math.floor((st.pts || 0) / 10) * 10;
+    if (m >= 20 && m > (G.ptsSaid || 0)) { G.ptsSaid = m; toast(`${m} points`, 'make'); feed(`${m} points · ${u.name}`); if (home(u.team)) AU().crowd.react('applause', 0.6); }
+  }
   /* passing your career high, live */
   function highCheck() {
     const u = G.user, h = opts.highs; if (!u || !h || G.switching) return;
@@ -559,7 +567,7 @@
     if (element.hidden !== hidden) element.hidden = hidden;
   }
   function hud() {
-    highCheck(); radar();
+    highCheck(); featCheck(); radar();
     $('#game').classList.toggle('drill', !!(G && G.drill));
     $('#game').classList.toggle('dunk', !!(G && G.drill && (G.drill.kind === 'dunk' || G.drill.kind === 'free' || G.drill.kind === 'horse')));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
@@ -572,6 +580,9 @@
       : G.q <= 4 ? ['1st', '2nd', '3rd', '4th'][G.q - 1] : (G.q === 5 ? 'OT' : `${G.q - 4}OT`);
     setLabel($('#qt'), period);
     setLabel($('#clk'), G.half ? `To ${G.target}` : fmt(Math.max(0, G.clock)));
+    /* the last ten seconds of a quarter: the clock goes red, and the last five tick */
+    { const lastS = !G.half && !G.drill && !G.replay && G.phase === 'live' && G.clock <= 10 && G.clock > 0; $('#clk').classList.toggle('last', lastS);
+      if (lastS && G.clock <= 5 && !G.paused) { const sec = Math.ceil(G.clock); if (sec !== G.tickS) { G.tickS = sec; AU().play('click', { hi: sec <= 2 }); } } }
     const sc = $('#sc'); setLabel(sc, String(Math.ceil(Math.max(0, G.shotClock)))); sc.classList.toggle('low', G.shotClock < 5);
     sc.style.visibility = G.phase === 'live' && G.poss !== null ? 'visible' : 'hidden';
     $('#sd0').classList.toggle('poss', G.poss === 0); $('#sd1').classList.toggle('poss', G.poss === 1);
@@ -2839,7 +2850,7 @@
       /* a hard cut squeaks the sneakers */
       if (live) {
         const acc = hyp(p.vx - (p.pvx || 0), p.vz - (p.pvz || 0)) / dt, spd = hyp(p.vx, p.vz);
-        if (acc > 70 && spd > 6 && G.t > G.squeakT && rand() < 0.35) { G.squeakT = G.t + rr(0.12, 0.35); AU().play('squeak', { x: p.x, vol: p.isUser ? 1 : 0.7 }); if (R.puff && p.y <= 0) R.puff(p.x, p.z, 0.8); }
+        if (acc > 70 && spd > 6 && G.t > G.squeakT && rand() < 0.35) { G.squeakT = G.t + rr(0.12, 0.35); AU().play('squeak', { x: p.x, vol: p.isUser ? 1 : 0.7 }); if (R.puff && p.y <= 0) R.puff(p.x, p.z, 0.8); if (R.skid && p.y <= 0 && !G.park) R.skid(p.x, p.z, Math.atan2(p.pvx || p.vx, p.pvz || p.vz), clamp(spd / 9, 0.9, 1.9)); }
       }
       if (p.burstT > G.t && p.y <= 0 && R.puff && G.t > (p.burstP || 0)) { p.burstP = G.t + 0.09; R.puff(p.x - p.vx * 0.06, p.z - p.vz * 0.06, 0.6); }   // dust at his heels while it lasts
       p.pvx = p.vx; p.pvz = p.vz;

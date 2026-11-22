@@ -111,6 +111,18 @@
     if (r.m.parent !== scene) scene.add(r.m);
     r.m.material.color.setHex(scene.background ? 0xb9b2a6 : 0xfff3df); r.m.position.set(x + (Math.random() - 0.5) * 0.5, 0.35, z + (Math.random() - 0.5) * 0.5); r.t = r.T = 0.45; r.k = k || 1; r.m.visible = true;
   };
+  /* skid marks: two dark streaks left on the hardwood where sneakers bite on a hard stop or cut; they fade in a few seconds */
+  const skids = []; let skidTex = null;
+  R.skid = (x, z, ang, len) => {
+    if (!scene || scene.background) return;   // the arena floor only
+    if (!skidTex) { const c = document.createElement('canvas'); c.width = 32; c.height = 64; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 64);
+      gr.addColorStop(0, 'rgba(20,14,10,0)'); gr.addColorStop(0.25, 'rgba(20,14,10,.9)'); gr.addColorStop(0.8, 'rgba(20,14,10,.55)'); gr.addColorStop(1, 'rgba(20,14,10,0)'); g.fillStyle = gr; g.fillRect(4, 0, 7, 64); g.fillRect(21, 6, 7, 58); skidTex = new T.CanvasTexture(c); skidTex.userData.keep = true; }
+    let r = skids.find(o => o.t <= 0);
+    if (!r) { if (skids.length > 11) return; const mt = new T.MeshBasicMaterial({ map: skidTex, transparent: true, depthWrite: false, opacity: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }); mt.userData.shared = true; r = { m: new T.Mesh(new T.PlaneGeometry(1, 1), mt), t: 0 }; r.m.geometry.userData.shared = true; skids.push(r); }
+    if (r.m.parent !== scene) scene.add(r.m);
+    r.m.rotation.set(-Math.PI / 2, 0, ang || 0); r.m.position.set(x, 0.035, z); r.m.scale.set(0.95, len || 1.2, 1); r.t = r.T = 5; r.m.visible = true;
+  };
+  function skidTick(dt) { for (const r of skids) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= dt; r.m.material.opacity = 0.3 * Math.min(1, r.t / (r.T * 0.6)); } }
   function puffTick(dt) { for (const r of puffs) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / r.T; r.m.scale.setScalar((0.8 + k * 2.2) * r.k); r.m.position.y = 0.35 + k * 0.5; r.m.material.opacity = Math.min(0.7, 0.55 * (1 - k) * r.k); } }
   /* comic-book hits: a spiked burst with a word in it where a block, a steal or a dunk lands (a small plain one where a
      hand gets up into a shot), and stars going round the head of a man who has been put on the floor */
@@ -2016,7 +2028,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0; skids.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
@@ -2417,7 +2429,7 @@
   /* Pose every player from the game state. */
   R.update = (G, dt) => {
     fxG = G;
-    shockTick(dt); puffTick(dt); powTick(dt);
+    shockTick(dt); puffTick(dt); skidTick(dt); powTick(dt);
     if (!G.replay) moveRefs(G, dt);
     benchT += dt;
     benchMesh.forEach((m0, t) => { const m = m0.userData.pl || m0; if (benchJ[t] > 0) { benchJ[t] = Math.max(0, benchJ[t] - dt); m.position.y = Math.abs(Math.sin(benchT * 11 + t)) * 0.7 * Math.min(1, benchJ[t]); } else m.position.y = 0; });
@@ -2483,7 +2495,8 @@
       for (let i = 0; i < S.length; i++) { const [a, ph, r] = S[i], f = (G.t * 0.7 + ph) % 1, aa = a + G.t * 1.2; P.setXYZ(i, u.x + Math.cos(aa) * r * (1 - f * 0.4), u.y + f * 7.5, u.z + Math.sin(aa) * r * (1 - f * 0.4)); }
       P.needsUpdate = true; tkoSparks.material.opacity = 0.75 + 0.25 * Math.sin(G.t * 7); } }
     if (tkoBeam) { tkoBeam.visible = tk; if (tk) { tkoBeam.position.set(u.x, 3.5 + u.y, u.z); const k = 1 + 0.06 * Math.sin(G.t * 9); tkoBeam.scale.set(k, 1, k); tkoBeam.rotation.y += dt * 1.5; } }
-    if (u) { userRing.material.color.set(tk ? 0xffffff : 0x4cffb0); userRing.scale.setScalar(tk ? 1.12 + 0.08 * Math.sin(G.t * 9) : 1); }
+    const hot = !tk && !G.drill && G.streak >= 3;   // three makes in a row: the ring under you beats faster
+    if (u) { userRing.material.color.set(tk ? 0xffffff : 0x4cffb0); userRing.scale.setScalar(tk ? 1.12 + 0.08 * Math.sin(G.t * 9) : hot ? 1.05 + 0.06 * Math.sin(G.t * 11) : 1); if (hot) userRing.material.opacity = 0.7 + 0.3 * Math.sin(G.t * 11); }
     const h = b.state === 'held' && b.holder !== u ? b.holder : null;
     handRing.visible = !!h;
     if (h) { handRing.position.x = h.x; handRing.position.z = h.z; handRing.material.color.set(h.team === 0 ? 0xffffff : 0xff6a6a); }

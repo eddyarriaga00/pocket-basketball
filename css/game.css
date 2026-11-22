@@ -992,3 +992,5 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 .pcmp .pls{width:100%;border-collapse:collapse;margin:0 0 8px;font-size:12.5px;font-variant-numeric:tabular-nums}.pcmp .pls th{font-weight:600;font-size:10.5px;color:var(--mute);padding:0 0 4px;text-align:center}
 .pcmp .pls td{text-align:center;padding:3px 0;color:var(--mute)}.pcmp .pls td:first-child,.pcmp .pls th:first-child{text-align:left;font-family:var(--display);font-weight:800;color:var(--ink);width:44px}.pcmp .pls td b{color:var(--ink);font-family:var(--display)}
 .pcmp>.pls+div{border-top:1px solid var(--line)}
+#clk.last{color:#ff5a6b;animation:clkp 1s ease-in-out infinite}@keyframes clkp{50%{transform:scale(1.1)}}
+@media (prefers-reduced-motion:reduce){#clk.last{animation:none}}
