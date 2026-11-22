@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Players keep their look. When a phone ran slow the game used to step all the way down to a blurry picture with no outlines on the players, and a stuttering first few seconds (the shootaround, the arena loading) could leave a good phone there for the rest of the session. It now stops at a slightly softer picture with the outlines on, ignores loading stutters when it measures, and starts every game again from full quality. Graphics: Low in Settings is still there for an old phone.
 - Version 1.0.0. The number is on the News page and at the foot of Settings. The News page also says plainly where your careers live (this device only) and how to keep a copy.
 - Safer page: a content-security policy now limits what the page may load and run to the game's own files, the 3D library it is built on, its font, and the chat's service. The start-up code moved out of the page into its own file so nothing runs inline.
 - Safer saves: a career loaded from this device or imported from a file is checked before it is played. Anything that could be markup is taken out of its text, and ratings, skill points, fans and earnings are held to what the game itself can give (an edited 999 rating comes back as 99). An imported save keeps only the game's own keys. Names typed in the builder lose angle brackets.

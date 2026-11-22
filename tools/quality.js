@@ -1,10 +1,10 @@
 /* the adaptive quality logic against a fake clock: a frame cap from outside (33 ms whatever is drawn) must end back at full
-   quality; a phone that speeds up once the outlines go must stay light; a fast phone must never change */
+   quality; a phone that only speeds up at the last step must stay there, outlines still on; a fast phone must never change */
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const srv = await require('./serve-test').serve();
-  for (const [name, ms] of [['capped at 30 fps from outside', () => 33.3], ['slow until the outlines go', q => q.level >= 3 ? 15 : 40], ['a little faster at each step', q => [40, 30, 24, 17][q.level]], ['fast phone', () => 16.7], ['hitch at the start, then fast', (q, n) => n < 70 ? 60 : 16.7]]) {
+  for (const [name, ms] of [['capped at 30 fps from outside', () => 33.3], ['slow until the last step', q => q.level >= 3 ? 15 : 40], ['a little faster at each step', q => [40, 30, 24, 17][q.level]], ['fast phone', () => 16.7], ['hitch at the start, then fast', (q, n) => n < 70 ? 60 : 16.7]]) {
     const pg = await b.newPage({ viewport: { width: 120, height: 260 }, hasTouch: true }); pg.on('dialog', d => d.accept());
     await pg.goto(srv.url); await pg.waitForFunction(() => window.PB && PB.R && PB.R.modelReady && PB.R.modelReady(), null, { timeout: 60000 });
     await pg.click('#qg'); await pg.waitForTimeout(400); await pg.click('#go');

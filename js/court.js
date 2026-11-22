@@ -811,7 +811,7 @@
     return m;
   }
   const orphans = [];   // face geometries of players substituted out, freed with the arena
-  let lite = false;   // set when a slow phone has had its outlines and bench taken away (see R.render)
+  let lite = false;   // set when a slow phone has had the men on the bench taken away (see R.render)
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
     m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = vec3( position ) + normal * 0.011;'); };
     m.customProgramCacheKey = () => 'pb-outline'; m.userData.shared = true; return m; })();
@@ -987,7 +987,7 @@
         sb.position.copy(bodyMesh.position); sb.quaternion.copy(bodyMesh.quaternion); sb.scale.copy(bodyMesh.scale); sb.bind(bodyMesh.skeleton, bodyMesh.bindMatrix);
         bodyMesh.visible = false;
         /* a thin dark outline (the inside of a slightly fatter copy): players read clearly against the floor */
-        if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; ol.visible = !lite; bodyMesh.parent.add(ol);
+        if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; bodyMesh.parent.add(ol);
           ol.position.copy(bodyMesh.position); ol.quaternion.copy(bodyMesh.quaternion); ol.scale.copy(bodyMesh.scale); ol.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
       }
       if (bodyMesh && TPL.model && TPL.faceGeo && !PB.mannequin) {
@@ -1943,6 +1943,7 @@
   };
   R.stationLit = id => { for (const s0 of stations) { const on = s0.id === id; s0.beam.material.opacity = on ? 0.28 : 0.1; s0.ring.scale.setScalar(on ? 1.08 : 1); } };
   R.build = (home) => {
+    R._qReset();   // a new game is measured afresh, at full quality
     stations = [];
     drillYaw = null;
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
@@ -2622,18 +2623,21 @@
 
   R.swish = s => { for (const n of nets) if (n.s === s) n.swish = 1; };
   R.rimSnap = (s, k) => { for (const n of nets) if (n.s === s) n.snap = Math.max(n.snap, k || 1); };   // k: how hard (a dunk 1, a ball off the iron about half)
-  /* adaptive quality: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x, then 1x),
-     then drop the outlines and the men on the bench (about half the triangles). If none of that buys anything, the
-     frame rate is being held down from outside (a phone in Low Power Mode draws thirty frames a second whatever
-     you ask of it): everything goes back to full quality and stays there. */
+  /* adaptive quality: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x), then
+     take the men off the bench, then 1.25x. That is as far as it goes on its own: the players keep their outlines and
+     the picture stays sharp enough to be the same game (it used to end at 1x with no outlines, which a hitchy first
+     few seconds could leave a good phone in for the whole session; Graphics: Low in the settings is still there for
+     an old phone). If none of it buys anything, the frame rate is being held down from outside (a phone in Low Power
+     Mode draws thirty frames a second whatever you ask of it): everything goes back to full quality and stays there.
+     Every game starts again from full quality. */
   let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2, qLvl = 0, avg0 = 0, slow0 = 0, qLock = false;
   R.quality = () => ({ level: qLvl, locked: qLock, base: Math.round(avg0) });
-  R._qReset = () => { qLock = false; slow0 = 0; avg0 = 0; ftAcc = 0; ftN = 0; ftLast = 0; setQuality(0); };   // for the tests
+  R._qReset = () => { qLock = false; slow0 = 0; avg0 = 0; ftAcc = 0; ftN = 0; ftLast = 0; setQuality(0); };   // each new game (R.build), and the tests
   R.lite = () => lite;
   function setQuality(n) {
-    qLvl = n; prCap = n === 0 ? 2 : n === 1 ? 1.5 : 1;
-    const lt = n >= 3;
-    if (lt !== lite) { lite = lt; scene.traverse(o => { if (o.material === OUTLINE_MAT) o.visible = !lite; }); for (const m of benchMesh) if (m.userData.pl) m.userData.pl.visible = !lite; }
+    qLvl = n; prCap = n === 0 ? 2 : n < 3 ? 1.5 : 1.25;
+    const lt = n >= 2;
+    if (lt !== lite) { lite = lt; for (const m of benchMesh) if (m.userData.pl) m.userData.pl.visible = !lite; }
     R.resize();
   }
   R.render = menu => {
@@ -2641,7 +2645,7 @@
     /* a scene behind a menu runs at thirty frames a second on purpose: it says nothing about the phone, so it is not
        measured (it used to be, and a few seconds on the title screen cost the whole session its sharpness) */
     if (menu) { ftLast = 0; ftAcc = 0; ftN = 0; renderer.render(scene, cam); return; }
-    if (ftLast) { ftAcc += Math.min(100, now - ftLast); ftN++; }
+    if (ftLast && now - ftLast < 80) { ftAcc += now - ftLast; ftN++; }   // a long frame is the game loading something, not the phone drawing slowly: it is left out
     ftLast = now;
     if (ftN >= 90) {
       const avg = ftAcc / ftN; ftAcc = 0; ftN = 0;
