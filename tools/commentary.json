@@ -2396,6 +2396,358 @@
     "text": "Nobody can ever take this away from them.",
     "ex": 0.6
    }
+  ],
+  "st_debut_bench": [
+   {
+    "who": "pbp",
+    "text": "The rookie starts his first game on the bench tonight. He will have to wait for his number to be called.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "A debut tonight, but not in the starting five. The rookie will come off the bench.",
+    "ex": 0.55
+   }
+  ],
+  "st_first_start": [
+   {
+    "who": "pbp",
+    "text": "A big night for him. For the first time, he is in the starting five.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "He has earned it. Tonight is his first start.",
+    "ex": 0.6
+   }
+  ],
+  "st_first_start_ana": [
+   {
+    "who": "ana",
+    "text": "You never forget your first start. Let's see what he does with it.",
+    "ex": 0.5
+   }
+  ],
+  "st_sixth_first": [
+   {
+    "who": "pbp",
+    "text": "He has moved up. Tonight he is the first man off the bench.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "More minutes for him tonight. He is the sixth man now.",
+    "ex": 0.55
+   }
+  ],
+  "st_first_bench": [
+   {
+    "who": "pbp",
+    "text": "Something new for him tonight. He comes off the bench for the first time.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "He is not in the starting five tonight. A first for him.",
+    "ex": 0.55
+   }
+  ],
+  "st_benched": [
+   {
+    "who": "pbp",
+    "text": "He has lost his starting spot. Tonight he comes off the bench with something to prove.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "A change in the lineup tonight. He starts this one on the bench.",
+    "ex": 0.55
+   }
+  ],
+  "st_benched_ana": [
+   {
+    "who": "ana",
+    "text": "How a player answers that tells you everything about him.",
+    "ex": 0.5
+   }
+  ],
+  "st_promoted": [
+   {
+    "who": "pbp",
+    "text": "He is back in the starting five tonight.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "The coach has put him back with the starters.",
+    "ex": 0.55
+   }
+  ],
+  "st_newteam": [
+   {
+    "who": "pbp",
+    "text": "A new uniform for him tonight. His first game with his new team.",
+    "ex": 0.6
+   },
+   {
+    "who": "pbp",
+    "text": "New city, new colors. Tonight he plays for his new team for the first time.",
+    "ex": 0.55
+   }
+  ],
+  "st_newteam_ana": [
+   {
+    "who": "ana",
+    "text": "First impressions matter. His new teammates are watching.",
+    "ex": 0.5
+   }
+  ],
+  "st_former": [
+   {
+    "who": "pbp",
+    "text": "This one is personal. He faces his old team tonight.",
+    "ex": 0.6
+   },
+   {
+    "who": "pbp",
+    "text": "He knows that other bench well. Tonight he plays the team that let him go.",
+    "ex": 0.55
+   }
+  ],
+  "st_former_ana": [
+   {
+    "who": "ana",
+    "text": "Do not tell me that one does not mean a little more.",
+    "ex": 0.5
+   }
+  ],
+  "st_return": [
+   {
+    "who": "pbp",
+    "text": "Good news tonight. He is back at full strength.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "He has been playing hurt, and tonight he is finally healthy.",
+    "ex": 0.55
+   }
+  ],
+  "st_opener": [
+   {
+    "who": "pbp",
+    "text": "Opening night. A brand new season starts right here.",
+    "ex": 0.65
+   },
+   {
+    "who": "pbp",
+    "text": "Welcome back, everybody. A new season is here.",
+    "ex": 0.6
+   }
+  ],
+  "st_afterhigh": [
+   {
+    "who": "pbp",
+    "text": "He is coming off the best game of his career. Can he do it again?",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Everybody saw what he did last time out. A career night.",
+    "ex": 0.55
+   }
+  ],
+  "st_rolling": [
+   {
+    "who": "pbp",
+    "text": "He comes in red hot. Twenty or more in three straight games.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "Nobody has been able to slow him down lately.",
+    "ex": 0.55
+   }
+  ],
+  "st_rolling_ana": [
+   {
+    "who": "ana",
+    "text": "When a scorer is in that kind of rhythm, you just keep feeding him.",
+    "ex": 0.5
+   }
+  ],
+  "st_bounce": [
+   {
+    "who": "pbp",
+    "text": "He will want this one. It was a rough night for him last time out.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "A chance to bounce back tonight after a quiet game.",
+    "ex": 0.55
+   }
+  ],
+  "st_streak_w": [
+   {
+    "who": "pbp",
+    "text": "This team is rolling. Winners of four or more in a row.",
+    "ex": 0.6
+   },
+   {
+    "who": "pbp",
+    "text": "They come in on a winning streak, and they are feeling good.",
+    "ex": 0.55
+   }
+  ],
+  "st_streak_l": [
+   {
+    "who": "pbp",
+    "text": "They need this one badly. It has been a rough stretch of losses.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "A losing streak on the line tonight. Somebody has to stop it.",
+    "ex": 0.55
+   }
+  ],
+  "st_rematch": [
+   {
+    "who": "pbp",
+    "text": "They owe this team one. It did not go their way the last time they met.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "A rematch tonight, and they have not forgotten the last one.",
+    "ex": 0.55
+   }
+  ],
+  "st_again": [
+   {
+    "who": "pbp",
+    "text": "This defense remembers him. He lit them up the last time.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "He had a big night against this team last time. They will be ready for him.",
+    "ex": 0.55
+   }
+  ],
+  "st_b2b": [
+   {
+    "who": "pbp",
+    "text": "Second night of a back to back. Tired legs out there tonight.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "They played last night too. We will see how much is left in the tank.",
+    "ex": 0.55
+   }
+  ],
+  "st_checkin": [
+   {
+    "who": "pbp",
+    "text": "Here he comes, off the bench.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "He checks in now.",
+    "ex": 0.5
+   },
+   {
+    "who": "pbp",
+    "text": "And he is into the game.",
+    "ex": 0.5
+   }
+  ],
+  "st_checkin_first": [
+   {
+    "who": "pbp",
+    "text": "And here he comes, off the bench for the first time.",
+    "ex": 0.55
+   },
+   {
+    "who": "pbp",
+    "text": "He checks in. Let's see how he handles the new role.",
+    "ex": 0.5
+   }
+  ],
+  "st_checkin_debut": [
+   {
+    "who": "pbp",
+    "text": "Here he comes! The rookie checks in for his first minutes in the league.",
+    "ex": 0.7
+   },
+   {
+    "who": "pbp",
+    "text": "This is the moment. The rookie is coming into the game for the first time.",
+    "ex": 0.7
+   }
+  ],
+  "st_checkin_debut_ana": [
+   {
+    "who": "ana",
+    "text": "Deep breath, kid. It is the same game you have always played.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "You only get one first time. Enjoy it.",
+    "ex": 0.5
+   }
+  ],
+  "st_first_pts": [
+   {
+    "who": "pbp",
+    "text": "And there it is! His first points in the league!",
+    "ex": 0.8
+   },
+   {
+    "who": "pbp",
+    "text": "He is on the board! The first bucket of his career!",
+    "ex": 0.8
+   }
+  ],
+  "st_first_pts_ana": [
+   {
+    "who": "ana",
+    "text": "Keep that ball. He is going to want it.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "The first of many. You can see the weight come off his shoulders.",
+    "ex": 0.5
+   }
+  ],
+  "st_statement": [
+   {
+    "who": "pbp",
+    "text": "Twenty for him tonight! What a way to answer.",
+    "ex": 0.75
+   },
+   {
+    "who": "pbp",
+    "text": "He has twenty, on a night that was all about him.",
+    "ex": 0.7
+   }
+  ],
+  "st_statement_ana": [
+   {
+    "who": "ana",
+    "text": "That is a statement. He belongs out here.",
+    "ex": 0.5
+   },
+   {
+    "who": "ana",
+    "text": "You could not have written it any better for him.",
+    "ex": 0.5
+   }
   ]
  }
 }

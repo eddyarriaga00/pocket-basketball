@@ -994,3 +994,4 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 .pcmp>.pls+div{border-top:1px solid var(--line)}
 #clk.last{color:#ff5a6b;animation:clkp 1s ease-in-out infinite}@keyframes clkp{50%{transform:scale(1.1)}}
 @media (prefers-reduced-motion:reduce){#clk.last{animation:none}}
+.next .tale{margin:2px 0 8px;font-size:12.5px;color:var(--mute)}.next .tale b{color:var(--ink);font-family:var(--display);font-weight:800;margin-right:5px}

@@ -1565,7 +1565,7 @@
         const rivalGame = C.rival && nx.opp === C.rival.team;
         const dn = C.games.filter(x => x.done), tot = C.games.length || 1, l5 = dn.slice(-5);
         card = `<div class="next">
-        <p class="kick">${nx.label}</p>
+        <p class="kick">${nx.label}</p>${(() => { const st = nx.g ? story(nx.g) : null; return st ? `<p class="tale"><b>${esc(st.title)}</b> ${esc(st.sub)}</p>` : ''; })()}
         <div class="prog"><i><u style="width:${Math.round(dn.length / tot * 100)}%"></u></i>${l5.length ? `<span>${l5.map(x => `<b class="${x.res && x.res.win ? 'w' : 'l'}">${x.res && x.res.win ? 'W' : 'L'}</b>`).join('')}</span>` : ''}</div>
         <div class="vs"><div>${badge(t)}<b>${t.name}</b><span>${st.w}-${st.l} · ${strength(C.team)}</span></div><em>vs</em>
         <div>${badge(o)}<b>${o.name}</b><span>${os.w}-${os.l} · ${strength(o.id)}</span></div></div>
@@ -1964,6 +1964,58 @@
     }).join('');
   }
 
+  /* ---------- what tonight is about ----------
+     The career remembers a little of what has happened (how many games you have started and how many you have come
+     off the bench, the role you had last time, the team you were on before, whether you are just back from being hurt
+     or coming off a career night), and from that and the season so far it works out the one thing tonight is about.
+     The booth opens with it, the card before the tip names it, the feed says it, your first minutes and first points
+     are called for what they are, and the news afterwards tells how it went. */
+  const memOf = () => C.mem || (C.mem = { played: C.totals && C.totals.gp ? 1 : (C.games || []).some(x => x.done) || C.year > 1 ? 1 : 0, starts: 0, sixth: 0, bench: 0, lastRole: null, prevTeam: null, teamGames: 1, old: C.year > 1 || (C.games || []).some(x => x.done) });
+  function story(g) {
+    if (!g || g.po || (g.cup && g.cup !== 'group')) return null;   // the playoffs and the Cup's knockout rounds have their own billing
+    const M = memOf(), rl = role(), bench = rl !== 'Starter', t = PB.team(C.team), o = PB.team(g.opp);
+    const S = (k, title, sub, feed) => ({ k, title, sub, feed: feed || `${title} · ${sub}` });
+    const done = C.games.slice(0, C.gi).filter(x => x.done && x.res), last = done[done.length - 1], l3 = done.slice(-3);
+    const meet = done.filter(x => x.opp === g.opp).pop(), ws = (C.streaks || {})[C.team] || 0;
+    if (!M.played) return bench ? S('debut_bench', 'Your debut', 'You start on the bench: be ready when your number is called') : S('debut', 'Your debut', 'Your first game in the league, and you start');
+    if (M.prevTeam && !M.teamGames) return S('newteam', 'New team', `Your first game for the ${t.name}`);
+    if (M.prevTeam && g.opp === M.prevTeam && !M.facedOld) return S('former', 'Your old team', `First time against the ${o.name} since you left`);
+    if (M.back) return S('return', 'Back healthy', 'Your first game back at full strength');
+    if (bench && M.lastRole === 'Starter') return S('benched', 'Off the bench', 'You lost your starting spot: go and win it back');
+    if (M.old) { /* a career from before the game kept this memory: no firsts to call, the rest still apply */ }
+    else if (rl === 'Starter' && !M.starts) return S('first_start', 'Your first start', 'The coach has you in the starting five for the first time');
+    else if (rl === 'Sixth man' && !M.sixth && M.lastRole === 'Bench') return S('sixth_first', 'Sixth man', 'First man off the bench tonight: you have earned more minutes');
+    else if (bench && !M.bench && !M.sixth) return S('first_bench', 'Off the bench', 'For the first time you do not start: make the minutes count');
+    if (!bench && M.lastRole && M.lastRole !== 'Starter') return S('promoted', 'Back in the five', 'You start again tonight');
+    if (C.year > 1 && C.gi === 0) return S('opener', 'Opening night', `Season ${C.year} begins`);
+    if (M.high) return S('afterhigh', 'Coming off a career night', 'Everybody saw the last one: do it again');
+    if (l3.length === 3 && l3.every(x => (x.res.line.pts || 0) >= 20)) return S('rolling', 'On a roll', 'Twenty or more in three straight games');
+    if (last && last.res.gscore !== undefined && last.res.gscore <= 3 && (last.res.line.min || 9) >= 5) return S('bounce', 'Bounce back', 'A rough one last time out: answer it');
+    if (ws >= 4) return S('streak_w', 'Winning streak', `${ws} in a row for the ${t.name}`);
+    if (ws <= -4) return S('streak_l', 'Losing streak', `${-ws} straight losses: somebody has to stop it`);
+    if (meet && !meet.res.win) return S('rematch', 'Rematch', `The ${o.name} beat you ${meet.res.them}-${meet.res.us} last time`);
+    if (meet && meet.res.win && (meet.res.line.pts || 0) >= 25) return S('again', 'They remember you', `You had ${meet.res.line.pts} on the ${o.name} last time`);
+    if (g.b2b) return S('b2b', 'Back-to-back', 'Second night in a row: heavy legs');
+    return null;
+  }
+  /* after any game of yours, played or simmed: what the next one will remember */
+  function remember(res) {
+    const M = memOf(), rl = role();
+    M.played = (M.played || 0) + 1; M.teamGames = (M.teamGames || 0) + 1; M[rl === 'Starter' ? 'starts' : rl === 'Sixth man' ? 'sixth' : 'bench'] = (M[rl === 'Starter' ? 'starts' : rl === 'Sixth man' ? 'sixth' : 'bench'] || 0) + 1;
+    M.lastRole = rl; M.back = false; M.high = !!(res && res.highs && res.highs.length && !res.sim);
+  }
+  /* how the night it was billed as went, for the news */
+  function storyNews(k, res, g) {
+    const me = C.me, l = res.line, o = PB.team(g.opp), w = res.win, line = `${l.pts} point${l.pts === 1 ? '' : 's'}${l.reb >= 6 ? `, ${l.reb} rebounds` : ''}${l.ast >= 5 ? `, ${l.ast} assists` : ''}`, r = w ? `a win over the ${o.name}` : `a loss to the ${o.name}`;
+    const good = l.pts >= 15 || res.gscore >= 9;
+    return ({ debut: `${me.last}'s debut: ${line} in ${r}`, debut_bench: `${me.last}'s debut, off the bench: ${line} in ${r}`, first_start: `A first start for ${me.last}: ${line} in ${r}`,
+      sixth_first: `${me.last} as the sixth man: ${line} in ${r}`, first_bench: `${me.last} comes off the bench for the first time: ${line}`, benched: good ? `Sent to the bench, ${me.last} answers: ${line}` : `${me.last} off the bench: ${line} in ${r}`,
+      promoted: `${me.last} back in the starting five: ${line}`, newteam: `${me.last}'s first game in new colors: ${line} in ${r}`, former: w ? `${me.last} beats his old team: ${line}` : `${me.last}'s old team gets the better of him: ${line}`,
+      return: `${me.last} back at full strength: ${line}`, afterhigh: good ? `${me.last} follows the career night with ${line}` : `${me.last} comes back to earth: ${line}`, rolling: l.pts >= 20 ? `${me.last} makes it four straight with twenty: ${line}` : `${me.last}'s run of twenty-point games ends at three`,
+      bounce: good ? `${me.last} bounces back: ${line}` : `Another quiet night for ${me.last}: ${line}`, rematch: w ? `Payback: the ${PB.team(C.team).name} get the ${o.name} this time` : `The ${o.name} do it again`, streak_w: w ? `The streak goes on for the ${PB.team(C.team).name}` : `The ${o.name} end the ${PB.team(C.team).name} winning streak`,
+      streak_l: w ? `The ${PB.team(C.team).name} stop the slide` : `The ${PB.team(C.team).name} slide goes on` })[k] || null;
+  }
+
   /* ---------- the next game: the schedule, or a playoff series ---------- */
   /* what the booth opens with tonight */
   function introCall(g) {
@@ -1974,9 +2026,10 @@
       const need = Math.ceil(sr.bo / 2), mine = sr.a === C.team ? sr.wa : sr.wb, theirs = sr.a === C.team ? sr.wb : sr.wa;
       return mine + theirs === 6 ? 'g7' : theirs === need - 1 ? 'elim' : mine === need - 1 ? 'closeout' : 'po_intro';
     }
-    if (C.year === 1 && C.gi === 0) return 'debut';
+    const st = story(g), firsts = { debut: 1, debut_bench: 1, first_start: 1, sixth_first: 1, first_bench: 1, benched: 1, promoted: 1, newteam: 1, former: 1, return: 1 };
+    if (st && firsts[st.k]) return st.k === 'debut' ? 'debut' : 'st_' + st.k;   // a first of yours is the night's story, even against your rival
     if (C.rival && g.opp === C.rival.team) return 'rival';
-    return null;
+    return st ? 'st_' + st.k : null;
   }
   function nextGame() {
     if (C.phase === 'regular') {
@@ -2028,11 +2081,12 @@
     /* the two nights that are not like the others: the Finals, and the final of the Cup */
     const fsr = g.po && mySeries(), bigNight = fsr && fsr.conf === 'Finals' ? { kind: 'finals', title: 'The Finals', sub: (() => { const m = fsr.a === C.team ? fsr.wa : fsr.wb, th = fsr.a === C.team ? fsr.wb : fsr.wa; return `Game ${m + th + 1} · ${m === th ? 'Series tied ' + m + '-' + th : m > th ? 'You lead ' + m + '-' + th : 'You trail ' + m + '-' + th}`; })() }
       : g.cup === 'F' ? { kind: 'cupfinal', title: 'The Cup Final', sub: 'One game for the trophy' } : null;
+    const tale = story(g); g.st = tale ? tale.k : undefined; if (tale && tale.k === 'former') memOf().facedOld = true;
     const mine5 = liveFive(), benchOf = (id, five) => C.rosters[id].filter(p => !(p.out > 0) && !five.includes(p) && p.id !== C.me.id).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: bigNight ? Object.assign({}, g.home || g.neutral ? t : o, { cup: !!g.cup, stage: bigNight.kind, stageText: bigNight.title }) : g.cup ? Object.assign({}, g.home || g.neutral ? t : o, { cup: true }) : g.home ? t : o, stage: bigNight || (g.cup ? { title: g.cup === 'group' ? 'Cup night' : CUP_ROUNDS[g.cup], sub: g.cup === 'group' && C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Win or go home' } : null),
       strength: [strength(C.team), strength(o.id)], playoff: !!g.po || (!!g.cup && g.cup !== 'group'), clinch: (() => { if (g.cup === 'F') return [true, true]; const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
-      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */
@@ -2177,7 +2231,7 @@
     /* between games, now and then, life happens: a choice with a cost and a payoff */
     if (!g.po && !C.event && PB.rand() < 0.28) { const seen = C.evSeen || (C.evSeen = []), pool = EVENTS.filter(e => !seen.includes(e.k)), e = (pool.length ? pool : EVENTS)[Math.floor(PB.rand() * (pool.length || EVENTS.length))]; C.event = e.k; seen.push(e.k); if (seen.length > 16) seen.shift(); }   // not one you have had lately
     /* now and then the body pays for it: a sore ankle or a tight hamstring, a few points for a game or two */
-    if (C.injury) { C.injury.games--; if (C.injury.games <= 0) { for (const k in C.injury.r) me.r[k] = Math.min(99, me.r[k] + C.injury.r[k]); me.ovr = PB.ovr(me.r, me.pos); C.news.unshift(`${me.last} is back to full health`); C.injury = null; } }
+    if (C.injury) { C.injury.games--; if (C.injury.games <= 0) { for (const k in C.injury.r) me.r[k] = Math.min(99, me.r[k] + C.injury.r[k]); me.ovr = PB.ovr(me.r, me.pos); C.news.unshift(`${me.last} is back to full health`); C.injury = null; memOf().back = true; } }
     else if (PB.rand() < 0.045) {
       const kinds = [['a sore ankle', { speed: 4, vert: 3 }], ['a tight hamstring', { speed: 5 }], ['a jammed finger', { three: 3, mid: 3, handle: 2 }], ['a bruised knee', { vert: 4, dunk: 3 }]];
       const [what, r] = kinds[Math.floor(PB.rand() * kinds.length)], games = 1 + Math.floor(PB.rand() * 2);
@@ -2362,6 +2416,9 @@
     return null;
   }
   function after(g, sim) {
+    /* the night it was billed as, in the news; then what the next game will remember of this one */
+    if (g.st && !sim && g.res) { const n = storyNews(g.st, g.res, g); if (n) C.news.unshift(n); }
+    remember(g.res);
     const r = g.res, o = PB.team(g.opp), t = PB.team(C.team), l = r.line;
     const pr = pressFor(g, r);
     const P = pr && PRESS[pr[0]];
@@ -3028,7 +3085,7 @@
     if (c.years === 1 && !c.extOffered && C.trust >= 30) { extension(next); return; }
     next();
   }
-  function moveTo(tid) { C.team = tid; }
+  function moveTo(tid) { if (tid !== C.team) { const M = memOf(); M.prevTeam = C.team; M.teamGames = 0; M.facedOld = false; } C.team = tid; }
   function extension(next) {
     const c = C.contract; c.extOffered = true;
     const v = marketValue(), yrs = C.me.age < 27 ? 4 : 3, sal = +(v * 0.95).toFixed(2);
@@ -3119,7 +3176,7 @@
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 
-  PB.Career = { title, hub, park, get: () => C, gameStats, dbg: PB.DEV ? { simLine, binom } : undefined };
+  PB.Career = { title, hub, park, get: () => C, gameStats, dbg: PB.DEV ? { simLine, binom, story: () => { const nx = nextGame(); return nx && nx.g ? story(nx.g) : null; }, storyOf: g => story(g), intro: () => { const nx = nextGame(); return nx && nx.g ? introCall(nx.g) : null; }, mem: () => memOf(), role, moveTo, storyNews } : undefined };
   PB.boot = () => {
     /* without WebGL the menus and the career still work; only the court cannot be drawn */
     try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }

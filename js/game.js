@@ -519,7 +519,8 @@
     const st = u.st, n = ['pts', 'reb', 'ast', 'stl', 'blk'].filter(k => (st[k] || 0) >= 10).length;
     if (n >= 2 && n > (G.featN || 0)) { G.featN = n; const w = n >= 3 ? 'Triple-double' : 'Double-double'; toast(w, 'make'); feed(`${w} · ${u.name}`); powAt(n >= 3 ? 'TRIPLE DOUBLE!' : 'DOUBLE DOUBLE!', u, 1.1, false, 1.8); AU().crowd.react('applause', 0.8); }
     const m = Math.floor((st.pts || 0) / 10) * 10;
-    if (m >= 20 && m > (G.ptsSaid || 0)) { G.ptsSaid = m; toast(`${m} points`, 'make'); feed(`${m} points · ${u.name}`); if (home(u.team)) AU().crowd.react('applause', 0.6); }
+    if (m >= 20 && m > (G.ptsSaid || 0)) { G.ptsSaid = m; toast(`${m} points`, 'make'); feed(`${m} points · ${u.name}`); if (home(u.team)) AU().crowd.react('applause', 0.6);
+      const sk = opts.story && opts.story.k; if (m === 20 && sk && /^(debut|debut_bench|first_start|sixth_first|first_bench|benched|promoted|newteam|former|return|bounce)$/.test(sk)) { setTimeout(() => { if (G) B('st_statement', { prio: 4, follow: 0.7 }); }, 1500); feed(`${opts.story.title}: and he has twenty`); } }
   }
   /* passing your career high, live */
   function highCheck() {
@@ -1479,6 +1480,7 @@
       if (home(p.team) || s.kind === 'dunk') R.hype(s.kind === 'dunk' ? 1.4 : s.three ? 1 : 0.6, s.kind === 'dunk' ? 0.9 : 0); else AU().crowd.react(rand() < 0.5 ? 'groan' : 'aww', s.three ? 0.8 : 0.5);
       if (s.foul) { AU().crowd.react('roar', 1.1); }
       /* the call: a buzzer-beater, a hot hand, an and-one, or the shot itself */
+      if (p.isUser && !G.firstSaid && opts.story && /^debut/.test(opts.story.k) && p.st.pts === s.pts && !G.drill) { G.firstSaid = true; setTimeout(() => { if (!G) return; toast('Your first points in the league', 'make'); feed(`First points in the league · ${p.name}`); B('st_first_pts', { prio: 6, follow: 0.6 }); if (home(p.team)) AU().crowd.react('applause', 0.9); }, 700); }
       if (p.isUser) { G.streak = (G.streak || 0) + 1; if (tkoOn()) G.tko.miss = 0;
         if (G.streak === 3) setTimeout(() => toast('Heating up', 'make'), 900); else if (G.streak === 5) setTimeout(() => toast('On fire', 'make'), 900); }
       /* the officials: both arms up on a three */
@@ -3261,7 +3263,11 @@
     if (G.user) { G.user.x = 24.4; G.user.z = clamp(G.user.z * 0.3, -8, 8); }   // you come on from the scorer's table
     G.inb = null; G.ftq = null; G.shotClock = 24;
     G.then = () => { inboundTo(t, toCourt(t, 0, 70)); };
-    setTimeout(() => toast(first ? (elapsed() < 0.01 ? 'You check in' : 'Off the bench: you check in') : 'Back in the game', 'call'), 300);
+    const sk = opts.story && opts.story.k, firstEver = first && sk === 'debut_bench', benchTale = first && (sk === 'first_bench' || sk === 'benched' || sk === 'sixth_first');
+    setTimeout(() => toast(firstEver ? 'Your first minutes in the league' : first ? (elapsed() < 0.01 ? 'You check in' : sk === 'sixth_first' ? 'First man off the bench: you check in' : 'Off the bench: you check in') : 'Back in the game', 'call'), 300);
+    /* the booth knows who this is and what the night is: his first minutes ever, his first time off the bench, or just the sixth man coming in */
+    if (first && elapsed() > 0.01 && !G.drill) setTimeout(() => { if (G) B(firstEver ? 'st_checkin_debut' : benchTale ? 'st_checkin_first' : 'st_checkin', { prio: 3, follow: firstEver ? 0.8 : 0.3 }); }, 1100);
+    if (firstEver) feed('Your first minutes in the league');
   }
   function sitDown() {
     const S = opts.stints, from = clockTxt(), sc0 = G.score.slice(), Q4 = G.qlen * 60 * 4, nx = S[G.stint + 1];
@@ -3705,7 +3711,7 @@
       else if (!o.drill && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario && !(PB.settings && PB.settings.introOn === 'Off')) {
         G.tipT = 8.4; R.setIntro(8.0, G.user);
         const iv = $('#intro');
-        iv.innerHTML = `${o.stage ? `<strong class="stg">${o.stage.title}</strong><small class="stgs">${o.stage.sub || ''}</small>` : ''}<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
+        iv.innerHTML = `${o.stage ? `<strong class="stg">${o.stage.title}</strong><small class="stgs">${o.stage.sub || ''}</small>` : o.story ? `<strong class="stg">${o.story.title}</strong><small class="stgs">${o.story.sub || ''}</small>` : ''}<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
         iv.className = ''; iv.hidden = false; clearTimeout(iv.h);
         /* then the starting lineups, the way the broadcast shows them */
         const shot = (p, t) => { try { if (!R.modelReady || !R.modelReady() || PB.noGL) return null;
@@ -3795,8 +3801,10 @@
           cine([{ focus: u, a: [bk - 1.5, bk], r: [52, 17], h: [40, 10], ly: 4, dur: 3.2 }], 'Welcome to', `${(o.floor || o.teams[0]).city} Park`, { park: true }); }
         else setTimeout(() => toast(o.park ? `${(o.floor || o.teams[0]).city} Park` : def.title, 'call'), 200);
       }
+      /* what tonight is about, from the career's memory */
+      if (o.story && G.user) setTimeout(() => { if (G) feed(o.story.feed); }, 900);
       /* the second night of a back-to-back: your legs start heavier */
-      if (o.tired && G.user) { G.user.energy = 0.78; setTimeout(() => feed('Second night of a back-to-back: heavy legs'), 600); }
+      if (o.tired && G.user) { G.user.energy = 0.78; if (!(o.story && o.story.k === 'b2b')) setTimeout(() => feed('Second night of a back-to-back: heavy legs'), 600); }
       /* your minutes: the game before you check in is played out by the teams' strength, every point of it someone's */
       if (!o.stints && o.enterAt) opts.stints = o.stints = [[o.enterAt, 1]];
       if (o.stints && G.user && !o.drill && !o.scenario) {
