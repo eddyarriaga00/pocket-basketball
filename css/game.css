@@ -960,3 +960,5 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 @keyframes stgin{0%{transform:scale(1.5);opacity:0}100%{transform:scale(1);opacity:1}}
 
 #warmgo{position:absolute;left:50%;top:calc(132px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:auto;margin:0;padding:10px 22px;border-radius:999px;background:#fff;color:#000;border:0;font-family:var(--display);font-weight:900;font-size:14px;letter-spacing:.04em;text-transform:uppercase;z-index:4;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+
+#pause:not([hidden])~#warmgo{display:none}

@@ -25,6 +25,24 @@
     if (old && !slots().length) { store('pbb.career.c1', old); store(IDX, [{ id: 'c1' }]); setCur('c1'); try { localStorage.removeItem(KEY); } catch (e) { /* fine */ } }
   })();
   const loadCur = () => { const id = curId(); return id ? load('pbb.career.' + id) : null; };
+  /* a save can come from anywhere (an imported file, an edited one): before it is played its text loses anything that
+     could be markup, numbers that are not numbers become zero, and the player's ratings, skill points and money are
+     held to what the game itself can give */
+  const clean = (v, d) => { d = d || 0; if (d > 14) return null;
+    if (typeof v === 'string') return v.replace(/[<>]/g, '').slice(0, 6000);
+    if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+    if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) v[i] = clean(v[i], d + 1); return v; }
+    if (v && typeof v === 'object') { for (const k of Object.keys(v)) { if (k === '__proto__' || k === 'constructor' || k === 'prototype' || /[<>]/.test(k)) { delete v[k]; continue; } v[k] = clean(v[k], d + 1); } return v; }
+    return v; };
+  const guard = c => { if (!c || typeof c !== 'object' || Array.isArray(c)) return null; clean(c);
+    const m = c.me; if (!m || typeof m !== 'object' || !c.rosters || typeof c.rosters !== 'object') return c;
+    const num = (o, k, lo, hi, d) => { if (o[k] === undefined) return; const v = +o[k]; o[k] = Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+    if (m.r && typeof m.r === 'object') for (const k of Object.keys(m.r)) num(m.r, k, 1, 99, 50);
+    num(m, 'ovr', 1, 99, 60); num(m, 'sp', 0, 400, 0); num(m, 'age', 17, 50, 19); num(m, 'num', 0, 99, 0);
+    num(c, 'fans', 0, 2e9, 0); num(c, 'earnings', 0, 5000, 0); num(c, 'trust', 0, 100, 50); num(c, 'year', 1, 60, 1); num(c, 'vc', 0, 1e7, 0); num(c, 'coins', 0, 1e7, 0);
+    for (const k of ['first', 'last', 'from']) if (typeof m[k] === 'string') m[k] = m[k].slice(0, 24);
+    return c; };
+  const openCur = () => guard(loadCur());
   /* your name outside a career: your career player's, or one of your own kept on the device */
   const youName = () => { const c = loadCur(); if (c && c.me) return [c.me.first, c.me.last]; let n = load('pbb.you'); if (!n) { n = PB.randName().split(' '); store('pbb.you', n); } return n; };
   /* achievements: across every career on this device, kept even when a career is deleted */
@@ -117,13 +135,13 @@
      With a player and a 3D view, home is the park: every back button and the hub's home button lead there. Without a
      player (a first visit) or without 3D, the classic menu. */
   function title() {
-    C = loadCur();
+    C = openCur();
     if (C && C.me && !PB.noGL) { park(); return; }
     classicTitle();
   }
   /* the first screen: the logo over your player, a tap to start (which also lets the sound in), and the park */
   function splash() {
-    C = loadCur();
+    C = openCur();
     if (!C || !C.me || PB.noGL) { classicTitle(); return; }
     if (PB.audio) PB.audio.music(true);
     const t = C.team ? PB.team(C.team) : null;
@@ -173,7 +191,7 @@
   /* ---------- the classic menu ---------- */
   function classicTitle() {
     if (PB.audio) PB.audio.music(true);
-    C = loadCur();
+    C = openCur();
     const list = slots();
     const live = C && C.me;
     show(`<div class="title">
@@ -279,7 +297,7 @@
       <p class="fine">A backup is a small file you can keep, or open on another phone or computer to carry the player over.</p></div>`);
     $('#bk').onclick = title;
     if ($('#newc')) $('#newc').onclick = () => { setCur(''); C = null; create(); };
-    scr().querySelectorAll('[data-play]').forEach(b => b.onclick = () => { setCur(b.dataset.play); C = loadCur(); tab = 'home'; hub(); });
+    scr().querySelectorAll('[data-play]').forEach(b => b.onclick = () => { setCur(b.dataset.play); C = openCur(); tab = 'home'; hub(); });
     scr().querySelectorAll('[data-exp]').forEach(b => b.onclick = () => {
       const data = load('pbb.career.' + b.dataset.exp); if (!data) return;
       const blob = new Blob([JSON.stringify({ pocketbasketball: 1, career: data })], { type: 'application/json' });
@@ -301,7 +319,8 @@
         const c = d && d.pocketbasketball && d.career;
         if (!c || !c.me || !c.rosters) { alert('That file is not a PocketBasketball backup.'); return; }
         if (slots().length >= MAXP) { alert(`${MAXP} players is the most this device keeps. Delete one first.`); return; }
-        setCur(''); C = c; save(); myPlayers();
+        if (txt.length > 6e6) { alert('That file is too large to be a PocketBasketball backup.'); return; }
+        setCur(''); C = guard(c); save(); myPlayers();
       });
     };
   }
@@ -424,7 +443,7 @@
   /* ---------- what's new: the top of the changelog, as shipped ---------- */
   function about() {
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>What's new</h2><div class="card" id="wn"><p class="mute">Loading…</p></div>
-      <div class="card"><h3>About</h3><p>Pocket Basketball is a career game for your phone: one player, from draft night to the Hall of Fame. Every team and player is fictional. Nothing is sold here and nothing leaves your device but the chat, if you use it.</p></div></div>`);
+      <div class="card"><h3>About</h3><p>Pocket Basketball is a career game for your phone: one player, from draft night to the Hall of Fame. Every team and player is fictional. Nothing is sold here and nothing leaves your device but the chat, if you use it.</p><p class="mute">Your careers are kept on this device only. Clearing this site's data in your browser erases them: Settings, More has an export to keep a copy.</p><p class="fine">Version ${PB.VERSION}</p></div></div>`);
     $('#bk').onclick = title;
     fetch('CHANGELOG.md').then(r => r.ok ? r.text() : Promise.reject()).then(t => { const e = $('#wn'); if (!e) return;
       const items = t.split('\n').filter(l => l.startsWith('- ')).slice(0, 14).map(l => l.slice(2).replace(/[<>&]/g, ''));
@@ -463,7 +482,7 @@
       <button class="ghost" id="svin">Import a save<small>replaces what is on this device with a file you exported</small></button>
       <button class="ghost" id="setdef">Put settings back to default</button>
       <button class="ghost" id="svwipe">Erase everything<small>careers, records, achievements, settings. It cannot be undone</small></button>` : ''}
-      <p class="fine">Settings are kept on this device.</p></div>`);
+      <p class="fine">Settings are kept on this device. Version ${PB.VERSION}</p></div>`);
     scr().querySelectorAll('.stabs button').forEach(b => b.onclick = () => { settings.tab = b.dataset.tab; settings(); });
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
     if ($('#edteams')) $('#edteams').onclick = () => editTeams();
@@ -473,9 +492,16 @@
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ pocketBasketball: 1, at: new Date().toISOString(), data: o })], { type: 'application/json' })); a.download = 'pocket-basketball-save.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
       $('#svin').onclick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
         inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; f.text().then(t => { let o = null; try { o = JSON.parse(t); } catch (e) { /* not a save */ }
-          if (!o || !o.pocketBasketball || !o.data) { alert('That file is not a Pocket Basketball save.'); return; }
+          if (!o || !o.pocketBasketball || !o.data || typeof o.data !== 'object' || t.length > 3e7) { alert('That file is not a Pocket Basketball save.'); return; }
+          /* only this game's own keys, only text that parses, careers passed through the same checks as a loaded one */
+          const okKey = k => /^pbb\.[a-zA-Z0-9_.-]{1,60}$/.test(k), data = {};
+          for (const k in o.data) { const v = o.data[k]; if (!okKey(k) || typeof v !== 'string') continue;
+            if (k === 'pbb.current') { if (/^[a-zA-Z0-9]{0,24}$/.test(v)) data[k] = v; continue; }
+            let j; try { j = JSON.parse(v); } catch (e) { continue; }
+            data[k] = JSON.stringify(k.startsWith('pbb.career.') ? guard(j) : clean(j)); }
+          if (!Object.keys(data).length) { alert('That file is not a Pocket Basketball save.'); return; }
           if (!confirm('Replace everything on this device with the save in this file?')) return;
-          for (const k of keys()) localStorage.removeItem(k); for (const k in o.data) if (k.startsWith('pbb.')) localStorage.setItem(k, o.data[k]); location.reload(); }); };
+          for (const k of keys()) localStorage.removeItem(k); try { for (const k in data) localStorage.setItem(k, data[k]); } catch (e) { alert('This device ran out of room for the save.'); } location.reload(); }); };
         inp.click(); };
       $('#setdef').onclick = () => { if (!confirm('Put every setting back to its default?')) return; localStorage.removeItem(SET); location.reload(); };
       $('#svwipe').onclick = () => { if (!confirm('Erase every career, record, achievement and setting on this device? This cannot be undone.')) return; if (!confirm('Last check: erase everything?')) return; for (const k of keys()) localStorage.removeItem(k); location.reload(); };
@@ -666,7 +692,8 @@
     const rvx = C.rival && rivalP(); if (nx && rvx && nx.opp === C.rival.team && C.talk !== `${C.year}-${C.gi}-${C.phase}`) w.push('Your rival posted about you');
     return w;
   };
-  function park(at) {
+  function park(at) { try { parkDraw(at); } catch (err) { wontOpen(err); } }
+  function parkDraw(at) {
     C = C || loadCur();
     if (!C || !C.me) { classicTitle(); return; }
     if (PB.noGL) { tab = 'home'; hub(); return; }
@@ -959,7 +986,7 @@
         ${pv ? `<div class="createpv"><img alt="" src="${pv}"><p>${esc(st.first || 'Your')} ${esc(st.last || 'player')} · ${PB.fmtH(st.ht)} · ${st.wt} lb · ${st.pos} · ${esc(st.arch)} · ${PB.ovr(r, st.pos)} OVR</p></div>` : ''}
         ${body}
         <button class="big" id="go">${last ? (st.path === 'undrafted' ? 'Start your career' : 'Enter the draft') : `Next: ${STEPS[S0 + 1]}`}</button></div>`);
-      const keep = () => { if ($('#fn')) { st.first = $('#fn').value.trim(); st.last = $('#ln').value.trim(); st.from = $('#ht').value.trim(); st.num = PB.clamp(+$('#num').value || 0, 0, 99); } };
+      const keep = () => { if ($('#fn')) { const tx = id => $(id).value.replace(/[<>]/g, '').trim().slice(0, 24); st.first = tx('#fn'); st.last = tx('#ln'); st.from = tx('#ht'); st.num = PB.clamp(+$('#num').value || 0, 0, 99); } };
       const stay = f => { keep(); const y = scr().scrollTop, wy = window.scrollY; f(); draw(); scr().scrollTop = y; window.scrollTo(0, wy); };
       $('#bk').onclick = () => { keep(); if (st.step) { st.step--; draw(); } else myPlayers(); };
       scr().querySelectorAll('[data-step]').forEach(b => b.onclick = () => { keep(); const to = +b.dataset.step; if (to > 0 && (!st.first || !st.last)) { alert('Give your player a first and last name.'); return; } st.step = to; draw(); scr().scrollTop = 0; });
@@ -1498,7 +1525,19 @@
     if (C.rival && C.rival.season) for (const k of ['pts', 'reb', 'ast', 'stl', 'blk', 'fga', 'fgm', 'tpa', 'tpm']) if (C.rival.season[k]) C.rival.season[k] = Math.round(C.rival.season[k] * q);
     C.statV = 2;
   }
-  function hub() {
+  /* a career that will not open (a save damaged by hand, or by a browser that ran out of room mid-write) never leaves a
+     blank page: it says so, changes nothing, and offers the way out and a copy of the save */
+  function wontOpen(err) {
+    if (PB.DEV) console.error(err);
+    if (PB.Game && PB.Game.active && PB.Game.stop) { try { PB.Game.stop(); } catch (e) { /* nothing running */ } }
+    show(`<div class="page post"><p class="kick">Career</p><h2>This career would not open</h2><p class="mute">Something in its save could not be read. Nothing has been changed or deleted.</p>
+      <button class="big" id="go">Main menu</button><button class="ghost" id="hubx">Save a copy of it<small>a file you can keep or send for help</small></button></div>`);
+    const bad = C;
+    $('#go').onclick = () => { C = null; setCur(''); title(); };
+    $('#hubx').onclick = () => { try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ pocketbasketball: 1, career: bad })], { type: 'application/json' })); a.download = 'pocket-basketball-career.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) { /* nothing to save */ } };
+  }
+  function hub() { try { hubDraw(); } catch (err) { wontOpen(err); } }
+  function hubDraw() {
     statsV2();
     if (PB.audio) PB.audio.music(true);
     if (!C) { title(); return; }
@@ -3076,7 +3115,7 @@
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 
-  PB.Career = { title, hub, park, get: () => C, gameStats, dbg: { simLine, binom } };
+  PB.Career = { title, hub, park, get: () => C, gameStats, dbg: PB.DEV ? { simLine, binom } : undefined };
   PB.boot = () => {
     /* without WebGL the menus and the career still work; only the court cannot be drawn */
     try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }

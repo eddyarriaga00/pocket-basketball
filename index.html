@@ -4,8 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>PocketBasketball</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-k3511lo1C4ojBrf3Q2424y2BRBDpFxJBxO5L7WA4Om8=' https://cdn.jsdelivr.net/npm/three@0.159.0/ https://cdnjs.cloudflare.com/ajax/libs/firebase/ https://*.firebaseio.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' data: blob: https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; worker-src 'self' blob:; frame-src https://*.firebaseio.com https://*.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="description" content="5-on-5 basketball for your phone, played in portrait. Your career from draft night on.">
 <meta name="theme-color" content="#0a0d14">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PocketBasketball">
+<meta property="og:description" content="5-on-5 basketball for your phone, played in portrait. Your career from draft night on.">
+<meta property="og:image" content="https://eddyarriaga00.github.io/pocket-basketball/icons/icon-512.png">
+<meta property="og:url" content="https://eddyarriaga00.github.io/pocket-basketball/">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://eddyarriaga00.github.io/pocket-basketball/">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,6 +31,7 @@
 </head>
 <body>
   <div id="rotate" aria-live="polite"><div><b>⟳</b><p>Turn your phone upright</p><small>PocketBasketball plays in portrait.</small></div></div>
+  <noscript><p style="font:16px system-ui;color:#fff;background:#0a0d14;padding:40px 24px;text-align:center">PocketBasketball needs JavaScript to run. Turn it on in your browser settings and reload.</p></noscript>
 <div id="app">
   <div id="game" hidden>
     <canvas id="gl"></canvas>
@@ -49,19 +59,6 @@
   <div id="screen"></div>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/"}}</script>
-<script type="module">
-/* three.js and its glTF loader come in as modules; the game's own files are classic scripts that read window.THREE,
-   so they are added here, in order, once the library is in. */
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-window.THREE = THREE;
-window.THREE_ADDONS = { GLTFLoader, SkeletonUtils };
-const files = ['js/data.js', 'js/court.js', 'js/sfxpack.js', 'js/vo.js', 'js/audio.js', 'js/booth.js', 'js/game.js', 'js/career.js', 'js/season.js', 'js/online.js'];
-for (const f of files) await new Promise((ok, no) => { const s = document.createElement('script'); s.src = f; s.async = false; s.onload = ok; s.onerror = no; document.body.appendChild(s); });
-PB.boot();
-/* offline play: only on the real site, never on a local test server */
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
-</script>
+<script type="module" src="js/boot.js"></script>
 </body>
 </html>

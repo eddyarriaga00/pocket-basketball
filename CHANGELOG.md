@@ -4,6 +4,12 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Version 1.0.0. The number is on the News page and at the foot of Settings. The News page also says plainly where your careers live (this device only) and how to keep a copy.
+- Safer page: a content-security policy now limits what the page may load and run to the game's own files, the 3D library it is built on, its font, and the chat's service. The start-up code moved out of the page into its own file so nothing runs inline.
+- Safer saves: a career loaded from this device or imported from a file is checked before it is played. Anything that could be markup is taken out of its text, and ratings, skill points, fans and earnings are held to what the game itself can give (an edited 999 rating comes back as 99). An imported save keeps only the game's own keys. Names typed in the builder lose angle brackets.
+- The test hooks that let a script drive a game are no longer on the published site (they exist only on a developer's own machine).
+- Pausing in the shootaround or a drill no longer shows a 0-0 scoreboard and a grade; the shootaround's button there says Tip off.
+- A page for wrong addresses (404) that leads back to the game, link-preview tags for when the game is shared, and a notice for browsers with JavaScript off.
 - The shootaround: before a real game you get a minute on the floor to find your shot, with the rest of your starting five out there getting theirs up, each with his own ball. Tip off whenever you like. Make five and you start the night warmed up, with a little of the Takeover meter already in. (Settings › Game turns it off.)
 - In the league leaders and the award races your own numbers are exactly what you averaged, not scaled up or down. Everyone else is still shown at full length, and the order is by what is shown.
 - The two biggest nights look like it. In the Finals and in the Cup final the floor has the name of the night painted at both ends and the trophy at center court, the ribbons round the stands and the scoreboard carry it, the trophy itself stands on a plinth by the table, and the card before the tip says what is at stake (the game number and where the series stands). Win it and your man lifts the trophy over his head while the paper falls. The Cup final is one game for the trophy, with the same finish.

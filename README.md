@@ -15,6 +15,10 @@ play around you, and a teammate grade follows every play.
 **Play it:** https://eddyarriaga00.github.io/pocket-basketball/ (no install; add it to your home screen and it
 plays offline too)
 
+**Your data:** careers and settings are kept in your browser on your device; nothing is uploaded. The only thing that
+ever leaves it is a chat message, if you open the chat. Because the game runs entirely in your browser, a save can be
+edited by its owner; the game checks every save it loads and holds its numbers to what can be earned.
+
 The design is in [docs/PLAN.md](docs/PLAN.md), the order of work in [docs/ROADMAP.md](docs/ROADMAP.md), and what changed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Career (the main mode)

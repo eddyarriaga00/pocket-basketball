@@ -3482,8 +3482,8 @@
     }
     if (on) {
       ov.innerHTML = `<div class="card"><h2>Paused</h2>
-        <div class="pmatch">${[0, 1].map(i => { const t = G.teams[i]; return `<div><i style="background:${t.c1};color:${PB.ink ? PB.ink(t.c1, t.c2) : '#fff'}">${t.ab || t.id}</i><b>${G.score[i]}</b><s>${'•'.repeat(Math.max(0, G.to ? G.to[i] : 0))}</s></div>`; }).join(`<span><small>${$('#qt').textContent}</small>${$('#clk').textContent}</span>`)}</div>
-        <p class="mute pc">${G.user ? `Your grade ${gradeLetter(G.grade)}` : ''}</p>
+        ${G.drill ? '' : `<div class="pmatch">${[0, 1].map(i => { const t = G.teams[i]; return `<div><i style="background:${t.c1};color:${PB.ink ? PB.ink(t.c1, t.c2) : '#fff'}">${t.ab || t.id}</i><b>${G.score[i]}</b><s>${'•'.repeat(Math.max(0, G.to ? G.to[i] : 0))}</s></div>`; }).join(`<span><small>${$('#qt').textContent}</small>${$('#clk').textContent}</span>`)}</div>`}
+        <p class="mute pc">${G.drill ? (opts.warm ? 'Shootaround: tip off when you are ready' : '') : G.user ? `Your grade ${gradeLetter(G.grade)}` : ''}</p>
         ${G.user && !G.drill ? (() => { const st = G.user.st; return `<p class="pline"><b>${st.pts}</b> pts · <b>${st.reb}</b> reb · <b>${st.ast}</b> ast · ${st.fgm}/${st.fga} FG · ${st.tpm}/${st.tpa} 3PT${st.pf ? ` · ${st.pf} PF` : ''}</p>`; })() : ''}
         ${opts.goals && G.user ? `<div class="pgoals"><b>Your goals</b>${opts.goals.map(g => { const v = g.k === 'grade' ? null : G.user.st[g.k] || 0; const ok = g.k === 'grade' ? LETTERS.indexOf(gradeLetter(G.grade)) >= g.n : g.k === 'tov' ? v <= g.n : v >= g.n;
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
@@ -3491,7 +3491,7 @@
         <div class="stabs ptabs"><button data-t="game">Game</button>${G.user && !G.drill && !G.switching ? '<button data-t="coach">Coaching</button>' : ''}${G.drill ? '' : '<button data-t="stats">Stats</button>'}<button data-t="opts">Options</button></div>
         <section data-t="game">
         ${G.user && !G.drill && (G.poss === 0 || G.phase === 'dead') && G.to[0] > 0 ? `<button class="ghost" id="pto">Timeout <small>${G.to[0]} left this half</small></button>` : ''}
-        <button class="ghost" id="ps">${G.drill ? 'Finish' : 'Sim to the end'}</button>
+        <button class="ghost" id="ps">${G.drill ? (opts.warm ? 'Tip off' : 'Finish') : 'Sim to the end'}</button>
         <p class="fine ptip">${G.drill ? '' : 'Coaching has the playbook and your defense. Options has the camera, sound and the controls.'}</p></section><section data-t="coach">
         ${G.user && !G.drill && !G.switching ? (() => {
           const cur = G.play && (G.play.id || G.play.kind), dc = G.dplay && G.dplay.kind, dk = Object.keys(DBOOK);
@@ -3828,4 +3828,5 @@
       /* run the simulation ahead without drawing: sec seconds of game time */
       run: sec => { for (let t = 0; t < sec && G.phase !== 'end'; t += 1 / 60) step(1 / 60); return G && { score: G.score, q: G.q, clock: G.clock, phase: G.phase }; }, simRest: () => simRest(), press: (b, down, k, d) => b === 'A' ? pressA(down) : b === 'B' ? pressB() : pressC(k, d), stick: (x, y) => { input.sx = x; input.sy = y; } },
   };
+  if (!PB.DEV) delete PB.Game.dbg;
 })();
