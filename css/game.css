@@ -930,3 +930,26 @@ ul.wn{margin:0;padding:0 0 0 18px}ul.wn li{margin:0 0 10px;font-size:13px;line-h
 .card.cup{border-color:color-mix(in srgb,var(--c1) 55%,var(--line))}.cuprow{display:flex;align-items:center;gap:8px;margin:0;padding:7px 0;border-top:1px solid var(--line);font-size:13px}.cuprow span{width:14px;color:var(--mute);font-size:11px}
 .cuprow i{flex:1;font-style:normal;font-weight:600}.cuprow em{font-style:normal;font-family:var(--display);font-weight:800}.cuprow small{width:34px;text-align:right;color:var(--mute)}.cuprow.me i{color:#fff;font-weight:800}.cuprow.me{background:rgba(255,255,255,.05);margin:0 -8px;padding:7px 8px;border-radius:8px}
 .cupwin{margin:10px 0 0;font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:13px}
+
+/* ---- the 2K pass: art on the menu, smaller and plainer buttons ---- */
+.modes.art{grid-template-columns:repeat(3,1fr);gap:8px}
+.tile.art{position:relative;height:118px;padding:8px 9px;overflow:hidden;display:flex;align-items:flex-end;border-radius:14px;border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(165deg,color-mix(in srgb,var(--tc,#333) 70%,#000) 0%,#0c0c0f 78%)}
+.tile.art img{position:absolute;left:50%;bottom:-10px;height:122%;transform:translateX(-46%);pointer-events:none;opacity:0;transition:opacity .35s;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+.tile.art.has img{opacity:1}
+.tile.art::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.82) 100%);pointer-events:none}
+.tile.art b{position:relative;z-index:1;font-size:12.5px;letter-spacing:.04em;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.tlinks{display:flex;gap:6px;margin:12px 0 4px}.tlinks button{flex:1 1 0;min-width:0;margin:0;padding:9px 2px;border-radius:999px;border:1px solid var(--line);background:rgba(18,18,21,.8);color:var(--ink);font-family:var(--display);font-weight:800;font-size:11px;white-space:nowrap}
+.title .mode{padding:10px 12px;border-radius:14px}.title .mode b{font-size:15px}.title .logo h1{font-size:34px}
+/* in a game: the buttons are smaller, flatter rings (Settings › Controls › Button size: Large brings the old size back) */
+.btn{border-width:1.5px;box-shadow:0 2px 8px rgba(0,0,0,.3);font-size:12px;letter-spacing:.03em}
+.btn.b,.btn.c,.btn.d{background:rgba(10,10,12,.5);border:1.5px solid rgba(255,255,255,.34)}
+#game:not(.bigbtn) .btn.a{width:68px;height:68px;right:14px;bottom:calc(24px + var(--sb));font-size:13px}
+#game:not(.bigbtn) .btn.b{width:50px;height:50px;right:90px;bottom:calc(26px + var(--sb));font-size:11.5px}
+#game:not(.bigbtn) .btn.c{width:44px;height:44px;right:26px;bottom:calc(100px + var(--sb));font-size:10.5px}
+#game:not(.bigbtn) .btn.d{width:38px;height:38px;right:82px;bottom:calc(84px + var(--sb));font-size:9.5px}
+#game:not(.bigbtn) #tko{right:14px;bottom:calc(152px + var(--sb));width:70px;height:22px;font-size:9.5px}
+#game:not(.bigbtn) #stickbase{width:84px;height:84px;margin:-42px 0 0 -42px}#game:not(.bigbtn) #knob{width:38px;height:38px}
+#game.lefty:not(.bigbtn) .btn.a{right:auto;left:14px}#game.lefty:not(.bigbtn) .btn.b{right:auto;left:90px}#game.lefty:not(.bigbtn) .btn.c{right:auto;left:26px}#game.lefty:not(.bigbtn) .btn.d{right:auto;left:82px}#game.lefty:not(.bigbtn) #tko{right:auto;left:14px}
+/* buttons on the pages: a little shorter, less heavy */
+button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padding-top:11px;padding-bottom:11px;font-size:14px}button.ghost.sm{padding-top:8px;padding-bottom:8px;font-size:12.5px}

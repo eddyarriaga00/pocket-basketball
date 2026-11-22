@@ -155,6 +155,21 @@
       <div class="achgrid">${ACH.map(([k, n, d]) => `<div class="card ach ${got[k] ? 'got' : ''}"><i>${got[k] ? '★' : '☆'}</i><div><b>${n}</b><span>${d}</span><em>${got[k] ? esc(got[k].who) : 'Not yet'}</em></div></div>`).join('')}</div></div>`);
     $('#bk').onclick = title;
   }
+  /* art for the menu: a player from the game on every tile, rendered once and kept. Each tile gets a different man in
+     a different club's colors (the first is yours, if you have a player) */
+  const artCache = {};
+  function artTiles() {
+    const tiles = [...scr().querySelectorAll('[data-art]')];
+    if (!tiles.length || PB.noGL || !PB.R.modelReady) return;
+    const paint = () => { if (!PB.R.modelReady()) { setTimeout(paint, 400); return; }
+      const step = () => { const el = tiles.shift(); if (!el || !el.isConnected) return; const i = +el.dataset.art, t = PB.TEAMS[(i * 7 + 3) % PB.TEAMS.length];
+        el.style.setProperty('--tc', t.c1);
+        try { if (!artCache[i]) { const tk = new Set(), p = PB.makeRoster(86, tk)[(i * 2) % 5]; artCache[i] = PB.R.portrait(p, t, 150, { body: true, tight: true, back: i % 3 === 2 }); }
+          if (artCache[i]) { const im = document.createElement('img'); im.alt = ''; im.src = artCache[i]; el.prepend(im); el.classList.add('has'); } } catch (e) { /* no picture: the tile still works */ }
+        setTimeout(step, 30); };
+      step(); };
+    setTimeout(paint, 60);
+  }
   /* ---------- the classic menu ---------- */
   function classicTitle() {
     if (PB.audio) PB.audio.music(true);
@@ -165,21 +180,19 @@
       <div class="logo"><div class="ball"></div><h1>Pocket<br>Basketball</h1><p>Your career, from draft night to the Hall of Fame.</p></div>
       ${live ? `<button class="mode pri" id="cont">${MIC.career}<span><b>My Career</b><small>Continue as ${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></span><em>›</em></button>` : ''}
       ${list.length ? `<button class="mode ${live ? '' : 'pri'}" id="careers">${MIC.list}<span><b>My Player</b><small>${list.length} player${list.length > 1 ? 's' : ''} on this device · switch, or build another</small></span><em>›</em></button>` : `<button class="mode pri" id="newc">${MIC.career}<span><b>My Career</b><small>Build your My Player and take him from draft night to the Hall of Fame.</small></span><em>›</em></button>`}
-      <div class="modes">
-        <button class="tile" id="qg">${MIC.vs}<b>Quick game</b><small>Two teams, one game</small></button>
-        <button class="tile" id="seas">${MIC.cup}<b>Season</b><small>Run a whole team</small></button>
-        <button class="tile" id="prac">${MIC.target}<b>Practice</b><small>Drills and contests</small></button>
-        <button class="tile" id="daily">${MIC.day}<b>Daily challenge${dailyDone() ? ' ✓' : ''}</b><small>A new one every day</small></button>
-        <button class="tile" id="btop">${MIC.street}<b>Blacktop</b><small>1v1, 2v2, 3v3 to 21</small></button>
-        <button class="tile" id="clsc">${MIC.clock}<b>Classics</b><small>Replay the league's great nights</small></button>
+      <div class="modes art">
+        <button class="tile art" id="qg" data-art="0"><b>Quick game</b></button>
+        <button class="tile art" id="seas" data-art="1"><b>Season</b></button>
+        <button class="tile art" id="prac" data-art="2"><b>Practice</b></button>
+        <button class="tile art" id="daily" data-art="3"><b>Daily${dailyDone() ? ' ✓' : ''}</b></button>
+        <button class="tile art" id="btop" data-art="4"><b>Blacktop</b></button>
+        <button class="tile art" id="clsc" data-art="5"><b>Classics</b></button>
       </div>
-      <button class="mode" id="chat">${MIC.chat}<span><b>Chat</b><small>Talk with everyone playing.</small></span><em>›</em></button>
-      <div class="row2"><button class="ghost sm" id="prof">Profile</button><button class="ghost sm" id="about">What's new</button></div>
-      <div class="row2"><button class="ghost sm" id="how">How to play</button><button class="ghost sm" id="set">Settings</button></div>
+      <div class="tlinks"><button id="chat">Chat</button><button id="prof">Profile</button><button id="about">News</button><button id="how">How to play</button><button id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
-    whatsNew();
+    whatsNew(); artTiles();
     if (live) $('#cont').onclick = () => { tab = 'home'; hub(); };
     title3d(live ? C.me : null, live && C.team ? PB.team(C.team) : null);
     if ($('#newc')) $('#newc').onclick = () => { setCur(''); C = null; create(); };

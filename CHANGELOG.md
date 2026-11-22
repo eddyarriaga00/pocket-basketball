@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The menu has art: every mode on the title screen is a tile with a player from the game on it, in a different club's colors, with just its name. The small pages (Chat, Profile, News, How to play, Settings) are one row of pills under them.
+- Smaller, plainer buttons: the controls in a game are about a tenth smaller with thinner rings (Settings › Controls › Button size: Large is still there), and the buttons on the pages are a little shorter.
 - The Cup: an in-season tournament in your career. Early in the season some of your games are cup nights, group games on a painted floor against the four teams drawn with you. Win the group or be the best runner-up in your conference and the next games become a quarterfinal, a semifinal and the final. Win it for a trophy, five skill points, a bonus and an achievement. The table and the last eight are on the League tab. (Seasons of ten games or more.)
 - League leaders read like the real league: shown per game at full length, with a scoring champion in the low thirties and a middling starter around sixteen, the best rebounder about fourteen, the best passer about twelve, and the leaders in steals, blocks and threes where they belong. A threes column too.
 - Spending skill points no longer redraws the page from the top: the screen stays where you were.
