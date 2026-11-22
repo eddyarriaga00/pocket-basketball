@@ -3657,6 +3657,9 @@
         const five = t => pl.filter(p => p.team === t).sort((a, b) => a.slot - b.slot).map(p0 => { let p = p0;
           if (benched && p0.isUser) { const st = ((G.bench && G.bench[t]) || []).filter(x => x.d && x.d.pos === p0.d.pos).sort((a, b) => (b.d.ovr || 0) - (a.d.ovr || 0))[0] || ((G.bench && G.bench[t]) || [])[0]; if (st) p = { d: st.d, name: st.name, num: st.num, isUser: false }; }
           const im = shot(p, t); return `<li class="${p.isUser ? 'me' : ''}">${im ? `<img alt="" src="${im}">` : ''}<u>${p.num}</u>${p.name}<small>${p.d.pos || ''}</small></li>`; }).join('');
+        /* the ten head shots are drawn one at a time while the camera sweeps, so the card does not hold the game still
+           for half a second on a phone when it comes up (one not ready by then is drawn then, as before) */
+        { const g0 = G; pl.forEach((p, i) => setTimeout(() => { if (G === g0 && !iv.hidden && iv.className === '') shot(p, p.team); }, 300 + i * 220)); }
         iv.h = setTimeout(() => {
           iv.className = 'lineups';
           iv.innerHTML = `<p>Starting lineups</p><div class="lu"><ol style="--c:${o.teams[0].c1}"><h4>${o.teams[0].name}</h4>${five(0)}</ol><ol style="--c:${o.teams[1].c1}"><h4>${o.teams[1].name}</h4>${five(1)}</ol></div>`;

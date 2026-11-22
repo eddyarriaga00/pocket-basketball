@@ -959,6 +959,11 @@
       beard: [null, null, null, 'full', 'stubble', 'goatee', null, null, 'mustache', 'chinstrap', null][(h >> 12) % 11],
       wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 8, goggles: (h >> 27) % 23 === 0 ? 'black' : null, tee: (h >> 13) % 11 === 0 ? ((h >> 7) % 2 ? '#f2f2f2' : '#111111') : null, socks: [null, null, null, 'high', null, 'low', null][(h >> 5) % 7], shoeStyle: [0, 0, 1, 2, 0, 3, 1, 0][(h >> 10) % 8], bicep: (h >> 16) % 13 === 0 ? '#f2f2f2' : null };
   }
+  /* The renderer wants a bounding sphere for every skinned mesh the first time it draws it (only its centre is used,
+     to order the drawing), and works one out by posing every vertex in script: a quarter of a second for ten players
+     on a phone, again at each substitution and each head shot. The mesh's own sphere at rest is the same thing for
+     that purpose, and is worked out once for each shape. */
+  const restSphere = g => { if (!g.boundingSphere) g.computeBoundingSphere(); return g.boundingSphere.clone(); };
   function skinnedPlayer(p, kit) {
     const A = window.THREE_ADDONS;
     const root = new T.Group(), body = A.SkeletonUtils.clone(TPL.scene);
@@ -984,11 +989,11 @@
       if (bodyMesh && TPL.simpleGeo && !PB.mannequin) {
         body.traverse(o => { if (o.isSkinnedMesh && o !== bodyMesh) o.visible = false; });
         const sb = new T.SkinnedMesh(TPL.simpleGeo, mat); sb.frustumCulled = false; bodyMesh.parent.add(sb);
-        sb.position.copy(bodyMesh.position); sb.quaternion.copy(bodyMesh.quaternion); sb.scale.copy(bodyMesh.scale); sb.bind(bodyMesh.skeleton, bodyMesh.bindMatrix);
+        sb.position.copy(bodyMesh.position); sb.quaternion.copy(bodyMesh.quaternion); sb.scale.copy(bodyMesh.scale); sb.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); sb.boundingSphere = restSphere(TPL.simpleGeo);
         bodyMesh.visible = false;
         /* a thin dark outline (the inside of a slightly fatter copy): players read clearly against the floor */
         if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; bodyMesh.parent.add(ol);
-          ol.position.copy(bodyMesh.position); ol.quaternion.copy(bodyMesh.quaternion); ol.scale.copy(bodyMesh.scale); ol.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
+          ol.position.copy(bodyMesh.position); ol.quaternion.copy(bodyMesh.quaternion); ol.scale.copy(bodyMesh.scale); ol.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); ol.boundingSphere = restSphere(TPL.simpleGeo); }
       }
       if (bodyMesh && TPL.model && TPL.faceGeo && !PB.mannequin) {
         /* the model's hair, beard, face, headband and goggles: the parts this player's look asks for, in his colors */
@@ -997,22 +1002,26 @@
         const fN = +lk.face || 0, eyeV = fN < 5 ? 16 + fN : 31 + fN, mouthV = fN < 5 ? 26 + fN : 41 + fN;   // faces 0 to 4, then 5 on (parts 36 and up)
         const base = [HV[lk.hair] || 0, lk.hair === 'cornrows' ? 21 : 0, BV[lk.beard] || 0, mouthV, lk.band ? 24 : 0, lk.goggles ? 25 : 0].filter(Boolean);
         const setOf = want => { const key = want.join(','); let ixs = F0.userData.sets[key];
-          if (!ixs) { const src = F0.index.array, out = []; for (let t = 0; t < tv.length; t++) if (want.includes(tv[t])) out.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]); ixs = F0.userData.sets[key] = F0.attributes.position.count > 65535 ? new T.Uint32BufferAttribute(out, 1) : new T.Uint16BufferAttribute(out, 1); }
+          if (!ixs) { const src = F0.index.array, big = F0.attributes.position.count > 65535, mark = new Uint8Array(256); for (const v of want) mark[v] = 1;
+            /* the same triangles in the same order as before, picked with a table and written straight into place (six of these a player, every player) */
+            const tmp = F0.userData.tmp || (F0.userData.tmp = new Uint32Array(src.length)); let n = 0; for (let t = 0; t < tv.length; t++) if (mark[tv[t]]) { tmp[n++] = src[t * 3]; tmp[n++] = src[t * 3 + 1]; tmp[n++] = src[t * 3 + 2]; }
+            ixs = F0.userData.sets[key] = big ? new T.Uint32BufferAttribute(tmp.slice(0, n), 1) : new T.Uint16BufferAttribute(Uint16Array.from(tmp.subarray(0, n)), 1); }
           return ixs; };
         let ixs = setOf(base.concat(eyeV)); const shutIx = setOf(base.concat(31));   // eyes open, and shut for a blink
         const fg = new T.BufferGeometry(); for (const a of ['position', 'normal', 'skinIndex', 'skinWeight']) fg.setAttribute(a, F0.attributes[a]); fg.setIndex(ixs); fg.userData.own = true;
         const team = kit.c1, pick = v => v === 'team' ? team : v, hairC = new T.Color(lk.hairColor || '#17110d'), skinC = new T.Color(PB.SKIN[dd.skin == null ? 3 : dd.skin] || '#8d5a3b');
         const cOf = { 2: hairC.clone().lerp(skinC, 0.32), 7: hairC.clone().lerp(skinC, 0.5), 11: hairC.clone().lerp(skinC, 0.55), 24: new T.Color(pick(lk.band) || '#f2f2f2'), 25: new T.Color(lk.goggles === 'team' ? team : /^#/.test(lk.goggles || '') ? lk.goggles : '#141414') }, white = new T.Color('#f4f4f4'), dark = new T.Color('#141011');
         /* a color a vertex: by the part it belongs to (its triangles' variant), else by its layer */
-        const kc = F0.attributes.kc, vv = new Uint8Array(kc.count), src = F0.index.array; for (let t = 0; t < tv.length; t++) { vv[src[t * 3]] = tv[t]; vv[src[t * 3 + 1]] = tv[t]; vv[src[t * 3 + 2]] = tv[t]; }
+        const kc = F0.attributes.kc; let vv = F0.userData.vv;   // which part each vertex belongs to: the same for every player, so worked out once
+        if (!vv) { vv = F0.userData.vv = new Uint8Array(kc.count); const src = F0.index.array; for (let t = 0; t < tv.length; t++) { vv[src[t * 3]] = tv[t]; vv[src[t * 3 + 1]] = tv[t]; vv[src[t * 3 + 2]] = tv[t]; } }
         const cl = new Float32Array(kc.count * 3);
         for (let i = 0; i < kc.count; i++) { const r = kc.getX(i), c = cOf[vv[i]] || (r < 0.5 ? hairC : r < 1.5 ? white : dark); cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
         fg.setAttribute('color', new T.BufferAttribute(cl, 3));
         const fm = new T.SkinnedMesh(fg, new T.MeshLambertMaterial({ vertexColors: true })); fm.frustumCulled = false; bodyMesh.parent.add(fm); faceM = fm; fm.userData.open = ixs; fm.userData.shut = shutIx; fm.userData.yell = setOf(base.concat(eyeV, 23));
         /* how he feels shows on his face: a grin, a scowl, heavy eyes (the happy, stern and sleepy faces, worn for a moment) */
         { const rest = base.filter(v => v !== mouthV); fm.userData.happy = setOf(rest.concat(46, 36)); fm.userData.stern = setOf(rest.concat(47, 37)); fm.userData.tired = setOf(rest.concat(48, 38)); }
-        fm.position.copy(bodyMesh.position); fm.quaternion.copy(bodyMesh.quaternion); fm.scale.copy(bodyMesh.scale); fm.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
-      if (bodyMesh && !(TPL.model && !PB.mannequin)) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); }
+        fm.position.copy(bodyMesh.position); fm.quaternion.copy(bodyMesh.quaternion); fm.scale.copy(bodyMesh.scale); fm.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); fm.boundingSphere = restSphere(F0); }
+      if (bodyMesh && !(TPL.model && !PB.mannequin)) { const ms = new T.SkinnedMesh(paint(TPL.shortsGeo), sm); ms.frustumCulled = false; bodyMesh.parent.add(ms); ms.position.copy(bodyMesh.position); ms.quaternion.copy(bodyMesh.quaternion); ms.scale.copy(bodyMesh.scale); if (ms.isSkinnedMesh) { ms.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); ms.boundingSphere = restSphere(TPL.shortsGeo); } }
     }
     /* the number on the back and front, and hair */
     /* lettering that reads on any design: on a dark jersey the numbers are white (or a light second color) edged in
@@ -1150,7 +1159,7 @@
   function abduct(m, face, k) {
     if (!TPL.simpleGeo || PB.mannequin) return;
     _ax.set(Math.sin(face), 0, Math.cos(face));
-    for (const [arm, sd] of [[m.R, 1], [m.L, -1]]) { const b = arm.up; b.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, -k * sd * (TPL.sideR < 0 ? 1 : -1)).multiply(_qw); b.parent.getWorldQuaternion(_qp).invert().multiply(_q); b.quaternion.copy(_qp); b.updateMatrixWorld(true); }
+    for (const [arm, sd] of [[m.R, 1], [m.L, -1]]) { const b = arm.up; b.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, -k * sd * (TPL.sideR < 0 ? 1 : -1)).multiply(_qw); b.parent.getWorldQuaternion(_qp).invert().multiply(_q); b.quaternion.copy(_qp); }
   }
   function aim(bone, tip, dir, w) {
     bone.getWorldPosition(_a); tip.getWorldPosition(_b);
@@ -1160,7 +1169,6 @@
     _q.multiply(_qw);                                  // the world rotation it should have
     bone.parent.getWorldQuaternion(_qp).invert().multiply(_q);
     bone.quaternion.slerp(_qp, w);
-    bone.updateMatrixWorld(true);
   }
   const _d = V3();
   /* a direction given in the player's own frame (x to his right, y up, z ahead) into the world */
@@ -1309,7 +1317,7 @@
     for (let i = 0; i < 2; i++) { legs[i].th.getWorldPosition(_H); const hd = Math.hypot(F[i].x - _H.x, F[i].z - _H.z), reach = 0.985 * L;
       hipY = Math.max(hipY - 0.07 * L, Math.min(hipY, ank + F[i].y + Math.sqrt(Math.max(0.2, reach * reach - hd * hd)))); }
     legs[0].th.getWorldPosition(_H);
-    m.body.position.y += (p.y + hipY - _H.y) * w; m.body.updateMatrixWorld(true);
+    m.body.position.y += (p.y + hipY - _H.y) * w;
     for (let i = 0; i < 2; i++) { const l = legs[i], q = F[i];
       l.th.getWorldPosition(_H); _A.set(q.x, p.y + ank + q.y, q.z);
       _u.copy(_A).sub(_H); let d = _u.length(); const dm = 0.985 * L; if (d > dm) { _u.multiplyScalar(dm / d); _A.copy(_H).add(_u); d = dm; }
@@ -1325,7 +1333,7 @@
       const up = TPL.footUp && TPL.footUp[l.sd];
       if (up) { l.ft.getWorldQuaternion(_qw); _a.copy(up).applyQuaternion(_qw); _a.addScaledVector(_t3, -_a.dot(_t3)).normalize();
         _b.set(0, 1, 0).addScaledVector(_t3, -_t3.y).normalize();
-        _fq.setFromUnitVectors(_a, _b); _q.copy(_fq).multiply(_qw); l.ft.parent.getWorldQuaternion(_qp).invert().multiply(_q); l.ft.quaternion.slerp(_qp, w); l.ft.updateMatrixWorld(true); }
+        _fq.setFromUnitVectors(_a, _b); _q.copy(_fq).multiply(_qw); l.ft.parent.getWorldQuaternion(_qp).invert().multiply(_q); l.ft.quaternion.slerp(_qp, w); }
     }
   }
   function updateSkinned(p, m, G, dt) {
@@ -1449,9 +1457,9 @@
       const h = G.ball.holder, rd = h && h !== p && h.team === p.team && p.team !== undefined && !p.ref && !air && !p.pose && G.phase === 'live' && fall <= 0 ? 1 - smooth(2.5, 5, sp) : 0;
       m.rw = (m.rw || 0) + (rd - (m.rw || 0)) * Math.min(1, dt * 5); }
     m.tilt = (0.16 + 0.14 * m.gd + (p.pose === 'reach' ? 0.14 : 0)) * (1 - 0.7 * m.gc) * m.gw + 0.08 * m.dw * (1 - m.gw);
-    if (m.tilt > 0.01 && m.bones[bk('DEF-hips')]) { const hb = m.bones[bk('DEF-hips')], f = p.face + (p.spinA || 0); m.body.updateMatrixWorld(true);
+    if (m.tilt > 0.01 && m.bones[bk('DEF-hips')]) { const hb = m.bones[bk('DEF-hips')], f = p.face + (p.spinA || 0);
       _ax.set(Math.cos(f), 0, -Math.sin(f)); hb.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, m.tilt).multiply(_qw); hb.parent.getWorldQuaternion(_qp).invert().multiply(_q); hb.quaternion.copy(_qp);
-      if (m.head) { m.body.updateMatrixWorld(true); m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, -m.tilt * 0.85).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); } }
+      if (m.head) { m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_ax, -m.tilt * 0.85).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); } }
     /* eyes on the ball: the head turns toward it (within a comfortable range), smoothly */
     if (m.head && G.ball && G.ball.holder !== p && !p.shoot && !G.show) {
       const bx = G.ball.x - p.x, bz = G.ball.z - p.z;
@@ -1467,11 +1475,10 @@
     /* his close-up before the tip: he looks into the camera, not off at the ball */
     if (introFocus === p && intro > 0 && intro < 2.4) { let d = Math.atan2(cam.position.x - p.x, cam.position.z - p.z) - p.face; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
       m.introL = (m.introL === undefined ? d : m.introL) + (d - (m.introL === undefined ? d : m.introL)) * Math.min(1, dt * 8); m.lookY = Math.max(-0.75, Math.min(0.75, m.introL)); } else m.introL = undefined;
-    if (m.head && Math.abs(m.lookY || 0) > 0.01) { m.body.updateMatrixWorld(true); m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_up, m.lookY).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); }
+    if (m.head && Math.abs(m.lookY || 0) > 0.01) { m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_up, m.lookY).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); }
     if (m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = (G.t + m.hg.userData.bph) % 3.8 < 0.13;
     if (m.hg && m.hg.userData.faceM) { const fm = m.hg.userData.faceM, sh = (G.t + (m.bph2 || (m.bph2 = Math.random() * 3.8))) % 3.8 < 0.13, yl = /^(roar|flex|celebrate|dunk1|dunk2|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2), mood = p.celebT > 0 ? (p.celebK === 'ugh' ? 'stern' : p.celebK === 'call' ? '' : 'happy') : p.pose === 'sad' ? (p.tiredP ? 'tired' : 'stern') : '', ix = yl ? fm.userData.yell : sh ? fm.userData.shut : (mood && fm.userData[mood]) || fm.userData.open; if (fm.geometry.index !== ix) fm.geometry.setIndex(ix); }   // the model blinks
     if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|dunk2|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
-    m.body.updateMatrixWorld(true);
     /* the arms a little away from the body, so the hands swing clear of the baggy shorts */
     abduct(m, p.face + (p.spinA || 0), ABD);
     /* planted feet: in a defensive stance (and standing over a dribble) the feet are set on the floor and step, one
@@ -2171,6 +2178,19 @@
   R.benchJump = team => { benchJ[team] = 1.4; };   // a big play: that bench is up on its feet
   /* a man on the bench: the real model, sat down (or left standing: a coach), then baked into plain meshes. Nothing
      about him moves again, so there are no bones to work every frame */
+  /* BufferGeometry.computeVertexNormals, sum for sum and in the same order, on the arrays themselves (the library reads
+     and writes every number through a vector object: a third of the wait after Start went there) */
+  function bakedNormals(g, P, index) {
+    if (!index) { g.computeVertexNormals(); return; }
+    const I = index.array, N = new Float32Array(P.length);
+    for (let i = 0; i < I.length; i += 3) { const a = I[i] * 3, b = I[i + 1] * 3, c = I[i + 2] * 3;
+      const cx = P[c] - P[b], cy = P[c + 1] - P[b + 1], cz = P[c + 2] - P[b + 2], ax = P[a] - P[b], ay = P[a + 1] - P[b + 1], az = P[a + 2] - P[b + 2];
+      const x = cy * az - cz * ay, y = cz * ax - cx * az, z = cx * ay - cy * ax;
+      const a0 = N[a] + x, a1 = N[a + 1] + y, a2 = N[a + 2] + z, b0 = N[b] + x, b1 = N[b + 1] + y, b2 = N[b + 2] + z, c0 = N[c] + x, c1 = N[c + 1] + y, c2 = N[c + 2] + z;
+      N[a] = a0; N[a + 1] = a1; N[a + 2] = a2; N[b] = b0; N[b + 1] = b1; N[b + 2] = b2; N[c] = c0; N[c + 1] = c1; N[c + 2] = c2; }
+    for (let i = 0; i < N.length; i += 3) { const x = N[i], y = N[i + 1], z = N[i + 2], k = 1 / (Math.sqrt(x * x + y * y + z * z) || 1); N[i] = x * k; N[i + 1] = y * k; N[i + 2] = z * k; }
+    g.setAttribute('normal', new T.BufferAttribute(N, 3));
+  }
   function baked(d, kit, x, z, faceY, sit) {
     const p = { d, team: 0, slot: 0, r: d.r || {}, ht: d.ht || 78, num: d.num, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, face: 0, pose: '' };
     const m = skinnedPlayer(p, kit), grp = new T.Group(), B = n => m.bones[bk(n)], dir = (y, z) => V3().set(0, y, z).normalize();
@@ -2186,10 +2206,17 @@
     m.root.traverse(o => { if (!o.isSkinnedMesh || o.material === OUTLINE_MAT || !o.visible || !o.geometry.attributes.skinIndex) return;
       const g0 = o.geometry, n = g0.attributes.position.count, P = new Float32Array(n * 3);
       const used = new Uint8Array(n), ia = g0.index ? g0.index.array : null; if (ia) for (let k = 0; k < ia.length; k++) used[ia[k]] = 1;   // only what is drawn (one hairstyle of many)
-      for (let i = 0; i < n; i++) { if (ia && !used[i]) continue; o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld).applyMatrix4(M); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; }
+      /* the same sums SkinnedMesh.getVertexPosition does, with each bone's matrix worked out once for the whole mesh
+         instead of once for every vertex it moves (twelve men to seat was most of the wait after Start) */
+      if (g0.morphAttributes && g0.morphAttributes.position) { for (let i = 0; i < n; i++) { if (ia && !used[i]) continue; o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld).applyMatrix4(M); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; } }
+      else { const sk = o.skeleton, BM = sk.bones.map((b, k) => new T.Matrix4().multiplyMatrices(b.matrixWorld, sk.boneInverses[k])), si = g0.attributes.skinIndex, sw = g0.attributes.skinWeight, ps = g0.attributes.position, base = V3(), t = V3();
+        for (let i = 0; i < n; i++) { if (ia && !used[i]) continue;
+          base.fromBufferAttribute(ps, i).applyMatrix4(o.bindMatrix); v.set(0, 0, 0);
+          for (let c = 0; c < 4; c++) { const w = sw.getComponent(i, c); if (w !== 0) v.addScaledVector(t.copy(base).applyMatrix4(BM[si.getComponent(i, c)]), w); }
+          v.applyMatrix4(o.bindMatrixInverse).applyMatrix4(o.matrixWorld).applyMatrix4(M); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; } }
       const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(P, 3));
       for (const k of ['rA', 'rB', 'kpos', 'color']) if (g0.attributes[k]) g.setAttribute(k, g0.attributes[k]);
-      g.setIndex(g0.index); g.computeVertexNormals(); grp.add(new T.Mesh(g, o.material)); });
+      g.setIndex(g0.index); bakedNormals(g, P, g0.index); grp.add(new T.Mesh(g, o.material)); });
     /* the player he was baked from is done with: free what was his alone (his number's texture, his shadow, his
        sleeves), keeping the two materials the baked meshes wear */
     { const keep = new Set(grp.children.map(c => c.material));
@@ -2658,9 +2685,13 @@
         else { if (avg > avg0 * 0.85) setQuality(0); qLock = true; }   // nothing helped: it was never the drawing
       } else if (qLvl === 0) slow0 = 0;
     }
-    /* lettering that faces away from the camera is not drawn (each patch's own facing, as of the last frame) */
+    /* every matrix in the scene is brought up to date once, here (the renderer is told not to do it again): the
+       code that poses the players reads through getWorldPosition and getWorldQuaternion, which bring the chain above
+       a bone up to date themselves, so nothing before this point needs a whole skeleton recomputed */
+    scene.updateMatrixWorld();
+    /* lettering that faces away from the camera is not drawn (each patch's own facing) */
     for (const m of meshes.values()) if (m.dcl) for (const o of m.dcl) { const e = o.matrixWorld.elements, dx = cam.position.x - e[12], dy = cam.position.y - e[13], dz = cam.position.z - e[14]; o.visible = e[8] * dx + e[9] * dy + e[10] * dz > -0.12 * Math.hypot(e[8], e[9], e[10]) * Math.hypot(dx, dy, dz); }
-    renderer.render(scene, cam);
+    scene.matrixWorldAutoUpdate = false; try { renderer.render(scene, cam); } finally { scene.matrixWorldAutoUpdate = true; }
   };
   R.pixelCap = () => prCap;
   R.info = () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, tex: renderer.info.memory.textures });
