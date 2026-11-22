@@ -2380,7 +2380,7 @@
     ballShadow.position.set(b.x, 0.03, b.z);
     /* the park regulars' own balls */
     { let n = 0;
-      if (G.park) for (const p of G.pl) if (p.pb) {
+      if (G.park || G.warm) for (const p of G.pl) if (p.pb) {
         let m = parkBalls[n]; if (!m) { m = new T.Mesh(ballMesh.geometry, ballMesh.material); scene.add(m); parkBalls[n] = m; }
         m.visible = true; m.position.set(p.pb.x, p.pb.y, p.pb.z); m.rotation.x += dt * (p.pb.st === 'air' ? -9 : 6); n++; }
       for (let i = n; i < parkBalls.length; i++) parkBalls[i].visible = false; }

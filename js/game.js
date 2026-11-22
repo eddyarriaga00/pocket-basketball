@@ -1210,7 +1210,7 @@
     for (const p of G.pl) if (p.npc && p.pb) {
       const b = p.pb, s = p.pbRim, rz = s * RIM;
       if (b.st === 'hold') {
-        if (!p.spot) { const a = rr(-1.25, 1.25), d = rr(7, 23); p.spot = { x: Math.sin(a) * d, z: rz - s * Math.cos(a) * d }; p.pbWait = 0; }
+        if (!p.spot) { const a = G.warm ? (p.slot % 2 ? 1 : -1) * rr(0.8, 1.4) : rr(-1.25, 1.25), d = G.warm ? rr(13, 22) : rr(7, 23); p.spot = { x: Math.sin(a) * d, z: rz - s * Math.cos(a) * d }; p.pbWait = 0; }   // (before a game they work the wings and the corners: the middle of the floor is yours)
         const near = hyp(u.x - p.x, u.z - p.z) < 5.5;
         if (p.pbUp === undefined) {
           if (hyp(p.spot.x - p.x, p.spot.z - p.z) > 1.2 && !near) { p.tx = p.spot.x; p.tz = p.spot.z; seek(p, dt, 0.3); p.pose = ''; }
@@ -1243,7 +1243,8 @@
         b.vy -= 32 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
         if (b.y < 0.39) { b.y = 0.39; b.vy = Math.abs(b.vy) > 3 ? -b.vy * 0.55 : 0; b.vx *= 0.82; b.vz *= 0.82; }
         if (b.y <= 0.4) { b.vx *= 1 - Math.min(1, dt * 0.9); b.vz *= 1 - Math.min(1, dt * 0.9); }
-        if (Math.abs(b.x) > 33) { b.x = Math.sign(b.x) * 33; b.vx *= -0.5; } if (Math.abs(b.z) > 59) { b.z = Math.sign(b.z) * 59; b.vz *= -0.5; }
+        { const BX0 = G.warm ? 25.5 : 33, BZ0 = G.warm ? 47.5 : 59;   // (in an arena the ball stays on the floor)
+          if (Math.abs(b.x) > BX0) { b.x = Math.sign(b.x) * BX0; b.vx *= -0.5; } if (Math.abs(b.z) > BZ0) { b.z = Math.sign(b.z) * BZ0; b.vz *= -0.5; } }
         p.tx = b.x; p.tz = b.z; seek(p, dt, 0.42); p.pose = '';
         if (hyp(b.x - p.x, b.z - p.z) < 1.9 && b.y < 4) { b.st = 'hold'; p.spot = null; }
       }
@@ -1325,6 +1326,7 @@
       D.wt = (D.wt === undefined ? opts.warm : D.wt) - dt;
       let bt0 = $('#warmgo'); if (!bt0) { bt0 = document.createElement('button'); bt0.id = 'warmgo'; bt0.textContent = 'Tip off ›'; $('#game').appendChild(bt0); bt0.onclick = () => { if (G && opts.warm) finish(); }; }
       if (D.next > 0) { D.next -= dt; if (D.next <= 0) { D.next = 0; give(u); } }
+      parkShooters(dt);
       const s0 = Math.max(0, Math.ceil(D.wt)); $('#ftmsg').hidden = false;
       $('#ftmsg').textContent = `Shootaround · ${Math.floor(s0 / 60)}:${String(s0 % 60).padStart(2, '0')} · ${D.made} of ${D.att}${D.made >= 5 ? ' · warmed up' : D.made ? ` · ${5 - D.made} more to warm up` : ''}`;
       if (D.wt <= 0) finish();
@@ -3572,7 +3574,7 @@
          drill, the park, a scenario or the blacktop, and not when a script is driving the page. */
       if (!o._warm && !o.drill && !o.park && !o.scenario && !o.half && !o.switching && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && o.userId && !(PB.settings && PB.settings.warmOn === 'Off') && (!navigator.webdriver || PB.forceWarm)) {
         const me = (o.rosters[0] || []).find(d => d.id === o.userId);
-        if (me) { const real = o; this.start({ teams: o.teams, rosters: [[me], []], userId: o.userId, drill: 'free', warm: 60, qlen: 1, level: o.level, floor: o.floor || o.teams[0], homeKit: o.homeKit, _warm: true,
+        if (me) { const real = o; this.start({ teams: o.teams, rosters: [[me].concat((o.rosters[0] || []).filter(d => d.id !== o.userId).slice(0, 4)), []], userId: o.userId, drill: 'free', warm: 60, qlen: 1, level: o.level, floor: o.floor || o.teams[0], homeKit: o.homeKit, _warm: true,
           onEnd: r => { real._warm = true; real.warmed = !!(r && r.drill && r.drill.made >= 5); this.start(real); } }); return; }
       }
       if (PB.noGL) { alert('This browser cannot draw the 3D court (WebGL is off or unavailable). Try another browser, or turn on hardware acceleration.'); if (o.onEnd) setTimeout(() => PB.Career.title(), 0); return; }
@@ -3705,6 +3707,10 @@
         G.phase = 'live'; G.poss = 0; G.clock = def.secs;
         if (o.drill === 'dunk') { G.drill.next = 0.4; const sp = dunkSpot(); G.user.x = sp.x; G.user.z = sp.z; G.user.face = Math.atan2(-sp.x, hoopZ(0) - sp.z); }
         else if (o.drill === 'free') { const sp = toCourt(0, 0, 18); G.user.x = sp.x; G.user.z = sp.z; G.user.face = 0; give(G.user);
+          /* the shootaround before a game: your teammates are out there too, each with a ball of his own. Two get their
+             shots up at your basket, the other two at the far one */
+          if (o.warm) { G.warm = true; pl.filter(p => !p.isUser).forEach((p, i) => { p.npc = true; p.pbRim = (i < 2 ? 1 : -1) * Math.sign(hoopZ(0)); const a = (i % 2 ? 1 : -1) * rr(0.7, 1.15), d = rr(15, 22), rz = p.pbRim * RIM;
+            p.x = Math.sin(a) * d; p.z = rz - p.pbRim * Math.cos(a) * d; p.face = Math.atan2(0 - p.x, rz - p.z); p.pb = { st: 'hold', x: p.x, y: 2, z: p.z, vx: 0, vy: 0, vz: 0 }; }); }
           if (o.park) { G.park = true; G.user.x = 8; G.user.z = -5; G.user.face = 1.2; R.setStations && R.setStations(PARK);   // looking over at the wall of doors
             /* back from a door: you come out of it, a step in front of its ring, facing the park */
             const from = o.parkAt && PARK.find(s => s.id === o.parkAt);
