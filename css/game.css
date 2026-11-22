@@ -995,3 +995,25 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 #clk.last{color:#ff5a6b;animation:clkp 1s ease-in-out infinite}@keyframes clkp{50%{transform:scale(1.1)}}
 @media (prefers-reduced-motion:reduce){#clk.last{animation:none}}
 .next .tale{margin:2px 0 8px;font-size:12.5px;color:var(--mute)}.next .tale b{color:var(--ink);font-family:var(--display);font-weight:800;margin-right:5px}
+
+/* cutscenes: a line across the top, a headline, the player on the floor behind, the words in a box at the bottom */
+.cut{position:relative;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;padding:calc(14px + var(--st,0px)) 16px calc(18px + var(--sb));background:radial-gradient(120% 70% at 50% 0%,color-mix(in srgb,var(--c1) 34%,#0b0b0d) 0%,#0b0b0d 70%);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cut .cbar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:34px}
+.cut .cbar span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:700}
+.cut .cbar button{width:auto;margin:0;min-height:0;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:#fff;font-size:12px;font-weight:700}
+.cut .cbig{margin:18px 0 0;font-family:var(--display);font-weight:900;font-size:34px;line-height:1.02;font-stretch:112%;text-align:left;animation:cbig .5s cubic-bezier(.2,.75,.2,1) both}
+@keyframes cbig{from{opacity:0;transform:translateY(10px)}}
+.cut .cstage{position:relative;flex:1;min-height:34vh;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;margin:6px -16px 0}
+.cut .cbg{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font-family:var(--display);font-weight:900;font-stretch:112%;font-size:min(42vw,190px);line-height:1;letter-spacing:-.03em;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.13);white-space:nowrap;pointer-events:none}
+.cut .cfig{position:relative;z-index:1;height:100%;max-height:52vh;width:auto;object-fit:contain;animation:cfig .45s cubic-bezier(.2,.75,.2,1) both;filter:drop-shadow(0 12px 18px rgba(0,0,0,.6))}
+.cut .cfig.sp{filter:drop-shadow(0 12px 18px rgba(0,0,0,.6)) saturate(.85)}
+@keyframes cfig{from{opacity:0;transform:translateY(14px) scale(.97)}}
+.cut .cspot{position:absolute;left:50%;bottom:-4px;width:74%;height:38px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.2),rgba(255,255,255,0))}
+.cut .cbox{background:rgba(16,16,19,.92);border:1px solid var(--line);border-left:4px solid var(--c1);border-radius:16px;padding:14px 16px 12px;min-height:128px;display:flex;flex-direction:column;text-align:left}
+.cut .cwho{display:block;font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px}
+.cut #ctxt{margin:0;font-size:16px;line-height:1.45;flex:1}
+.cut .cnext{align-self:flex-end;margin-top:8px;font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+@media (prefers-reduced-motion:reduce){.cut .cbig,.cut .cfig{animation:none}}
+/* the road: the chapters of your career */
+.card.road p{display:flex;gap:10px;align-items:baseline;margin:0;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px;color:var(--mute)}.card.road p:first-of-type{border-top:0}
+.card.road p i{font-style:normal;width:14px;flex:none;text-align:center;font-weight:800}.card.road p.d{color:var(--ink)}.card.road p.d i{color:var(--green)}.card.road p.n{color:var(--ink);font-weight:700}

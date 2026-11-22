@@ -1023,7 +1023,7 @@
     }
     /* every build and position starts near 60 overall: shifted evenly, so the build's strengths stay its strengths */
     for (let i = 0; i < 6; i++) {
-      const d = (st.path === 'top' ? 65 : st.path === 'undrafted' ? 56 : 60) - PB.ovr(r, st.pos);   // a top prospect starts near 65, an undrafted man near 56
+      const d = (st.path === 'top' ? 65 : st.path === 'undrafted' ? 56 : st.path === 'second' ? 58 : 60) - PB.ovr(r, st.pos);   // a top prospect starts near 65, an undrafted man near 56
       if (Math.abs(d) < 1) break;
       for (const k in r) r[k] = PB.clamp(Math.round(r[k] + d * 0.6), 25, A.cap[k]);
     }
@@ -1040,17 +1040,18 @@
     /* the draft order: lottery teams (the weakest) pick first */
     const order = PB.TEAMS.slice().sort((a, b) => strengths[a.id] - strengths[b.id] + PB.gauss() * 3).map(t => t.id);
     C = { v: 2, statV: 2, me, team: null, pick: 0, year: 1, rosters, standings: {}, games: [], gi: 0, news: [], seasons: [], totals: zero(), awards: [], trophies: [],
-      trust: st.path === 'top' ? 56 : st.path === 'undrafted' ? 28 : 42, fans: 0, ct: {}, feed: [], phase: 'combine', streak: 0, order, path: st.path || 'draft' };
+      trust: st.path === 'top' ? 56 : st.path === 'undrafted' ? 28 : st.path === 'second' ? 34 : 42, agent: PB.randName(), fans: 0, ct: {}, feed: [], phase: 'combine', streak: 0, order, path: st.path || 'draft' };
     save(); parkFrom = null;
-    if (PB.noGL) { if (C.path === 'undrafted') undrafted(); else combine(); return; }
-    park();
-    setTimeout(() => { if (PB.Game.active) PB.Game.toast && PB.Game.toast(C.path === 'undrafted' ? 'Your agent: the MY CAREER door' : 'Your draft: the MY CAREER door', 'call'); }, 3500);
+    if (PB.noGL) { playScene('prologue', () => { if (C.path === 'undrafted') undrafted(); else combine(); }); return; }
+    playScene('prologue', () => { park();
+    setTimeout(() => { if (PB.Game.active) PB.Game.toast && PB.Game.toast(C.path === 'undrafted' ? 'Your agent: the MY CAREER door' : 'Your draft: the MY CAREER door', 'call'); }, 3500); });
   }
   /* how a career starts */
   const PATHS = [
-    ['top', 'Top prospect', 'A lottery lock: rated higher, a top-five pick, a starter\'s chance from day one. The city expects a star, and bad nights get loud.'],
-    ['draft', 'Prospect', 'The combine and your interviews decide where you go.'],
-    ['undrafted', 'Undrafted', 'Nobody calls your name. A two-way deal at the end of a bench, lower ratings; you grow faster, and every good night gets noticed.'],
+    ['top', 'Top prospect', 'A lottery lock: rated higher, a top-six pick, a starter\'s chance from day one. First overall is there for you, but only if you earn it at the combine. The city expects a star, and bad nights get loud.'],
+    ['draft', 'First-round prospect', 'The combine and your interviews decide where you go: a great day puts you in the lottery, a bad one drops you out of the first round.'],
+    ['second', 'Second-round pick', 'Your name is called on day two. No guaranteed money, a seat on the bench and a chip on your shoulder: you start a little lower and grow a little faster.'],
+    ['undrafted', 'Undrafted', 'Nobody calls your name. A two-way deal at the end of a bench and lower ratings; you grow fastest of all, and every good night gets noticed. The long road: this is how the best stories start.'],
   ];
   /* The undrafted road: draft night with no call, then a choice of training-camp invites, a two-way deal, the end of
      the bench. A real contract comes when the coach trusts you. */
@@ -1070,7 +1071,7 @@
       C.contract = { years: 1, salary: 0.58, kind: 'Two-way deal' }; C.earnings = 0; C.fans = 400;
       C.news.unshift(`${me.last} goes undrafted, signs a two-way deal with the ${t.name}`);
       C.feed.unshift({ who: '@draftnerd', text: `${PB.full(me)} to ${t.city} on a two-way. Somebody is going to regret passing on him. Or not.` });
-      makeRival(null, PB.ri(2, 6)); newSeason(); save();
+      C.cs = ['coach']; C.draftTale = 'undrafted'; makeRival(null, PB.ri(2, 6)); newSeason(); save();
       const rv = rivalP(), rt = PB.team(C.rival.team), in3d = !PB.noGL && PB.R.modelReady && PB.R.modelReady();
       show(`<div class="draft ${in3d ? 'over3d' : ''}" style="--c1:${t.c1};--c2:${t.c2}"><p class="kick">Training camp</p>
         <div class="podium"><p>Undrafted, the ${esc(tname(t))} sign</p><h1>${esc(PB.full(me))}</h1><p class="mute">${PB.POS_NAME[me.pos]} · ${me.arch} · ${PB.fmtH(me.ht)} · overall ${me.ovr}</p></div>
@@ -1089,11 +1090,11 @@
     show(`<div class="page post">${PB.noGL ? '' : '<button class="back" id="bk">‹ The park</button>'}<p class="kick">Pre-draft combine</p><h2>The scouts are watching</h2>
       <div class="card"><p>Fifteen spot-up shots from five spots, three balls each, in 45 seconds: the corners, the elbows, the top of the key.
       Hold Shoot and let go at the top of your jump, in the green band.</p>
-      <p class="fine">Your stock now: about pick ${projected()} of 30. Each make above an average day moves you up the board; each below moves you down.</p></div>
+      <p class="fine">Your stock now: about pick ${projected()} of ${C.path === 'second' ? 60 : 30}.${C.path === 'top' ? ' First overall takes ten makes.' : C.path === 'second' ? ' Twelve makes and a team may trade into the first round for you.' : ''} Each make above an average day moves you up the board; each below moves you down.</p></div>
       <button class="big" id="go">Take the floor</button><button class="ghost" id="skip">Skip (send them my tape)</button></div>`);
     $('#go').onclick = () => {
       scr().hidden = true;
-      const t = PB.team(C.order[projected() - 1]);
+      const t = PB.team(C.order[(projected() - 1) % 30]);
       PB.Game.start({ teams: [t, t], rosters: [[me], []], userId: 'me', drill: 'combine', qlen: 1, level: S.level, floor: t,
         onEnd: r => interviews(() => finishDraft(r.drill ? r.drill.score : 6)) });
     };
@@ -1110,12 +1111,12 @@
     ['What do you do the night before a game?', [['Film, a good meal, sleep.', 2], ['Video games with my teammates.', 1], ['Whatever I feel like.', -1]]],
   ];
   function interviews(done) {
-    const pj = projected(), slots = [PB.clamp(pj - PB.ri(2, 3), 1, 30), PB.clamp(pj + PB.ri(1, 2), 1, 30)].filter((v, i, a) => a.indexOf(v) === i);
+    const pj = projected(), lo = C.path === 'second' ? 31 : C.path === 'top' ? 1 : 2, hi = C.path === 'second' ? 60 : 30, slots = [PB.clamp(pj - PB.ri(2, 3), lo, hi), PB.clamp(pj + PB.ri(1, 2), lo, hi)].filter((v, i, a) => a.indexOf(v) === i);
     const qs = IQ.slice().sort(() => PB.rand() - 0.5);
     C.liked = null;
     const ask = i => {
       if (i >= slots.length) { save(); done(); return; }
-      const t = PB.team(C.order[slots[i] - 1]), [q, ans] = qs[i], opts = ans.slice().sort(() => PB.rand() - 0.5);
+      const t = PB.team(C.order[(slots[i] - 1) % 30]), [q, ans] = qs[i], opts = ans.slice().sort(() => PB.rand() - 0.5);
       show(`<div class="page post"><p class="kick">Team interviews · ${i + 1} of ${slots.length}</p>
         <div class="card" style="border-top:4px solid ${t.c1}"><p class="mute">${badge(t)} The ${esc(tname(t))} front office · they pick ${ordinal(slots[i])}</p><h3>“${esc(q)}”</h3></div>
         ${opts.map((a, k) => `<button class="ghost ans" data-k="${k}">${esc(a[0])}</button>`).join('')}</div>`);
@@ -1129,7 +1130,7 @@
     };
     ask(0);
   }
-  const projected = () => C.path === 'top' ? PB.clamp(Math.round(3 - (C.me.ovr - 65) * 0.4), 1, 5) : PB.clamp(Math.round(14 - (C.me.ovr - 62) * 1.6), 1, 30);
+  const projected = () => C.path === 'top' ? PB.clamp(Math.round(3 - (C.me.ovr - 65) * 0.4), 2, 5) : C.path === 'second' ? PB.clamp(Math.round(44 - (C.me.ovr - 58) * 1.5), 33, 56) : PB.clamp(Math.round(14 - (C.me.ovr - 62) * 1.6), 3, 30);
   function finishDraft(score) {
     const me = C.me;
     const avg = 6.5;   // an ordinary day: about 43% from these spots
@@ -1139,43 +1140,60 @@
       lane: +(12.3 - me.r.speed * 0.016 + g() * 0.15).toFixed(2), sprint: +(3.6 - me.r.speed * 0.0045 + g() * 0.03).toFixed(2) };
     C.measure = M8;
     const moved = score === null ? 0 : Math.round((score - avg) * 1.6) + (ath >= 80 ? 1 : ath <= 55 ? -1 : 0);
-    let pick = C.path === 'top' ? PB.clamp(projected() - Math.sign(moved) + Math.round(PB.gauss() * 0.8), 1, 6) : PB.clamp(projected() - moved + Math.round(PB.gauss() * 2), 1, 30);
+    /* Where you go. First overall is never given: a top prospect has to shoot it at the combine (ten of fifteen, or nine
+       with a team that loved him), and a first-round prospect needs the workout of the decade (fourteen). Short of that a
+       top prospect goes second to sixth. A first-round prospect who has a bad enough day slides out of the first round;
+       a day-two prospect who has a great one hears his name late in the first. */
+    let pick, tale;
+    if (C.path === 'top') {
+      const earned = score !== null && (score >= 10 || (score >= 9 && !!C.liked));
+      pick = earned ? 1 : PB.clamp(projected() - Math.sign(moved) + Math.round(PB.gauss() * 0.8), 2, 6); tale = earned ? 'first' : 'top';
+    } else if (C.path === 'second') {
+      pick = PB.clamp(projected() - moved * 2 + Math.round(PB.gauss() * 3), 31, 60); tale = 'second';
+      if (score !== null && score >= 12) { pick = PB.ri(26, 30); tale = 'jumped'; }
+    } else {
+      pick = PB.clamp(projected() - moved + Math.round(PB.gauss() * 2), 2, 38); tale = pick > 30 ? 'slid' : pick <= 5 ? 'lottery' : 'round1';
+      if (score !== null && score >= 14) { pick = 1; tale = 'first'; }
+      else if (score !== null && score <= 2 && !C.liked) { pick = PB.ri(31, 38); tale = 'slid'; }
+    }
     /* a team that loved your interview takes you at its pick, if you are still close to it on the board */
     let loved = false;
-    if (C.liked && Math.abs(C.liked.slot - pick) <= 3) { loved = C.liked.slot !== pick; pick = C.liked.slot; }
-    C.pick = pick; C.team = C.order[pick - 1]; C.combine = score; C.phase = 'regular';
-    C.contract = { years: 4, salary: rookieScale(pick), kind: 'Rookie deal' }; C.earnings = 0;
-    C.fans = 1500 + (31 - pick) * 400 + (C.path === 'top' ? 22000 : 0);
+    if (C.liked && pick > 1 && C.liked.slot > 1 && (pick > 30) === (C.liked.slot > 30) && Math.abs(C.liked.slot - pick) <= 3) { loved = C.liked.slot !== pick; pick = C.liked.slot; if (tale === 'slid') tale = 'round1'; }
+    C.pick = pick; C.round = pick > 30 ? 2 : 1; C.draftTale = tale; C.team = C.order[(pick - 1) % 30]; C.combine = score; C.phase = 'regular';
+    C.contract = pick > 30 ? { years: 2, salary: 1.1, kind: 'Second-round deal' } : { years: 4, salary: rookieScale(pick), kind: 'Rookie deal' }; C.earnings = 0;
+    C.fans = 1500 + Math.max(0, 31 - pick) * 400 + (C.path === 'top' ? 22000 : 0) + (pick === 1 ? 30000 : 0);
+    C.cs = ['coach'];
     if (C.path === 'top') C.news.unshift(`${me.last}, the top prospect, is ${PB.team(C.team).city}'s now`);
     C.news.unshift(score === null ? `${me.last} skips the combine shooting drills` : `${me.last} makes ${score} of 15 at the combine${moved > 0 ? ', and climbs draft boards' : moved < 0 ? ', and slides on draft boards' : ''}`);
     if (loved) C.news.unshift(`The ${PB.team(C.team).name} loved ${me.last} in his interview`);
-    makeRival(null, pick);
+    /* the man the league will measure you against: taken right ahead of the pick you wanted, or right behind you */
+    makeRival(null, pick, tale === 'top' ? 1 : pick === 1 ? 2 : tale === 'slid' || tale === 'second' ? PB.ri(12, 24) : undefined);
     newSeason();
     save();
     if (score !== null) {
       show(`<div class="page post"><p class="kick">Combine results</p><div class="gradebig"><b>${score}/15</b><span>spot-up shooting</span></div>
         <div class="card"><p>${moved > 1 ? 'Scouts loved it. You are moving up.' : moved < -1 ? 'Not your day. Some teams cooled on you.' : 'About what they expected.'}</p>
-        <p class="fine">Projected before: pick ${projected()} · now heading to draft night.</p></div>
+        <p class="fine">${C.path === 'top' ? (score >= 10 ? 'That is a number-one workout.' : 'First overall needed ten of fifteen. It is somebody else\'s to lose now.') : 'Projected before: pick ' + projected() + '.'} Now, draft night.</p></div>
         <div class="card"><h3>Measurements</h3><table class="std">
           <tr><td>Height in shoes</td><td>${PB.fmtH(Math.round(M8.ht))}</td></tr><tr><td>Wingspan</td><td>${PB.fmtH(M8.wing)}</td></tr>
           <tr><td>Max vertical</td><td>${M8.vert}"</td></tr><tr><td>Lane agility</td><td>${M8.lane} s</td></tr><tr><td>Three-quarter sprint</td><td>${M8.sprint} s</td></tr></table>
           <p class="fine">${ath >= 80 ? 'The athletic testing turned heads.' : ath <= 55 ? 'The athletic testing was a concern for some teams.' : 'Athletic testing about average for the class.'}</p></div>
         <button class="big" id="go">Draft night</button></div>`);
-      $('#go').onclick = draft;
-    } else draft();
+      $('#go').onclick = () => playScene('draftnight', draft);
+    } else playScene('draftnight', draft);
   }
   const zero = () => ({ gp: 0, min: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, w: 0, l: 0, grades: 0 });
 
   /* Your rival: same position, same draft class, picked a few spots from you by a team in your division. You see
      each other twice or more a season, and the league keeps score. */
-  function makeRival(order, pick) {
+  function makeRival(order, pick, exact) {
     const div = PB.team(C.team).div;
     const opts = PB.TEAMS.filter(t => t.div === div && t.id !== C.team);
     const rt = opts[Math.floor(PB.rand() * opts.length)].id;
     const p = PB.makePlayer(C.me.pos, C.me.ovr + PB.ri(0, 3) + (C.path === 'undrafted' ? 7 : 0), 19);
     p.rookie = true;
     C.rosters[rt].push(p); PB.freshName(p, C.rosters[rt], C.rosters);
-    C.rival = { id: p.id, team: rt, pick: PB.clamp(pick + PB.ri(-4, 4), 1, 30), season: zero(), totals: zero(), h2h: [0, 0] };
+    C.rival = { id: p.id, team: rt, pick: exact || PB.clamp(Math.min(pick, 30) + PB.ri(-4, 4), 2, 30), season: zero(), totals: zero(), h2h: [0, 0] };
   }
   const rivalP = () => C.rival && C.rosters[C.rival.team].find(p => p.id === C.rival.id);
 
@@ -1300,11 +1318,11 @@
     const in3d = !PB.noGL && PB.R.modelReady && PB.R.modelReady();
     show(`<div class="draft ${in3d ? 'over3d' : ''}" style="--c1:${t.c1};--c2:${t.c2}">
       <p class="kick">Draft night</p>
-      <div class="podium"><p>With the ${ord(C.pick)} pick, the ${esc(tname(t))} select</p>
+      <div class="podium"><p>${C.pick === 1 ? 'With the first pick in the draft' : C.pick > 30 ? `Round two · with the ${ord(C.pick)} pick` : `With the ${ord(C.pick)} pick`}, the ${esc(tname(t))} select</p>
       <h1>${esc(PB.full(me))}</h1><p class="mute">${PB.POS_NAME[me.pos]} · ${me.arch} · ${PB.fmtH(me.ht)} · overall ${me.ovr}</p></div>
       ${in3d ? '<div class="spacer"></div>' : `<div class="cap" style="background:${t.c1};color:${t.c2}">${esc(t.ab)}<b>#${me.num}</b></div>`}
-      <p class="fine">A four-year rookie deal. ${roleLine()}${C.path === 'top' ? ' The city expects a star.' : ''}</p>
-      <div class="card rival"><h3>Your rival</h3><p>${badge(rt)} <b>${esc(PB.full(rv))}</b>, ${PB.POS_NAME[rv.pos].toLowerCase()}, went ${ord(C.rival.pick)} to the ${esc(rt.name)}, in your division. Overall ${rv.ovr}. The league will compare you all career.</p></div>
+      <p class="fine">${C.pick > 30 ? 'A two-year deal, none of it guaranteed.' : 'A four-year rookie deal.'} ${roleLine()}${C.pick === 1 ? ' First overall: the whole league is watching.' : C.path === 'top' ? ' The city expects a star.' : ''}</p>
+      <div class="card rival"><h3>Your rival</h3><p>${badge(rt)} <b>${esc(PB.full(rv))}</b>, ${PB.POS_NAME[rv.pos].toLowerCase()}, went ${ord(C.rival.pick)} to the ${esc(rt.name)}, in your division. Overall ${rv.ovr}. ${C.draftTale === 'top' ? 'He went first. You were supposed to.' : C.pick > 30 ? 'A first-rounder at your position. Everybody will say they got it right.' : 'The league will compare you all career.'}</p></div>
       <button class="big" id="go">Go to the team</button></div>`);
     if (in3d) { scr().classList.add('over3d'); PB.R.showcase(me, t); }
     $('#go').onclick = () => { PB.R.showcase(null); scr().classList.remove('over3d'); hub(); };
@@ -1547,6 +1565,10 @@
     upgrade();
     if (C.phase === 'regular' && C.gi >= C.games.length) { startPlayoffs(); }
     if (C.phase === 'combine') { (C.path === 'undrafted' ? undrafted : combine)(); return; }
+    /* a scene that is waiting to be seen (the coach's office, your first start, a new contract) plays before the hub */
+    if (C.team && C.phase === 'regular') { const F = C.flags || (C.flags = {});
+      if (!(C.cs && C.cs.length) && !F.csStart) { const nx0 = nextGame(), st0 = nx0 && nx0.g ? story(nx0.g) : null; if (st0 && st0.k === 'first_start') { F.csStart = true; (C.cs = C.cs || []).push('firststart'); } } }
+    if (C.cs && C.cs.length && C.team) { const k = C.cs.shift(); save(); playScene(k, hub); return; }
     if (C.phase === 'retired') { hallOfFame(); return; }
     if (C.phase === 'awards') { awardsNight(); return; }
     if (C.phase === 'offseason') { seasonEnd(C.lastGot); return; }
@@ -1633,7 +1655,7 @@
       const hero = fb ? `<div class="card potg hero" style="--tc:${t.c1}"><img alt="" src="${fb}"><div class="pi"><p class="kick">${esc(t.name)} · ${me.pos} · ${esc(me.arch || '')}</p>
         <b class="nm">${esc(me.first || '')}<br>${esc(me.last || '')}</b><div class="ovr"><b>${me.ovr}</b><span>OVR</span></div>
         <span class="fg">${role()} · ${s.gp ? `${s.min ? (s.min / s.gp).toFixed(1) + ' min · ' : ''}${avg('pts')} pts · ${avg('reb')} reb · ${avg('ast')} ast` : 'no games yet'}</span></div></div>` : '';
-      body = hero + card + voteCard + (C.phase === 'playoffs' ? bracketCard() : '') + `
+      body = hero + card + voteCard + roadCard() + (C.phase === 'playoffs' ? bracketCard() : '') + `
         <div class="tiles">
           <div><b>${avg('pts')}</b><span>PTS</span></div><div><b>${avg('reb')}</b><span>REB</span></div><div><b>${avg('ast')}</b><span>AST</span></div>
           <div><b>${s.fga ? Math.round(s.fgm / s.fga * 100) : 0}%</b><span>FG</span></div><div><b>${s.tpa ? Math.round(s.tpm / s.tpa * 100) : 0}%</b><span>3PT</span></div><div><b>${s.gp ? gradeAvg(s.grades / s.gp) : '–'}</b><span>GRADE</span></div></div>
@@ -1964,6 +1986,160 @@
     }).join('');
   }
 
+  /* ---------- cutscenes ----------
+     A scene is a list of beats. A beat has a line across the top (k), sometimes a headline (big), somebody speaking
+     (who) and what is said (t), and may stand a player on the floor behind the words (model, in team's colors). The
+     words type themselves out; a tap finishes the line, the next tap moves on; Skip ends the scene. */
+  function cut(beats, done, o) {
+    beats = beats.filter(Boolean); o = o || {};
+    if (navigator.webdriver && !window.PBforceCut) { done(); return; }   // the test tools drive the menus by their buttons: no scenes for them unless they ask
+    const can = !PB.noGL && PB.R && PB.R.modelReady && PB.R.modelReady(), shots = {};
+    const PROSPECT = { id: 'prospect', c1: '#f2f2f2', c2: '#141416', name: 'PROSPECT', city: 'Prospect' }, SUIT = { c1: '#23262d', c2: '#23262d', alt: '#23262d', pat: 0, name: '', shorts: '#1b1d22', sock: '#15171a', shoe: '#111111', ref: 2 };
+    /* the people who are not players (your agent, the coach, the commissioner): a figure in a dark suit, the same one every time that name speaks */
+    const suit = name => { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return { id: 'suit' + h, first: '', last: name, pos: 'SF', ht: 73 + h % 5, skin: h % 6, num: 0, r: {},
+      look: { hair: ['short', 'buzz', 'fade', 'bald', 'short', 'curly'][(h >> 3) % 6], hairColor: ['#17110d', '#2b1d12', '#8d8d8d', '#17110d'][(h >> 6) % 4], beard: [null, 'stubble', null, 'goatee', 'full'][(h >> 9) % 5], face: (h >> 12) % 5 } }; };
+    const figure = b => { if (!can || b.fig === null) return null;
+      let pl, kit = null, tm = null, key;
+      if (b.fig && b.fig.player) { pl = b.fig.player; tm = b.fig.team; key = 'p' + pl.id + tm.id; }
+      else if (b.who && !b.model) { pl = suit(b.who); kit = SUIT; tm = PROSPECT; key = pl.id; }
+      else { pl = C.me; tm = b.model && C.team ? (b.team || PB.team(C.team)) : o.pre || !C.team ? PROSPECT : PB.team(C.team); key = 'me' + tm.id; }
+      if (!(key in shots)) { try { shots[key] = PB.R.portrait(pl, tm, 420, kit ? { body: true, kitObj: kit } : { body: true }); } catch (e) { shots[key] = null; } }
+      return shots[key]; };
+    let i = 0, timer = 0;
+    const end = () => { clearInterval(timer); scr().classList.remove('over3d'); scr().innerHTML = ''; done(); };
+    const draw = () => {
+      clearInterval(timer);
+      const b = beats[i]; if (!b) { end(); return; }
+      const t = b.team || (C && C.team && !(o.pre && !b.model) ? PB.team(C.team) : null), img = figure(b);
+      const sc = scr(); sc.classList.remove('over3d'); if (PB.R && PB.R.showcase && !PB.Game.active) PB.R.showcase(null);
+      sc.innerHTML = `<div class="cut" style="--c1:${t ? t.c1 : '#3a3a42'}"><div class="cbar"><span>${esc(b.k || '')}</span><button id="cskip">Skip ›</button></div>
+        ${b.big ? `<h1 class="cbig">${esc(b.big)}</h1>` : ''}
+        <div class="cstage">${b.bg ? `<span class="cbg">${esc(b.bg)}</span>` : ''}${img ? `<img class="cfig${b.who && !b.model ? ' sp' : ''}" alt="" src="${img}">` : ''}<i class="cspot"></i></div>
+        <div class="cbox">${b.who ? `<b class="cwho">${esc(b.who)}</b>` : ''}<p id="ctxt"></p><em class="cnext" id="cnext">${i + 1 < beats.length ? 'Tap to continue' : 'Tap to go on'} ›</em></div></div>`;
+      sc.hidden = false; sc.scrollTop = 0;
+      const el = $('#ctxt'), full = b.t || ''; let n = 0;
+      const typed = () => n >= full.length;
+      timer = setInterval(() => { n = Math.min(full.length, n + 2); el.textContent = full.slice(0, n); if (typed()) clearInterval(timer); }, 22);
+      $('#cskip').onclick = e => { e.stopPropagation(); end(); };
+      sc.firstElementChild.onclick = () => { if (!typed()) { n = full.length; el.textContent = full; clearInterval(timer); return; } i++; draw(); };
+    };
+    draw();
+  }
+  /* the scenes of a career, each written for the road you chose */
+  function playScene(k, done) {
+    const me = C.me, P = C.path || 'draft', t = C.team ? PB.team(C.team) : null, ag = C.agent || (C.agent = PB.randName()), home = me.from ? me.from : 'home';
+    const coach = t ? coachOf(C.team) : '', vet = t ? myRoster().filter(p => p.pos === me.pos && p.id !== me.id).sort((a, b) => b.ovr - a.ovr)[0] : null, rv = C.rival ? rivalP() : null, rt = C.rival ? PB.team(C.rival.team) : null;
+    const N = (k2, t2, o) => Object.assign({ k: k2, t: t2 }, o || {}), ME = { model: me }, tale = C.draftTale;
+    let B = [];
+    if (k === 'prologue') {
+      B = P === 'top' ? [
+        N('Three weeks before the draft', `Every mock draft has the same name near the top: ${PB.full(me)}. The gym in ${home} has not had an empty seat since March.`, { big: 'The top prospect', bg: 'DRAFT' }),
+        N('Your agent', `"Top six is done. Nobody is passing on you." ${ag} does not look up from the phone. "But first overall is not a gift. It is one workout, with thirty teams in the building."`, { who: ag }),
+        N('Your agent', '"Shoot it at the combine and they call your name first. Ten of fifteen, and nobody argues. Anything less, and somebody else walks up those steps before you do."', { who: ag }),
+        N('The combine', 'Fifteen shots. One of them could be worth the first pick in the draft.', { big: 'Earn it' })]
+      : P === 'second' ? [
+        N('Three weeks before the draft', `Nobody is writing about ${PB.full(me)}. The lists stop at thirty, and you are not on them.`, { big: 'Day two', bg: 'DRAFT' }),
+        N('Your agent', `"I will be straight with you." ${ag} slides a sheet across the table. "Second round. Forty, maybe fifty. No guaranteed money. You make the team in camp or you do not."`, { who: ag }),
+        N('Your agent', '"There is one way off that list. Have the day of your life at the combine, and somebody trades back into the first round to get you. It has happened."', { who: ag }),
+        N('The combine', 'Thirty names will be called on night one. Yours is not supposed to be one of them.', { big: 'Prove them wrong' })]
+      : P === 'undrafted' ? [
+        N('Draft week', `No workouts. No interviews. The scouts who came through ${home} came to see somebody else.`, { big: 'Nobody is coming', bg: 'DRAFT' }),
+        N('Your agent', `"Sixty picks, and I do not have one team telling me they will use theirs on you." ${ag} lets that sit. "So here is what we do. We watch. And when it is over, I start calling."`, { who: ag }),
+        N('Your agent', '"Camp invite. Two-way deal. End of the bench. That is the offer if we are lucky. Every great undrafted story started in exactly that seat."', { who: ag }),
+        N('Draft night', 'They will all tell this story one day. It starts with a phone that does not ring.', { big: 'The long road' })]
+      : [
+        N('Three weeks before the draft', `${PB.full(me)} is a first-round name: somewhere between the lottery and the last pick of the night, depending on who you ask.`, { big: 'The prospect', bg: 'DRAFT' }),
+        N('Your agent', `"You are a first-rounder today," ${ag} says. "Where in the first round is up to you. The combine, then the interviews. Teams remember both."`, { who: ag }),
+        N('Your agent', '"Shoot the lights out and you are a lottery pick. Have a bad day and answer badly, and you could be sitting in that room when night one ends. It happens every year."', { who: ag }),
+        N('The combine', 'Fifteen shots, two interviews, one night that decides where your career begins.', { big: 'Your move' })];
+    }
+    if (k === 'draftnight' && t) {
+      const ord = ordinal(C.pick), first = C.pick === 1;
+      B = tale === 'first' ? [
+        N('Draft night', 'The green room. Your family at the table, a camera a few feet from your face, and a card the commissioner has not read yet.', { big: 'Draft night' }),
+        N('The commissioner', `"With the first pick in the draft, the ${tname(t)} select..."`, { who: 'The commissioner' }),
+        N('The commissioner', `"...${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: 'First overall', bg: '#1' }, ME)),
+        N('Your agent', `"You earned that," ${ag} says into your ear over the noise. "Nobody gave it to you. Remember that when it gets hard."`, { who: ag })]
+      : tale === 'top' ? [
+        N('Draft night', 'The green room. Everybody in the building thinks they know the first name on the card.', { big: 'Draft night' }),
+        N('The commissioner', `"With the first pick in the draft..." The camera swings to your table.`, { who: 'The commissioner' }),
+        N('The commissioner', `"...${rv ? PB.full(rv) : 'another name'}."`, { who: 'The commissioner', big: 'Not you', bg: '#1', fig: rv && rt ? { player: rv, team: rt } : undefined }),
+        N('Draft night', `You clap. You keep your face still. The combine cost you this: ${rv ? rv.last : 'he'} shot it better on the one day it counted.`),
+        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', bg: '#' + C.pick }, ME)),
+        N('Your agent', `"${ord} is a long way from a tragedy," ${ag} says. "And now you have somebody to chase."`, { who: ag })]
+      : tale === 'slid' ? [
+        N('Draft night', 'Thirty picks. You counted every one of them from a chair in the green room.', { big: 'Night one' }),
+        N('Draft night', 'The room empties table by table. Yours is one of the last. Then the lights come up, and they are stacking chairs.'),
+        N('Your agent', `"Tomorrow," ${ag} says. "It is still the league. And every team that passed tonight just did you a favor."`, { who: ag }),
+        N('Day two', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The deputy commissioner', big: 'Round two', bg: '#' + C.pick }, ME))]
+      : tale === 'second' ? [
+        N('Draft night', 'No green room for you. A couch, a television, and thirty names that are not yours.', { big: 'Night one' }),
+        N('Day two', `It is the middle of the afternoon when the phone rings. Not ${ag}. A number you do not know.`),
+        N('The general manager', `"This is the ${t.name}. We are on the clock, and we are taking you. Welcome to ${t.city}."`, { who: `${t.city} front office` }),
+        N('Day two', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The deputy commissioner', big: 'Round two', bg: '#' + C.pick }, ME))]
+      : tale === 'jumped' ? [
+        N('Draft night', 'You were supposed to be watching this from a couch. After that combine, they found you a seat in the building.', { big: 'Draft night' }),
+        N('Your agent', `"Somebody is trading back into the first round," ${ag} says, reading. "They are doing it for you."`, { who: ag }),
+        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: 'First round', bg: '#' + C.pick }, ME)),
+        N('Draft night', 'A day-two prospect three weeks ago. A first-round pick tonight. One good day did that.', ME)]
+      : [
+        N('Draft night', first ? 'The green room, and a card with your name on it.' : 'The green room. Names come off the board. Tables empty around you.', { big: 'Draft night' }),
+        N('Your agent', C.pick <= 5 ? `"Lottery," ${ag} whispers. "That combine did it."` : C.pick <= 14 ? `"You are next. I can feel it," ${ag} says, for the third time tonight.` : `"Still good," ${ag} says. "The right team, not the first team."`, { who: ag }),
+        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: C.pick <= 5 ? 'Lottery pick' : 'First round', bg: '#' + C.pick }, ME)),
+        N('Draft night', `The hat, the handshake, the walk. ${rv ? `Somewhere behind you, ${PB.full(rv)} is hearing his name too: same position, same class.` : ''}`, ME)];
+    }
+    if (k === 'coach' && t) {
+      B = [N(`${t.city} · the practice floor`, `Day one. The gym smells like floor wax and somebody else's sweat.`, Object.assign({ big: `Welcome to ${t.city}`, bg: t.ab || t.id }, ME)),
+        N('Head coach', P === 'top' ? (C.pick === 1 ? `"First pick in the draft." Coach ${coach.split(' ').pop()} looks you over. "That gets you a locker and a lot of cameras. Minutes you earn in here."` : `"They told me you are special." Coach ${coach.split(' ').pop()} does not smile. "Special shows up in March. Show me October first."`)
+          : P === 'undrafted' ? `"I have fifteen men and one of them is you, on a two-way." Coach ${coach.split(' ').pop()} shrugs. "I do not care how you got here. I care what you do with four minutes."`
+          : C.pick > 30 ? `"Second-round pick. Nothing guaranteed." Coach ${coach.split(' ').pop()} taps the clipboard. "Good. Hungry players defend."`
+          : `"I asked for you," Coach ${coach.split(' ').pop()} says. "Do not make me look stupid."`, { who: `Coach ${coach}` }),
+        vet ? N('The locker room', role() === 'Starter' ? `${PB.full(vet)} has played your position here for years. He shakes your hand, slowly. "Take care of my spot, rook."` : `That is ${PB.full(vet)}'s spot: a ${vet.ovr}, your position. He nods at you from across the room. It is not unfriendly. It is not an invitation either.`, { fig: { player: vet, team: t } }) : null,
+        N('Head coach', role() === 'Starter' ? '"You start. Do not confuse that with being ready."' : role() === 'Sixth man' ? '"First man off my bench. Change the game when you come in, and we will talk about more."' : '"You sit until I call you. Be ready every single time I look down that bench."', { who: `Coach ${coach}` }),
+        N('Your road', P === 'top' ? 'They expect a star. Become one.' : P === 'undrafted' ? 'Make the roster. Earn a real contract. Then make them all remember passing on you.' : C.pick > 30 ? 'Crack the rotation. Then the starting five. Then make thirty teams explain themselves.' : 'Prove the pick right.', { big: P === 'top' ? 'Live up to it' : P === 'undrafted' ? 'Nobody called' : C.pick > 30 ? 'Day-two pick' : 'First-rounder' })];
+    }
+    if (k === 'firststart' && t) {
+      B = [N(`${t.city} · shootaround`, `Coach ${coach.split(' ').pop()} waves you over before the others are out of the tunnel.`, ME),
+        N('Head coach', P === 'undrafted' ? '"You are starting tonight." A beat. "Nobody drafted you, and you are starting in this league. Think about that for exactly ten seconds, then go guard somebody."' : C.pick > 30 ? '"You are in the five tonight. Second-rounders do not usually hear that from me. You earned it."' : '"You are starting tonight. It is yours until you give it back."', { who: `Coach ${coach}`, big: 'Your first start' }),
+        vet ? N('The locker room', `${PB.full(vet)} is lacing up for the second unit. "Do not look at me like that," he says. "Go play."`, { fig: { player: vet, team: t } }) : null];
+    }
+    if (k === 'converted' && t) {
+      B = [N(`${t.city} · the front office`, 'You are called upstairs after practice. Nobody is called upstairs for good news on a two-way.', { big: 'Upstairs' }),
+        N('The general manager', '"We are tearing up the two-way." A folder comes across the desk. "Three years. A real contract. You are not at the end of anybody\'s bench anymore."', { who: `${t.city} front office` }),
+        N('Your agent', `${ag} calls before you reach the parking lot. "Sixty picks. Sixty. And you just got paid anyway."`, { who: ag }),
+        N('Your road', 'Chapter one is over. You made the league. Now find out how good you can be.', { big: 'Earned it' })];
+    }
+    if (k === 'first20' && t) {
+      B = [N('After the game', 'The locker room is loud. Somebody has written a 20 on the whiteboard and circled it twice.', ME),
+        N('Head coach', P === 'undrafted' ? '"Twenty. From the man nobody drafted." He almost smiles. "They will have a scouting report on you by Friday. Good. Beat it."' : P === 'top' ? '"Twenty. That is what they drafted you for. Now do it when they are ready for you."' : '"Twenty tonight. The league noticed. That is the easy part. Now they game-plan for you."', { who: `Coach ${coach}`, big: 'Twenty' })];
+    }
+    if (k === 'allstar' && t) {
+      B = [N('The call', `${ag} never calls this early.`, ME),
+        N('Your agent', P === 'undrafted' ? '"All-Star." Then nothing, for a long time. "Undrafted. All-Star. I am going to frame the draft board from your year and hang it in my office."' : C.pick > 30 ? '"You are an All-Star. A second-round pick. Do you know how short that list is?"' : P === 'top' ? '"All-Star. On schedule." A laugh. "Do not tell them I said on schedule."' : '"All-Star. First time. Not the last."', { who: ag, big: 'All-Star' }),
+        rv ? N('Around the league', `${PB.full(rv)} posts a single word: "Deserved." ${rt ? `The ${rt.name} are on the schedule soon.` : ''}`, { fig: rt ? { player: rv, team: rt } : undefined }) : null];
+    }
+    if (k === 'champ' && t) {
+      B = [N('The last buzzer', 'Confetti in your hair. Somebody is crying on your shoulder and you are not sure who.', Object.assign({ big: 'Champion' }, ME)),
+        N('Head coach', P === 'undrafted' ? '"Go find the sixty men they took instead of you," he shouts over the noise, "and ask them what this feels like."' : P === 'top' ? '"This is what they saw in you. All of it."' : C.pick > 30 ? '"Day two of the draft. And now this. Nobody can take it back."' : '"You earned every minute of this."', { who: `Coach ${coach}` }),
+        N('Your road', P === 'undrafted' ? 'From a phone that did not ring to the top of the league.' : 'A champion. There is more of the road ahead.', { big: `${t.city} is yours` })];
+    }
+    if (!B.length) { done(); return; }
+    cut(B, done, { pre: k === 'prologue' || k === 'draftnight' });
+  }
+  /* the road: the chapters of the career you chose, ticked off as you live them, and the one in front of you */
+  function roadCard() {
+    if (!C.team) return '';
+    const P = C.path || 'draft', M = memOf(), T = C.trophies || [], has = re => T.some(x => re.test(x));
+    const ch = [[P === 'undrafted' ? 'Make a roster, undrafted' : C.pick === 1 ? 'Go first overall' : C.pick > 30 ? 'Hear your name on day two' : 'Get drafted in the first round', true]];
+    if (P === 'undrafted') ch.push(['Turn the two-way into a real contract', !!(C.contract && C.contract.kind !== 'Two-way deal')]);
+    if (P === 'undrafted' || C.pick > 30) ch.push(['Crack the rotation: sixth man or better', (M.sixth || 0) + (M.starts || 0) > 0 || role() !== 'Bench']);
+    ch.push(['Start a game', (M.starts || 0) > 0 || (M.old && role() === 'Starter')], ['Score twenty in a game', ((C.highs || {}).pts || 0) >= 20], ['Make an All-Star team', has(/^All-Star, /)], ['Win a championship', has(/^Champion, /)], ['Win the MVP', has(/^MVP, /)],
+      [P === 'undrafted' ? 'The Hall of Fame: the greatest undrafted story ever told' : P === 'top' ? 'The Hall of Fame: everything they said you would be' : 'The Hall of Fame', !!(C.retired && C.retired.hof)]);
+    const next = ch.find(c => !c[1]), n = ch.filter(c => c[1]).length;
+    return `<div class="card road"><h3>${P === 'top' ? 'Live up to it' : P === 'undrafted' ? 'Nobody called' : C.pick > 30 ? 'Day-two pick' : 'Prove them right'} <small>${n} of ${ch.length}</small></h3>
+      ${ch.map(c => `<p class="${c[1] ? 'd' : c === next ? 'n' : ''}"><i>${c[1] ? '✓' : c === next ? '›' : '·'}</i>${esc(c[0])}</p>`).join('')}</div>`;
+  }
+
   /* ---------- what tonight is about ----------
      The career remembers a little of what has happened (how many games you have started and how many you have come
      off the bench, the role you had last time, the team you were on before, whether you are just back from being hurt
@@ -2160,7 +2336,7 @@
       res.goals = C.goals.map(g => ({ text: g.text, met: goalMet(g, res.line, res.gscore) }));
       const met = res.goals.filter(g => g.met).length;
       me.sp += Math.round(met * 2 * PB.clamp(20 / (C.len || 20), 0.3, 1.5)); C.trust = PB.clamp((C.trust ?? 45) + met * 1.5, 0, 100);
-      if (C.path === 'undrafted' && C.year <= 3) me.sp += met;   // the chip on the shoulder: an undrafted man grows faster
+      if (C.path === 'undrafted' && C.year <= 3) me.sp += met; else if (C.path === 'second' && C.year <= 2) me.sp += Math.ceil(met / 2);   // a day-two pick has a chip on his shoulder too   // the chip on the shoulder: an undrafted man grows faster
       C.goals = null;
     }
     /* the story you chose: a top pick lives with the noise, an undrafted man earns everything */
@@ -2174,7 +2350,7 @@
         C.contract = { years: 3, salary: 2.1, kind: 'Standard deal' };
         C.news.unshift(`The ${PB.team(C.team).name} turn ${me.last}'s two-way into a three-year contract`);
         C.feed.unshift({ who: '@' + PB.team(C.team).name.toLowerCase(), text: `He earned it. ${PB.full(me)} is staying.` });
-        res.converted = true;
+        res.converted = true; (C.cs = C.cs || []).push('converted');
       }
     }
     /* career highs (games you play) and milestones */
@@ -2418,6 +2594,7 @@
   function after(g, sim) {
     /* the night it was billed as, in the news; then what the next game will remember of this one */
     if (g.st && !sim && g.res) { const n = storyNews(g.st, g.res, g); if (n) C.news.unshift(n); }
+    { const F = C.flags || (C.flags = {}); if (!sim && g.res && !F.cs20 && (g.res.line.pts || 0) >= 20) { F.cs20 = true; (C.cs = C.cs || []).push('first20'); } }
     remember(g.res);
     const r = g.res, o = PB.team(g.opp), t = PB.team(C.team), l = r.line;
     const pr = pressFor(g, r);
@@ -2588,6 +2765,7 @@
     const s = C.season, gp = s.gp || 1, A = C.adj && C.adj.gp ? C.adj : null, ppg = (A ? A.pts / A.gp : s.pts / gp) / QF(), score = ppg + (A ? (A.reb + A.ast) / A.gp : (s.reb + s.ast) / gp) / QF() * 0.5 + (s.grades / gp - 6);
     if (score >= 21 || (ppg >= 17 && C.trust > 70)) {
       C.trophies.push(`All-Star, season ${C.year}`); C.me.sp += 5; C.fans = Math.round(C.fans * 1.15);
+      if (C.trophies.filter(x => /^All-Star, /.test(x)).length === 1) (C.cs = C.cs || []).push('allstar');
       C.news.unshift(`${C.me.last} is an All-Star! First-time selection for the ${PB.team(C.team).name}`);
       C.feed.unshift({ who: '@league', text: `Your All-Stars are here. Congrats to ${PB.full(C.me)} of the ${PB.team(C.team).name}!` });
       C.season.allstar = true;
@@ -2796,7 +2974,7 @@
     } else {
       P.champ = winner(S2[0]);
       C.news.unshift(`The ${tname(PB.team(P.champ))} are champions!`);
-      if (P.champ === C.team) { PB.confetti([PB.team(C.team).c1, PB.team(C.team).c2], 7); C.trophies.push(`Champion, season ${C.year}`); C.fans = Math.round(C.fans * 1.4); C.me.sp += 10; banner(C.team, { kind: 'title', text: `Season ${C.year}` }); }
+      if (P.champ === C.team) { PB.confetti([PB.team(C.team).c1, PB.team(C.team).c2], 7); C.trophies.push(`Champion, season ${C.year}`); if (C.trophies.filter(x => /^Champion, /.test(x)).length === 1) (C.cs = C.cs || []).push('champ'); C.fans = Math.round(C.fans * 1.4); C.me.sp += 10; banner(C.team, { kind: 'title', text: `Season ${C.year}` }); }
     }
     P.round++;
     save();
@@ -3167,7 +3345,7 @@
     const in3d = !PB.noGL && PB.R.modelReady && PB.R.modelReady();
     show(`<div class="page post ${in3d ? 'awards draft over3d' : ''}"><p class="kick">Retirement</p><h2>${esc(PB.full(C.me))} hangs them up</h2>${in3d ? '<div class="spacer"></div>' : ''}
       <div class="tiles"><div><b>${C.seasons.length}</b><span>SEASONS</span></div><div><b>${(T.pts / gp).toFixed(1)}</b><span>PPG</span></div><div><b>${T.pts}</b><span>POINTS</span></div></div>
-      <div class="card"><h3>${inHall ? 'Hall of Fame: inducted' : 'Hall of Fame: not this time'}</h3><p>${inHall ? 'First ballot.' : 'A fine career. The voters wanted more hardware.'}${jersey ? ` The ${esc(PB.team(C.team).name)} retire your #${C.me.num}: it hangs in their rafters from tonight.` : ''}</p>
+      <div class="card"><h3>${inHall ? 'Hall of Fame: inducted' : 'Hall of Fame: not this time'}</h3><p>${inHall ? (C.path === 'undrafted' ? 'First ballot. Sixty picks went by without your name, and now it hangs in the Hall: the greatest undrafted story the league has told.' : C.pick > 30 ? 'First ballot. A day-two pick in the Hall of Fame.' : C.pick === 1 ? 'First ballot. First overall, and everything they said you would be.' : C.path === 'top' ? 'First ballot. They expected a star and got one.' : 'First ballot.') : 'A fine career. The voters wanted more hardware.'}${jersey ? ` The ${esc(PB.team(C.team).name)} retire your #${C.me.num}: it hangs in their rafters from tonight.` : ''}</p>
       <p class="fine">Hall score ${score.toFixed(1)} (22 gets you in): points, boards and assists, MVPs, titles, All-Star and All-League nods, seasons played.</p></div>
       <div class="card"><h3>Trophy case</h3>${C.trophies.map(x => `<p class="news">🏆 ${esc(x)}</p>`).join('') || '<p class="mute">Empty.</p>'}</div>
       <button class="big" id="go">Main menu</button></div>`);
@@ -3176,7 +3354,7 @@
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 
-  PB.Career = { title, hub, park, get: () => C, gameStats, dbg: PB.DEV ? { simLine, binom, story: () => { const nx = nextGame(); return nx && nx.g ? story(nx.g) : null; }, storyOf: g => story(g), intro: () => { const nx = nextGame(); return nx && nx.g ? introCall(nx.g) : null; }, mem: () => memOf(), role, moveTo, storyNews } : undefined };
+  PB.Career = { title, hub, park, get: () => C, gameStats, dbg: PB.DEV ? { simLine, binom, story: () => { const nx = nextGame(); return nx && nx.g ? story(nx.g) : null; }, storyOf: g => story(g), intro: () => { const nx = nextGame(); return nx && nx.g ? introCall(nx.g) : null; }, mem: () => memOf(), role, moveTo, storyNews, draftWith: sc => finishDraft(sc), scene: (k, done) => playScene(k, done || hub) } : undefined };
   PB.boot = () => {
     /* without WebGL the menus and the career still work; only the court cannot be drawn */
     try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }
