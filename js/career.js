@@ -1576,7 +1576,7 @@
     if (C.phase === 'regular' || C.phase === 'playoffs') { const lr = loginReward(); if (lr) { rankUp(); save(); C.loginShow = lr; } }
     const s = C.season, gp = s.gp || 1;
     const avg = k => (s[k] / gp).toFixed(1);
-    const tabs = ['home', 'team', 'player', 'league', 'log'];
+    const tabs = ['home', 'team', 'player', 'social', 'league', 'log'];
     let body = '';
     if (tab === 'home') {
       const nx = nextGame();
@@ -1671,7 +1671,7 @@
           <div class="rv"><div><b>${esc(PB.full(me))}</b><span>${avg('pts')} / ${avg('reb')} / ${avg('ast')}</span></div><em>${C.rival.h2h[0]}–${C.rival.h2h[1]}</em>
           <div><b>${esc(PB.full(rv))}</b><span>${(rs.pts / rg).toFixed(1)} / ${(rs.reb / rg).toFixed(1)} / ${(rs.ast / rg).toFixed(1)}</span></div></div>
           <p class="fine">Points, rebounds, assists a game this season; the middle is your record head to head.</p></div>
-        <div class="card"><h3>Feed</h3>${C.feed.slice(0, C.feedAll ? 14 : 5).map((f, i) => `<div class="fpost"><b>${esc(f.who)}</b><span>${esc(f.text)}</span><div class="fmeta"><button class="flike${f.liked ? ' on' : ''}" data-like="${i}" aria-label="Like"><i>${f.liked ? '♥' : '♡'}</i>${kfmt((f.likes || 0) + (f.liked ? 1 : 0))}</button><u>${f.re || 0} ${f.re === 1 ? 'reply' : 'replies'}</u></div></div>`).join('') || '<p class="mute">Nothing yet. Play a game.</p>'}${C.feed.length > 5 ? `<button class="ghost fmore" id="fmore">${C.feedAll ? 'Show less' : `Show more (${Math.min(14, C.feed.length) - 5})`}</button>` : ''}</div>
+        <div class="card"><h3>Feed <small>${fmtFans(C.fans || 0)} followers · hype ${social().hype}</small></h3><div class="feedl">${C.feed.slice(0, 3).map((f, i) => postCard(f, i)).join('') || '<p class="mute">Nothing yet. Play a game.</p>'}</div><button class="ghost fmore" id="tosoc">Open Social</button></div>
         <div class="card"><h3>News</h3>${C.news.slice(0, 5).map(n => `<p class="news">${esc(n)}</p>`).join('')}</div>`;
     } else if (tab === 'team') {
       const st = C.standings[C.team] || { w: 0, l: 0 };
@@ -1710,6 +1710,8 @@
       body = (C.phase === 'playoffs' ? bracketCard() : '') + (C.cup && ltab === 'stand' && C.phase === 'regular' ? cupCard() : '') + `<div class="seg sm ltabs"><button data-l="stand" class="${ltab === 'stand' ? 'on' : ''}">Standings</button><button data-l="lead" class="${ltab === 'lead' ? 'on' : ''}">Leaders</button><button data-l="awards" class="${ltab === 'awards' ? 'on' : ''}">Awards</button><button data-l="sched" class="${ltab === 'sched' ? 'on' : ''}">Schedule</button></div>`
         + (ltab === 'lead' ? leadersCard() : ltab === 'awards' ? awardsCard() : ltab === 'sched' ? scheduleCard() : confs.map(c => `<div class="card"><h3>${c}${c === mine ? ' <small>your conference</small>' : ''}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th><th>GB</th><th>STRK</th><th>OVR</th></tr>${conf(c)}</table></div>`).join('')
         + `<p class="fine">The top six in each conference make the playoffs (the solid line); seven to ten play in for the last two places (the dashed line).</p>`);
+    } else if (tab === 'social') {
+      body = `<div class="card soc">${tabSocial()}</div>`;
     } else {
       body = seasonCard() + `<div class="card"><h3>Season ${C.year} game log</h3>${C.games.filter(x => x.done).map((x, i) => glog(x, i + 1)).join('') || '<p class="mute">No games yet.</p>'}</div>
         ${C.po && C.po.games.length ? `<div class="card"><h3>Playoffs</h3>${C.po.games.map((x, i) => glog(x, 'P' + (i + 1))).join('')}</div>` : ''}
@@ -1725,7 +1727,7 @@
       <div class="hubtop"><div class="me">${portrait() ? `<img class="face" src="${portrait()}" alt="" style="background:${t.c1}">` : badge(t)}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · Season ${C.year}${C.phase === 'playoffs' ? ' · Playoffs' : ''}</span></div></div>
       <button class="ic pk" id="menu" aria-label="Back to the park">${PB.noGL ? '⌂' : '⌂<small>Park</small>'}</button></div>
       <div class="hubbody">${body}</div>
-      <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
+      <nav class="tabs">${tabs.map(x => `<button class="${x === tab ? 'on' : ''}" data-t="${x}"><svg viewBox="0 0 24 24" aria-hidden="true">${NAVIC[x]}</svg><span>${{ home: 'Home', team: 'Team', player: 'Player', social: 'Social', league: 'League', log: 'Log' }[x]}</span>${x === 'player' && canUpgrade() ? '<i class="dot"></i>' : ''}</button>`).join('')}</nav></div>`);
     scr().querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; hub(); });
     scr().querySelectorAll('.ltabs button').forEach(b => b.onclick = () => { ltab = b.dataset.l; hub(); });
     if ($('#parkbtn')) $('#parkbtn').onclick = park;
@@ -1747,7 +1749,11 @@
     document.querySelectorAll('[data-like]').forEach(e => e.onclick = () => { const f = C.feed[+e.dataset.like]; if (!f) return; f.liked = !f.liked;
       if (f.liked && !f.likedOnce) { f.likedOnce = true; if (C.likeDay !== today()) { C.likeDay = today(); C.likeN = 0; } if ((C.likeN = (C.likeN || 0) + 1) <= 3) { C.fans = (C.fans || 0) + 5; } }
       const st = scr().scrollTop; save(); hub(); scr().scrollTop = st; });
-    if ($('#fmore')) $('#fmore').onclick = () => { const st = scr().scrollTop; C.feedAll = !C.feedAll; hub(); scr().scrollTop = st; };
+    if ($('#tosoc')) $('#tosoc').onclick = () => { tab = 'social'; hub(); };
+    scr().querySelectorAll('[data-sp]').forEach(b => b.onclick = () => socialPost(b.dataset.sp));
+    scr().querySelectorAll('[data-co]').forEach(b => b.onclick = () => callOut(b.dataset.co));
+    scr().querySelectorAll('[data-st]').forEach(b => b.onclick = () => { socTab = b.dataset.st; const so = social(); if (so.lastCall) so.lastCall.shown = gameNo(); const y = scr().scrollTop; hub(); scr().scrollTop = y; });
+    if ($('#socall')) $('#socall').onclick = () => { socAll = !socAll; const y = scr().scrollTop; hub(); scr().scrollTop = y; };
     const talked = () => { C.talk = `${C.year}-${C.gi}-${C.phase}`; };
     if ($('#clap')) $('#clap').onclick = () => { talked(); C.fans = Math.round(C.fans * 1.04); C.trust = Math.max(0, C.trust - 1); C.clapped = true; C.feed.unshift({ who: '@' + (C.me.first + C.me.last).toLowerCase(), text: `See you tomorrow. Bring your best.` }); C.news.unshift(`${C.me.last} fires back at his rival`); save(); hub(); };
     if ($('#quiet')) $('#quiet').onclick = () => { talked(); C.trust = Math.min(100, C.trust + 1); C.clapped = false; save(); hub(); };
@@ -1939,7 +1945,7 @@
     chat: mic('<path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7l-4 3.500V17H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>'),
     target: mic('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".800"/>'), day: mic('<rect x="4" y="5.500" width="16" height="14" rx="2.500"/><path d="M8 3.500v4M16 3.500v4M4 10.500h16M9 15l2 2 4-4"/>') };
   /* the hub's bottom bar: one line icon a tab */
-  const NAVIC = { home: '<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/>', team: '<circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.3"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5M15.5 14.2c2.800 0 5.500 1.500 5.500 4.300"/>',
+  const NAVIC = { social: '<path d="M4 5h16v10h-7.500L8 19.500V15H4z"/>', home: '<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/>', team: '<circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.3"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5M15.5 14.2c2.800 0 5.500 1.500 5.500 4.300"/>',
     player: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.600 3.100-6 7-6s7 2.400 7 6"/>', league: '<path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4c0 3 1.500 4.500 3.500 4.500M17 6h3c0 3-1.500 4.500-3.500 4.500M12 13v4M8.500 20h7"/>', log: '<path d="M5 19V9M10 19V5M15 19v-7M20 19v-11"/>' };
   const canUpgrade = () => { const A = PB.ARCH[C.me.arch]; return PB.ATTRS.some(([k]) => C.me.r[k] < A.cap[k] && cost(C.me.r[k]) <= C.me.sp); };
   const cost = v => v < 60 ? 1 : v < 70 ? 2 : v < 80 ? 3 : v < 90 ? 4 : 6;
@@ -1984,6 +1990,133 @@
       return `<div class="badge t${t}"><i>${t ? PB.TIER[t][0] : '·'}</i><div><b>${b.name}${t ? ` <small>${PB.TIER[t]}</small>` : ''}</b><span>${b.eff}</span>
         <u><s style="width:${pct}%"></s></u><em>${b.desc}: ${n}${t < 3 ? ` / ${nextAt}` : ' · maxed'}</em></div></div>`;
     }).join('');
+  }
+
+  /* ---------- social ----------
+     Your account, the way the football game keeps one. Followers are C.fans. C.social holds your hype (0 to 100: it
+     rises with good nights, posts and callouts you back up, and cools a little every game; the more of it you have,
+     the faster your following grows), the followers game by game for the line on the page, the one post you may make
+     each game, a callout of your next opponent that is still open, how many you have backed up and how many you have
+     eaten, what you have said at the podium, and your messages. Made on first use, so older careers get it. */
+  const gameNo = () => (C.totals && C.totals.gp) || 0;
+  function social() {
+    if (!C.social) C.social = { hype: PB.clamp(10 + Math.round(Math.log10(Math.max(1000, C.fans || 1000)) * 6 - 18), 5, 45), posted: -1, callout: null, backed: 0, ate: 0, quotes: [], hist: [], dms: [], dmKey: -1 };
+    return C.social;
+  }
+  const handle = () => (C.me.last || 'rookie').toLowerCase().replace(/[^a-z]/g, '') + C.me.num;
+  const OFFICIAL = /^@(league|local_scribe|highlight_reel|draftnerd|hoopstalk)$/;
+  const isOfficial = w => OFFICIAL.test(w) || PB.TEAMS.some(t => w === '@' + t.name.toLowerCase()) || (C.endorse && C.endorse.brand && w === '@' + C.endorse.brand.toLowerCase());
+  /* one post, drawn the way a timeline draws it: a face, a name, the words, and what it drew */
+  function postCard(f, i, reply) {
+    const mine = f.kind === 'me', tm = mine ? PB.team(C.team) : PB.TEAMS.find(t => f.who === '@' + t.name.toLowerCase()), ver = mine ? (C.fans || 0) >= 10000 : !!f.ver || isOfficial(f.who);
+    const name = mine ? PB.full(C.me) : f.name || f.who.replace(/^@/, ''), at = mine ? '@' + handle() : f.name ? f.who : '', face = mine ? portrait() : null;
+    let h = 0; for (const ch of f.who) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const av = face ? `<span class="pav pic" style="--c:${tm.c1}"><img alt="" src="${face}"></span>` : `<span class="pav" style="--c:${tm ? tm.c1 : f.col || `hsl(${h % 360} 8% ${22 + h % 16}%)`};color:${tm ? PB.ink(tm.c1, tm.c2) : '#fff'}">${esc((tm ? tm.ab || tm.id : name.replace(/[^A-Za-z]/g, '').slice(0, 2)).toUpperCase())}</span>`;
+    const likes = (f.likes || 0) + (f.liked ? 1 : 0);
+    return `<div class="post${reply ? ' re' : ''}${mine ? ' mine' : ''}${f.hot ? ' hot' : ''}">${av}<div class="pbody"><div class="phd"><b>${esc(name)}</b>${ver ? '<i class="ver" aria-label="verified"></i>' : ''}${at ? `<span>${esc(at)}</span>` : ''}</div>
+      <p>${esc(f.text)}</p>${reply ? '' : `<div class="pmeta"><span>↩ ${kfmt(f.re || 0)}</span><span>⇄ ${kfmt(f.rt ?? Math.round((f.likes || 0) * 0.14))}</span><button class="flike${f.liked ? ' on' : ''}" data-like="${i}" aria-label="Like"><i>${f.liked ? '♥' : '♡'}</i>${kfmt(likes)}</button>${f.hot ? '<em>viral</em>' : ''}</div>`}
+      ${f.replies && f.replies.length && !reply ? `<div class="reps">${f.replies.map(r => postCard(r, -1, true)).join('')}</div>` : ''}</div></div>`;
+  }
+  /* a post from your own account; k scales the attention it gets */
+  function myPost(text, k) {
+    const f = C.fans || 0;
+    return { who: '@' + handle(), kind: 'me', text, likes: Math.round(f * 0.07 * k) + 20, rt: Math.round(f * 0.012 * k) + 3, re: Math.round(f * 0.006 * k) + 2 };
+  }
+  const fanHandle = () => '@' + FANS[Math.floor(PB.rand() * FANS.length)];
+  const mateOf = () => { const L = myRoster().filter(p => p.id !== C.me.id).sort((a, b) => b.ovr - a.ovr); return L[Math.floor(PB.rand() * Math.min(5, L.length))] || null; };
+  const mateHandle = m => '@' + (m.last || '').toLowerCase().replace(/[^a-z]/g, '') + m.num;
+  /* once a game: thanks to the fans (followers), talking up the next one (hype), a word for a teammate (the coach
+     likes it), or a picture; two replies come under it */
+  function socialPost(kind) {
+    const so = social(), t = PB.team(C.team), nx = nextGame(), next = nx ? PB.team(nx.opp) : null, last = C.games.slice(0, C.gi).filter(x => x.done && x.res).pop(), won = last && last.res.win, mate = mateOf();
+    if (so.posted === gameNo()) return;
+    const text = kind === 'pic' ? say('Locked in.', 'Office hours.', next ? `${next.name} next.` : 'Back to work.', `${t.city}.`, 'Dressed for it.', won ? 'Good night at the office.' : 'Back to it.')
+      : kind === 'fans' ? say(`${t.city}, I hear you every single night. Thank you.`, 'Best fans in the league. Not close.', won ? 'That one was for everybody in the building.' : 'We owe you a better one. You will get it.')
+      : kind === 'hype' ? say(next ? `${next.name} next. Circle it.` : 'The work does not stop.', next ? `Cannot wait for ${next.city}. Bring the noise.` : 'Offseason? What offseason.', 'Locked in. That is the post.')
+      : mate ? say(`Nobody works like #${mate.num}. ${PB.full(mate)}, that is my guy.`, `Shout out ${PB.full(mate)}. Makes my job easy.`, `${PB.full(mate)} does the dirty work every night. Put some respect on it.`) : 'Love this locker room.';
+    const up = Math.round((C.fans || 0) * (kind === 'fans' ? 0.02 : kind === 'pic' ? 0.015 : 0.01)) + (kind === 'fans' ? 40 : 25);
+    C.fans = (C.fans || 0) + up; so.hype = PB.clamp(so.hype + (kind === 'hype' ? 7 : kind === 'fans' || kind === 'pic' ? 3 : 1), 0, 100);
+    if (kind === 'mate') C.trust = PB.clamp((C.trust ?? 50) + 1, 0, 100);
+    const fan = { who: fanHandle(), text: kind === 'hype' ? say('LET US GO', 'Inject this into my veins.', 'Tip-off cannot come soon enough.') : kind === 'fans' ? say('We ride with you.', 'This is why he is my favorite player.', 'Class act.') : kind === 'pic' ? say('Hardest fit in the league.', 'Wallpaper. Done.', 'HIM.') : say('Good teammate. Love to see it.', 'The locker room is right.', 'That is leadership.') };
+    const reply = mate ? { who: mateHandle(mate), name: PB.full(mate), ver: true, col: t.c1, text: kind === 'mate' ? say('Right back at you.', 'Appreciate you, brother.', 'Just doing my job.') : say('Facts.', 'Say it louder.', 'Let us work.') } : null;
+    C.feed.unshift(Object.assign(myPost(text, kind === 'pic' ? 1.4 : 1), { replies: reply ? [fan, reply] : [fan] })); C.feed = C.feed.slice(0, 30);
+    so.posted = gameNo(); save();
+    achToast && PB.Game && PB.Game.toast; PB.audio && PB.audio.play && PB.audio.play('click');
+    const y = scr().scrollTop; hub(); scr().scrollTop = y;
+  }
+  /* calling out the next opponent: talk (win and play well) or a guarantee (win). Backed up, it pays in skill points,
+     followers and hype; eaten, it costs you the coach's trust and your hype, and the internet does not forget */
+  const CALL_SP = { trash: 2, guarantee: 3 };
+  function callOut(kind) {
+    const so = social(), nx = nextGame(); if (!nx || so.callout) return;
+    const o = PB.team(nx.opp), quote = kind === 'guarantee' ? say(`We are beating ${o.city}. Write it down.`, `${o.name}? That is a win. I guarantee it.`) : say(`${o.city} has not seen me yet.`, `Tell the ${o.name} I am coming.`, `I like our chances against anybody. Especially them.`);
+    so.callout = { kind, opp: nx.opp, quote, at: gameNo() }; so.hype = PB.clamp(so.hype + (kind === 'guarantee' ? 9 : 6), 0, 100); C.fans = Math.round((C.fans || 0) * 1.015) + 60;
+    C.feed.unshift(Object.assign(myPost(quote, 1.8), { hot: true, replies: [{ who: '@' + o.name.toLowerCase(), text: say('Noted.', 'See you on the floor.', 'Bulletin board material. Thank you.') }, { who: fanHandle(), text: say('He said WHAT', 'Oh this is going to be good.', 'Screenshotting this.') }] }));
+    so.quotes.unshift({ q: quote, tone: kind === 'guarantee' ? 'guarantee' : 'brash', wk: `Season ${C.year}, before the ${o.name}` }); so.quotes = so.quotes.slice(0, 20);
+    save(); const y = scr().scrollTop; hub(); scr().scrollTop = y;
+  }
+  /* after any game of yours: the callout settled, hype moved, the following counted, messages waiting */
+  function socialAfter(g, res) {
+    const so = social(), me = C.me, o = PB.team(g.opp), c = so.callout;
+    if (c && c.opp === g.opp) {
+      const ok = c.kind === 'guarantee' ? res.win : res.win && res.gscore >= 8;
+      if (ok) { so.backed++; me.sp += CALL_SP[c.kind]; C.fans = Math.round((C.fans || 0) * (c.kind === 'guarantee' ? 1.08 : 1.05)) + 300; so.hype = PB.clamp(so.hype + 12, 0, 100);
+        C.news.unshift(`${me.last} backs it up against the ${o.name} (+${CALL_SP[c.kind]} skill points)`);
+        C.feed.unshift({ who: fanHandle(), text: say(`${me.last} said it, then did it.`, `He CALLED it. And then he went and did it.`), likes: Math.round((C.fans || 0) * 0.02) + 30, re: 12, hot: true }, { who: '@hoopstalk', text: `"${c.quote}" He was right.`, likes: Math.round((C.fans || 0) * 0.012) + 18, re: 6 }); }
+      else { so.ate++; C.trust = PB.clamp((C.trust ?? 50) - 4, 0, 100); so.hype = PB.clamp(so.hype - 14, 0, 100); C.fans = Math.round((C.fans || 0) * 0.985);
+        C.news.unshift(`${me.last} talked before the ${o.name} game, and it did not go his way`);
+        C.feed.unshift({ who: '@' + o.name.toLowerCase(), text: `"${c.quote}"`, likes: Math.round((C.fans || 0) * 0.03) + 60, re: 40, hot: true }, { who: fanHandle(), text: say('This aged like milk.', 'Maybe do the talking after next time.', 'Screenshot was worth it.'), likes: Math.round((C.fans || 0) * 0.01) + 20, re: 5 }); }
+      so.lastCall = { ok, kind: c.kind, opp: g.opp }; so.callout = null;
+    } else if (c && gameNo() - c.at > 3) so.callout = null;
+    /* hype: a good night adds, a bad one costs, and it cools a little every game; a loud following grows faster */
+    so.hype = PB.clamp(so.hype + (res.sim ? 0 : res.gscore >= 10 ? 7 : res.gscore >= 8 ? 4 : res.gscore <= 3 ? -6 : 0) + (res.win ? 1 : 0) + ((res.line.pts || 0) >= 30 ? 5 : 0) - 2, 0, 100);
+    C.fans = Math.round((C.fans || 0) * (1 + so.hype / 100 * 0.012));
+    so.hist = (so.hist || []).concat(C.fans).slice(-14);
+    C.feed = C.feed.slice(0, 30);
+  }
+  /* three messages about your last game: from home, from your agent, from a teammate; your rival before you meet him */
+  function dms() {
+    const so = social(); if (so.dmKey === gameNo()) return so.dms || [];
+    const last = C.games.slice(0, C.gi).filter(x => x.done && x.res).pop(), nx = nextGame(), mate = mateOf(), wk = `Season ${C.year} · game ${C.gi + 1}`, out = [], ag = C.agent || (C.agent = PB.randName()), P = C.path;
+    if (last) { const won = last.res.win, good = last.res.gscore >= 8, pts = last.res.line.pts || 0;
+      out.push({ from: 'Mom', text: won ? say('We watched the whole thing. Your father yelled at the television all fourth quarter. So proud of you.', 'A win! Call me when you are home. And eat something.') : say('Tough one, honey. You will get them next time. Call your mother.', 'Do not read the comments tonight. We love you.') });
+      out.push({ from: ag, role: 'Your agent', text: good ? say(`Grade ${last.res.grade} on the film. Nights like that are how the next contract gets written.`, pts >= 20 ? `${pts} points. My phone has not stopped.` : 'Phones are ringing after that one. Keep stacking them.') : P === 'undrafted' && C.contract && C.contract.kind === 'Two-way deal' ? 'Two-way players do not get many bad nights. Give me one to sell.' : say('Flush it. One game does not change what teams think of you.', 'Quiet night on my end. Give me something to sell next time.') });
+      if (mate) out.push({ from: PB.full(mate), text: won ? say('Told you we had them. Film at eight, do not be late.', 'That is how it is supposed to look. Same thing next game.') : say('We are better than that. Extra work tomorrow, you in?', 'On to the next. I got your back.') });
+    } else {
+      out.push({ from: 'Mom', text: P === 'undrafted' ? 'They did not call your name. I do not care. You made a team. We will be watching every minute you play.' : 'First game this week! We will be watching. Drink water.' });
+      out.push({ from: ag, role: 'Your agent', text: P === 'top' ? 'Everybody is watching the top pick. Good. Give them something to watch.' : P === 'undrafted' ? 'You are on a roster. That was the hard part. Now make it impossible to cut you.' : 'Welcome to the league. Play well and the rest takes care of itself.' });
+      if (mate) out.push({ from: PB.full(mate), text: 'Rookie. Playbook. Tonight. See you at the gym.' });
+    }
+    const rv = rivalP(); if (nx && rv && C.rival && nx.opp === C.rival.team) out.unshift({ from: PB.full(rv), rival: true, text: say('See you on the floor. Bring your best, you will need it.', 'Hope you are ready. I am.') });
+    for (const m of out) m.wk = wk;
+    so.dms = out.concat(so.dms || []).slice(0, 12); so.dmKey = gameNo(); save();
+    return so.dms;
+  }
+  /* followers over the last games, as a line: drawn once there are a few to join */
+  function folTrend(so) {
+    const h = (so.hist || []).slice(-13).concat(C.fans || 0); if (h.length < 3) return '';
+    const lo = Math.min(...h), hi = Math.max(...h), W = 300, H = 40, pt = (v, i) => `${(i / (h.length - 1) * W).toFixed(1)},${(H - 4 - (hi > lo ? (v - lo) / (hi - lo) : 0.5) * (H - 8)).toFixed(1)}`;
+    return `<div class="ftr"><small>Followers · last ${h.length - 1} games</small><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Followers from ${fmtFans(h[0])} to ${fmtFans(h[h.length - 1])}"><polyline points="${h.map(pt).join(' ')}"/></svg><span>${fmtFans(h[0])}</span><span>${fmtFans(h[h.length - 1])}</span></div>`;
+  }
+  let socTab = 'feed', socAll = false;
+  function tabSocial() {
+    const so = social(), me = C.me, t = PB.team(C.team), ver = (C.fans || 0) >= 10000, nx = nextGame(), next = nx ? PB.team(nx.opp) : null, face = portrait(), c = so.callout;
+    const partners = [C.endorse && C.endorse.brand ? [C.endorse.brand, 'Signature shoe', C.endorse.color || '#fff', `${M(C.endorse.pay)} a year`] : null].filter(Boolean);
+    const st = (k, l, n) => `<button data-st="${k}" class="${socTab === k ? 'on' : ''}">${l}${n ? `<i>${n}</i>` : ''}</button>`;
+    const list = socAll ? C.feed : C.feed.slice(0, 8);
+    let body;
+    if (socTab === 'feed') body = C.feed.length ? `<div class="feedl">${list.map(f => postCard(f, C.feed.indexOf(f))).join('')}</div>${C.feed.length > 8 ? `<button class="ghost fmore" id="socall">${socAll ? 'Show fewer' : `Show all ${C.feed.length} posts`}</button>` : ''}` : '<p class="fine">Play a game and the internet will have something to say.</p>';
+    else if (socTab === 'dm') body = `<div class="chat">${dms().map(m => `<div class="msg${m.rival ? ' rv' : ''}"><span class="pav" style="--c:${m.from === 'Mom' ? '#5a3a4a' : m.rival && C.rival ? PB.team(C.rival.team).c1 : m.role ? '#3a3f4a' : t.c1}">${esc(m.role ? 'AG' : m.from.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}</span><div><b>${esc(m.from)}${m.role ? ` <u>${esc(m.role)}</u>` : m.rival ? ' <u>Your rival</u>' : ''}<small>${esc(m.wk || '')}</small></b><p>${esc(m.text)}</p></div></div>`).join('')}</div>`;
+    else if (socTab === 'rec') body = so.quotes.length ? `<ul class="quotes">${so.quotes.map(q => `<li><span class="tone">${esc(q.tone || '')}</span>“${esc(q.q)}”<small>${esc(q.wk || '')}</small></li>`).join('')}</ul>` : '<p class="fine">What you say at the podium, and every callout, is kept here.</p>';
+    else body = (partners.length ? partners.map(x => `<div class="deal"><span><i class="sw" style="background:${x[2]}"></i>${esc(x[0])} · ${esc(x[1])}</span><b>${esc(x[3])}</b></div>`).join('') : '<p class="fine">No partners yet.</p>') + '<p class="fine">Shoe companies come calling as your following grows: the first offer near 25K followers, bigger ones at 150K, 600K and 2M.</p>';
+    return `<div class="sprof" style="--c:${t.c1}">${face ? `<span class="pav pic big" style="--c:${t.c1}"><img alt="" src="${face}"></span>` : `<span class="pav big" style="--c:${t.c1};color:${PB.ink(t.c1, t.c2)}">${esc(me.last.slice(0, 2).toUpperCase())}</span>`}<div><b>${esc(PB.full(me))}${ver ? '<i class="ver" aria-label="verified"></i>' : ''}</b><span>@${esc(handle())} · ${esc(t.name)} ${me.pos} #${me.num}</span></div></div>
+      <div class="sstats"><div><b>${fmtFans(C.fans || 0)}</b><span>Followers</span></div><div><b>${so.hype}</b><span>Hype</span></div><div><b>${so.backed}–${so.ate}</b><span>Callouts</span></div><div><b>${partners.length}</b><span>Partners</span></div></div>
+      <div class="hypebar"><i style="width:${so.hype}%"></i></div><p class="fine hypen">Hype rises with good nights, posts and callouts you back up, and cools a little every game. The more you have, the faster your following grows.</p>
+      ${folTrend(so)}
+      ${c ? `<p class="callout"><small>${c.kind === 'guarantee' ? 'Your guarantee' : 'Your callout'} · ${esc(PB.team(c.opp).name)}</small>“${esc(c.quote)}”<br>${c.kind === 'guarantee' ? 'Win that game' : 'Win and play well (a B or better)'}: +${CALL_SP[c.kind]} skill points. Lose and it costs you the coach's trust and your hype.</p>` : so.lastCall && so.lastCall.shown !== gameNo() ? `<p class="callout ${so.lastCall.ok ? 'ok' : 'no'}"><small>${so.lastCall.ok ? 'Backed it up' : 'Ate it'}</small>${so.lastCall.ok ? `You called out the ${esc(PB.team(so.lastCall.opp).name)} and delivered.` : `You called out the ${esc(PB.team(so.lastCall.opp).name)}. They saved the screenshot.`}</p>` : ''}
+      ${so.posted !== gameNo() ? `<div class="spost"><small>Post something · once a game</small><div class="seg wrapseg"><button data-sp="fans">Thank the fans</button><button data-sp="hype">${next ? 'Hype the next game' : 'Stay hungry'}</button><button data-sp="mate">Shout out a teammate</button><button data-sp="pic">Post a photo</button></div></div>` : '<p class="fine posted">Posted. Your next post is after your next game.</p>'}
+      ${next && !c ? `<div class="spost"><small>Call out the ${esc(next.name)}</small><div class="seg wrapseg"><button data-co="trash">Talk a little</button><button data-co="guarantee">Guarantee the win</button></div></div>` : ''}
+      <div class="stabs soct">${st('feed', 'Mentions')}${st('dm', 'Messages')}${st('rec', 'On the record')}${st('deals', 'Partners')}</div>${body}`;
   }
 
   /* ---------- cutscenes ----------
@@ -2519,7 +2652,7 @@
     for (const e of extra.slice(0, 3)) posts.push(e);
     const big = Math.max(1, Math.round((C.fans || 2000) / 400));
     for (const [w, x] of posts.slice(0, 5)) C.feed.unshift({ who: w, text: x, likes: Math.round(big * (0.2 + PB.rand() * 1.4)) + Math.floor(PB.rand() * 9), re: Math.floor(PB.rand() * 4) });
-    C.feed = C.feed.slice(0, 24);
+    C.feed = C.feed.slice(0, 30);
   }
 
   /* ---------- after a game: the result, a press question now and then ---------- */
@@ -2596,6 +2729,7 @@
     if (g.st && !sim && g.res) { const n = storyNews(g.st, g.res, g); if (n) C.news.unshift(n); }
     { const F = C.flags || (C.flags = {}); if (!sim && g.res && !F.cs20 && (g.res.line.pts || 0) >= 20) { F.cs20 = true; (C.cs = C.cs || []).push('first20'); } }
     remember(g.res);
+    socialAfter(g, g.res);
     const r = g.res, o = PB.team(g.opp), t = PB.team(C.team), l = r.line;
     const pr = pressFor(g, r);
     const P = pr && PRESS[pr[0]];
@@ -2621,6 +2755,7 @@
       C.trust = PB.clamp(C.trust + a[1], 0, 100); C.fans = Math.round(C.fans * (1 + a[2] / 100));
       C.news.unshift(`${C.me.last} at the podium: "${a[0]}"`);
       C.feed.unshift({ who: '@local_scribe', text: `${C.me.last}, after the game: "${a[0]}"` });
+      { const so = social(); so.quotes.unshift({ q: a[0], tone: a[3] || '', wk: `Season ${C.year} · game ${C.gi}` }); so.quotes = so.quotes.slice(0, 20); }
       $('#press').innerHTML = `<h3>Press conference</h3><p class="q">“${esc(a[0])}”</p><p class="fine">Coach trust ${a[1] >= 0 ? '+' : ''}${a[1]} · followers ${a[2] >= 0 ? '+' : ''}${a[2]}% · the ${a[3]} answer</p>`;
       save();
     });
