@@ -2124,11 +2124,24 @@
       ['@film_room_fred', say(`Watch ${me.last} off the ball on that last possession. Smart cut.`, `${me.last}'s closeouts are getting better. Film does not lie.`, `Three clips from tonight on ${me.last}'s screen navigation. Thread.`)],
       ['@kicks_daily', say(`What is ${me.last} wearing on his feet? Need those.`, `${me.last}'s pregame fit: 9 out of 10.`)],
       [who(), say(`My kid wants to be ${me.last} for Halloween.`, `Met ${me.last} at the grocery store once. Nice guy. Tall.`, `${me.last} signed my hat after the game. Never washing it.`)],
+      [who(), say(`${t.city} is a basketball town again.`, `Told my boss I am leaving early for the next ${t.name} game.`, `Season tickets were the best decision I made this year.`, `That building was shaking tonight.`)],
+      [who(), say(`${me.last} plays the right way. No wasted dribbles.`, `Nobody talks about ${me.last}'s defense. They should.`, `The way ${me.last} moves without the ball. Chef's kiss.`, `${me.last} makes everybody around him better.`)],
+      ['@stat_nerd', say(`${me.last}: ${l.fgm}-for-${l.fga} from the field. ${l.fga && l.fgm / l.fga >= 0.5 ? 'Efficient.' : 'He has had better nights.'}`, `Plus-minus says ${t.name} are a different team with ${me.last} on the floor.`, `${me.last} is averaging more than I predicted in October. I was wrong. Screenshot it.`)],
+      ['@local_scribe', say(`Postgame: ${me.last} says the team is "just getting started."`, `Asked ${me.last} about the ${o.name}. He smiled and said "next question."`, `${me.last} was the last one out of the gym tonight. Again.`, `Coach on ${me.last}: "He does what we ask, and then a little more."`)],
+      ['@the_real_ref', say(`For the record, that was a clean block in the third.`, `Yes, I saw the travel. No, I am not telling you which one.`, `Good game to work. Both teams competed.`)],
+      [`@${o.name.toLowerCase()}_fan`, say(`Our defense on ${me.last} was a rumor tonight.`, `We do not have anybody who can guard #${me.num}. There, I said it.`, `Rematch. Our building. Bring ${me.last}.`, `I respect ${me.last}'s game. I do not have to like it.`)],
+      ['@bench_mob', say(`Bench celebrations were elite tonight.`, `Towel waving: 10 out of 10.`, `We see you, end of the bench. Great energy.`)],
+      ['@hoops_abuela', say(`My grandson says ${me.last} is "him." I agree.`, `I made tamales and watched ${me.last}. Perfect night.`, `${me.last} needs to eat more. Somebody feed that boy.`)],
+      ['@coach_in_my_head', say(`I would have called timeout two possessions earlier.`, `Run the offense through ${me.last}. It is not complicated.`, `Zone would have won that quarter. Nobody asked me.`)],
+      ['@swish_kid_07', say(`Practiced ${me.last}'s move in the driveway for two hours.`, `${me.last} waved at me!!!`, `Getting #${me.num} on my jersey for my birthday.`)],
+      ['@late_tip_lou', say(`Stayed up for the whole thing. No regrets.`, `West coast tips are ruining my sleep and I love it.`)],
+      ['@jumbotron_jay', say(`They showed ${me.last}'s highlight on the big screen and the place lost it.`, `Crowd was chanting for #${me.num} in the fourth.`)],
+      [who(), say(l.pts >= 15 ? `${me.last} got whatever he wanted out there.` : `${me.last} did the little things tonight.`, res.win ? `Winning looks good on ${t.city}.` : `Tough loss. We go again.`, `${t.name} in ${res.win ? 'four' : 'seven'}. Calling it now.`)],
     ];
     if (l.pts >= 25) extra.unshift(['@highlight_reel', `Every ${me.last} bucket from tonight in 40 seconds. Sound on.`]);
     if (res.win && g.po) extra.unshift(['@league', `${t.name} take one in the playoffs. ${me.last}: ${l.pts} points.`]);
     for (let i = extra.length - 1; i > 0; i--) { const j = Math.floor(PB.rand() * (i + 1)); [extra[i], extra[j]] = [extra[j], extra[i]]; }
-    for (const e of extra.slice(0, 2)) posts.push(e);
+    for (const e of extra.slice(0, 3)) posts.push(e);
     const big = Math.max(1, Math.round((C.fans || 2000) / 400));
     for (const [w, x] of posts.slice(0, 5)) C.feed.unshift({ who: w, text: x, likes: Math.round(big * (0.2 + PB.rand() * 1.4)) + Math.floor(PB.rand() * 9), re: Math.floor(PB.rand() * 4) });
     C.feed = C.feed.slice(0, 24);

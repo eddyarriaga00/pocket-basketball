@@ -326,21 +326,74 @@
     clearTimeout(noteNext.h); noteNext.h = setTimeout(() => { e.classList.remove('on'); noteNext.h = setTimeout(noteNext, 700); }, n.o.go ? 5200 : 3800);
   }
   /* the timeline, live: people watching react to what you just did (not after every play) */
-  const HANDLES = ['@hoopsdad_22', '@courtside_kay', '@bucketsonly', '@nightcapnation', '@section_214', '@midrange_mary', '@film_room_fred', '@ankle_tax', '@sixth_man_sam', '@nosebleed_nate', '@tipoff_tess', '@highlight_reel'];
+  const HANDLES = ['@hoopsdad_22', '@courtside_kay', '@bucketsonly', '@nightcapnation', '@section_214', '@midrange_mary', '@film_room_fred', '@ankle_tax', '@sixth_man_sam', '@nosebleed_nate', '@tipoff_tess', '@highlight_reel',
+    '@glasscleaner99', '@stat_nerd', '@bench_mob', '@the_real_ref', '@local_scribe', '@fantasy_guru', '@kicks_daily', '@row_z_ron', '@pregame_pam', '@hoops_abuela', '@and1_andy', '@zone_buster', '@coach_in_my_head', '@late_tip_lou', '@jumbotron_jay', '@popcorn_pete', '@halfcourt_hana', '@box_score_bo', '@overtime_olive', '@swish_kid_07'];
   const REACT = {
-    three: ['From DEEP', 'He is not missing tonight', 'Hand down, man down', 'Splash. Again.', 'Somebody guard him', 'That is a bad shot for anyone else', 'Logo range', 'String music', 'He pulled from the parking lot', 'Net never moved'],
-    dunk: ['OH MY', 'He put him in the rim', 'Rim is still shaking', 'Clip that. Clip it now', 'Sheesh', 'Check the stanchion', 'He was up there a while', 'Somebody get the rim a doctor', 'Gravity took the night off', 'Two hands, no doubt'],
-    Steal: ['Cookies!', 'Pick-pocket', 'Hands everywhere tonight', 'Took his lunch', 'Clean as it gets', 'He never saw him'], 'Picked it off': ['Read it the whole way', 'Free safety out there', 'Jumped the lane', 'He knew where that was going'],
-    Block: ['Get that out of here', 'Not in his house', 'Sent it to row five', 'Return to sender', 'Wrong address', 'He timed that perfectly', 'Do not bring that in here'], 'Chase-down block': ['Chased him DOWN', 'Never give up on a play', 'Came from nowhere', 'Off the glass, from behind'],
-    Assist: ['What a dime', 'He sees everything', 'Everybody eats', 'Eyes in the back of his head', 'On a platter', 'That pass had a bow on it'], 'Alley-oop': ['LOB CITY', 'Threw it to the moon', 'Up top, and down hard', 'Just throw it near the rim'],
-    'Poster dunk': ['POSTER. Frame it', 'Somebody call his family', 'That man has a family'], 'Beat your man': ['Too quick', 'Left him standing there', 'He is still looking for him', 'That is a combo', 'Shook him out of his shoes'],
-    pts: ['is cooking', 'has it going', 'cannot be stopped right now', 'is feeling it', 'is putting on a show', 'has the whole building watching', 'is in a different gear tonight'],
+    three: ['From DEEP', 'He is not missing tonight', 'Hand down, man down', 'Splash. Again.', 'Somebody guard him', 'That is a bad shot for anyone else', 'Logo range', 'String music', 'He pulled from the parking lot', 'Net never moved',
+      'Wet', 'That was in before he let go', 'My couch felt that one', 'Bang bang', 'Rent is due and he is paying in threes', 'Do not give him that much room', 'Three ball, corner pocket', 'He was already running back on defense', 'Who left him open?', 'That is a heat check and it went in'],
+    dunk: ['OH MY', 'He put him in the rim', 'Rim is still shaking', 'Clip that. Clip it now', 'Sheesh', 'Check the stanchion', 'He was up there a while', 'Somebody get the rim a doctor', 'Gravity took the night off', 'Two hands, no doubt',
+      'I just spilled my drink', 'The backboard filed a complaint', 'That was rude', 'He took off from another zip code', 'My neighbors heard me yell', 'Run that back in slow motion', 'Did the rim owe him money?', 'I felt that through the screen', 'Posterize me next', 'That is a grown man dunk'],
+    Steal: ['Cookies!', 'Pick-pocket', 'Hands everywhere tonight', 'Took his lunch', 'Clean as it gets', 'He never saw him', 'Robbery in broad daylight', 'Check your pockets', 'He had that scouted', 'Thank you for the ball', 'Gone before he could blink'],
+    'Picked it off': ['Read it the whole way', 'Free safety out there', 'Jumped the lane', 'He knew where that was going', 'Pick six', 'That pass had his name on it', 'He was sitting on that all night'],
+    Block: ['Get that out of here', 'Not in his house', 'Sent it to row five', 'Return to sender', 'Wrong address', 'He timed that perfectly', 'Do not bring that in here', 'Volleyball season started early', 'He ate that for dinner', 'Somebody in row nine has a souvenir', 'Denied at the door', 'Try again never'],
+    'Chase-down block': ['Chased him DOWN', 'Never give up on a play', 'Came from nowhere', 'Off the glass, from behind', 'He thought he had an easy two', 'That is pure effort', 'Pinned it. PINNED it'],
+    Assist: ['What a dime', 'He sees everything', 'Everybody eats', 'Eyes in the back of his head', 'On a platter', 'That pass had a bow on it', 'Table for two', 'He made that look easy for him', 'Unselfish. Love it', 'That pass was better than the shot', 'Point god stuff', 'How did he even see that'],
+    'Alley-oop': ['LOB CITY', 'Threw it to the moon', 'Up top, and down hard', 'Just throw it near the rim', 'Air traffic control did not clear that', 'Those two have something going'],
+    'Poster dunk': ['POSTER. Frame it', 'Somebody call his family', 'That man has a family', 'Delete his account for him', 'He is on a t-shirt by tomorrow', 'Do not jump. Just do not jump', 'That is going on my wall'],
+    'Beat your man': ['Too quick', 'Left him standing there', 'He is still looking for him', 'That is a combo', 'Shook him out of his shoes', 'First step is unfair', 'Defender needs a map', 'He went left, the defender went home', 'Somebody get that man some ankle tape', 'Bye bye', 'That hesi froze the whole arena', 'He turned him around twice'],
+    'Smothered the shot': ['Clamps', 'Lockdown', 'He was in his jersey', 'Nothing easy tonight', 'That is how you guard somebody'],
+    'Offensive board': ['Wants it more', 'Second effort', 'Glass eater', 'Out-worked everybody for that'],
+    Rebound: ['Cleaning the glass', 'Board man', 'Boxed him out like a textbook'],
+    'Cut him off': ['Wall', 'Nope, not that way', 'Stayed in front the whole time'],
+    'Lost the ball': ['Oof. Hold on to it', 'Careless', 'That is a bad turnover', 'Butterfingers', 'We do not talk about that one', 'Take care of the ball, please'],
+    Intercepted: ['Telegraphed it', 'He threw it right to him', 'Who was that pass for?', 'Eyes up next time'],
+    'Your man scored': ['Got cooked on that one', 'Stay in front of him', 'Defense is optional tonight I guess', 'He will want that one back'],
+    'Got blocked': ['Sent back', 'He got packed', 'Maybe pump fake next time', 'That one hurt to watch'],
+    'Got crossed': ['He got shook', 'Somebody check his ankles', 'That is going on the highlight reel. Not his'],
+    'Tough shot early': ['Bad shot', 'Why that one?', 'There were twenty seconds on the clock', 'Pass the ball'],
+    'Forced a bad shot': ['Heat check that was not earned', 'Swing it next time', 'He was triple teamed'],
+    'Missed free throw': ['Free throws win games', 'They are called FREE throws', 'Bend your knees'],
+    lead: ['WE HAVE THE LEAD', 'Lead change. I cannot breathe', 'Told you they would come back', 'That is the go-ahead bucket', 'Never doubted it. Okay, doubted it a little'],
+    green: ['Pure', 'Did not even touch the rim', 'Automatic', 'He walked away before it went in', 'Same release every single time'],
+    pts: ['is cooking', 'has it going', 'cannot be stopped right now', 'is feeling it', 'is putting on a show', 'has the whole building watching', 'is in a different gear tonight', 'is hooping', 'woke up dangerous today', 'is getting whatever he wants', 'is the best player on the floor'],
   };
+  /* the rest of the timeline: people watching who are not talking about any one play */
+  const CHATTER = ['Anyone else watching this game?', 'This is a good one', 'I should be asleep', 'Refs are letting them play tonight', 'Refs, please. PLEASE', 'My fantasy team needed this', 'Loud in here tonight', 'Section 214 is ROCKING',
+    'Nachos were nine dollars. Worth it', 'Somebody tell the coach to call a timeout', 'This pace is wild', 'Defense wins championships. Just saying', 'I have yelled at my TV four times', 'First game with my kid. She loves it', 'Who is guarding who out there?',
+    'They need to box out', 'Run the pick and roll again. It works every time', 'Why is nobody cutting?', 'Bench looks alive tonight', 'That crowd shot of the guy with the foam finger', 'Halftime show better be good', 'I called this game being close',
+    'Whoever made the schedule, thank you', 'My group chat is on fire right now', 'The jerseys look clean tonight', 'Put the starters back in', 'Give the rookie some minutes', 'Free throws are going to decide this', 'Three in the key! Call it!',
+    'This is why I pay for the league pass', 'I am too nervous to eat', 'My dog left the room because of me', 'Somebody is getting a contract after this', 'Both teams came to play', 'Announcers jinxed it', 'Wave started in the upper deck. I respect it',
+    'That mascot has more energy than I do', 'Kiss cam was awkward', 'T-shirt cannon almost took my head off', 'Popcorn guy has the best seat in the house', 'I love this game', 'Basketball is back and so am I', 'This arena needs a new jumbotron',
+    'Can we get a replay of that?', 'Analytics say shoot more threes', 'Analytics say stop shooting threes', 'Mid-range is not dead. I checked', 'Play some defense. Either team. Anyone', 'This is playoff intensity', 'Somebody foul somebody',
+    'I blinked and missed a run', 'Timeouts left? Anyone know?', 'Coach is pacing. That is never good', 'Whoever is DJing tonight, thank you', 'Parking was twenty dollars and I am over it now', 'Courtside seats one day. One day',
+    'Hit the open man!', 'Get back on defense!', 'Ball movement is beautiful tonight', 'They are switching everything', 'Zone them up and see what happens', 'Double him. Make somebody else beat you', 'That was a travel and everyone knows it',
+    'Shot clock, shot clock, shot clock', 'I need this win for my sanity', 'Nobody leave early. This is going to the wire', 'Late tip, no regrets', 'Texting my boss that I am sick tomorrow', 'Best game of the season so far'];
+  const CHATTER_SIT = {
+    close: ['One possession game. I cannot sit down', 'Somebody is about to be a hero', 'My heart cannot take this', 'Who wants it?', 'Clutch time. This is what we watch for'],
+    up: ['We are rolling', 'Keep the foot on the gas', 'Start the bus', 'This is a clinic', 'Empty the bench soon'],
+    down: ['Still time. Chip away', 'One stop at a time', 'I have seen bigger comebacks', 'Need a run right now', 'Do not give up on this one'],
+    late: ['Fourth quarter. Lock in', 'Winning time', 'Everybody up for the last few minutes'],
+  };
+  const recentPosts = [];
+  const fresh = L => { let line = L[Math.floor(rand() * L.length)]; for (let i = 0; i < 6 && recentPosts.includes(line); i++) line = L[Math.floor(rand() * L.length)]; recentPosts.push(line); if (recentPosts.length > 40) recentPosts.shift(); return line; };
   function social(kind, extra) {
     if (!G || G.drill || G.park || !G.user || G.auto || G.switching || G.phase === 'end') return;
     if (G.t - (G.noteAt || -99) < 9) return; const L = REACT[kind]; if (!L) return;
-    G.noteAt = G.t; const u = G.user, line = L[Math.floor(rand() * L.length)];
+    G.noteAt = G.t; const u = G.user, line = fresh(L);
     notify(HANDLES[Math.floor(rand() * HANDLES.length)], kind === 'pts' ? `#${u.num} ${line}: ${extra} points` : line, { quiet: true });
+  }
+  /* now and then somebody posts about the game itself: the score, the crowd, the nachos */
+  function chatter() {
+    if (!G || G.drill || G.park || G.half || !G.user || G.auto || G.switching || G.phase !== 'live' || G.replay) return;
+    { const d0 = Math.abs(G.score[0] - G.score[1]);
+      if (!G.blowSaid && G.q >= 3 && d0 >= 18 && !G.ball.shot) { G.blowSaid = true; B('blowout_ana', { prio: 1 }); }
+      if (!G.closeSaid && G.q >= 4 && G.clock < 120 && G.clock > 20 && d0 <= 3) { G.closeSaid = true; B('close_ana', { prio: 2 }); } }
+    if (G.chatT === undefined) G.chatT = G.t + rr(25, 45);
+    if (G.t < G.chatT || G.t - (G.noteAt || -99) < 10) return;
+    G.chatT = G.t + rr(32, 60); G.noteAt = G.t;
+    const d = G.score[G.user.team] - G.score[1 - G.user.team], late = G.q >= 4;
+    const sit = late && Math.abs(d) <= 3 ? 'close' : d >= 12 ? 'up' : d <= -12 ? 'down' : late ? 'late' : '';
+    notify(HANDLES[Math.floor(rand() * HANDLES.length)], fresh(sit && rand() < 0.45 ? CHATTER_SIT[sit] : CHATTER), { quiet: true });
   }
   function feed(txt) {
     const f = $('#feed'); f.style.display = PB.settings && PB.settings.feedOn === 'Off' ? 'none' : ''; const e = document.createElement('div'); e.textContent = txt; f.prepend(e);
@@ -352,30 +405,30 @@
   /* somebody says something about what you just did: the coach, or a teammate by name. One short line under the call,
      now and then, never two on top of each other */
   const QUIP = {
-    'Made three': ['Keep shooting', 'That is your shot', 'He cannot leave you', 'Automatic', 'Again. Same shot', 'They have to come out on you now', 'Let it fly all night'],
-    Scored: ['Good bucket', 'Easy money', 'That is how you finish', 'Take that every time', 'Strong move', 'Nice touch', 'Keep going at him'],
-    Assist: ['Great look', 'I owe you one', 'Good eyes', 'Keep finding me', 'That is the right play', 'Ball movement', 'You see the floor'],
-    Steal: ['Great hands', 'Go, go, go', 'He never saw you', 'That is a pick six', 'Active hands'],
+    'Made three': ['Shooters shoot', 'Give him that look all night', 'That is a dagger', 'Net did not move', 'Keep shooting', 'That is your shot', 'He cannot leave you', 'Automatic', 'Again. Same shot', 'They have to come out on you now', 'Let it fly all night'],
+    Scored: ['Two more', 'Good patience', 'He could not do anything with that', 'Way to attack', 'Good bucket', 'Easy money', 'That is how you finish', 'Take that every time', 'Strong move', 'Nice touch', 'Keep going at him'],
+    Assist: ['Way to share it', 'That is winning basketball', 'You made that easy', 'Great look', 'I owe you one', 'Good eyes', 'Keep finding me', 'That is the right play', 'Ball movement', 'You see the floor'],
+    Steal: ['Now finish it', 'That is a momentum play', 'Great hands', 'Go, go, go', 'He never saw you', 'That is a pick six', 'Active hands'],
     'Picked it off': ['Read it the whole way', 'Jumped the lane', 'Great anticipation', 'Run with it'],
-    Block: ['Not in here', 'Great timing', 'Send it back', 'He will think twice now', 'Protect the rim'],
+    Block: ['Meet him at the rim', 'They will not come in here again', 'Not in here', 'Great timing', 'Send it back', 'He will think twice now', 'Protect the rim'],
     'Chase-down block': ['Never quit on a play', 'Where did you come from?', 'That is effort'],
     'Smothered the shot': ['Clamps', 'He had nothing', 'That is defense', 'Lock him up'],
     'Contested the shot': ['Good contest', 'Hand up every time', 'Make him work'],
     'Contested miss': ['Good contest', 'He felt you there', 'That is a stop'],
     'Poster dunk': ['Oh my', 'Put him on a poster', 'He will see that one tomorrow', 'Somebody check on him'],
     'Alley-oop': ['Up top', 'Lob city', 'Throw it anywhere near the rim'],
-    'Beat your man': ['He cannot stay with you', 'Go at him again', 'Left him standing', 'Good move'],
+    'Beat your man': ['He is on skates', 'Attack him every time', 'Now make the help pay', 'He cannot stay with you', 'Go at him again', 'Left him standing', 'Good move'],
     'Cut him off': ['Good feet', 'Wall him off', 'Stay in front'],
     'Pump fake': ['Got him in the air', 'He bites every time', 'Patience'],
     'Free throw': ['Knock them down', 'Free points'],
-    'Lost the ball': ['Take care of it', 'Strong with the ball', 'Shake it off', 'Too loose'],
+    'Lost the ball': ['Two hands', 'Slow down, see the floor', 'Take care of it', 'Strong with the ball', 'Shake it off', 'Too loose'],
     'Lost it on the spin': ['Not in traffic', 'Keep it simple', 'They were waiting for that'],
     Intercepted: ['See the defender', 'Fake a pass to make a pass', 'Do not telegraph it'],
-    'Your man scored': ['Stay with him', 'That is your man', 'Get a hand up', 'Move your feet'],
+    'Your man scored': ['Next play', 'Lock in', 'Make him work for it', 'Stay with him', 'That is your man', 'Get a hand up', 'Move your feet'],
     'Left your man open': ['Find your man', 'Stay home', 'Do not lose him'],
     'Got crossed': ['Shake it off', 'Stay down, do not reach', 'Watch his hips'],
-    'Got blocked': ['Go up strong', 'Use the pump fake', 'He was waiting on that'],
-    'Tough shot early': ['Better shot than that', 'Work for a good one', 'We have time. Move it'],
+    'Got blocked': ['Shot fake next time', 'Go into his body', 'Go up strong', 'Use the pump fake', 'He was waiting on that'],
+    'Tough shot early': ['Move it side to side', 'Make them guard for twenty', 'Better shot than that', 'Work for a good one', 'We have time. Move it'],
     'Forced a bad shot': ['Better shot than that', 'Somebody was open', 'Not that one'],
     'Shooting foul': ['Hands straight up', 'Do not bail him out', 'Stay down on the fake'],
     Foul: ['Smart, not reckless', 'Watch the fouls', 'Move your feet, not your hands'],
@@ -408,7 +461,7 @@
     const before = gradeLetter(G.grade);
     G.grade = clamp(G.grade + delta, -26, 26);
     G.gradeLog.push([delta, why]);
-    if (delta >= 1 && REACT[why] && rand() < 0.7) social(why);
+    if (delta >= 1 && REACT[why] && rand() < 0.7) social(why); else if (delta <= -1 && REACT[why] && rand() < 0.4) social(why);
     tkoAdd(delta > 0 ? delta * 0.05 : delta * 0.025);
     const g = $('#grade'); g.innerHTML = `<b>${gradeLetter(G.grade)}</b><span class="${delta >= 0 ? 'up' : 'dn'}">${delta >= 0 ? '+' : '−'} ${why}</span>`;
     g.classList.remove('flash'); void g.offsetWidth; g.classList.add('flash', 'why');
@@ -964,7 +1017,7 @@
     if (p.isUser) grade(-1, 'Got blocked');
     /* from behind at a run: the chase-down */
     { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, hl = hyp(hx, hz) || 1, behind = ((o.x - p.x) * hx + (o.z - p.z) * hz) / hl < -0.6, chase = behind && hyp(o.vx, o.vz) > 9;
-      if (R.pow) { R.pow(chase ? 'SWAT!' : pickOf(['BLOCK!', 'NOPE!', 'DENIED!', 'GET OUT!']), at.x, at.y + 0.9, at.z, 1.15, G.user && o.team !== G.user.team); if (R.burst) R.burst(at.x, at.y, at.z, 5, 0.7); } if (R.shock) R.shock(o.x, o.z, 7);
+      if (R.pow) { R.pow(chase ? 'SWAT!' : pickOf(['BLOCK!', 'NOPE!', 'DENIED!', 'GET OUT!']), at.x, at.y + 0.9, at.z, 1.15, G.user && o.team !== G.user.team); if (R.burst) R.burst(at.x, at.y, at.z, 5, 0.7); } if (chase) B('chasedown', { prio: 5 }); if (R.shock) R.shock(o.x, o.z, 7);
       toast(chase ? 'CHASE-DOWN BLOCK' : 'BLOCKED', 'blk'); feed(`${chase ? 'Chase-down block' : 'Block'} · ${o.name}`); if (chase) { R.benchJump && R.benchJump(o.team); if (o.isUser) grade(1, 'Chase-down block'); }
       if (!G.drill && rand() < 0.6) { o.celebK = 'wag'; o.celebT = 1.7; } }   // not in here: the finger wagged once he is down
     AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
@@ -1406,6 +1459,7 @@
       /* a dunk on somebody: said out loud */
       if (s.kind === 'dunk' && !G.drill) { const v = nearestDef(p); if (v.who && v.d < 3.4) { R.benchJump && R.benchJump(p.team); feed(`${p.name} dunks on ${v.who.name}`); v.who.celebK = 'hips'; v.who.celebT = 1.5;
         if (!v.who.isUser && v.who.y === 0 && rand() < 0.4) { const dx = v.who.x - p.x, dz = v.who.z - p.z, L = hyp(dx, dz) || 1; ankles(v.who); v.who.vx = dx / L * 5; v.who.vz = dz / L * 5; }   // put on the floor
+        B(v.who.isUser ? 'dunkedon' : 'poster', { prio: 6, follow: 0.6 });
         if (p.isUser) { setTimeout(() => toast('POSTERIZED', 'make'), 500); grade(1, 'Poster dunk'); buzz([30, 40, 30]); } else if (v.who.isUser) { setTimeout(() => toast('Dunked on', 'opp'), 500); powAt('OUCH!', v.who, 0.95, true); } } }
       if (p.isUser && !G.drill) { const was = p.st.pts - s.pts, th = [10, 20, 30, 40, 50].find(v => was < v && p.st.pts >= v);
         if (th) { G.noteAt = -99; social('pts', p.st.pts); } else if (s.kind === 'dunk' && rand() < 0.6) social('dunk'); else if (s.three && rand() < 0.4) social('three'); }
@@ -1427,6 +1481,7 @@
       else if (p.isUser && G.streak === 3) B('hot', { prio: 5, follow: 0.6 });
       /* the home crowd starts the chant when you are rolling */
       if (p.isUser && home(p.team) && !G.mvpSaid && (G.streak >= 3 || p.st.pts * 12 / G.qlen >= 20)) { G.mvpSaid = true; setTimeout(() => AU().crowd.react('mvp', 1), 1500); }
+      else if (s.three && s.d > 28) B('deep', { prio: 5, follow: 0.5 });
       else if (s.oop) B('oop', { prio: 5 });
       else if (s.three && p.stepT !== undefined && G.t - p.stepT < 2) B('stepback', { prio: 4 });
       else if (s.foul) B('and1', { prio: 4 });
@@ -1450,7 +1505,7 @@
         else if (p.isUser && G.clock <= 0.05) R.pow('CLUTCH!', 3.2, 12.6, hz, 1.2);
         else if (p.isUser && s.three) R.pow(pickOf(['SPLASH!', 'CASH!', 'WET!', 'SWISH!']), 3.2, 12.6, hz, 1.05);
         else if (p.isUser && s.kind !== 'dunk' && s.prob > 0.55 && rand() < 0.5) R.pow(pickOf(['SWISH!', 'PURE!', 'SMOOTH!']), 3.2, 12.4, hz, 0.9);
-        if (ast && ast.isUser) powAt('DIME!', p, 0.95);
+        if (ast && ast.isUser) { powAt('DIME!', p, 0.95); if (rand() < 0.6) setTimeout(() => B('dime', { prio: 3, follow: 0.5 }), 1400); }
         if (s.kind === 'dunk' && R.burst) R.burst(0, 10.2, hoopZ(p.team) - dirOf(p.team) * 0.6, 9, 1); }
       if (p.isUser && (G.streak === 3 || G.streak === 5)) { setTimeout(() => { if (G && G.user) powAt(G.streak >= 5 ? 'FIRE!' : 'HOT!', G.user, 1, false, 1.4); }, 900); quip('Hot', true); }
       if (p.team === 0) toast(call + (s.foul ? ' · AND ONE' : ''), 'make'); else toast(`${p.name} scores`, 'opp');
@@ -1464,9 +1519,10 @@
           setTimeout(() => { if (!G || !G.user) return; toast(lead ? (was === theirs ? 'BREAKS THE TIE' : 'TAKES THE LEAD') : 'TIED UP', 'make'); powAt(lead ? 'LEAD!' : 'TIED!', G.user, 1.05, false, 1.7); }, 1250);
           if (lead && R.benchJump) R.benchJump(p.team); if (home(p.team)) AU().crowd.react('roar', late ? 1.3 : 1); R.hype(late ? 1.3 : 0.9, late ? 0.5 : 0);
           for (const m of G.pl) if (m.team === p.team && m !== p && rand() < 0.75) { m.pose = 'celebrate'; setTimeout(() => { if (m.pose === 'celebrate') m.pose = ''; }, 1300); }
+          setTimeout(() => B(lead ? 'lead' : 'tied', { prio: 4, follow: 0.6 }), 1300); if (lead) setTimeout(() => social('lead'), 2200);
           quipT = -9; quip('Lead', true); if (!(s.three || s.kind === 'dunk' || s.foul)) celebrate(p, late ? ['roar', 'chest', 'ice', 'nightnight'] : ['flex', 'roar', 'chest', 'point']); }
         /* a perfect release that drops: he knew it when it left his hand */
-        else if (s.timing === 'Excellent' && s.kind !== 'dunk' && !(s.three || s.foul)) { celebrate(p, ['point', 'shrug', 'ice', 'three']); if (rand() < 0.6) powAt('GREEN!', p, 0.9, false, 1.7); quip('Green'); }
+        else if (s.timing === 'Excellent' && s.kind !== 'dunk' && !(s.three || s.foul)) { celebrate(p, ['point', 'shrug', 'ice', 'three']); if (rand() < 0.6) powAt('GREEN!', p, 0.9, false, 1.7); quip('Green'); setTimeout(() => B('perfect_ana', { prio: 2 }), 1100); if (rand() < 0.35) setTimeout(() => social('green'), 1500); }
         else if (s.timing === 'Excellent' && s.three && rand() < 0.5) setTimeout(() => { if (G && G.user) powAt('GREEN!', G.user, 0.9, false, 1.7); }, 300); }
       if (p.isUser && (s.three || s.kind === 'dunk' || s.foul)) { celebrate(p, s.foul ? ['chest', 'flex', 'toosmall'] : s.kind === 'dunk' ? ['roar', 'flex', 'chest', 'toosmall'] : clutchTime() ? ['ice', 'nightnight', 'shh', 'three'] : ['goggles', 'three', 'point', 'shrug', 'ice']); for (const m of G.pl) if (m.team === p.team && m !== p && hyp(m.x - p.x, m.z - p.z) < 20 && rand() < 0.6) { m.pose = 'celebrate'; setTimeout(() => { if (m.pose === 'celebrate') m.pose = ''; }, 1100); } if (rand() < 0.5) { const m = G.pl.find(o => o.team === p.team && !o.isUser); if (m) setTimeout(() => CH('ch_nice', m), 900); } }
       else if (!p.isUser && (s.kind === 'dunk' || s.foul || (s.three && p.r.three > 80)) && rand() < 0.35) celebrate(p, s.kind === 'dunk' ? ['roar', 'flex'] : s.foul ? ['chest'] : ['three', 'goggles']);
@@ -1834,7 +1890,7 @@
         startMv(p, p.dribHand === from ? 'hesi' : ['cross', 'btb', 'legs'][Math.floor(rand() * 3)], from, p.dribHand); }
       if (def && rand() < clamp(0.12 + (p.r.handle - def.r.perD) * 0.006, 0.03, 0.4)) {
         def.stun = 0.6; p.drive = 1.2; def.beatT = G.t; def.beatAmt = 0.9; def.beatSide = side;
-        if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); powAt('?', def, 0.8, true, 1.6); AU().crowd.react('ooh', 0.8); }
+        if (def.isUser) { grade(-1, 'Got crossed'); toast('Crossed up', 'opp'); powAt('?', def, 0.8, true, 1.6); B('crossed_ana', { prio: 2 }); AU().crowd.react('ooh', 0.8); }
         if (rand() < 0.15) ankles(def);
       }
     }
@@ -2396,7 +2452,7 @@
       return; }
     if (rand() < Math.min(ch, 0.95)) {
       dv.stun = Math.max(dv.stun || 0, 0.45); dv.lagT = G.t + lagFor(dv) * 0.9; dv.beatAmt = 0.85; dv.respT = G.t + 1.2; u.st.shake++;
-      feedMove(wrong ? kind + ': wrong-footed' : kind); if (R.puff) R.puff(dv.x, dv.z, 1); if (home(u.team)) AU().crowd.react('ooh', 0.5); buzz(12);
+      feedMove(wrong ? kind + ': wrong-footed' : kind); B('blowby', { prio: 3, follow: 0.4 }); if (rand() < 0.3) social('Beat your man'); if (R.puff) R.puff(dv.x, dv.z, 1); if (home(u.team)) AU().crowd.react('ooh', 0.5); buzz(12);
       if (rand() < 0.35) powAt(pickOf(['BYE!', 'LATER!', 'GONE!']), dv, 0.75);
     } else { dv.stun = Math.max(dv.stun || 0, 0.12); dv.beatAmt = 0.3; }
   }
@@ -2465,7 +2521,7 @@
         dv.beatT = G.t; dv.beatAmt = 0.4; dv.beatSide = ml >= 0 ? -1 : 1;   // he leans at the fake   // even a move he reads costs him half a step, and he gives you a step of room after it
         u.mvAt = G.t;
         if (rand() < Math.min(ch, 0.95)) { if (wrong || caught) feedMove(caught ? 'Caught him reaching' : 'Wrong-footed'); nd.who.lagT = G.t + lagFor(nd.who) * 1.1; dv.beatAmt = 1;
-          if (!dv.isUser && kind !== 'step' && kind !== 'escape') { dv.vx = -dx / L * 7; dv.vz = -dz / L * 7; }   /* a stumbling step the wrong way as you go the other */ if (R.puff) R.puff(dv.x, dv.z, 1.1); nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.2;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+          if (!dv.isUser && kind !== 'step' && kind !== 'escape') { dv.vx = -dx / L * 7; dv.vz = -dz / L * 7; }   /* a stumbling step the wrong way as you go the other */ if (R.puff) R.puff(dv.x, dv.z, 1.1); nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.2;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); B('ankles', { prio: 5, follow: 0.6 }); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
@@ -2534,6 +2590,7 @@
       return;
     }
     if (G.tko && G.tko.on) tkoTick();
+    chatter();
     if (G.switching && G.phase === 'live') autoSwitch();
     const b = G.ball;
     if (relT > 0) { relT -= dt; if (relT <= 0) $('#rel').className = ''; }
@@ -2779,7 +2836,7 @@
             h.vx -= ux * vin * k; h.vz -= uz * vin * k;
             const sd = (rx * -uz + rz * ux) > 0 ? -1 : 1; h.vx += -uz * sd * vin * k * 0.35; h.vz += ux * sd * vin * k * 0.35;
             if (!(h.bumpT > G.t)) { h.bumpT = G.t + 0.9; d.bodyT = G.t;
-              if (d.isUser) { grade(0.5, 'Cut him off'); toast(pickOf(['Cut off', 'Walled off', 'Nowhere to go']), 'make'); powAt('WALL!', d, 0.75); buzz(12); } else if (h.isUser) toast('Bumped', 'opp');
+              if (d.isUser) { grade(0.5, 'Cut him off'); toast(pickOf(['Cut off', 'Walled off', 'Nowhere to go']), 'make'); powAt('WALL!', d, 0.75); if (rand() < 0.2) B('wall_ana', { prio: 2 }); buzz(12); } else if (h.isUser) toast('Bumped', 'opp');
               AU().play('squeak', { x: d.x, vol: 0.7 }); }
             break;
           }
@@ -2978,7 +3035,7 @@
         if (fromShot) {
           got.st.reb++;
           const off = got.team === G.reb.team;
-          if (got.isUser && !G.drill && !G.park) powAt(off ? 'MINE!' : 'BOARD!', got, 0.8, false, 1.6);
+          if (got.isUser && !G.drill && !G.park) { powAt(off ? 'MINE!' : 'BOARD!', got, 0.8, false, 1.6); if (!off && rand() < 0.3) B('board', { prio: 1 }); }
           if (off) got.st.oreb++;
           if (got.isUser) grade(off ? 2 : 1.5, off ? 'Offensive board' : 'Rebound');
           feed(`${off ? 'Offensive rebound' : 'Rebound'} · ${got.name}`);
@@ -3458,13 +3515,13 @@
         const k = bt.dataset.play;
         if (G.play && (G.play.id || G.play.kind) === k) { G.play = null; pause(false); toast('Play off', 'call'); return; }
         G.play = mkPlay(k, G.poss === 0 ? 2 : 3); if (G.cp && G.cp.team === 0) G.cp = null;
-        pause(false); toast(`${PLAYS[k][0]}: ${PLAYS[k][1]}`, 'call'); feed(`You call ${PLAYS[k][0].toLowerCase()}`);
+        pause(false); toast(`${PLAYS[k][0]}: ${PLAYS[k][1]}`, 'call'); feed(`You call ${PLAYS[k][0].toLowerCase()}`); if (rand() < 0.5) setTimeout(() => B('playcall_ana', { prio: 2 }), 900);
       });
       ov.querySelectorAll('[data-dplay]').forEach(bt => bt.onclick = () => {
         const k = bt.dataset.dplay;
         if (G.dplay && G.dplay.kind === k) { G.dplay = null; pause(false); toast('Back to straight man', 'call'); return; }
         G.dplay = { kind: k, left: G.poss === 1 ? 2 : 3 };
-        pause(false); toast(`${DPLAYS[k][0]}: ${DPLAYS[k][1]}`, 'call'); feed(`You call ${DPLAYS[k][0].toLowerCase()}`);
+        pause(false); toast(`${DPLAYS[k][0]}: ${DPLAYS[k][1]}`, 'call'); feed(`You call ${DPLAYS[k][0].toLowerCase()}`); { const dd = DBOOK[k]; if (dd.zone || dd.dbl) setTimeout(() => B(dd.zone ? 'zone_ana' : 'trap_ana', { prio: 2 }), 900); }
       });
       /* sound and the booth, without leaving the game */
       if ($('#psnd')) $('#psnd').onclick = () => {

@@ -4,6 +4,10 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The booth says more: about 120 new recorded lines. New calls for taking the lead, a tie game, a perfect release, a blow-by, broken ankles, a poster, a three from way out, a great pass, a chase-down block, a play called from the bench, a zone or a trap, a blowout and a game going down to the wire; and more ways to call a three, a dunk, a layup, a miss, a block, a steal, a turnover and a foul.
+- Your phone has more on it: over 200 new posts. More reactions to what you do (and to what goes wrong: a turnover, a bad shot, getting blocked or crossed), and the rest of the timeline now talks about the game itself now and then: the score, the crowd, the refs, the nachos. Twenty more accounts, and no post repeats until many others have been seen.
+- After a career game the timeline has more voices: a beat writer, a referee, a coach in the stands, a grandmother, a kid in the driveway.
+- More lines from the coach and your teammates.
 - Lose your man without the ball: the same cut, stop and go or first step puts the man guarding you a step behind ("Open: call for it").
 - Who you beat matters: a stopper is back in the play in about a second, a poor defender takes two. The same trick twice in a row is read: mix them up. A man chasing you from behind no longer picks your pocket.
 - The help is real: the big comes up to meet your drive outside dunking range, holds his ground instead of being pushed under the rim, and stays between you and the basket when you slow down. Beat your man, then go round the big, pull up, float it or kick it out.
