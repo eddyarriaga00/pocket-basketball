@@ -3064,7 +3064,8 @@
       { const on = g.pl.filter(p => p.team === w), star = g.user && g.user.team === w ? g.user : on.slice().sort((a, b) => b.st.pts - a.st.pts)[0];
         if (star && R.cine) { const fa = star.face || 0, ab = t => g.teams[t].ab || g.teams[t].id, title = !!(opts.clinch && opts.clinch[w]);
           /* the night a title is won: paper falls, the cameras stay longer, the flashes do not stop */
-          if (title) { if (R.confetti) R.confetti(g.teams[w].c1, g.teams[w].c2); if (R.hype) { R.hype(1.4); setTimeout(() => G === g && R.hype(1.2), 1500); setTimeout(() => G === g && R.hype(1.2), 3200); } AU().crowd.react('roar', 1); }
+          if (title) { if (R.trophyTo && opts.stage) { R.trophyTo(star); star.pose = 'celebrate'; } if (R.burst) for (let k = 0; k < 4; k++) setTimeout(() => { if (G === g) R.burst(star.x + rr(-6, 6), 7 + rr(0, 4), star.z + rr(-6, 6), 8, 1.1); }, 500 + k * 900);
+            if (R.confetti) R.confetti(g.teams[w].c1, g.teams[w].c2); if (R.hype) { R.hype(1.4); setTimeout(() => G === g && R.hype(1.2), 1500); setTimeout(() => G === g && R.hype(1.2), 3200); } AU().crowd.react('roar', 1); }
           g.buzzT = title ? 9.2 : 5.0;
           cine((title ? [{ focus: star, a: [fa + 0.9, fa - 0.5], r: [9, 7], h: [2.4, 4.4], ly: 4.6, dur: 3.2 }, { focus: star, a: [fa - 1.2, fa + 0.3], r: [17, 13], h: [5, 8], ly: 4.5, dur: 2.8 }] : [{ focus: star, a: [fa - 0.7, fa + 0.45], r: [10, 7.5], h: [3, 4.6], ly: 4.4, dur: 2.6 }])
             .concat([{ a: [0.7, 1.35], r: [58, 72], h: [18, 36], ly: 3, dur: title ? 3.0 : 2.3 }]),
@@ -3569,6 +3570,7 @@
       { const L = { Closer: [34, 25, 6], Default: [42, 32, 8], Farther: [50, 39, 10] }[(PB.settings && PB.settings.camDist) || 'Default'] || [42, 32, 8]; R.lock.back = L[0]; R.lock.up = L[1]; R.lock.ahead = L[2]; R.lock.fov = 52; }
       R.resize();
       R.build(o.floor || o.teams[0]);
+      if (o.stage) { setTimeout(() => { if (G && R.board) R.board(o.stage.title, 7); if (G) feed(`${o.stage.title}${o.stage.sub ? ' · ' + o.stage.sub : ''}`); }, 1200); if (R.hype) setTimeout(() => G && R.hype(1.2), 900); }
       const pl = [];
       o.rosters.forEach((ro, t) => ro.forEach((d, i) => {
         const p = mkOnCourt(d, t, o.slots ? o.slots[i] : i);
@@ -3621,7 +3623,7 @@
       else if (!o.drill && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario && !(PB.settings && PB.settings.introOn === 'Off')) {
         G.tipT = 8.4; R.setIntro(8.0, G.user);
         const iv = $('#intro');
-        iv.innerHTML = `<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
+        iv.innerHTML = `${o.stage ? `<strong class="stg">${o.stage.title}</strong><small class="stgs">${o.stage.sub || ''}</small>` : ''}<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
         iv.className = ''; iv.hidden = false; clearTimeout(iv.h);
         /* then the starting lineups, the way the broadcast shows them */
         const shot = (p, t) => { try { if (!R.modelReady || !R.modelReady() || PB.noGL) return null;

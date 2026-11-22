@@ -1239,7 +1239,7 @@
     if (g.cup === 'QF') { K.stage = 'SF'; K.opp = pickW(K.other[0], K.other[1]); C.me.sp += 1; }
     else if (g.cup === 'SF') { K.stage = 'F'; const oc = t.conf === 'East' ? 'West' : 'East', q = K.qual[oc]; K.opp = pickW(pickW(q[0], q[3]), pickW(q[1], q[2])); C.me.sp += 1; }
     else { K.stage = 'won'; K.note = `Cup champions, beating the ${PB.team(g.opp).name}`; C.trophies.push(`Cup champion, season ${C.year}`); C.me.sp += 5; C.fans = Math.round((C.fans || 0) * 1.08 + 5000); C.earnings = (C.earnings || 0) + 0.5;
-      C.news.unshift(`THE CUP IS YOURS. The ${t.name} win the in-season tournament: +5 skill points, a $500K bonus for every player`); cupFinish(); return; }
+      setTimeout(() => PB.confetti([t.c1, t.c2, '#ffffff'], 7), 700); C.news.unshift(`THE CUP IS YOURS. The ${t.name} win the in-season tournament: +5 skill points, a $500K bonus for every player`); cupFinish(); return; }
     const nx = C.games[C.gi + 1]; if (nx) { nx.opp = K.opp; nx.cup = K.stage; nx.home = false; nx.neutral = true; nx.b2b = false; C.news.unshift(`The Cup: on to the ${K.stage === 'F' ? 'final' : 'semifinals'} against the ${PB.team(K.opp).name}`); }
     else { K.stage = 'out'; cupFinish(); }
   }
@@ -1979,9 +1979,13 @@
     /* in a rival game he starts, at his position (yours): you guard each other */
     const opp5 = starters(o.id);
     if (C.rival && o.id === C.rival.team && rivalP()) opp5[PB.POS.indexOf(rivalP().pos)] = rivalP();
+    /* the two nights that are not like the others: the Finals, and the final of the Cup */
+    const fsr = g.po && mySeries(), bigNight = fsr && fsr.conf === 'Finals' ? { kind: 'finals', title: 'The Finals', sub: (() => { const m = fsr.a === C.team ? fsr.wa : fsr.wb, th = fsr.a === C.team ? fsr.wb : fsr.wa; return `Game ${m + th + 1} · ${m === th ? 'Series tied ' + m + '-' + th : m > th ? 'You lead ' + m + '-' + th : 'You trail ' + m + '-' + th}`; })() }
+      : g.cup === 'F' ? { kind: 'cupfinal', title: 'The Cup Final', sub: 'One game for the trophy' } : null;
     const mine5 = liveFive(), benchOf = (id, five) => C.rosters[id].filter(p => !(p.out > 0) && !five.includes(p) && p.id !== C.me.id).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
-      floor: g.cup ? Object.assign({}, g.home || g.neutral ? t : o, { cup: true }) : g.home ? t : o, strength: [strength(C.team), strength(o.id)], playoff: !!g.po || (!!g.cup && g.cup !== 'group'), clinch: (() => { const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
+      floor: bigNight ? Object.assign({}, g.home || g.neutral ? t : o, { cup: !!g.cup, stage: bigNight.kind, stageText: bigNight.title }) : g.cup ? Object.assign({}, g.home || g.neutral ? t : o, { cup: true }) : g.home ? t : o, stage: bigNight || (g.cup ? { title: g.cup === 'group' ? 'Cup night' : CUP_ROUNDS[g.cup], sub: g.cup === 'group' && C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Win or go home' } : null),
+      strength: [strength(C.team), strength(o.id)], playoff: !!g.po || (!!g.cup && g.cup !== 'group'), clinch: (() => { if (g.cup === 'F') return [true, true]; const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
       stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers

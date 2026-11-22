@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The two biggest nights look like it. In the Finals and in the Cup final the floor has the name of the night painted at both ends and the trophy at center court, the ribbons round the stands and the scoreboard carry it, the trophy itself stands on a plinth by the table, and the card before the tip says what is at stake (the game number and where the series stands). Win it and your man lifts the trophy over his head while the paper falls. The Cup final is one game for the trophy, with the same finish.
+- In a cut scene nobody stands in front of the lens any more: a player between the camera and the man it is watching steps out of the shot.
 - The menu has art: every mode on the title screen is a tile with a player from the game on it, in a different club's colors, with just its name. The small pages (Chat, Profile, News, How to play, Settings) are one row of pills under them.
 - Smaller, plainer buttons: the controls in a game are about a tenth smaller with thinner rings (Settings › Controls › Button size: Large is still there), and the buttons on the pages are a little shorter.
 - The Cup: an in-season tournament in your career. Early in the season some of your games are cup nights, group games on a painted floor against the four teams drawn with you. Win the group or be the best runner-up in your conference and the next games become a quarterfinal, a semifinal and the final. Win it for a trophy, five skill points, a bonus and an achievement. The table and the last eight are on the League tab. (Seasons of ten games or more.)

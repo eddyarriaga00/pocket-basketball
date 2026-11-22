@@ -953,3 +953,8 @@ ul.wn{margin:0;padding:0 0 0 18px}ul.wn li{margin:0 0 10px;font-size:13px;line-h
 #game.lefty:not(.bigbtn) .btn.a{right:auto;left:14px}#game.lefty:not(.bigbtn) .btn.b{right:auto;left:90px}#game.lefty:not(.bigbtn) .btn.c{right:auto;left:26px}#game.lefty:not(.bigbtn) .btn.d{right:auto;left:82px}#game.lefty:not(.bigbtn) #tko{right:auto;left:14px}
 /* buttons on the pages: a little shorter, less heavy */
 button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padding-top:11px;padding-bottom:11px;font-size:14px}button.ghost.sm{padding-top:8px;padding-bottom:8px;font-size:12.5px}
+
+/* the card before a final */
+#intro .stg{font-family:var(--display);font-weight:900;font-style:italic;font-size:38px;line-height:1;text-transform:uppercase;letter-spacing:.01em;font-stretch:118%;text-shadow:0 3px 0 #000,0 10px 30px rgba(0,0,0,.7);border-top:2px solid #fff;border-bottom:2px solid #fff;padding:8px 14px;margin-bottom:2px;animation:stgin .7s cubic-bezier(.2,1.4,.4,1)}
+#intro .stgs{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#e6e8ee;margin-bottom:14px}
+@keyframes stgin{0%{transform:scale(1.5);opacity:0}100%{transform:scale(1);opacity:1}}

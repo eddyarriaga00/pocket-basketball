@@ -301,6 +301,12 @@
       g.save(); g.translate(X(0), Z(0)); g.globalAlpha = 0.22; g.fillStyle = '#ffffff'; const u = PX;
       g.beginPath(); g.moveTo(-3.2 * u, -4.6 * u); g.lineTo(3.2 * u, -4.6 * u); g.quadraticCurveTo(3 * u, 0.6 * u, 0.7 * u, 1.6 * u); g.lineTo(0.7 * u, 3.4 * u); g.lineTo(2.2 * u, 3.4 * u); g.lineTo(2.2 * u, 4.6 * u); g.lineTo(-2.2 * u, 4.6 * u); g.lineTo(-2.2 * u, 3.4 * u); g.lineTo(-0.7 * u, 3.4 * u); g.lineTo(-0.7 * u, 1.6 * u); g.quadraticCurveTo(-3 * u, 0.6 * u, -3.2 * u, -4.6 * u); g.fill();
       g.restore(); }
+    if (home.stage && !home.street) {
+      for (const sz of [-1, 1]) { g.save(); g.translate(X(0), Z(sz * 21.5)); g.rotate(sz > 0 ? Math.PI : 0); g.globalAlpha = 0.9; g.fillStyle = '#ffffff'; g.font = `italic 900 ${3.1 * PX}px Archivo, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.lineWidth = 0.28 * PX; g.strokeStyle = 'rgba(0,0,0,.55)'; g.strokeText((home.stageText || 'THE FINALS').toUpperCase(), 0, 0); g.fillText((home.stageText || 'THE FINALS').toUpperCase(), 0, 0); g.restore(); }
+      if (!home.cup) { g.save(); g.translate(X(0), Z(0)); g.globalAlpha = 0.2; g.fillStyle = '#ffffff'; const u = PX;
+        g.beginPath(); g.moveTo(-3.2 * u, -4.6 * u); g.lineTo(3.2 * u, -4.6 * u); g.quadraticCurveTo(3 * u, 0.6 * u, 0.7 * u, 1.6 * u); g.lineTo(0.7 * u, 3.4 * u); g.lineTo(2.2 * u, 3.4 * u); g.lineTo(2.2 * u, 4.6 * u); g.lineTo(-2.2 * u, 4.6 * u); g.lineTo(-2.2 * u, 3.4 * u); g.lineTo(-0.7 * u, 3.4 * u); g.lineTo(-0.7 * u, 1.6 * u); g.quadraticCurveTo(-3 * u, 0.6 * u, -3.2 * u, -4.6 * u); g.fill(); g.restore(); }
+    }
     /* the lights off the varnish: soft pale ovals down the length of the floor */
     if (!home.street) { g.save(); for (let i = 0; i < 7; i++) { const cz = -40 + i * 13.3, rg = g.createRadialGradient(X(0), Z(cz), 2, X(0), Z(cz), 13 * PX); rg.addColorStop(0, 'rgba(255,255,255,0.075)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = rg; g.fillRect(0, Z(cz) - 13 * PX, cv.width, 26 * PX); } g.restore(); }
     /* center logo, readable from behind the team attacking +z (player lock, the default camera); the baseline names
@@ -1956,7 +1962,8 @@
     nets = [];
     const apron = new T.Mesh(new T.PlaneGeometry(90, 140), new T.MeshLambertMaterial({ color: home.park ? 0x55585e : 0x1c2333 }));
     apron.rotation.x = -Math.PI / 2; apron.position.y = -0.02; scene.add(apron);
-    courtMat = new T.MeshPhongMaterial({ map: courtTexture(home), shininess: 38, specular: 0x2a2620 });   // a polished floor: the lights glint off it
+    courtMat = new T.MeshPhongMaterial({ map: courtTexture(home), shininess: 38, specular: 0x2a2620 });
+    trophy = null; trophyOn = null; if (home.stage) { trophy = buildTrophy(!!home.cup); trophy.position.set(-27.6, 3.2, 0); scene.add(trophy); }   // a polished floor: the lights glint off it
     const court = new T.Mesh(new T.PlaneGeometry(50, 94), courtMat);
     court.rotation.x = -Math.PI / 2; scene.add(court);
     scene.add(hoop(1, home)); scene.add(hoop(-1, home));
@@ -2040,7 +2047,7 @@
     const rg = rc.getContext('2d');
     rg.fillStyle = home.c1; rg.fillRect(0, 0, 512, 32);
     rg.fillStyle = home.c2; rg.font = '900 22px Archivo, Arial'; rg.textBaseline = 'middle';
-    for (let x = 0; x < 512; x += 256) { rg.fillText(home.name.toUpperCase(), x + 10, 17); rg.fillRect(x + 200, 12, 40, 8); }
+    for (let x = 0; x < 512; x += 256) { rg.fillText((home.stageText || home.name).toUpperCase().slice(0, 13), x + 10, 17); rg.fillRect(x + 208, 12, 34, 8); }
     const rt = new T.CanvasTexture(rc); rt.wrapS = T.RepeatWrapping; rt.colorSpace = T.SRGBColorSpace;
     ribbons = [];
     for (const side of [-1, 1]) {
@@ -2143,6 +2150,23 @@
   /* the benches: five seated reserves in warmups on each side of the scorer's table, and a coach standing at the end
      of each. Simple shapes in one mesh with vertex colors: one draw for both benches. */
   let benchMesh = [], benchJ = [0, 0], benchT = 0;
+  /* the trophy: on a plinth by the scorer's table on the night of a final; whoever wins it lifts it over his head */
+  let trophy = null, trophyOn = null;
+  function buildTrophy(cup) {
+    const pts = [[0.5, 0], [0.5, 0.12], [0.22, 0.2], [0.12, 0.5], [0.1, 0.95], [0.3, 1.25], [0.55, 1.7], [0.62, 2.1], [0.58, 2.15], [0.0, 2.15]].map(p => new T.Vector2(p[0], p[1]));
+    const mat = new T.MeshPhongMaterial({ color: cup ? 0xd8dde6 : 0xe9d7a0, specular: 0xffffff, shininess: 120, emissive: cup ? 0x30343a : 0x3a3014 });
+    const g = new T.Group(), body = new T.Mesh(new T.LatheGeometry(pts, 20), mat); g.add(body);
+    if (!cup) { const ball = new T.Mesh(new T.SphereGeometry(0.42, 14, 10), mat); ball.position.y = 2.5; g.add(ball); }
+    else for (const sx of [-1, 1]) { const h = new T.Mesh(new T.TorusGeometry(0.34, 0.06, 6, 14, Math.PI), mat); h.position.set(sx * 0.6, 1.75, 0); h.rotation.z = -sx * Math.PI / 2; g.add(h); }
+    const plinth = new T.Mesh(new T.BoxGeometry(1.7, 3.2, 1.7), new T.MeshLambertMaterial({ color: 0x0c0c10 })); plinth.position.y = -1.6; g.add(plinth); g.userData.plinth = plinth;
+    return g;
+  }
+  R.trophyTo = p => { trophyOn = p || null; if (trophy && trophy.userData.plinth) trophy.userData.plinth.visible = !trophyOn; };
+  function trophyTick(G) {
+    if (!trophy) return;
+    if (trophyOn) { const p = trophyOn, H = (p.ht || 78) / 12; trophy.position.set(p.x, H + 0.55 + Math.sin(G.t * 5) * 0.1 + (p.y || 0), p.z); trophy.rotation.y = G.t * 1.2; trophy.scale.setScalar(0.72); }
+    else trophy.rotation.y = G.t * 0.35;
+  }
   R.benchJump = team => { benchJ[team] = 1.4; };   // a big play: that bench is up on its feet
   /* a man on the bench: the real model, sat down (or left standing: a coach), then baked into plain meshes. Nothing
      about him moves again, so there are no bones to work every frame */
@@ -2407,6 +2431,7 @@
       }
     }
     for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
+    trophyTick(G);
     if (tag && tagP) tag.position.set(tagP.x, (tagP.ht || 78) / 12 + 3.9 + tagP.y, tagP.z);
     if (G.pl && !G.show) R.nameTags(G);
     if (guideArrow) { const gx = G.park && G.user && G.guideXZ, u0 = G.user;
@@ -2458,6 +2483,9 @@
       const sh = cine.shots[cine.i]; cine.t += dt; const k0 = Math.min(1, cine.t / sh.dur), e = k0 * k0 * (3 - 2 * k0), mix = v => v[0] + (v[1] - v[0]) * e;
       const f = sh.focus, fx = f ? f.x : 0, fz = f ? f.z : 0, a = mix(sh.a), r = mix(sh.r);
       cam.position.set(fx + Math.sin(a) * r, mix(sh.h), fz + Math.cos(a) * r); cam.lookAt(fx, sh.ly === undefined ? 4 : sh.ly, fz);
+      /* nobody stands in front of the lens: a man close to the camera who is not the one being watched steps out of the shot */
+      if (hidNear.length) { for (const m of hidNear) m.root.visible = true; hidNear.length = 0; }
+      if (f) for (const [p, m] of meshes) if (p !== f && Math.hypot(p.x - cam.position.x, p.z - cam.position.z) < Math.max(5.5, r * 0.62)) { m.root.visible = false; hidNear.push(m); }
       camPos.copy(cam.position); camLook.set(fx, 2, fz);
       if (k0 >= 1) { cine.t = 0; if (++cine.i >= cine.shots.length) { const done = cine.done; cine = null; snap = true; if (done) done(); } }
       return;
