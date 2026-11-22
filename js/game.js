@@ -1321,6 +1321,15 @@
     const D = G.drill, u = G.user;
     if (G.park) parkStep(dt);
     G.clock = 0; G.shotClock = 24; G.score[0] = D.made; G.score[1] = D.att;
+    if (opts.warm) {
+      D.wt = (D.wt === undefined ? opts.warm : D.wt) - dt;
+      let bt0 = $('#warmgo'); if (!bt0) { bt0 = document.createElement('button'); bt0.id = 'warmgo'; bt0.textContent = 'Tip off ›'; $('#game').appendChild(bt0); bt0.onclick = () => { if (G && opts.warm) finish(); }; }
+      if (D.next > 0) { D.next -= dt; if (D.next <= 0) { D.next = 0; give(u); } }
+      const s0 = Math.max(0, Math.ceil(D.wt)); $('#ftmsg').hidden = false;
+      $('#ftmsg').textContent = `Shootaround · ${Math.floor(s0 / 60)}:${String(s0 % 60).padStart(2, '0')} · ${D.made} of ${D.att}${D.made >= 5 ? ' · warmed up' : D.made ? ` · ${5 - D.made} more to warm up` : ''}`;
+      if (D.wt <= 0) finish();
+      return;
+    }
     if (D.next > 0) { D.next -= dt; if (D.next <= 0) { D.next = 0; give(u); } }
     $('#ftmsg').hidden = !!(G.park && G.tut && !G.tut.done);
     $('#ftmsg').textContent = G.park ? (D.att ? `${D.made} of ${D.att}${D.streak > 1 ? ` · ${D.streak} straight` : ''}` : 'Walk into a ring') : `${D.made} of ${D.att}${D.att ? ` · ${Math.round(D.made / D.att * 100)}%` : ''} · streak ${D.streak || 0} (best ${D.best || 0}) · pause to finish`;
@@ -3121,6 +3130,7 @@
   }
   function finish() {
     if (R.cine) R.cine(null);
+    { const wg = $('#warmgo'); if (wg) { wg.remove(); const fm = $('#ftmsg'); if (fm) { fm.hidden = true; fm.textContent = ''; } } }
     G.phase = 'end';
     $('#game').classList.remove('park'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; }
     cancelAnimationFrame(raf);
@@ -3557,6 +3567,14 @@
         R.loadModel().then(go); setTimeout(go, 8000);
         return;
       }
+      /* the shootaround: before a real game, a minute on the floor by yourself to find your shot. Tip off whenever you
+         like. Make five and you start the night loose (a little of the Takeover meter already in). Not before a
+         drill, the park, a scenario or the blacktop, and not when a script is driving the page. */
+      if (!o._warm && !o.drill && !o.park && !o.scenario && !o.half && !o.switching && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && o.userId && !(PB.settings && PB.settings.warmOn === 'Off') && (!navigator.webdriver || PB.forceWarm)) {
+        const me = (o.rosters[0] || []).find(d => d.id === o.userId);
+        if (me) { const real = o; this.start({ teams: o.teams, rosters: [[me], []], userId: o.userId, drill: 'free', warm: 60, qlen: 1, level: o.level, floor: o.floor || o.teams[0], homeKit: o.homeKit, _warm: true,
+          onEnd: r => { real._warm = true; real.warmed = !!(r && r.drill && r.drill.made >= 5); this.start(real); } }); return; }
+      }
       if (PB.noGL) { alert('This browser cannot draw the 3D court (WebGL is off or unavailable). Try another browser, or turn on hardware acceleration.'); if (o.onEnd) setTimeout(() => PB.Career.title(), 0); return; }
       opts = o;
       /* a menu's 3D showcase (the start screen's player) hides the controls while it is up: never carry it into a game */
@@ -3589,7 +3607,9 @@
       G.user = pl.find(p => p.isUser) || null;
       { const rp = $('#rp'); if (rp) rp.hidden = true; $('#game').classList.remove('replaying'); }   // nothing of the last game's replay is left on screen
       $('#game').classList.toggle('watching', !G.user && !o.drill); $('#game').classList.remove('park', 'horse'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; } if (R.setStations) R.setStations([]);   // spectating: the broadcast without the controls
-      G.tko = !o.drill && !o.switching && G.user ? { m: 0, on: false, until: 0, miss: 0 } : null; tkoHud();
+      G.tko = !o.drill && !o.switching && G.user ? { m: o.warmed ? 0.18 : 0, on: false, until: 0, miss: 0 } : null; tkoHud();
+      if (o.warmed) setTimeout(() => { if (G && !G.drill) toast('Warmed up', 'call'); }, 2600);
+      if (o.warm) setTimeout(() => { if (G && opts.warm) { toast('Shootaround: find your shot', 'call'); if (PB.booth && PB.booth.pa) { /* quiet: the building is still filling up */ } } }, 500);
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
       G.switching = !!o.switching; if (G.switching) { $('#grade').hidden = true; }
       AU().music(false); AU().crowd.on(true); AU().crowd.level(0.3); AU().muffle(false);

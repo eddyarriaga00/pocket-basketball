@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake', ball: 'Classic', fxOn: 'On', shakeOn: 'On', meterOn: 'On', speed: 'Normal', fouls: 'Normal', fatigueOn: 'On', coachPlays: 'On', introOn: 'On', freezeOn: 'On', slowOn: 'On', callsOn: 'On', quipsOn: 'On', feedOn: 'On', volCrowd: 'Normal', volMusic: 'Normal', volSfx: 'Normal', volBooth: 'Normal' }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake', ball: 'Classic', fxOn: 'On', shakeOn: 'On', meterOn: 'On', speed: 'Normal', fouls: 'Normal', fatigueOn: 'On', coachPlays: 'On', introOn: 'On', warmOn: 'On', freezeOn: 'On', slowOn: 'On', callsOn: 'On', quipsOn: 'On', feedOn: 'On', volCrowd: 'Normal', volMusic: 'Normal', volSfx: 'Normal', volBooth: 'Normal' }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   /* careers: up to six kept on this device, one of them current. A career saved by an older build (one slot) moves
@@ -441,6 +441,7 @@
       Game: [opt('level', ['Rookie', 'Pro', 'All-Star', 'Legend'], 'Difficulty'), opt('qlen', [2, 3, 5, 12], 'Quarter length'), opt('timing', ['Easy', 'Normal', 'Hard'], 'Shot timing', 'how wide the green band is'),
         opt('speed', ['Normal', 'Fast', 'Faster'], 'Game speed', 'how fast everything on the floor moves'), opt('fouls', ['Fewer', 'Normal', 'More'], 'Fouls', 'how often the whistle blows'),
         opt('fatigueOn', ['On', 'Off'], 'Fatigue', 'legs go as the game goes on'), opt('coachPlays', ['On', 'Off'], 'Coach calls plays', 'when you have not called one'),
+        opt('warmOn', ['On', 'Off'], 'Pre-game shootaround', 'a minute to find your shot before the tip'),
         opt('season', [10, 20, 41, 82], 'Games in a career season', 'from next season on'), opt('replaysOn', ['On', 'Off'], 'Replays'), opt('introOn', ['On', 'Off'], 'Opening and lineups', 'the camera work before the tip')],
       Controls: [opt('hand', ['Right-handed', 'Left-handed'], 'Buttons'), opt('btnSize', ['Normal', 'Large'], 'Button size'), opt('meterOn', ['On', 'Off'], 'Shot meter', 'off: shoot by the look of the jump, with a wider green window'),
         opt('tapShoot', ['Pump fake', 'Shoot'], 'A quick tap on Shoot', 'a fake, or the shot let go at once'), opt('vibrateOn', ['On', 'Off'], 'Vibration', 'Android')],
@@ -2739,10 +2740,13 @@
   function leadersCard() {
     const rows = leaders();
     if (!rows.length) return '';
-    const cat = (k, lbl) => { const top = rows.slice().sort((a, b) => b[k] - a[k]).slice(0, 5);
-      const mine = rows.filter(r => r.me)[0], rank = mine ? rows.slice().sort((a, b) => b[k] - a[k]).indexOf(mine) + 1 : 0;
-      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}" style="--w:${(r[k] / (top[0][k] || 1)).toFixed(2)}"><span>${i + 1}</span><i>${esc(r.name)} <small>${PB.team(r.team).ab}</small></i><em>${(r[k] / QF()).toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span><i>You</i><em>${(mine[k] / QF()).toFixed(1)}</em></p>` : ''}</div>`; };
-    return `<div class="card leaders"><h3>League leaders <small>per game, at full length (48 minutes)</small></h3>${cat('ptspg', 'Points')}${cat('rebpg', 'Rebounds')}${cat('astpg', 'Assists')}${cat('stlpg', 'Steals')}${cat('blkpg', 'Blocks')}${cat('tpmpg', 'Threes made')}</div>`;
+    /* what is shown: the league's players at full length (the numbers a real box score would have); yours exactly as you
+       played them, not scaled up or down. The order is by what is shown */
+    const val = (r, k) => r.me ? r[k] : r[k] / QF();
+    const cat = (k, lbl) => { const ord = rows.slice().sort((a, b) => val(b, k) - val(a, k)), top = ord.slice(0, 5);
+      const mine = rows.filter(r => r.me)[0], rank = mine ? ord.indexOf(mine) + 1 : 0;
+      return `<div class="lcat"><b>${lbl}</b>${top.map((r, i) => `<p class="${r.me ? 'me' : r.rival ? 'rv' : ''}" style="--w:${(val(r, k) / (val(top[0], k) || 1)).toFixed(2)}"><span>${i + 1}</span><i>${esc(r.name)} <small>${PB.team(r.team).ab}</small></i><em>${val(r, k).toFixed(1)}</em></p>`).join('')}${mine && rank > 5 ? `<p class="me"><span>${rank}</span><i>You</i><em>${val(mine, k).toFixed(1)}</em></p>` : ''}</div>`; };
+    return `<div class="card leaders"><h3>League leaders <small>per game · yours exactly as you played them</small></h3>${cat('ptspg', 'Points')}${cat('rebpg', 'Rebounds')}${cat('astpg', 'Assists')}${cat('stlpg', 'Steals')}${cat('blkpg', 'Blocks')}${cat('tpmpg', 'Threes made')}</div>`;
   }
   /* a coach for every bench: the same name all career (kept on the save) */
   function coachOf(tid) { const K = C.coaches || (C.coaches = {}); if (!K[tid]) K[tid] = PB.randName(); return K[tid]; }
@@ -2778,7 +2782,7 @@
     const ladder = (title, list, k, fmt) => { const top = list.slice().sort((a, b) => b[k] - a[k]), five = top.slice(0, 5), mine = top.find(r => r.me), rk = mine ? top.indexOf(mine) + 1 : 0;
       if (!five.length) return '';
       return `<div class="card awteam"><h3>${title}</h3>${five.map((r, i) => `<p class="${r.me ? 'me' : ''}"><i>${i + 1}. ${esc(r.name)}</i><small>${PB.team(r.team).ab}</small><em>${fmt(r)}</em></p>`).join('')}${mine && rk > 5 ? `<p class="me"><i>${rk}. You</i><small></small><em>${fmt(mine)}</em></p>` : ''}</div>`; };
-    const pra = r => `${(r.ptspg / q).toFixed(1)} / ${(r.rebpg / q).toFixed(1)} / ${(r.astpg / q).toFixed(1)}`, sb = r => `${(r.stlpg / q).toFixed(1)} stl · ${(r.blkpg / q).toFixed(1)} blk`;
+    const pq = r => r.me ? 1 : q, pra = r => `${(r.ptspg / pq(r)).toFixed(1)} / ${(r.rebpg / pq(r)).toFixed(1)} / ${(r.astpg / pq(r)).toFixed(1)}`, sb = r => `${(r.stlpg / pq(r)).toFixed(1)} stl · ${(r.blkpg / pq(r)).toFixed(1)} blk`;
     const race = rows.length ? ladder('MVP race', rows, 'mv', pra) + ladder('Defensive Player of the Year race', rows, 'df', sb) + ladder('Rookie of the Year race', rows.filter(r => r.rookie), 'mv', pra)
       : '<div class="card"><p class="mute">The races take shape once a few games are played.</p></div>';
     const past = (C.awardsLog || []).map(z => `<div class="card awteam"><h3>Season ${z.year}${z.champ ? ` <small>champions: ${PB.team(z.champ).name}</small>` : ''}</h3>${z.list.map(([t, n, tm]) => `<p class="${n === PB.full(C.me) ? 'me' : ''}"><i>${t}</i><small>${esc(n)} · ${PB.team(tm).ab}</small></p>`).join('')}

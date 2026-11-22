@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- The shootaround: before a real game you get a minute on the floor by yourself to find your shot. Tip off whenever you like. Make five and you start the night warmed up, with a little of the Takeover meter already in. (Settings › Game turns it off.)
+- In the league leaders and the award races your own numbers are exactly what you averaged, not scaled up or down. Everyone else is still shown at full length, and the order is by what is shown.
 - The two biggest nights look like it. In the Finals and in the Cup final the floor has the name of the night painted at both ends and the trophy at center court, the ribbons round the stands and the scoreboard carry it, the trophy itself stands on a plinth by the table, and the card before the tip says what is at stake (the game number and where the series stands). Win it and your man lifts the trophy over his head while the paper falls. The Cup final is one game for the trophy, with the same finish.
 - In a cut scene nobody stands in front of the lens any more: a player between the camera and the man it is watching steps out of the shot.
 - The menu has art: every mode on the title screen is a tile with a player from the game on it, in a different club's colors, with just its name. The small pages (Chat, Profile, News, How to play, Settings) are one row of pills under them.

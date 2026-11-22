@@ -958,3 +958,5 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 #intro .stg{font-family:var(--display);font-weight:900;font-style:italic;font-size:38px;line-height:1;text-transform:uppercase;letter-spacing:.01em;font-stretch:118%;text-shadow:0 3px 0 #000,0 10px 30px rgba(0,0,0,.7);border-top:2px solid #fff;border-bottom:2px solid #fff;padding:8px 14px;margin-bottom:2px;animation:stgin .7s cubic-bezier(.2,1.4,.4,1)}
 #intro .stgs{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#e6e8ee;margin-bottom:14px}
 @keyframes stgin{0%{transform:scale(1.5);opacity:0}100%{transform:scale(1);opacity:1}}
+
+#warmgo{position:absolute;left:50%;top:calc(132px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:auto;margin:0;padding:10px 22px;border-radius:999px;background:#fff;color:#000;border:0;font-family:var(--display);font-weight:900;font-size:14px;letter-spacing:.04em;text-transform:uppercase;z-index:4;box-shadow:0 6px 18px rgba(0,0,0,.45)}
