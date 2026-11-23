@@ -2255,7 +2255,9 @@
       if (!(key in shots)) { try { shots[key] = PB.R.portrait(pl, tm, 420, kit ? { body: true, kitObj: kit } : { body: true }); } catch (e) { shots[key] = null; } }
       return shots[key]; };
     let i = 0, timer = 0;
-    const end = () => { clearInterval(timer); scr().classList.remove('over3d'); scr().innerHTML = ''; done(); };
+    const AUD = PB.audio, snd = k => { try { if (!AUD) return; if (k === 'tick') { if (AUD.play) AUD.play('click'); } else if (AUD.crowd) { AUD.crowd.on(true); if (AUD.crowd.level) AUD.crowd.level(0.12); AUD.crowd.react(k, 1); clearTimeout(snd.off); snd.off = setTimeout(() => { try { AUD.crowd.on(false); } catch (e) { /* fine */ } }, 3800); } } catch (e) { /* no sound yet: the page has not been touched */ } };
+    try { if (AUD && AUD.music) AUD.music(true); } catch (e) { /* fine */ }
+    const end = () => { clearInterval(timer); clearTimeout(snd.off); try { if (AUD && AUD.crowd) AUD.crowd.on(false); } catch (e) { /* fine */ } scr().classList.remove('over3d'); scr().innerHTML = ''; done(); };
     const draw = () => {
       clearInterval(timer);
       const b = beats[i]; if (!b) { end(); return; }
@@ -2267,6 +2269,7 @@
         <div class="cbox">${b.who ? `<b class="cwho">${esc(b.who)}</b>` : ''}<p id="ctxt"></p><em class="cnext" id="cnext">${i + 1 < beats.length ? 'Tap to continue' : 'Tap to go on'} ›</em></div></div>`;
       sc.hidden = false; sc.scrollTop = 0;
       const el = $('#ctxt'), full = b.t || ''; let n = 0;
+      snd(b.snd || 'tick');
       const typed = () => n >= full.length;
       timer = setInterval(() => { n = Math.min(full.length, n + 2); el.textContent = full.slice(0, n); if (typed()) clearInterval(timer); }, 22);
       $('#cskip').onclick = e => { e.stopPropagation(); end(); };
@@ -2307,34 +2310,34 @@
       B = tale === 'first' ? [
         N('Draft night', 'The green room. Your family at the table, a camera a few feet from your face, and a card the commissioner has not read yet.', { big: 'Draft night' }),
         N('The commissioner', `"With the first pick in the draft, the ${tname(t)} select..."`, { who: 'The commissioner' }),
-        N('The commissioner', `"...${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: 'First overall', bg: '#1' }, ME)),
+        N('The commissioner', `"...${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: 'First overall', bg: '#1', snd: 'roar' }, ME)),
         N('Your agent', `"You earned that," ${ag} says into your ear over the noise. "Nobody gave it to you. Remember that when it gets hard."`, { who: ag })]
       : tale === 'top' ? [
         N('Draft night', 'The green room. Everybody in the building thinks they know the first name on the card.', { big: 'Draft night' }),
         N('The commissioner', `"With the first pick in the draft..." The camera swings to your table.`, { who: 'The commissioner' }),
-        N('The commissioner', `"...${rv ? PB.full(rv) : 'another name'}."`, { who: 'The commissioner', big: 'Not you', bg: '#1', fig: rv && rt ? { player: rv, team: rt } : undefined }),
+        N('The commissioner', `"...${rv ? PB.full(rv) : 'another name'}."`, { who: 'The commissioner', big: 'Not you', bg: '#1', snd: 'ooh', fig: rv && rt ? { player: rv, team: rt } : undefined }),
         N('Draft night', `You clap. You keep your face still. The combine cost you this: ${rv ? rv.last : 'he'} shot it better on the one day it counted.`),
-        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', bg: '#' + C.pick }, ME)),
+        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', bg: '#' + C.pick, snd: 'applause' }, ME)),
         N('Your agent', `"${ord} is a long way from a tragedy," ${ag} says. "And now you have somebody to chase."`, { who: ag })]
       : tale === 'slid' ? [
         N('Draft night', 'Thirty picks. You counted every one of them from a chair in the green room.', { big: 'Night one' }),
         N('Draft night', 'The room empties table by table. Yours is one of the last. Then the lights come up, and they are stacking chairs.'),
         N('Your agent', `"Tomorrow," ${ag} says. "It is still the league. And every team that passed tonight just did you a favor."`, { who: ag }),
-        N('Day two', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The deputy commissioner', big: 'Round two', bg: '#' + C.pick }, ME))]
+        N('Day two', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The deputy commissioner', big: 'Round two', bg: '#' + C.pick, snd: 'applause' }, ME))]
       : tale === 'second' ? [
         N('Draft night', 'No green room for you. A couch, a television, and thirty names that are not yours.', { big: 'Night one' }),
         N('Day two', `It is the middle of the afternoon when the phone rings. Not ${ag}. A number you do not know.`),
         N('The general manager', `"This is the ${t.name}. We are on the clock, and we are taking you. Welcome to ${t.city}."`, { who: `${t.city} front office` }),
-        N('Day two', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The deputy commissioner', big: 'Round two', bg: '#' + C.pick }, ME))]
+        N('Day two', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The deputy commissioner', big: 'Round two', bg: '#' + C.pick, snd: 'applause' }, ME))]
       : tale === 'jumped' ? [
         N('Draft night', 'You were supposed to be watching this from a couch. After that combine, they found you a seat in the building.', { big: 'Draft night' }),
         N('Your agent', `"Somebody is trading back into the first round," ${ag} says, reading. "They are doing it for you."`, { who: ag }),
-        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: 'First round', bg: '#' + C.pick }, ME)),
+        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: 'First round', bg: '#' + C.pick, snd: 'roar' }, ME)),
         N('Draft night', 'A day-two prospect three weeks ago. A first-round pick tonight. One good day did that.', ME)]
       : [
         N('Draft night', first ? 'The green room, and a card with your name on it.' : 'The green room. Names come off the board. Tables empty around you.', { big: 'Draft night' }),
         N('Your agent', C.pick <= 5 ? `"Lottery," ${ag} whispers. "That combine did it."` : C.pick <= 14 ? `"You are next. I can feel it," ${ag} says, for the third time tonight.` : `"Still good," ${ag} says. "The right team, not the first team."`, { who: ag }),
-        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: C.pick <= 5 ? 'Lottery pick' : 'First round', bg: '#' + C.pick }, ME)),
+        N('The commissioner', `"With the ${ord} pick, the ${tname(t)} select ${PB.full(me)}."`, Object.assign({ who: 'The commissioner', big: C.pick <= 5 ? 'Lottery pick' : 'First round', bg: '#' + C.pick, snd: C.pick <= 5 ? 'roar' : 'applause' }, ME)),
         N('Draft night', `The hat, the handshake, the walk. ${rv ? `Somewhere behind you, ${PB.full(rv)} is hearing his name too: same position, same class.` : ''}`, ME)];
     }
     if (k === 'coach' && t) {
@@ -2349,7 +2352,7 @@
     }
     if (k === 'firststart' && t) {
       B = [N(`${t.city} · shootaround`, `Coach ${coach.split(' ').pop()} waves you over before the others are out of the tunnel.`, ME),
-        N('Head coach', P === 'undrafted' ? '"You are starting tonight." A beat. "Nobody drafted you, and you are starting in this league. Think about that for exactly ten seconds, then go guard somebody."' : C.pick > 30 ? '"You are in the five tonight. Second-rounders do not usually hear that from me. You earned it."' : '"You are starting tonight. It is yours until you give it back."', { who: `Coach ${coach}`, big: 'Your first start' }),
+        N('Head coach', P === 'undrafted' ? '"You are starting tonight." A beat. "Nobody drafted you, and you are starting in this league. Think about that for exactly ten seconds, then go guard somebody."' : C.pick > 30 ? '"You are in the five tonight. Second-rounders do not usually hear that from me. You earned it."' : '"You are starting tonight. It is yours until you give it back."', { who: `Coach ${coach}`, big: 'Your first start', snd: 'applause' }),
         vet ? N('The locker room', `${PB.full(vet)} is lacing up for the second unit. "Do not look at me like that," he says. "Go play."`, { fig: { player: vet, team: t } }) : null];
     }
     if (k === 'converted' && t) {
@@ -2364,11 +2367,11 @@
     }
     if (k === 'allstar' && t) {
       B = [N('The call', `${ag} never calls this early.`, ME),
-        N('Your agent', P === 'undrafted' ? '"All-Star." Then nothing, for a long time. "Undrafted. All-Star. I am going to frame the draft board from your year and hang it in my office."' : C.pick > 30 ? '"You are an All-Star. A second-round pick. Do you know how short that list is?"' : P === 'top' ? '"All-Star. On schedule." A laugh. "Do not tell them I said on schedule."' : '"All-Star. First time. Not the last."', { who: ag, big: 'All-Star' }),
+        N('Your agent', P === 'undrafted' ? '"All-Star." Then nothing, for a long time. "Undrafted. All-Star. I am going to frame the draft board from your year and hang it in my office."' : C.pick > 30 ? '"You are an All-Star. A second-round pick. Do you know how short that list is?"' : P === 'top' ? '"All-Star. On schedule." A laugh. "Do not tell them I said on schedule."' : '"All-Star. First time. Not the last."', { who: ag, big: 'All-Star', snd: 'applause' }),
         rv ? N('Around the league', `${PB.full(rv)} posts a single word: "Deserved." ${rt ? `The ${rt.name} are on the schedule soon.` : ''}`, { fig: rt ? { player: rv, team: rt } : undefined }) : null];
     }
     if (k === 'champ' && t) {
-      B = [N('The last buzzer', 'Confetti in your hair. Somebody is crying on your shoulder and you are not sure who.', Object.assign({ big: 'Champion' }, ME)),
+      B = [N('The last buzzer', 'Confetti in your hair. Somebody is crying on your shoulder and you are not sure who.', Object.assign({ big: 'Champion', snd: 'roar' }, ME)),
         N('Head coach', P === 'undrafted' ? '"Go find the sixty men they took instead of you," he shouts over the noise, "and ask them what this feels like."' : P === 'top' ? '"This is what they saw in you. All of it."' : C.pick > 30 ? '"Day two of the draft. And now this. Nobody can take it back."' : '"You earned every minute of this."', { who: `Coach ${coach}` }),
         N('Your road', P === 'undrafted' ? 'From a phone that did not ring to the top of the league.' : 'A champion. There is more of the road ahead.', { big: `${t.city} is yours` })];
     }
@@ -2512,7 +2515,7 @@
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: bigNight ? Object.assign({}, g.home || g.neutral ? t : o, { cup: !!g.cup, stage: bigNight.kind, stageText: bigNight.title }) : g.cup ? Object.assign({}, g.home || g.neutral ? t : o, { cup: true }) : g.home ? t : o, stage: bigNight || (g.cup ? { title: g.cup === 'group' ? 'Cup night' : CUP_ROUNDS[g.cup], sub: g.cup === 'group' && C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Win or go home' } : null),
       strength: [strength(C.team), strength(o.id)], playoff: !!g.po || (!!g.cup && g.cup !== 'group'), clinch: (() => { if (g.cup === 'F') return [true, true]; const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
-      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, prime: !!g.prime, chem: partner() ? { id: C.chem.id, v: C.chem.v } : null, walkout: true, rivalH2H: C.rival && g.opp === C.rival.team ? (C.rival.h2h || [0, 0]) : null, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, prime: !!g.prime, chem: partner() ? { id: C.chem.id, v: C.chem.v } : null, walkout: true, career: true, rivalH2H: C.rival && g.opp === C.rival.team ? (C.rival.h2h || [0, 0]) : null, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */

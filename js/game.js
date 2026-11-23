@@ -2660,12 +2660,29 @@
     for (const p of G.pl) p.st.pm = (p.st.pm || 0) + (p.team === 0 ? d0 - d1 : d1 - d0);
     G.pmLast = G.score.slice();
   }
+  /* leaving a game from the pause menu: it ends here, nothing is recorded, and you are back where you came from */
+  function quitGame() {
+    const o = opts; cancelAnimationFrame(raf);
+    AU().muffle(false); if (AU().pulse) AU().pulse(false); if (AU().crowd) AU().crowd.on(false); if (PB.booth) PB.booth.stop();
+    if (R.cine) R.cine(null); if (R.setIntro) R.setIntro(0);
+    for (const id of ['#pause', '#intro', '#cine']) { const e = $(id); if (e) e.hidden = true; }
+    const el = $('#game'); el.classList.remove('cine', 'cinepark', 'show', 'replaying'); el.hidden = true;
+    PB.Game.active = false; G.paused = false;
+    if (o.onQuit) o.onQuit(); else if (o.career && PB.Career && PB.Career.hub) PB.Career.hub(); else if (PB.Career && PB.Career.title) PB.Career.title();
+  }
+
   /* ---------- the walkout ----------
      Your five come out of the tunnel in a line with you at the front, the camera backing away ahead of you; the home
      crowd is up, a road crowd lets you hear it. Against your rival the two of you then meet at midcourt, face to face.
      A tap skips either one. Then the opening goes on as always. */
   function walkStart() {
     const open = G.walkPending; G.walkPending = null;
+    /* off the bench: you get up from the scorer's table and jog on by yourself, the camera in front of you */
+    if (open === 'bench') { const u = G.user, sk = opts.story && opts.story.k, W = G.walk = { t: 0, T: 2.8, men: [{ p: u, x0: 30.5, z0: u.z, x1: 18.5, z1: u.z, f1: u.face }] }; u.x = 30.5;
+      const fin = () => { if (G.walk !== W) return; G.walk = null; u.vx = u.vz = 0; };
+      if (home(u.team)) AU().crowd.react('applause', sk === 'debut_bench' ? 1 : 0.6);
+      cine([{ focus: u, a: [-Math.PI / 2 - 0.3, -Math.PI / 2 + 0.15], r: [15, 10], h: [3.8, 5.2], ly: 3.4, dur: W.T }], `Off the bench · ${clockTxt()}`, sk === 'debut_bench' ? `${u.name}: his first minutes` : `${u.name} checks in`, { skip: fin, done: fin });
+      return; }
     const u = G.user, mine = teamOf(u.team).slice().sort((a, c) => (c === u) - (a === u) || a.slot - c.slot), zs = Math.sign(hoopZ(1 - u.team)) || 1, homeSide = home(u.team);
     const W = G.walk = { t: 0, T: 3.4, men: mine.map((p, i) => ({ p, x1: p.x, z1: p.z, f1: p.face, x0: -30 - i * 2.7, z0: zs * 13 })) };
     for (const m of W.men) { m.p.x = m.x0; m.p.z = m.z0; }
@@ -3438,6 +3455,7 @@
 
   /* ---------- frame ---------- */
   function frame(now) {
+    { const lc = document.getElementById('loadcover'); if (lc && !lc.hidden && !lc.classList.contains('out') && G && (G.frames = (G.frames || 0) + 1) > 2) { lc.classList.add('out'); setTimeout(() => { lc.hidden = true; }, 320); } }   // the game is on screen: the cover comes down
     pollPad();
     raf = requestAnimationFrame(frame);
     let dt = Math.max(0, Math.min(0.05, (now - last) / 1000 || 0.016)); last = now;   // a frame's timestamp can come before the clock we read
@@ -3614,6 +3632,7 @@
           return `<span class="${ok ? 'w' : ''}">${ok ? '✓' : '○'} ${g.text}${g.k !== 'grade' ? ` <small>(${v})</small>` : ''}</span>`; }).join('')}</div>` : ''}
         ${G.user && !G.drill && (G.poss === 0 || G.phase === 'dead') && G.to[0] > 0 ? `<button class="ghost" id="pto">Timeout <small>${G.to[0]} left this half</small></button>` : ''}
         <button class="ghost" id="ps">${G.drill ? (opts.warm ? 'Tip off' : 'Finish') : 'Sim to the end'}</button>
+        ${G.drill && opts.warm ? '' : `<button class="ghost" id="pq">Quit${G.drill ? '' : ' game'}<small>${opts.career ? 'nothing is recorded: the game stays on your schedule' : 'leave without a result'}</small></button>`}
         ${G.drill ? '' : teamCompare()}
         <p class="fine ptip">${G.drill ? '' : 'Coaching has the playbook and your defense. Options has the camera, sound and the controls.'}</p></section><section data-t="coach">
         ${G.user && !G.drill && !G.switching ? (() => {
@@ -3675,6 +3694,7 @@
         pause(true);
       };
       $('#ps').onclick = () => { ov.hidden = true; G.paused = false; if (G.drill) finish(); else simRest(); };
+      if ($('#pq')) $('#pq').onclick = () => { const b = $('#pq'); if (!b.dataset.sure) { b.dataset.sure = '1'; b.innerHTML = 'Tap again to quit<small>this game ends now, with no result</small>'; b.classList.add('warn'); return; } quitGame(); };
     }
   }
 
@@ -3685,6 +3705,17 @@
     toast: (t, k) => { if (G && PB.Game.active) toast(t, k); },
     /* o: { teams:[userTeam, oppTeam], rosters:[[5],[5]], userId, qlen, floor, strength:[a,b], diff, onEnd } */
     start(o) {
+      /* Building the arena and its players takes a moment on a phone, and used to be a frozen screen after the tap. A
+         cover goes up first (who is playing, and that it is loading), the work starts on the next frame, and the cover
+         comes down when the first picture of the game has been drawn. Not for a script driving the page. */
+      if (!o._cover && !PB.noGL && (!navigator.webdriver || window.PBforceCut)) {
+        let c = $('#loadcover'); if (!c) { c = document.createElement('div'); c.id = 'loadcover'; document.body.appendChild(c); }
+        const a = o.teams && o.teams[0], b2 = o.teams && o.teams[1], sw = t => `<i style="background:${t.c1};color:${PB.ink ? PB.ink(t.c1, t.c2) : '#fff'}">${t.ab || t.id}</i>`;
+        c.innerHTML = `<div>${o.park ? '<b>The park</b>' : o.drill ? '<b>The gym</b>' : a && b2 && a !== b2 ? `<p>${sw(a)}<em>vs</em>${sw(b2)}</p><b>${a.name} · ${b2.name}</b>` : '<b>Tip-off</b>'}<span class="lcd"><u></u><u></u><u></u></span><small>${o.park ? 'Walking over' : o.drill ? 'Setting up the floor' : 'Lights up in the arena'}</small></div>`;
+        c.hidden = false; c.classList.remove('out');
+        requestAnimationFrame(() => setTimeout(() => this.start(Object.assign(o, { _cover: true })), 30));
+        return;
+      }
       /* the players' model may still be on its way on a slow connection: wait for it (up to eight seconds) */
       if (!PB.noGL && R.modelReady && !R.modelReady() && !o._waited) {
         const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '<div class="page post loading"><div class="spin"></div><p class="mute">Loading the arena…</p></div>';
@@ -3875,6 +3906,7 @@
           skipTime(o.stints[0][0] * G.qlen * 60 * 4, false); G.tipWinner = 0;
           checkIn(true);
           feed(`You start on the bench · ${clockTxt()}`);
+          if (o.walkout && R.cine && !PB.noGL && !(PB.settings && PB.settings.introOn === 'Off')) G.walkPending = 'bench';
         }
       }
       /* a scenario: a set score, quarter and clock, one side with the ball out of bounds in its frontcourt */
