@@ -2466,7 +2466,7 @@
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: bigNight ? Object.assign({}, g.home || g.neutral ? t : o, { cup: !!g.cup, stage: bigNight.kind, stageText: bigNight.title }) : g.cup ? Object.assign({}, g.home || g.neutral ? t : o, { cup: true }) : g.home ? t : o, stage: bigNight || (g.cup ? { title: g.cup === 'group' ? 'Cup night' : CUP_ROUNDS[g.cup], sub: g.cup === 'group' && C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Win or go home' } : null),
       strength: [strength(C.team), strength(o.id)], playoff: !!g.po || (!!g.cup && g.cup !== 'group'), clinch: (() => { if (g.cup === 'F') return [true, true]; const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
-      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, prime: !!g.prime, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, prime: !!g.prime, walkout: true, rivalH2H: C.rival && g.opp === C.rival.team ? (C.rival.h2h || [0, 0]) : null, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */

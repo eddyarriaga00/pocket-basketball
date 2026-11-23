@@ -2647,9 +2647,41 @@
     for (const p of G.pl) p.st.pm = (p.st.pm || 0) + (p.team === 0 ? d0 - d1 : d1 - d0);
     G.pmLast = G.score.slice();
   }
+  /* ---------- the walkout ----------
+     Your five come out of the tunnel in a line with you at the front, the camera backing away ahead of you; the home
+     crowd is up, a road crowd lets you hear it. Against your rival the two of you then meet at midcourt, face to face.
+     A tap skips either one. Then the opening goes on as always. */
+  function walkStart() {
+    const open = G.walkPending; G.walkPending = null;
+    const u = G.user, mine = teamOf(u.team).slice().sort((a, c) => (c === u) - (a === u) || a.slot - c.slot), zs = Math.sign(hoopZ(1 - u.team)) || 1, homeSide = home(u.team);
+    const W = G.walk = { t: 0, T: 3.4, men: mine.map((p, i) => ({ p, x1: p.x, z1: p.z, f1: p.face, x0: -30 - i * 2.7, z0: zs * 13 })) };
+    for (const m of W.men) { m.p.x = m.x0; m.p.z = m.z0; }
+    const d = W.men[0], ang = Math.atan2(d.x1 - d.x0, d.z1 - d.z0);
+    const finish = () => { if (G.walk !== W) return; for (const m of W.men) { m.p.x = m.x1; m.p.z = m.z1; m.p.vx = m.p.vz = 0; m.p.face = m.f1; } G.walk = null; cut();
+      const rv = opts.rivalId ? G.pl.find(p => p.d.id === opts.rivalId) : null;
+      if (rv && rv !== u) faceOff(u, rv, open); else open(); };
+    W.finish = finish;
+    AU().crowd.react(homeSide ? 'roar' : 'aww', homeSide ? 1 : 0.8); if (homeSide && R.hype) R.hype(0.7);
+    cine([{ focus: u, a: [ang - 0.42, ang + 0.12], r: [22, 15], h: [4.2, 6.4], ly: 3.4, dur: W.T }], homeSide ? 'Home' : `On the road · ${(opts.floor || G.teams[G.home]).city}`, `The ${G.teams[u.team].name} take the floor`, { skip: finish, done: finish });
+  }
+  function walkTick(dt) {
+    const W = G.walk; W.t += dt; const k = Math.min(1, W.t / W.T), e = k * k * (3 - 2 * k);
+    for (const m of W.men) { const nx = m.x0 + (m.x1 - m.x0) * e, nz = m.z0 + (m.z1 - m.z0) * e, p = m.p; if (dt > 0) { p.vx = (nx - p.x) / dt; p.vz = (nz - p.z) / dt; } if (hyp(p.vx, p.vz) > 0.6) p.face = Math.atan2(p.vx, p.vz); p.x = nx; p.z = nz; }
+  }
+  function faceOff(u, rv, open) {
+    const was = [[u, u.x, u.z, u.face], [rv, rv.x, rv.z, rv.face]], zs = Math.sign(hoopZ(1 - u.team)) || 1; let over = false;
+    u.x = 0; u.z = zs * 2.3; u.face = Math.atan2(0, -zs); rv.x = 0; rv.z = -zs * 2.3; rv.face = Math.atan2(0, zs); u.vx = u.vz = rv.vx = rv.vz = 0; cut();
+    G.walk = { t: 0, T: 99, men: [] };
+    const end = () => { if (over) return; over = true; for (const [p, x, z, f] of was) { p.x = x; p.z = z; p.face = f; } G.walk = null; cut(); open(); };
+    AU().crowd.react('ooh', 0.9);
+    const h2h = opts.rivalH2H;
+    cine([{ focus: { x: 0, z: 0 }, a: [1.15, 1.95], r: [15, 12], h: [5, 4.6], ly: 3.9, dur: 2.9 }], h2h ? `Rivals · you lead ${h2h[0]}-${h2h[1]}`.replace(/you lead (\d+)-(\d+)/, (m, a, c) => +a > +c ? `you lead ${a}-${c}` : +a < +c ? `he leads ${c}-${a}` : `all square at ${a}`) : 'Rivals', `${u.name} · ${rv.name}`, { skip: end, done: end });
+  }
   function step(dt) {
     if (G && !G.drill) plusMinus();
     G.t += dt;
+    if (G.walkPending) walkStart();
+    if (G.walk) { walkTick(dt); return; }
     /* the game's flow: the margin every few seconds, for the chart after the game */
     if (G.phase === 'live' && !G.drill && G.t - (G.flowT || 0) > 4) { G.flowT = G.t; (G.flow = G.flow || []).push([Math.round((G.q - 1) * G.qlen * 60 + (G.qlen * 60 - G.clock)), G.score[0] - G.score[1]]); }
     if (G.phase === 'buzzer') {
@@ -3719,7 +3751,7 @@
         setTimeout(() => toast(`First to ${G.target}${G.by2 ? ', win by 2' : ''}`, 'call'), 400);
       }
       /* the opening: a sweep over the arena with the matchup on screen; a tap skips it */
-      else if (!o.drill && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario && !(PB.settings && PB.settings.introOn === 'Off')) {
+      else if (!o.drill && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario && !(PB.settings && PB.settings.introOn === 'Off')) { const openIntro = () => {
         G.tipT = 8.4; R.setIntro(8.0, G.user);
         const iv = $('#intro');
         iv.innerHTML = `${o.stage ? `<strong class="stg">${o.stage.title}</strong><small class="stgs">${o.stage.sub || ''}</small>` : o.story ? `<strong class="stg">${o.story.title}</strong><small class="stgs">${o.story.sub || ''}</small>` : ''}<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
@@ -3751,6 +3783,9 @@
           };
         }, 2600);
         iv.onclick = () => { clearTimeout(iv.h); iv.hidden = true; G.spotFn = null; R.setIntro(0); G.tipT = Math.min(G.tipT, 1.0); };
+        };
+        /* a career game opens in the tunnel: the walkout (and against your rival, the two of you face to face) comes before the sweep */
+        if (o.walkout && G.user && R.cine && !PB.noGL) { G.tipT = 99; G.walkPending = openIntro; } else openIntro();
       }
       /* the other team wears white when its color is too close to yours */
       const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));

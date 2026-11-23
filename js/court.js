@@ -1020,16 +1020,16 @@
   function autoLook(d) {
     let h = 0; const id = String(d.id || d.last || 'x'); for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
     const sk = d.skin == null ? 3 : d.skin;
-    let hair = HAIRS[h % HAIRS.length], hairColor = HAIRC[(h >> 3) % HAIRC.length];
+    let hair = HAIRS[h % HAIRS.length], hairColor = HAIRC[(h >>> 3) % HAIRC.length];
     if (sk >= 3 && hairColor !== '#17110d' && hairColor !== '#2b1d12') hairColor = '#17110d';   /* blond and light brown on fair skin only */
     if (sk <= 1 && (hair === 'afro' || hair === 'twists' || hair === 'cornrows' || hair === 'locs')) hair = 'short';
     if (sk >= 4 && (hair === 'long' || hair === 'ponytail' || hair === 'spiky')) hair = 'curly';
     if (sk <= 1 && hair === 'braids') hair = 'spiky';
-    if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >> 5) % 3 ? '#17110d' : '#2b1d12';
-    const big = d.pos === 'C' || d.pos === 'PF', bd = (h >> 4) % 8;   // builds: bigs run strong, guards run slim, most are regular
-    return { build: big ? [null, null, 'strong', 'strong', 'big', null, 'strong', 'slim'][bd] : [null, null, null, 'slim', 'slim', null, 'strong', null][bd], hair, hairColor, band: (h >> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >> 9) % 6 === 0 ? '#111111' : null, shoe: null,
-      beard: [null, null, null, 'full', 'stubble', 'goatee', null, null, 'mustache', 'chinstrap', null][(h >> 12) % 11],
-      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >> 21) % 11], face: (h >> 24) % 8, goggles: (h >> 27) % 23 === 0 ? 'black' : null, tee: (h >> 13) % 11 === 0 ? ((h >> 7) % 2 ? '#f2f2f2' : '#111111') : null, socks: [null, null, null, 'high', null, 'low', null][(h >> 5) % 7], shoeStyle: [0, 0, 1, 2, 0, 3, 1, 0][(h >> 10) % 8], bicep: (h >> 16) % 13 === 0 ? '#f2f2f2' : null };
+    if (d.org === 'jp' || d.org === 'gr' || d.org === 'es') hairColor = (h >>> 5) % 3 ? '#17110d' : '#2b1d12';
+    const big = d.pos === 'C' || d.pos === 'PF', bd = (h >>> 4) % 8;   // builds: bigs run strong, guards run slim, most are regular
+    return { build: big ? [null, null, 'strong', 'strong', 'big', null, 'strong', 'slim'][bd] : [null, null, null, 'slim', 'slim', null, 'strong', null][bd], hair, hairColor, band: (h >>> 6) % 7 === 0 ? '#f2f2f2' : null, sleeve: (h >>> 9) % 6 === 0 ? '#111111' : null, shoe: null,
+      beard: [null, null, null, 'full', 'stubble', 'goatee', null, null, 'mustache', 'chinstrap', null][(h >>> 12) % 11],
+      wrist: [null, null, null, '#f2f2f2', null, '#111111', null][(h >>> 15) % 7], legs: [null, null, null, null, 'one', null, 'pads', null, 'both', null][(h >>> 18) % 10], tat: [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0][(h >>> 21) % 11], face: (h >>> 24) % 8, goggles: (h >>> 27) % 23 === 0 ? 'black' : null, tee: (h >>> 13) % 11 === 0 ? ((h >>> 7) % 2 ? '#f2f2f2' : '#111111') : null, socks: [null, null, null, 'high', null, 'low', null][(h >>> 5) % 7], shoeStyle: [0, 0, 1, 2, 0, 3, 1, 0][(h >>> 10) % 8], bicep: (h >>> 16) % 13 === 0 ? '#f2f2f2' : null };
   }
   /* The renderer wants a bounding sphere for every skinned mesh the first time it draws it (only its centre is used,
      to order the drawing), and works one out by posing every vertex in script: a quarter of a second for ten players
