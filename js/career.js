@@ -38,6 +38,7 @@
     const m = c.me; if (!m || typeof m !== 'object' || !c.rosters || typeof c.rosters !== 'object') return c;
     const num = (o, k, lo, hi, d) => { if (o[k] === undefined) return; const v = +o[k]; o[k] = Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
     if (m.r && typeof m.r === 'object') for (const k of Object.keys(m.r)) num(m.r, k, 1, 99, 50);
+    if (m.perks && typeof m.perks === 'object') { const ok = a => (Array.isArray(a) ? a : []).filter((id, i, l) => typeof id === 'string' && PB.PERKS && PB.PERKS[id] && l.indexOf(id) === i); m.perks.own = ok(m.perks.own); m.perks.on = ok(m.perks.on).filter(id => m.perks.own.includes(id)).slice(0, 3); } else if (m.perks !== undefined) delete m.perks;
     num(m, 'ovr', 1, 99, 60); num(m, 'sp', 0, 400, 0); num(m, 'age', 17, 50, 19); num(m, 'num', 0, 99, 0);
     num(c, 'fans', 0, 2e9, 0); num(c, 'earnings', 0, 5000, 0); num(c, 'trust', 0, 100, 50); num(c, 'year', 1, 60, 1); num(c, 'vc', 0, 1e7, 0); num(c, 'coins', 0, 1e7, 0);
     for (const k of ['first', 'last', 'from']) if (typeof m[k] === 'string') m[k] = m[k].slice(0, 24);
@@ -1687,6 +1688,7 @@
         <div><b>${esc(PB.full(p))}${p.me ? ' <small>you</small>' : ''}${p.out > 0 ? ` <small class="out">out ${p.out}</small>` : ''}</b>
         <span>${i < 5 ? PB.POS[i] : p.pos} · ${PB.fmtH(p.ht)} · ${p.age}${p.from ? ' · ' + esc(p.from) : ''}</span></div><em>${p.ovr}</em></div>`;
       body = `<div class="teamban" style="--c1:${t.c1};--c2:${t.c2}">${badge(t)}<div><small>${esc(t.city)}</small><b>${esc(t.name)}</b><span>${st.w}-${st.l} · team overall ${strength(C.team)}</span></div></div>
+        ${chemCard()}
         <div class="card roster">
         <p class="kick">Starting five</p>${five.map(row).join('')}
         <p class="kick">Bench</p>${bench.map(p => row(p, 9)).join('')}</div>`;
@@ -1702,6 +1704,7 @@
         ${me.sp > 0 ? '<button class="ghost sm" id="auto">Auto-upgrade: spend my points on what my build needs</button>' : ''}</div>
         <div class="card locker"><h3>Locker room <small>what your team wears at home</small></h3><div class="kits">${['icon', 'assoc', 'statement', 'city'].map(k => `<button class="kitpick ${(C.homeKit || 'icon') === k ? 'on' : ''}" data-k="${k}"><img alt="" data-kit="${k}"><span>${{ icon: 'Icon', assoc: 'Assoc.', statement: 'Statement', city: 'City' }[k]}</span></button>`).join('')}</div></div>
         <div class="card look"><h3>Look</h3>${(() => { const f = bodyShot(true), h = portrait(); return f || h ? `<div class="lookpv">${f ? `<button class="pvb" id="lturn" aria-label="Turn him around" style="--tc:${t.c1}"><img alt="" src="${f}"><span>${lookBack ? 'Front' : 'Back'} ↻</span></button>` : ''}${h ? `<img class="hd" alt="" src="${h}" style="--tc:${t.c1}">` : ''}</div>` : ''; })()}${lookEditor(me)}</div>
+        ${perkCard()}
         <div class="card"><h3>Badges <small>earned in games, never lost</small></h3>${badgeList()}</div>
         <div class="card"><h3>Business</h3><p class="fine">${C.endorse && C.endorse.brand ? `Shoe deal: ${C.endorse.brand}, ${M(C.endorse.pay)} a year. ` : ''}${C.contract ? `${C.contract.kind}: ${C.contract.years} season${C.contract.years === 1 ? '' : 's'} left at ${M(C.contract.salary)}. ` : ''}Career earnings ${M(C.earnings || 0)}.</p>
         ${C.tradeReq ? '<p class="rivaltag">Trade requested: you will be moved this summer.</p>' : '<button class="ghost sm" id="trade">Request a trade</button>'}</div>
@@ -1758,6 +1761,7 @@
     if ($('#tosoc')) $('#tosoc').onclick = () => { tab = 'social'; hub(); };
     scr().querySelectorAll('[data-sp]').forEach(b => b.onclick = () => socialPost(b.dataset.sp));
     scr().querySelectorAll('[data-co]').forEach(b => b.onclick = () => callOut(b.dataset.co));
+    scr().querySelectorAll('[data-perk]').forEach(b => b.onclick = () => perkTap(b.dataset.perk));
     scr().querySelectorAll('[data-of]').forEach(b => b.onclick = () => dealAnswer(b.dataset.of === 'y'));
     scr().querySelectorAll('[data-vote]').forEach(b => b.onclick = () => { const f = C.feed[+b.dataset.vote]; if (!f || !f.poll || f.poll.v != null) return; f.poll.v = +b.dataset.o; f.poll.n++; C.fans = (C.fans || 0) + 3; save(); const y = scr().scrollTop; hub(); scr().scrollTop = y; });
     scr().querySelectorAll('[data-st]').forEach(b => b.onclick = () => { socTab = b.dataset.st; const so = social(); if (so.lastCall) so.lastCall.shown = gameNo(); const y = scr().scrollTop; hub(); scr().scrollTop = y; });
@@ -2017,13 +2021,13 @@
   const isOfficial = w => OFFICIAL.test(w) || PB.TEAMS.some(t => w === '@' + t.name.toLowerCase()) || (C.endorse && C.endorse.brand && w === '@' + C.endorse.brand.toLowerCase());
   /* one post, drawn the way a timeline draws it: a face, a name, the words, and what it drew */
   function postCard(f, i, reply) {
-    if (f.kind === 'trend') return `<div class="post trend"><b>${esc(f.text)}</b><small>${esc(f.sub || '')}</small></div>`;
+    if (f.kind === 'trend') return `<div class="tpost trend"><b>${esc(f.text)}</b><small>${esc(f.sub || '')}</small></div>`;
     const mine = f.kind === 'me', tm = mine ? PB.team(C.team) : PB.TEAMS.find(t => f.who === '@' + t.name.toLowerCase()), ver = mine ? (C.fans || 0) >= 10000 : !!f.ver || isOfficial(f.who);
     const name = mine ? PB.full(C.me) : f.name || f.who.replace(/^@/, ''), at = mine ? '@' + handle() : f.name ? f.who : '', face = mine ? portrait() : null;
     let h = 0; for (const ch of f.who) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     const av = face ? `<span class="pav pic" style="--c:${tm.c1}"><img alt="" src="${face}"></span>` : `<span class="pav" style="--c:${tm ? tm.c1 : f.col || `hsl(${h % 360} 8% ${22 + h % 16}%)`};color:${tm ? PB.ink(tm.c1, tm.c2) : '#fff'}">${esc((tm ? tm.ab || tm.id : name.replace(/[^A-Za-z]/g, '').slice(0, 2)).toUpperCase())}</span>`;
     const likes = (f.likes || 0) + (f.liked ? 1 : 0);
-    return `<div class="post${reply ? ' re' : ''}${mine ? ' mine' : ''}${f.hot ? ' hot' : ''}">${av}<div class="pbody"><div class="phd"><b>${esc(name)}</b>${ver ? '<i class="ver" aria-label="verified"></i>' : ''}${at ? `<span>${esc(at)}</span>` : ''}</div>
+    return `<div class="tpost${reply ? ' re' : ''}${mine ? ' mine' : ''}${f.hot ? ' hot' : ''}">${av}<div class="pbody"><div class="phd"><b>${esc(name)}</b>${ver ? '<i class="ver" aria-label="verified"></i>' : ''}${at ? `<span>${esc(at)}</span>` : ''}</div>
       <p>${esc(f.text)}</p>${f.poll ? (f.poll.v == null ? `<div class="poll">${f.poll.o.map((o, k) => `<button data-vote="${i}" data-o="${k}">${esc(o[0])}</button>`).join('')}<small>${kfmt(f.poll.n)} votes · tap to vote</small></div>` : `<div class="poll done">${f.poll.o.map((o, k) => `<div class="${k === f.poll.v ? 'me' : ''}"><i style="width:${o[1]}%"></i><span>${esc(o[0])}</span><b>${o[1]}%</b></div>`).join('')}<small>${kfmt(f.poll.n)} votes</small></div>`) : ''}${reply ? '' : `<div class="pmeta"><span>↩ ${kfmt(f.re || 0)}</span><span>⇄ ${kfmt(f.rt ?? Math.round((f.likes || 0) * 0.14))}</span><button class="flike${f.liked ? ' on' : ''}" data-like="${i}" aria-label="Like"><i>${f.liked ? '♥' : '♡'}</i>${kfmt(likes)}</button>${f.hot ? '<em>viral</em>' : ''}</div>`}
       ${f.replies && f.replies.length && !reply ? `<div class="reps">${f.replies.map(r => postCard(r, -1, true)).join('')}</div>` : ''}</div></div>`;
   }
@@ -2054,6 +2058,48 @@
     achToast && PB.Game && PB.Game.toast; PB.audio && PB.audio.play && PB.audio.play('click');
     const y = scr().scrollTop; hub(); scr().scrollTop = y;
   }
+  /* ---------- abilities ----------
+     Bought with skill points, kept for good, and equipped a few at a time: one slot to start, a second at 70 overall,
+     a third at 80. Most make one kind of badge count for more; three have an effect of their own (data.js PB.PERKS). */
+  const perks = () => { const me = C.me; if (!me.perks) me.perks = { own: [], on: [] }; const n = PB.perkSlots(me); me.perks.on = me.perks.on.filter(id => PB.PERKS[id] && me.perks.own.includes(id)).slice(0, n); return me.perks; };
+  function perkCard() {
+    const K = perks(), me = C.me, n = PB.perkSlots(me), cost = PB.PERK_COST;
+    return `<div class="card perks"><h3>Abilities <small>${K.on.length} of ${n} equipped · ${me.sp} SP</small></h3>
+      <p class="fine">${n < 3 ? `A ${n === 1 ? 'second' : 'third'} slot opens at ${n === 1 ? 70 : 80} overall. ` : ''}Each costs ${cost} skill points once and is yours for good. Tap one you own to equip it or take it off.</p>
+      <div class="perkg">${Object.keys(PB.PERKS).map(id => { const m = PB.PERKS[id], own = K.own.includes(id), on = K.on.includes(id);
+        return `<button class="perk${on ? ' on' : own ? ' own' : ''}" data-perk="${id}"${!own && me.sp < cost ? ' disabled' : ''}><b>${esc(m.name)}</b><span>${esc(m.desc)}</span><em>${on ? 'Equipped' : own ? 'Tap to equip' : `Unlock · ${cost} SP`}</em></button>`; }).join('')}</div></div>`;
+  }
+  function perkTap(id) {
+    const K = perks(), me = C.me, n = PB.perkSlots(me); if (!PB.PERKS[id]) return;
+    if (!K.own.includes(id)) { if (me.sp < PB.PERK_COST) return; me.sp -= PB.PERK_COST; K.own.push(id); if (K.on.length < n) K.on.push(id); C.news.unshift(`${me.last} learns a new ability: ${PB.PERKS[id].name}`); }
+    else if (K.on.includes(id)) K.on = K.on.filter(x => x !== id);
+    else { if (K.on.length >= n) K.on.shift(); K.on.push(id); }   // the slots are full: the one equipped longest makes way
+    save(); const y = scr().scrollTop; hub(); scr().scrollTop = y;
+  }
+
+  /* ---------- chemistry ----------
+     With the teammate you work with most: a point guard and his best big, everybody else and the point guard. 0 to 100,
+     50 when you meet. It grows with baskets one of you makes off the other's pass, with winning, and with what you
+     do between games, and slips a little when a game goes by without the two of you connecting. In a game he looks
+     for you sooner the higher it is, and a shot off each other's pass goes in a little more often above 50. A new
+     partner, at 50, after a trade or when he leaves. */
+  function partner() {
+    if (!C.team) return null;
+    const me = C.me, ro = myRoster().filter(p => p.id !== me.id), K = C.chem || (C.chem = { id: null, v: 50, team: C.team });
+    let p = K.team === C.team ? ro.find(x => x.id === K.id) : null;
+    if (!p) { const five = starters(C.team).filter(x => x.id !== me.id), want = me.pos === 'PG' ? ['C', 'PF'] : ['PG'];
+      p = five.filter(x => want.includes(x.pos)).sort((a, b) => b.ovr - a.ovr)[0] || five.sort((a, b) => b.ovr - a.ovr)[0] || ro[0]; if (!p) return null;
+      K.id = p.id; K.v = 50; K.team = C.team; }
+    return p;
+  }
+  const chemTier = v => v >= 80 ? 'Elite' : v >= 62 ? 'In sync' : v >= 40 ? 'Building' : 'Off';
+  function chemAdd(n) { if (!partner()) return 0; const was = C.chem.v; C.chem.v = PB.clamp(Math.round(C.chem.v + n), 0, 100); return C.chem.v - was; }
+  function chemCard() {
+    const p = partner(); if (!p) return ''; const v = C.chem.v, t = PB.team(C.team);
+    return `<div class="card chem" style="--tc:${t.c1}"><h3>Chemistry <small>${chemTier(v)}</small></h3><div class="chemrow"><img alt="" data-head="${esc(p.id)}"><div><b>${esc(PB.full(p))}</b><span>${p.pos} · ${p.ovr} OVR · ${C.me.pos === 'PG' ? 'your big' : p.pos === 'PG' ? 'your point guard' : 'your running mate'}</span></div><em>${v}</em></div>
+      <div class="hypebar"><i style="width:${v}%"></i></div><p class="fine">It grows with baskets one of you makes off the other's pass, and with winning. The higher it is, the sooner he looks for you; above 50 a shot off each other's pass goes in a little more often.</p></div>`;
+  }
+
   /* ---------- media day ----------
      Before a game against your rival the cameras are set up: three questions, three ways to answer each (humble: the
      coach likes it; confident: a little of everything; brash: hype and followers, and the coach winces). What you
@@ -2466,7 +2512,7 @@
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: bigNight ? Object.assign({}, g.home || g.neutral ? t : o, { cup: !!g.cup, stage: bigNight.kind, stageText: bigNight.title }) : g.cup ? Object.assign({}, g.home || g.neutral ? t : o, { cup: true }) : g.home ? t : o, stage: bigNight || (g.cup ? { title: g.cup === 'group' ? 'Cup night' : CUP_ROUNDS[g.cup], sub: g.cup === 'group' && C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Win or go home' } : null),
       strength: [strength(C.team), strength(o.id)], playoff: !!g.po || (!!g.cup && g.cup !== 'group'), clinch: (() => { if (g.cup === 'F') return [true, true]; const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
-      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, prime: !!g.prime, walkout: true, rivalH2H: C.rival && g.opp === C.rival.team ? (C.rival.h2h || [0, 0]) : null, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, prime: !!g.prime, chem: partner() ? { id: C.chem.id, v: C.chem.v } : null, walkout: true, rivalH2H: C.rival && g.opp === C.rival.team ? (C.rival.h2h || [0, 0]) : null, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */
@@ -2819,6 +2865,8 @@
     { const F = C.flags || (C.flags = {}); if (!sim && g.res && !F.cs20 && (g.res.line.pts || 0) >= 20) { F.cs20 = true; (C.cs = C.cs || []).push('first20'); } }
     remember(g.res);
     socialAfter(g, g.res);
+    /* chemistry: every basket between the two of you, a little for a win, and a point lost when a game goes by without one */
+    { const cr = g.res; if (partner()) { if (!sim && cr.chem) { const n = cr.chem.toMe + cr.chem.fromMe; cr.chemD = chemAdd(n * 2.5 + (cr.win ? 1 : 0) - (n ? 0 : 1)); cr.chemN = n; } else if (sim && PB.rand() < 0.4) chemAdd(1); } }
     const r = g.res, o = PB.team(g.opp), t = PB.team(C.team), l = r.line;
     const pr = pressFor(g, r);
     const P = pr && PRESS[pr[0]];
@@ -2829,6 +2877,7 @@
       <div><b>${l.fgm}/${l.fga}</b><span>FG</span></div><div><b>${l.tpm}/${l.tpa}</b><span>3PT</span></div><div><b>${l.stl}/${l.blk}</b><span>STL/BLK</span></div></div>
       ${sim ? '' : reelBtn()}
       ${r.rival ? `<div class="card rival"><h3>Rival</h3><p>${esc(rivalP().last)}: ${r.rival.pts} pts, ${r.rival.reb} reb, ${r.rival.ast} ast. Head to head, you're ${C.rival.h2h[0]}-${C.rival.h2h[1]}.</p></div>` : ''}
+      ${!sim && r.chemD !== undefined && partner() ? `<div class="card earn"><b>Chemistry with ${esc(partner().last)} ${r.chemD >= 0 ? '+' : '−'}${Math.abs(r.chemD)}</b><span>${r.chemN} basket${r.chemN === 1 ? '' : 's'} between you tonight · now ${C.chem.v}, ${chemTier(C.chem.v).toLowerCase()}</span></div>` : ''}
       ${r.goals ? `<div class="card goalsdone"><h3>Goals <small>${r.goals.filter(g => g.met).length} of ${r.goals.length} · +${r.goals.filter(g => g.met).length * 2} SP</small></h3>${r.goals.map(g => `<p class="${g.met ? 'w' : 'l'}">${g.met ? '✓' : '✗'} ${esc(g.text)}</p>`).join('')}</div>` : ''}
       ${r.records && r.records.length ? `<div class="card earn"><b>Record book</b><span>A new best on this device: ${r.records.map(esc).join(' · ')}</span></div>` : ''}
       ${(r.highs && r.highs.length) || (r.miles && r.miles.length) ? `<div class="card earn"><b>${r.highs && r.highs.length ? 'New career high' + (r.highs.length > 1 ? 's' : '') : 'Milestone'}</b><span>${[...(r.highs || []), ...(r.miles || [])].map(esc).join(' · ')}</span></div>` : ''}
@@ -2914,7 +2963,7 @@
     line.min = Math.round((u.secs || 0) / 6) / 10;   // the minutes you were on the floor
     if (res.winner) (C.flags = C.flags || {}).winner = true;
     const ct = { tpm: u.tpm || 0, cs3: u.cs3 || 0, mid: u.mid || 0, lay: u.lay || 0, dunk: u.dunk || 0, shake: u.shake || 0, cmiss: u.cmiss || 0, clutch: u.clutch || 0, fade: u.fade || 0, hookm: u.hookm || 0 };
-    record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots, ot: res.line && res.line.length > 4 ? res.line.length - 4 : 0 });
+    record(g, { us: res.score[0], them: res.score[1], win: res.score[0] > res.score[1], line, grade: res.grade, gscore: gi < 0 ? 6 : gi, sim: false, log: res.gradeLog, ct, shots: res.shots, chem: res.chem || null, ot: res.line && res.line.length > 4 ? res.line.length - 4 : 0 });
     g.res.boxHtml = potg(res) + gameStats(res) + boxScore(res);
     after(g, false);
   }

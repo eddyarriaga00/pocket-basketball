@@ -368,6 +368,25 @@
     { k: 'post', name: 'Post Scorer', stat: 'hookm', desc: 'Hooks made', tiers: [10, 40, 100], eff: 'Hooks go in more' },
   ];
   PB.TIER = ['', 'Bronze', 'Silver', 'Gold'];
+  /* Abilities: bought with skill points and equipped, a few at a time. Most make a kind of badge count for more (bt:
+     tiers added to that badge's effect, on top of what you have earned); three do something of their own. */
+  PB.PERK_COST = 12;
+  PB.PERKS = {
+    sniper: { name: 'Sniper', desc: 'Threes fall more often, the deep ones most of all', bt: { deep: 2 } },
+    trigger: { name: 'Quick Trigger', desc: 'Better shooting right off the catch', bt: { catch: 2 } },
+    midking: { name: 'Midrange Assassin', desc: 'Pull-ups, elbow jumpers and fadeaways', bt: { mid: 2, fade: 1 } },
+    slasher: { name: 'Slasher', desc: 'Finishes through traffic, and goes up to dunk more', bt: { acro: 2, poster: 1 } },
+    shifty: { name: 'Shifty', desc: 'Your dribble moves leave defenders stumbling more', bt: { handles: 2 } },
+    maestro: { name: 'Maestro', desc: 'Your passes are picked off less, and teammates shoot better off them', bt: { general: 2 }, own: 'dimer' },
+    boardman: { name: 'Board Man', desc: 'Wins more rebounds', bt: { glass: 2 } },
+    clamps: { name: 'Clamps', desc: 'Your contests take more off a shot, your reaches come away with it more', bt: { lock: 2, pick: 1 } },
+    anchor: { name: 'Anchor', desc: 'Blocks more shots at the rim', bt: { rim: 2 } },
+    closer: { name: 'Closer', desc: 'Better shooting late in close games', bt: { clutch: 2 } },
+    motor: { name: 'Motor', desc: 'You tire a third slower', own: 'motor' },
+    heat: { name: 'Heat Check', desc: 'After two makes in a row, your next shot goes in a little more often', own: 'heat' },
+  };
+  PB.perkOn = (d, own) => !!(d && d.perks && d.perks.on && d.perks.on.some(id => PB.PERKS[id] && PB.PERKS[id].own === own));
+  PB.perkSlots = d => d && d.ovr >= 80 ? 3 : d && d.ovr >= 70 ? 2 : 1;
   PB.SKIN = ['#f1d1b5', '#e0b48f', '#c68e63', '#a26a42', '#7a4a2a', '#4f2f1c'];
   PB.ini = p => `${p.first[0]}. ${p.last}`;
   PB.full = p => `${p.first} ${p.last}`;

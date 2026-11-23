@@ -16,7 +16,9 @@
   const home = t => G && t === G.home;   // the crowd is the home team's
   const B = (k, o) => { if (PB.booth) PB.booth.say(k, o); };   // the booth
   const CH = (k, p) => { if (PB.booth && PB.booth.chat && p && !G.drill) PB.booth.chat(k, p.x, p); };   // a player talking on the floor
-  const bt = (p, k) => (p && p.d && p.d.badges && p.d.badges[k]) || 0;   // a badge's tier, 0 to 3
+  /* a badge's tier, 0 to 3, and on top of it whatever the abilities he has equipped add to that badge */
+  const bt = (p, k) => { const d = p && p.d; if (!d) return 0; let v = (d.badges && d.badges[k]) || 0; const on = d.perks && d.perks.on;
+    if (on && on.length) for (const id of on) { const m = PB.PERKS[id]; if (m && m.bt && m.bt[k]) v += m.bt[k]; } return Math.min(4, v); };   // never more than four tiers' worth, however it is made up
   /* a short buzz in the hand, where the phone allows it (Android; iPhones do not let web pages vibrate) */
   const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;   // (a browser refuses, loudly, before the first touch)
     try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
@@ -251,7 +253,16 @@
   /* ---------- the shot model ---------- */
   /* Open-look make rate for this shooter from here, before the defense and the release. Rim ~.45-.75, mid .28-.52,
      three .20-.44 (an 80 shooter: about .39 wide open from three, the league's catch-and-shoot rate is about .36). */
+  /* chemistry (a career): the teammate you work with most. Above 50, a shot one of you takes off the other's pass goes
+     in a little more often (up to three and a half points at 100); it never costs you anything below 50. */
   function baseProb(p, x, z, kind) {
+    const K = G.chem, f = p.caughtFrom;
+    const ch = K && K.p && K.v > 50 && f && p.caughtT !== undefined && G.t - p.caughtT < 2 && ((p.isUser && f === K.p) || (p === K.p && f.isUser)) ? (K.v - 50) / 50 * 0.035 : 0;
+    /* abilities with an effect of their own: a teammate shooting off a Maestro's pass, and a Heat Check after two makes */
+    const dime = f && f !== p && p.caughtT !== undefined && G.t - p.caughtT < 2 && PB.perkOn(f.d, 'dimer') ? 0.025 : 0, hot = p.isUser && (G.streak || 0) >= 2 && PB.perkOn(p.d, 'heat') ? 0.03 : 0;
+    return baseProb0(p, x, z, kind) + ch + dime + hot;
+  }
+  function baseProb0(p, x, z, kind) {
     const d = distHoop(x, z, p.team), r = p.r;
     /* badges: a few points where each belongs */
     const caught = p.caughtT !== undefined && G.t - p.caughtT < 1.5, cl = clutchTime() ? 0.025 * bt(p, 'clutch') : 0;
@@ -1526,6 +1537,7 @@
       /* assist: a pass that set it up in the last few seconds */
       let ast = null;
       if (b.passer && b.passer.team === p.team && b.passer !== p && G.t - b.passT < 3.2 && (p.hold || 0) < 2.4) { ast = b.passer; ast.st.ast++; }
+      if (ast && G.chem && G.chem.p && !G.replay) { const K = G.chem; if (ast === K.p && p.isUser) { K.toMe++; feed(`${ast.name} finds you · chemistry`); } else if (ast.isUser && p === K.p) { K.fromMe++; feed(`You find ${p.name} · chemistry`); } }
       if (s.kind === 'dunk' && R.shock) R.shock(0, hoopZ(p.team) - dirOf(p.team) * 1.5, 10);
       const call = !p.isUser ? (s.kind === 'dunk' ? 'SLAM' : s.three ? 'SPLASH' : 'BUCKET')
         : G.clock <= 0.05 ? 'AT THE BUZZER' : s.kind === 'dunk' ? pickOf(['SLAM', 'THROWN DOWN', 'FLUSH', 'HAMMER']) : s.three && s.d > 28 ? pickOf(['FROM DEEP', 'WAY DOWNTOWN', 'LIMITLESS'])
@@ -1774,6 +1786,7 @@
       /* bringing it up is the point guard's job: the computer does not hand the ball to you in the backcourt unless you
          play the point (a new player standing still there was given it, and whistled for eight seconds, trip after trip) */
       if (r.isUser && !G.auto && !p.isUser && r.slot !== 0 && along(r.z, r.team) > RIM - 1.5) s -= 8;
+      if (G.chem && p === G.chem.p && r.isUser) s += (G.chem.v - 50) * 0.03;
       /* with the stick held, the pass goes where the stick points: the teammate nearest that line, and nobody behind you */
       if (aimLength) {
         const alignment = (dx * aim.x + dz * aim.z) / (L * aimLength);
@@ -1794,7 +1807,7 @@
       if (r === p || r.inb || along(r.z, r.team) > 44) continue;
       if (p.caughtFrom === r && G.t - p.caughtT < 1.6) continue;   // not straight back to the man who just gave it to him
       const dr = distHoop(r.x, r.z, p.team); if (dr > 27) continue;
-      const od = nearestDef(r).d; if (od < (r.isUser && !G.auto ? 5 : dr < 9 ? 4.5 : 8)) continue;
+      const od = nearestDef(r).d; if (od < (r.isUser && !G.auto ? 5 - (G.chem && p === G.chem.p ? (G.chem.v - 50) / 50 * 1.2 : 0) : dr < 9 ? 4.5 : 8)) continue;   // the man you have chemistry with sees you sooner
       const dx = r.x - p.x, dz = r.z - p.z, L = hyp(dx, dz); if (L < 5 || L > 38 || passObstruction(p, dx, dz, L) >= 0.3) continue;
       let v;
       if (r.isUser && !G.auto) v = 1.2;
@@ -2377,7 +2390,7 @@
   }
   /* a badge you own, flashed as it helps: its name and tier on a small chip */
   function badgePop(p, k) {
-    const tier = bt(p, k), e = $('#badgepop'); if (!tier || !e || !PB.BADGES) return;
+    const tier = (p && p.d && p.d.badges && p.d.badges[k]) || 0, e = $('#badgepop'); if (!tier || !e || !PB.BADGES) return;   // the badge as you earned it (an ability adds to its effect, not to its name)
     const b = PB.BADGES.find(x => x.k === k); if (!b) return;
     e.innerHTML = `<i>${'◆'.repeat(tier)}</i>${b.name}`; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(badgePop.h); badgePop.h = setTimeout(() => e.classList.remove('on'), 2200);
   }
@@ -2680,6 +2693,7 @@
   function step(dt) {
     if (G && !G.drill) plusMinus();
     G.t += dt;
+    if (G.chem && G.user) { const c = G.chem; if (!c.p || c.p.d.id !== c.id) c.p = G.pl.find(p => p.d.id === c.id && p.team === G.user.team) || null; }   // your partner may have just come off the bench, or gone to it
     if (G.walkPending) walkStart();
     if (G.walk) { walkTick(dt); return; }
     /* the game's flow: the margin every few seconds, for the chart after the game */
@@ -2770,7 +2784,7 @@
         if (p.energy === undefined) p.energy = 1;
         const spd = hyp(p.vx, p.vz), top = (11.5 + p.r.speed * 0.075);
         if (G.phase !== 'live') p.energy = Math.min(1, p.energy + dt * 0.06);
-        else if (spd > top * 0.8 && tired()) p.energy = Math.max(0, p.energy - dt * (0.05 - p.r.speed * 0.00015));
+        else if (spd > top * 0.8 && tired()) p.energy = Math.max(0, p.energy - dt * (0.05 - p.r.speed * 0.00015) * (PB.perkOn(p.d, 'motor') ? 0.67 : 1));
         else if (spd < 6) p.energy = Math.min(1, p.energy + dt * 0.025);
       }
       if (p.move > 0) p.move -= dt;
@@ -3236,7 +3250,7 @@
     const line = (G.qsc || []).concat([G.score.slice()]), flow = (G.flow || []).concat([[Math.round(G.q * G.qlen * 60), G.score[0] - G.score[1]]]);
     const res = { line, flow, qlen: G.qlen, drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, parkGo: G.parkGo || null, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner, half: G.half ? { target: G.target, ones: G.ones, n: G.pl.length / 2 } : null,
-      shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]) };
+      shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]), chem: G.chem ? { toMe: G.chem.toMe, fromMe: G.chem.fromMe } : null };
     /* your profile: everything you have done in real games (full court and the blacktop), in every mode */
     if (G.user && !G.park && !G.drill && !G.horse && G.t > 30) { try {
       const L = JSON.parse(localStorage.getItem('pbb.life') || 'null') || { games: 0, wins: 0, streak: 0, bestStreak: 0, sum: {}, best: {} }, st = G.user.st, won = G.score[G.user.team] > G.score[1 - G.user.team];
@@ -3811,6 +3825,7 @@
       if (!o.drill && R.addRefs) R.addRefs();
       if (R.setBenches) R.setBenches(o.drill ? null : [k0, k1], o.bench);
       R.tag(o.rivalId ? pl.find(p => p.d.id === o.rivalId) || null : null, 'RIVAL');
+      G.chem = o.chem && G.user ? { p: pl.find(p => p.d.id === o.chem.id && p.team === G.user.team) || null, id: o.chem.id, v: o.chem.v, toMe: 0, fromMe: 0 } : null;   // he may be on the bench: found again when he checks in
       $('#a0').textContent = o.teams[0].ab || o.teams[0].id; $('#a1').textContent = o.teams[1].ab || o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
       $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Grade</span>' : '';
