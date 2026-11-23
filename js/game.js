@@ -504,6 +504,8 @@
     tkoHud();
   }
   /* a celebration after a big play: a flex, a roar, the three goggles, a chest thump, a point to the crowd */
+  /* the building on a whistle: a call against the home side is booed, one against the visitors cheered */
+  function callCrowd(team) { if (G.drill || G.park || G.replay) return; if (home(team)) AU().crowd.react('groan', 0.85); else AU().crowd.react('applause', 0.45); }
   function celebrate(p, kinds) { const sig = p.d && p.d.look && p.d.look.celeb; p.celebK = sig || kinds[Math.floor(rand() * kinds.length)]; p.celebT = p.celebK === 'chest' || p.celebK === 'roar' ? 1.4 : 1.2; }
   function tkoEnd(why) { const k = G.tko; if (!k) return; k.on = false; k.m = 0; if (why) toast(why); tkoHud(); }
   function tkoTick() { const k = G.tko; if (k && k.on) { if (G.t > k.until) tkoEnd(); else tkoHud(); } }
@@ -595,7 +597,7 @@
     /* the last ten seconds of a quarter: the clock goes red, and the last five tick */
     { const lastS = !G.half && !G.drill && !G.replay && G.phase === 'live' && G.clock <= 10 && G.clock > 0; $('#clk').classList.toggle('last', lastS);
       if (lastS && G.clock <= 5 && !G.paused) { const sec = Math.ceil(G.clock); if (sec !== G.tickS) { G.tickS = sec; AU().play('click', { hi: sec <= 2 }); } } }
-    const sc = $('#sc'); setLabel(sc, String(Math.ceil(Math.max(0, G.shotClock)))); sc.classList.toggle('low', G.shotClock < 5);
+    const sc = $('#sc'), scv = Math.max(0, G.shotClock); setLabel(sc, scv < 5 && scv > 0 && G.phase === 'live' ? scv.toFixed(1) : String(Math.ceil(scv)));   // tenths in the last five, the way the arena clock shows them sc.classList.toggle('low', G.shotClock < 5);
     sc.style.visibility = G.phase === 'live' && G.poss !== null ? 'visible' : 'hidden';
     $('#sd0').classList.toggle('poss', G.poss === 0); $('#sd1').classList.toggle('poss', G.poss === 1);
     { const e = $('#line'), st = G.user && !G.drill && !G.switching && G.user.st, v = st ? `<b>${st.pts}</b> PTS <b>${st.reb}</b> REB <b>${st.ast}</b> AST` : ''; if (e && e._v !== v) { e._v = v; e.innerHTML = v; } }   // your line, live
@@ -746,6 +748,8 @@
   function timeoutCine(tc, why) {
     if (!R.cine || G.drill) { toast(why ? 'Timeout: ' + why.toLowerCase() : 'Timeout', 'call'); return; }
     const sd = rand() < 0.5 ? 1 : -1; G.deadT = Math.max(G.deadT || 0, 2.6); if (R.refSignal) R.refSignal('sigt', 3);
+    /* the big screen fills the break */
+    if (R.board && !G.park && !G.half) { const cams = ['KISS CAM', 'DANCE CAM', 'FLEX CAM', 'NOISE METER', 'T-SHIRT TOSS', 'FAN OF THE GAME', 'SLOW MO CAM', 'DOG CAM']; G.camI = ((G.camI ?? Math.floor(rand() * cams.length)) + 1) % cams.length; setTimeout(() => { if (G && R.board) { R.board(cams[G.camI], 4); AU().crowd.react('applause', 0.4); feed(`On the big screen · ${cams[G.camI].toLowerCase().replace(/^./, c => c.toUpperCase())}`); } }, 700); }
     /* both fives walk to their benches and stand round the coach (the cut covers the walk); the camera goes to the
        huddle of the side that called it */
     if (!G.half && !G.park) { cut(); const g0 = G, was = G.pl.map(p => [p, p.x, p.z, p.face]); let back = () => { back = () => {}; if (G !== g0) return; cut(); for (const [p, x, z, f] of was) { p.x = x; p.z = z; p.face = f; p.vx = p.vz = 0; p.y = 0; p.vy = 0; } };   // and are back where they stood when it ends
@@ -1025,15 +1029,18 @@
     b.sx = hp.x; b.sy = hp.y; b.sz = hp.z; b.t = 0;
     /* a shot for the tie or the lead in the last seconds hangs in the air: time slows until it comes down */
     { const lead = G.score[p.team] - G.score[1 - p.team]; G.slowT = !G.drill && !s.ft && s.kind !== 'dunk' && G.q >= 4 && G.clock < 4 && lead <= 0 && lead >= -pts ? 1 : 0; }
-    const rz = hoopZ(p.team);
+    const rz = hoopZ(p.team), d0 = s.d; b.air = false;
     if (made) { b.ex = 0; b.ez = rz; b.ey = 10.3; }
-    else { const a = rand() * 6.28, m = rr(0.55, 1.0); b.ex = Math.sin(a) * m; b.ez = rz + Math.cos(a) * m - dirOf(p.team) * 0.2; b.ey = 10.1; }
+    else { const a = rand() * 6.28, m = rr(0.55, 1.0); b.ex = Math.sin(a) * m; b.ez = rz + Math.cos(a) * m - dirOf(p.team) * 0.2; b.ey = 10.1;
+      /* now and then a miss touches nothing at all: short of the front rim, or long over the back of it (a bad look far out is likelier to) */
+      b.air = !G.drill && s.kind !== 'dunk' && s.kind !== 'layup' && d0 > 13 && rand() < (prob < 0.2 ? 0.22 : prob < 0.32 ? 0.06 : 0.015);
+      if (b.air) { const ux = p.x, uz = p.z - rz, L = hyp(ux, uz) || 1, k = (rand() < 0.7 ? 1 : -1) * rr(1.6, 2.4); b.ex = ux / L * k + rr(-0.9, 0.9); b.ez = rz + uz / L * k; b.ey = k > 0 ? rr(7.6, 8.8) : rr(9.2, 9.9); } }
     const d = s.d;
     b.dur = s.kind === 'dunk' ? 0.22 : 0.42 + d * 0.026;
     b.apex = s.kind === 'dunk' ? 0.2 : s.kind === 'layup' ? 2 : s.kind === 'floater' || s.kind === 'hook' ? 5.5 : 3.5 + d * 0.2;
     G.shotLog[G.shotLog.length - 1].made = made;
     b.shot = { oop: !!s.oop, shooter: p, made, pts, three: !!s.three, foul, kind: s.kind, timing, prob, d: s.d, style: s.style, fade: !!s.fade, caught: p.caughtT !== undefined && G.t - p.caughtT < 1.5 };
-    if (foul) { foul.st.pf++; foul.celebK = 'call'; foul.celebT = 1.5; G.tf[foul.team]++; if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); if (R.refSignal) R.refSignal('sigf', 1.4); powAt(pickOf(['TWEET!', 'HACK!', 'TWEET!']), foul, 0.8, false, 1.7); checkFoulOut(foul); }
+    if (foul) { foul.st.pf++; foul.celebK = 'call'; foul.celebT = 1.5; G.tf[foul.team]++; callCrowd(foul.team); if (foul.isUser) grade(-1, 'Shooting foul'); AU().play('whistle'); if (R.refSignal) R.refSignal('sigf', 1.4); powAt(pickOf(['TWEET!', 'HACK!', 'TWEET!']), foul, 0.8, false, 1.7); checkFoulOut(foul); }
   }
 
   function blockShot(o, p, at) {
@@ -1537,6 +1544,7 @@
       /* assist: a pass that set it up in the last few seconds */
       let ast = null;
       if (b.passer && b.passer.team === p.team && b.passer !== p && G.t - b.passT < 3.2 && (p.hold || 0) < 2.4) { ast = b.passer; ast.st.ast++; }
+      if (ast && !G.replay && !G.drill && !(p.celebT > 0) && rand() < (ast.isUser ? 0.65 : 0.3)) { p.celebK = 'point'; p.celebT = 1.0; }   // he points back at the man who found him
       if (ast && G.chem && G.chem.p && !G.replay) { const K = G.chem; if (ast === K.p && p.isUser) { K.toMe++; feed(`${ast.name} finds you · chemistry`); } else if (ast.isUser && p === K.p) { K.fromMe++; feed(`You find ${p.name} · chemistry`); } }
       if (s.kind === 'dunk' && R.shock) R.shock(0, hoopZ(p.team) - dirOf(p.team) * 1.5, 10);
       const call = !p.isUser ? (s.kind === 'dunk' ? 'SLAM' : s.three ? 'SPLASH' : 'BUCKET')
@@ -1609,6 +1617,14 @@
         b.state = 'drop'; b.t = 0; b.shot.made = false;
         dead(1.1, startFT);
         return;
+      }
+      if (b.air) {   // nothing but air: no iron, and the building lets him know
+        if (!G.replay) { toast('AIRBALL', p.team === 0 ? 'opp' : 'make'); feed(`Airball · ${p.name}`); powAt('AIRBALL!', p, 0.95, false, 1.9); AU().crowd.react(home(p.team) ? 'groan' : 'ooh', home(p.team) ? 0.7 : 1);
+          if (!home(p.team) && R.board) R.board('AIR · BALL', 3.5); }
+        p.celebK = 'ugh'; p.celebT = 1.2; tally('airball');
+        if (p.isUser) G.streak = 0;
+        b.state = 'loose'; b.x = b.ex; b.y = b.ey; b.z = b.ez; b.vx = rr(-1.5, 1.5); b.vz = -dirOf(p.team) * rr(0.5, 2.5); b.vy = rr(-3, 0.5); b.air = false;
+        G.reb = { team: p.team, t: G.t }; return;
       }
       AU().play(rand() < 0.3 ? 'board' : 'rim', { x: b.ex, power: rr(0.5, 1) });
       if (R.rimSnap) R.rimSnap(hoopZ(p.team) > 0 ? 1 : -1, 0.5);   // the iron shivers
@@ -2131,7 +2147,7 @@
   function contactFoul(def, off) {
     if (R.refSignal) R.refSignal('sigf', 1.4);   // the fist goes up
     def.st.pf++; def.celebK = 'call'; def.celebT = 1.5;   // a hand up: that one is on him
-    G.tf[def.team]++;
+    G.tf[def.team]++; callCrowd(def.team);
     checkFoulOut(def);
     AU().play('whistle'); B('foul', { prio: 2 });
     feed(`Foul · ${def.name}${G.tf[def.team] >= 5 ? ' (bonus)' : ''}`);

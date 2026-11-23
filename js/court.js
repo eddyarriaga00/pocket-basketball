@@ -129,7 +129,7 @@
   const pows = [], powTex = new Map(), dizzies = [];
   const CLOUDS = { 'GREEN!': 1, 'SPLASH!': 1, 'CASH!': 1, 'WET!': 1, 'SWISH!': 1, 'DIME!': 1, 'BOARD!': 1, 'MINE!': 1, 'SMOOTH!': 1, 'PURE!': 1 };
   /* the calls a referee or the rule book makes sit in a slanted caption box instead of a burst */
-  const BOXES = { 'TWEET!': 1, 'OUT!': 1, 'TRAVEL!': 1, 'CHARGE!': 1, 'TICK TOCK!': 1, 'NO NO!': 1, 'OOPS!': 1, 'AND 1!': 1, 'BUZZER!': 1, 'BACKCOURT!': 1, 'HACK!': 1 };
+  const BOXES = { 'TWEET!': 1, 'OUT!': 1, 'TRAVEL!': 1, 'CHARGE!': 1, 'TICK TOCK!': 1, 'NO NO!': 1, 'OOPS!': 1, 'AND 1!': 1, 'BUZZER!': 1, 'BACKCOURT!': 1, 'HACK!': 1, 'AIRBALL!': 1 };
   function powTexture(word, dark) {
     const key = (dark ? '~' : '') + word; if (powTex.has(key)) return powTex.get(key);
     const c = document.createElement('canvas'); c.width = c.height = 320; const g = c.getContext('2d'); g.translate(160, 160); g.scale(1.18, 1.18);
