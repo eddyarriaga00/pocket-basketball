@@ -4,6 +4,8 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Accounts. Sign in on the main menu (or in the park's menu, or Settings, More) to make one: a name, an email and a password. An account keeps a copy of your save: it goes up a few seconds after the game saves and when you leave the app, so a cleared browser does not lose your careers, and signing in on another phone brings them there. If two phones have both played since they last agreed, you are shown what each holds and choose which to keep; careers on a phone are never overwritten without asking. A save that comes down is checked the way an imported file is. Forgot your password sends a reset link; Delete my account removes the account and the copy (the careers on the phone stay). Signing up while the chat has you signed in keeps your chat name and mutes. It needs two switches in the Firebase console first (docs/ACCOUNTS.md); until then the Account page says so and everything else works as before.
+- Fixed: Safari's page policy was blocking a script Firebase needs to sign in, which could stop the chat from connecting there.
 - Quit. The pause menu has a Quit button: tap it twice and the game ends there with no result. In a career the game stays on your schedule.
 - A cover while a game loads: the two teams and three dots from the moment you tap until the first picture of the game is drawn, in place of a frozen screen.
 - Off the bench, your own way in: when you do not start, you get up from the scorer's table and jog on with the camera in front of you, the clock on the card, and the home crowd behind you on a debut.

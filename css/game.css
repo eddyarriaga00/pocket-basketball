@@ -1076,3 +1076,15 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 @keyframes lcd{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
 #pq.warn{border-color:#ff5a6b;color:#ff5a6b}#pause .ghost small{display:block;margin-top:2px;font-size:11px;font-weight:500;color:var(--mute);letter-spacing:0}
 @media (prefers-reduced-motion:reduce){.lcd u{animation:none;opacity:.7}}
+
+/* the Account page */
+.acct .stabs{margin:6px 0 12px}.acct form{margin:0}.acct .field input{width:100%;box-sizing:border-box}
+.pwrow{display:flex;gap:8px;align-items:stretch}.pwrow input{flex:1;min-width:0}.pwrow .ghost{width:auto;margin:0;padding:0 14px;flex:none}
+.anote{min-height:18px;margin:10px 0 0;font-size:13px;color:#ff8a96}.anote.ok{color:var(--mute)}
+#aforgot{width:auto;margin:10px auto 0;display:block;border:0;background:none;color:var(--mute);text-decoration:underline;font-size:12.5px}
+.aprof{display:flex;align-items:center;gap:14px}.aprof>div{min-width:0}.aprof b{display:block;font-family:var(--display);font-weight:900;font-size:18px}.aprof span{display:block;font-size:13px;color:var(--mute);overflow-wrap:anywhere}
+.aprof em{display:block;margin-top:5px;font-style:normal;font-size:12px;color:var(--mute)}.aprof em.ok{color:var(--green)}.aprof em .ghost{display:inline-block;width:auto;margin:0 0 0 6px;padding:3px 9px;font-size:11px;min-height:0}
+.aconfg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 10px}.aconfg div{padding:10px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);text-align:left}
+.aconfg b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase}.aconfg span{display:block;margin-top:4px;font-size:13px}.aconfg small{display:block;margin-top:4px;font-size:11px;color:var(--mute)}
+.warnc{border-color:rgba(255,90,107,.45)}.big.danger{background:#ff5a6b;color:#fff;border-color:#ff5a6b}
+.acctoast{position:fixed;left:50%;bottom:calc(30px + var(--sb,0px));transform:translateX(-50%);z-index:300;padding:11px 16px;border-radius:999px;background:#fff;color:#000;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.4)}

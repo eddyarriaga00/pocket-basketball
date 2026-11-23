@@ -124,6 +124,8 @@
     const e = list.find(x => x.id === id);
     Object.assign(e, { name: PB.full(C.me), team: C.team, year: C.year, ovr: C.me.ovr, pos: C.me.pos, t: Date.now() });
     store('pbb.career.' + id, C); store(IDX, list);
+    try { localStorage.setItem('pbb.acct.changed', String(Date.now())); } catch (e) { /* fine */ }
+    if (PB.account && PB.account.saved) PB.account.saved();   // an account copies it up a moment later
   }
 
   /* the hub drawn again in place after a tap that changes one thing (an attribute, a badge, a jersey): where you had
@@ -208,7 +210,7 @@
         <button class="tile art" id="btop" data-art="4"><b>Blacktop</b></button>
         <button class="tile art" id="clsc" data-art="5"><b>Classics</b></button>
       </div>
-      <div class="tlinks"><button id="h2h">Head to head</button><button id="chat">Chat</button><button id="prof">Profile</button><button id="about">News</button><button id="how">How to play</button><button id="set">Settings</button></div>
+      <div class="tlinks"><button id="acct">${PB.account && PB.account.user() ? 'Account' : 'Sign in'}</button><button id="h2h">Head to head</button><button id="chat">Chat</button><button id="prof">Profile</button><button id="about">News</button><button id="how">How to play</button><button id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
@@ -221,6 +223,7 @@
     $('#prac').onclick = practice;
     $('#daily').onclick = daily;
     if ($('#h2h')) $('#h2h').onclick = () => headToHead();
+    if ($('#acct')) $('#acct').onclick = () => PB.account && PB.account.open(title);
     $('#btop').onclick = () => blacktop();
     $('#clsc').onclick = () => classics();
     $('#seas').onclick = () => PB.Season.start();
@@ -409,11 +412,33 @@
     });
   }
 
+  /* ---------- a whole save: everything of this game's in the browser ----------
+     Used by the file export and import and by an account's cloud copy. A save from outside (a file, the cloud) is
+     something a stranger may have written: only this game's own keys, only text that parses, careers passed through the
+     same checks as a loaded one. The account's own bookkeeping (pbb.acct*) stays with the device. */
+  const SAVE_SKIP = /^pbb\.(acct|backup)/;
+  function saveCollect() { const o = {}; for (const k of Object.keys(localStorage)) if (k.startsWith('pbb.') && !SAVE_SKIP.test(k)) o[k] = localStorage.getItem(k); return o; }
+  function saveCheck(o) {
+    if (!o || !o.pocketBasketball || !o.data || typeof o.data !== 'object') return null;
+    const okKey = k => /^pbb\.[a-zA-Z0-9_.-]{1,60}$/.test(k) && !SAVE_SKIP.test(k), data = {};
+    for (const k in o.data) { const v = o.data[k]; if (!okKey(k) || typeof v !== 'string') continue;
+      if (k === 'pbb.current') { if (/^[a-zA-Z0-9]{0,24}$/.test(v)) data[k] = v; continue; }
+      let j; try { j = JSON.parse(v); } catch (e) { continue; }
+      data[k] = JSON.stringify(k.startsWith('pbb.career.') ? guard(j) : clean(j)); }
+    return Object.keys(data).length ? data : null;
+  }
+  function saveApply(data) {
+    for (const k of Object.keys(localStorage)) if (k.startsWith('pbb.') && !SAVE_SKIP.test(k)) localStorage.removeItem(k);
+    try { for (const k in data) localStorage.setItem(k, data[k]); return true; } catch (e) { return false; }
+  }
+  const saveSummary = () => { const L = slots(); return { players: L.length, names: L.slice(0, 3).map(x => x.name).filter(Boolean) }; };
+  PB.saves = { collect: saveCollect, check: saveCheck, apply: saveApply, summary: saveSummary, changed: () => +(localStorage.getItem('pbb.acct.changed') || 0) };
+
   /* ---------- keeping your saves ----------
      Everything is kept in this browser. Two things make that safer: the browser is asked to treat the game's storage as
      something to keep (it then does not clear it to make room), and after every few games of a career you are offered
      a copy of everything as a file, through the share sheet, so it can go to Files, iCloud or Drive. */
-  const saveBlob = () => { const o = {}; for (const k of Object.keys(localStorage)) if (k.startsWith('pbb.')) o[k] = localStorage.getItem(k); return new Blob([JSON.stringify({ pocketBasketball: 1, at: new Date().toISOString(), data: o })], { type: 'application/json' }); };
+  const saveBlob = () => { const o = saveCollect(); return new Blob([JSON.stringify({ pocketBasketball: 1, at: new Date().toISOString(), data: o })], { type: 'application/json' }); };
   function keepAsk() { if (keepAsk.done) return; keepAsk.done = true; try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(ok => { PB.kept = !!ok; }).catch(() => {}); } catch (e) { /* not offered here */ } }
   function backupNow() { shareFile(saveBlob(), 'pocket-basketball-save.json', 'Pocket Basketball save'); store('pbb.backup', { at: new Date().toISOString(), gp: (C && C.totals && C.totals.gp) || 0 }); }
   function backupCard() {
@@ -516,7 +541,7 @@
   /* ---------- what's new: the top of the changelog, as shipped ---------- */
   function about() {
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>What's new</h2><div class="card" id="wn"><p class="mute">Loading…</p></div>
-      <div class="card"><h3>About</h3><p>Pocket Basketball is a career game for your phone: one player, from draft night to the Hall of Fame. Every team and player is fictional. Nothing is sold here and nothing leaves your device but the chat, if you use it.</p><p class="mute">Your careers are kept on this device only. Clearing this site's data in your browser erases them: Settings, More has an export to keep a copy.</p><p class="fine">Version ${PB.VERSION}</p></div></div>`);
+      <div class="card"><h3>About</h3><p>Pocket Basketball is a career game for your phone: one player, from draft night to the Hall of Fame. Every team and player is fictional. Nothing is sold here. Nothing leaves your device but the chat, if you use it, and your saves, if you make an account.</p><p class="mute">Without an account your careers are kept on this device only, and clearing this site's data in your browser erases them: Settings, More has an export to keep a copy. With an account (Sign in, on the main menu) a copy is kept with it, along with your email address, and you can play on any phone. Deleting the account deletes both.</p><p class="fine">Version ${PB.VERSION}</p></div></div>`);
     $('#bk').onclick = title;
     fetch('CHANGELOG.md').then(r => r.ok ? r.text() : Promise.reject()).then(t => { const e = $('#wn'); if (!e) return;
       const items = t.split('\n').filter(l => l.startsWith('- ')).slice(0, 14).map(l => l.slice(2).replace(/[<>&]/g, ''));
@@ -551,6 +576,7 @@
       ${settings.tab === 'More' ? `<button class="ghost" id="retips">Show the first-game tips again<small>the cards that explain each moment the first time it comes up</small></button>
       <button class="ghost" id="edteams">Edit teams<small>city, nickname, short name, colors and the court</small></button>
       <p class="kick">Your save</p>
+      <button class="ghost" id="setacct">${PB.account && PB.account.user() ? 'Your account' : 'Create an account or sign in'}<small>${PB.account && PB.account.user() ? 'your saves are kept in it' : 'keep your saves in an account, and play on any phone'}</small></button>
       <button class="ghost" id="svout">Export my save<small>a file with your careers, records and settings</small></button>
       <button class="ghost" id="svin">Import a save<small>replaces what is on this device with a file you exported</small></button>
       <button class="ghost" id="setdef">Put settings back to default</button>
@@ -559,22 +585,17 @@
     scr().querySelectorAll('.stabs button').forEach(b => b.onclick = () => { settings.tab = b.dataset.tab; settings(); });
     $('#bk').onclick = () => C && !scr().dataset.fromTitle ? title() : title();
     if ($('#edteams')) $('#edteams').onclick = () => editTeams();
+    if ($('#setacct')) $('#setacct').onclick = () => PB.account && PB.account.open(settings);
     if ($('#svout')) {
       const keys = () => Object.keys(localStorage).filter(k => k.startsWith('pbb.'));
       $('#svout').onclick = () => { const o = {}; for (const k of keys()) o[k] = localStorage.getItem(k);
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ pocketBasketball: 1, at: new Date().toISOString(), data: o })], { type: 'application/json' })); a.download = 'pocket-basketball-save.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
       $('#svin').onclick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
         inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; f.text().then(t => { let o = null; try { o = JSON.parse(t); } catch (e) { /* not a save */ }
-          if (!o || !o.pocketBasketball || !o.data || typeof o.data !== 'object' || t.length > 3e7) { alert('That file is not a Pocket Basketball save.'); return; }
-          /* only this game's own keys, only text that parses, careers passed through the same checks as a loaded one */
-          const okKey = k => /^pbb\.[a-zA-Z0-9_.-]{1,60}$/.test(k), data = {};
-          for (const k in o.data) { const v = o.data[k]; if (!okKey(k) || typeof v !== 'string') continue;
-            if (k === 'pbb.current') { if (/^[a-zA-Z0-9]{0,24}$/.test(v)) data[k] = v; continue; }
-            let j; try { j = JSON.parse(v); } catch (e) { continue; }
-            data[k] = JSON.stringify(k.startsWith('pbb.career.') ? guard(j) : clean(j)); }
-          if (!Object.keys(data).length) { alert('That file is not a Pocket Basketball save.'); return; }
+          const data = t.length > 3e7 ? null : saveCheck(o);
+          if (!data) { alert('That file is not a Pocket Basketball save.'); return; }
           if (!confirm('Replace everything on this device with the save in this file?')) return;
-          for (const k of keys()) localStorage.removeItem(k); try { for (const k in data) localStorage.setItem(k, data[k]); } catch (e) { alert('This device ran out of room for the save.'); } location.reload(); }); };
+          if (!saveApply(data)) alert('This device ran out of room for the save.'); location.reload(); }); };
         inp.click(); };
       $('#setdef').onclick = () => { if (!confirm('Put every setting back to its default?')) return; localStorage.removeItem(SET); location.reload(); };
       $('#svwipe').onclick = () => { if (!confirm('Erase every career, record, achievement and setting on this device? This cannot be undone.')) return; if (!confirm('Last check: erase everything?')) return; for (const k of keys()) localStorage.removeItem(k); location.reload(); };
@@ -807,7 +828,7 @@
     if (id === 'closet') { tab = 'player'; hub(); setTimeout(() => { const e = scr().querySelector('.lookh') || scr().querySelector('[data-look]'); if (e) e.scrollIntoView({ block: 'start' }); }, 60); return; }
     if (id === 'next') { if (nextLive()) { C.goals = C.goals || makeGoals(); playGame(); } else { tab = 'home'; hub(); } return; }
     if (id.startsWith('hub:')) { tab = id.slice(4); hub(); return; }
-    const pages = { quick, season: () => PB.Season.start(), blacktop: () => blacktop(), classics, daily, h2h: () => headToHead(), players: myPlayers, ach: achievements, hall: recordBook,
+    const pages = { quick, season: () => PB.Season.start(), blacktop: () => blacktop(), classics, daily, h2h: () => headToHead(), acct: () => PB.account ? PB.account.open(park) : park(), players: myPlayers, ach: achievements, hall: recordBook,
       how, settings, chat: () => { if (PB.online) PB.online.open(); else park(); } };
     if (pages[id]) { pages[id](); return; }
     tab = 'home'; hub();
@@ -880,7 +901,7 @@
         ${tile('pick1', MIC.career, '1 on 1', 'pick-up to 11')}${tile('pick3', MIC.list, '3 on 3', 'pick-up to 21')}${tile('court', MIC.vs, 'Pro-Am', '5 on 5')}</div>
       <h4>More</h4>
       <div class="pmgrid sm">${tile('closet', MIC.career, 'Closet')}${tile('players', MIC.list, 'My Player')}${tile('ach', MIC.cup, 'Achievements')}${tile('hall', MIC.clock, 'Record book')}
-        ${tile('h2h', MIC.vs, 'Head to head')}${tile('chat', MIC.chat, 'Chat')}${tile('how', MIC.target, 'How to play')}<button class="pmt" id="pmtut">${MIC.day}<b>Tutorial</b></button>${tile('settings', MIC.list, 'Settings')}</div>
+        ${tile('acct', MIC.career, PB.account && PB.account.user() ? 'Account' : 'Sign in')}${tile('h2h', MIC.vs, 'Head to head')}${tile('chat', MIC.chat, 'Chat')}${tile('how', MIC.target, 'How to play')}<button class="pmt" id="pmtut">${MIC.day}<b>Tutorial</b></button>${tile('settings', MIC.list, 'Settings')}</div>
       <button class="ghost" id="pmres">Back to the park</button></div>`;
     $('#pmx').onclick = ctl.close; $('#pmres').onclick = ctl.close; $('#pmtut').onclick = () => { store('pbb.tut', 0); store('pbb.tutAt', 0); ctl.tutorial(); };
     ov.querySelectorAll('[data-go]').forEach(b => b.onclick = () => ctl.go(b.dataset.go));
@@ -1696,7 +1717,7 @@
           <button class="ghost sm" id="nobrand">Not now</button></div>` + card;
       }
       if (C.event) card = eventCard() + card;
-      card = backupCard() + card;
+      card = (PB.account && PB.account.card ? PB.account.card() : '') + (PB.account && PB.account.user() ? '' : backupCard()) + card;
       if (C.coachTalk) {
         const s5 = C.games.filter(x => x.done).slice(-5), avgG = s5.reduce((a, x) => a + (x.res.gscore || 6), 0) / Math.max(1, s5.length);
         const r = role(), tr = C.trust;
@@ -1841,6 +1862,7 @@
     if ($('#socall')) $('#socall').onclick = () => { socAll = !socAll; const y = scr().scrollTop; hub(); scr().scrollTop = y; };
     const talked = () => { C.talk = `${C.year}-${C.gi}-${C.phase}`; };
     if ($('#mday')) $('#mday').onclick = mediaDay;
+    if (PB.account && PB.account.wire) PB.account.wire(hub);
     if ($('#bkup')) $('#bkup').onclick = () => { backupNow(); const y = scr().scrollTop; hub(); scr().scrollTop = y; };
     if ($('#bklater')) $('#bklater').onclick = () => { const B = load('pbb.backup') || {}; B.snooze = ((C.totals && C.totals.gp) || 0) + 10; store('pbb.backup', B); const y = scr().scrollTop; hub(); scr().scrollTop = y; };
     if ($('#clap')) $('#clap').onclick = () => { talked(); C.fans = Math.round(C.fans * 1.04); C.trust = Math.max(0, C.trust - 1); C.clapped = true; C.feed.unshift({ who: '@' + (C.me.first + C.me.last).toLowerCase(), text: `See you tomorrow. Bring your best.` }); C.news.unshift(`${C.me.last} fires back at his rival`); save(); hub(); };

@@ -360,6 +360,7 @@
 
   PB.online = {
     profile, setName, plain, dirty, clean, open, libs,
+    config: () => config(), emu: () => EMU(),
     ready: () => !!config(),
     get chat() {
       return CH;
