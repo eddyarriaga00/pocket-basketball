@@ -1228,6 +1228,11 @@
     setupCup(n);
     /* back-to-backs: about one game in seven is the second of two nights; your legs start the game heavier */
     for (let i = 1; i < C.games.length; i++) if (!C.games[i - 1].b2b && PB.rand() < 0.15) C.games[i].b2b = true;
+    /* primetime: three nights a season (two in a short one) are on national television, a quarter more skill points
+       and more eyes on you; a game against your rival is always one of them */
+    { const want = n >= 10 ? 3 : 2, open = C.games.map((g, i) => i).filter(i => !C.games[i].cup && i > 0), rv = C.rival ? open.filter(i => C.games[i].opp === C.rival.team) : [];
+      const picks = rv.slice(0, 1); while (picks.length < want && open.length) { const i = open.splice(Math.floor(PB.rand() * open.length), 1)[0]; if (!picks.includes(i)) picks.push(i); }
+      for (const i of picks) C.games[i].prime = true; }
     for (const id in C.rosters) for (const p of C.rosters[id]) p.out = 0;
     C.gi = 0; C.season = zero(); C.len = n; C.phase = 'regular'; C.po = null; C.allstar = false;
     if (C.contract) C.earnings = (C.earnings || 0) + C.contract.salary;
@@ -1646,6 +1651,7 @@
         card = `<div class="next talk"><p class="kick">Rival on social</p><p class="q">@${esc(rvx.first.toLowerCase())}${esc(rvx.last.toLowerCase())}: “${esc(said)}”</p>
           <button class="ghost" id="clap">Clap back<small>more followers; the coach would rather you didn't</small></button><button class="ghost" id="quiet">Let the game talk<small>the coach likes it</small></button></div>` + card;
       }
+      { const nxm = nextGame(), rvm = rivalP(); if (nxm && rvm && C.rival && nxm.opp === C.rival.team && social().mday !== gameNo()) card = `<div class="next talk"><p class="kick">Media day · rival game</p><p class="q">The cameras are set up before you play ${esc(PB.full(rvm))} and the ${esc(PB.team(C.rival.team).name)}. Three questions.</p><button class="ghost" id="mday">Sit down with the media<small>your answers move the coach's trust, your hype and your following</small></button></div>` + card; }
       if (C.rising === 'invited' && C.contest !== 'invited' && C.dunk !== 'invited') card = `<div class="next"><p class="kick">All-Star weekend</p><h3>Rising Stars</h3><p>The league's rookies against its second-year players. You are on the ${C.year === 1 ? 'rookies' : 'sophomores'}.</p>
         <button class="big" id="rise">Play the Rising Stars game</button><button class="ghost" id="risesim">Sim it</button></div>` + card;
       const rv = rivalP(), rs = C.rival.season, rg = rs.gp || 1;
@@ -1752,9 +1758,12 @@
     if ($('#tosoc')) $('#tosoc').onclick = () => { tab = 'social'; hub(); };
     scr().querySelectorAll('[data-sp]').forEach(b => b.onclick = () => socialPost(b.dataset.sp));
     scr().querySelectorAll('[data-co]').forEach(b => b.onclick = () => callOut(b.dataset.co));
+    scr().querySelectorAll('[data-of]').forEach(b => b.onclick = () => dealAnswer(b.dataset.of === 'y'));
+    scr().querySelectorAll('[data-vote]').forEach(b => b.onclick = () => { const f = C.feed[+b.dataset.vote]; if (!f || !f.poll || f.poll.v != null) return; f.poll.v = +b.dataset.o; f.poll.n++; C.fans = (C.fans || 0) + 3; save(); const y = scr().scrollTop; hub(); scr().scrollTop = y; });
     scr().querySelectorAll('[data-st]').forEach(b => b.onclick = () => { socTab = b.dataset.st; const so = social(); if (so.lastCall) so.lastCall.shown = gameNo(); const y = scr().scrollTop; hub(); scr().scrollTop = y; });
     if ($('#socall')) $('#socall').onclick = () => { socAll = !socAll; const y = scr().scrollTop; hub(); scr().scrollTop = y; };
     const talked = () => { C.talk = `${C.year}-${C.gi}-${C.phase}`; };
+    if ($('#mday')) $('#mday').onclick = mediaDay;
     if ($('#clap')) $('#clap').onclick = () => { talked(); C.fans = Math.round(C.fans * 1.04); C.trust = Math.max(0, C.trust - 1); C.clapped = true; C.feed.unshift({ who: '@' + (C.me.first + C.me.last).toLowerCase(), text: `See you tomorrow. Bring your best.` }); C.news.unshift(`${C.me.last} fires back at his rival`); save(); hub(); };
     if ($('#quiet')) $('#quiet').onclick = () => { talked(); C.trust = Math.min(100, C.trust + 1); C.clapped = false; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
@@ -2008,13 +2017,14 @@
   const isOfficial = w => OFFICIAL.test(w) || PB.TEAMS.some(t => w === '@' + t.name.toLowerCase()) || (C.endorse && C.endorse.brand && w === '@' + C.endorse.brand.toLowerCase());
   /* one post, drawn the way a timeline draws it: a face, a name, the words, and what it drew */
   function postCard(f, i, reply) {
+    if (f.kind === 'trend') return `<div class="post trend"><b>${esc(f.text)}</b><small>${esc(f.sub || '')}</small></div>`;
     const mine = f.kind === 'me', tm = mine ? PB.team(C.team) : PB.TEAMS.find(t => f.who === '@' + t.name.toLowerCase()), ver = mine ? (C.fans || 0) >= 10000 : !!f.ver || isOfficial(f.who);
     const name = mine ? PB.full(C.me) : f.name || f.who.replace(/^@/, ''), at = mine ? '@' + handle() : f.name ? f.who : '', face = mine ? portrait() : null;
     let h = 0; for (const ch of f.who) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     const av = face ? `<span class="pav pic" style="--c:${tm.c1}"><img alt="" src="${face}"></span>` : `<span class="pav" style="--c:${tm ? tm.c1 : f.col || `hsl(${h % 360} 8% ${22 + h % 16}%)`};color:${tm ? PB.ink(tm.c1, tm.c2) : '#fff'}">${esc((tm ? tm.ab || tm.id : name.replace(/[^A-Za-z]/g, '').slice(0, 2)).toUpperCase())}</span>`;
     const likes = (f.likes || 0) + (f.liked ? 1 : 0);
     return `<div class="post${reply ? ' re' : ''}${mine ? ' mine' : ''}${f.hot ? ' hot' : ''}">${av}<div class="pbody"><div class="phd"><b>${esc(name)}</b>${ver ? '<i class="ver" aria-label="verified"></i>' : ''}${at ? `<span>${esc(at)}</span>` : ''}</div>
-      <p>${esc(f.text)}</p>${reply ? '' : `<div class="pmeta"><span>↩ ${kfmt(f.re || 0)}</span><span>⇄ ${kfmt(f.rt ?? Math.round((f.likes || 0) * 0.14))}</span><button class="flike${f.liked ? ' on' : ''}" data-like="${i}" aria-label="Like"><i>${f.liked ? '♥' : '♡'}</i>${kfmt(likes)}</button>${f.hot ? '<em>viral</em>' : ''}</div>`}
+      <p>${esc(f.text)}</p>${f.poll ? (f.poll.v == null ? `<div class="poll">${f.poll.o.map((o, k) => `<button data-vote="${i}" data-o="${k}">${esc(o[0])}</button>`).join('')}<small>${kfmt(f.poll.n)} votes · tap to vote</small></div>` : `<div class="poll done">${f.poll.o.map((o, k) => `<div class="${k === f.poll.v ? 'me' : ''}"><i style="width:${o[1]}%"></i><span>${esc(o[0])}</span><b>${o[1]}%</b></div>`).join('')}<small>${kfmt(f.poll.n)} votes</small></div>`) : ''}${reply ? '' : `<div class="pmeta"><span>↩ ${kfmt(f.re || 0)}</span><span>⇄ ${kfmt(f.rt ?? Math.round((f.likes || 0) * 0.14))}</span><button class="flike${f.liked ? ' on' : ''}" data-like="${i}" aria-label="Like"><i>${f.liked ? '♥' : '♡'}</i>${kfmt(likes)}</button>${f.hot ? '<em>viral</em>' : ''}</div>`}
       ${f.replies && f.replies.length && !reply ? `<div class="reps">${f.replies.map(r => postCard(r, -1, true)).join('')}</div>` : ''}</div></div>`;
   }
   /* a post from your own account; k scales the attention it gets */
@@ -2044,6 +2054,64 @@
     achToast && PB.Game && PB.Game.toast; PB.audio && PB.audio.play && PB.audio.play('click');
     const y = scr().scrollTop; hub(); scr().scrollTop = y;
   }
+  /* ---------- media day ----------
+     Before a game against your rival the cameras are set up: three questions, three ways to answer each (humble: the
+     coach likes it; confident: a little of everything; brash: hype and followers, and the coach winces). What you
+     say goes on the record, and your rival answers the loudest of it. Once for each rival game. */
+  function mediaDay() {
+    const so = social(), rv = rivalP(), rt = PB.team(C.rival.team), me = C.me, h = C.rival.h2h || [0, 0];
+    const QS = [
+      [`${PB.full(rv)} went ${ordinal(C.rival.pick)} in your draft. ${C.pick ? `You went ${ordinal(C.pick)}.` : 'You were not drafted.'} Who is the better player today?`,
+        [['He is a great player. I worry about my own team.', 2, 1, 0, 'humble'], ['Ask me after the game.', 0, 5, 1, 'confident'], [C.pick && C.pick < C.rival.pick ? 'They picked me first for a reason.' : 'Draft night was a long time ago. Watch the game.', -3, 10, 3, 'brash']]],
+      [h[0] + h[1] ? `You are ${h[0]}-${h[1]} against him. What does that record tell you?` : 'First time you two meet as pros. What should people expect?',
+        [['Nothing. Every game is new.', 2, 0, 0, 'humble'], ['That it is a good matchup. I like those.', 1, 4, 1, 'confident'], [h[0] > h[1] ? 'It tells you what it looks like.' : 'That the next one is mine.', -2, 9, 3, 'brash']]],
+      [`Anything to say to the fans in ${rt.city}?`,
+        [['They love their team. I respect that.', 1, 1, 1, 'humble'], ['Come early. It will be worth the ticket.', 0, 6, 2, 'confident'], ['Bring earplugs. It gets quiet when I get going.', -3, 11, 4, 'brash']]]];
+    const picks = [], fans0 = C.fans || 0, trust0 = C.trust, hype0 = so.hype;
+    const ask = i => {
+      if (i >= QS.length) {
+        so.mday = gameNo();
+        const loud = picks.slice().sort((a, b) => b[2] - a[2])[0];
+        C.feed.unshift({ who: '@local_scribe', text: `${me.last} at media day: "${loud[0]}"`, likes: Math.round(fans0 * 0.01) + 20, re: 9 });
+        if (loud[4] === 'brash') C.feed.unshift({ who: '@' + (rv.first + rv.last).toLowerCase().replace(/[^a-z]/g, ''), name: PB.full(rv), ver: true, col: rt.c1, text: say('Noted.', 'Talk is free. See you on the floor.', 'Saving this one.'), likes: Math.round(fans0 * 0.02) + 40, re: 22, hot: true });
+        save();
+        show(`<div class="page post"><p class="kick">Media day</p><h2>On the record</h2><div class="card">${picks.map(a => `<p class="q">“${esc(a[0])}”</p><p class="fine">the ${a[4]} answer</p>`).join('')}</div>
+          <div class="card earn"><b>Coach trust ${C.trust - trust0 >= 0 ? '+' : '−'}${Math.abs(Math.round(C.trust - trust0))} · hype ${so.hype - hype0 >= 0 ? '+' : '−'}${Math.abs(so.hype - hype0)} · followers +${fmtFans(Math.max(0, (C.fans || 0) - fans0))}</b><span>Now go and play the game.</span></div><button class="big" id="go">Back to the team</button></div>`);
+        $('#go').onclick = hub; return; }
+      const [q, ans] = QS[i];
+      show(`<div class="page post"><p class="kick">Media day · ${i + 1} of ${QS.length}</p><div class="card" style="border-top:4px solid ${rt.c1}"><p class="mute">${badge(rt)} Before the ${esc(rt.name)}</p><h3>“${esc(q)}”</h3></div>
+        ${ans.map((a, k) => `<button class="ghost ans" data-k="${k}">${esc(a[0])}<small>${a[4]}</small></button>`).join('')}</div>`);
+      scr().querySelectorAll('.ans').forEach(b => b.onclick = () => { const a = ans[+b.dataset.k]; picks.push(a);
+        C.trust = PB.clamp((C.trust ?? 50) + a[1], 0, 100); so.hype = PB.clamp(so.hype + a[2], 0, 100); C.fans = Math.round((C.fans || 0) * (1 + a[3] / 100));
+        so.quotes.unshift({ q: a[0], tone: a[4], wk: `Season ${C.year} · media day, ${rt.name}` }); so.quotes = so.quotes.slice(0, 20); ask(i + 1); });
+    };
+    ask(0);
+  }
+
+  /* ---------- partners ----------
+     Two games in a row that end with your hype at 55 or more bring an offer from a brand: skill points to sign, and one
+     more every game while the deal lasts. Two deals at most. An offer left alone is gone after two games, and a brand
+     walks away when your hype falls under 25. The brands are invented. (The shoe deal is its own thing: it follows
+     your following, and is kept on the same page.) */
+  const BRANDS = [['Tipoff Energy', 'sports drinks', '#1f8a5b', 'Fuel for four quarters.'], ['Northfield Motors', 'trucks', '#8a3b3b', 'Tough enough for the long haul.'], ['Crisp Co.', 'chips', '#b4531a', 'Game night tastes better.'],
+    ['Volt Mobile', 'phones', '#6b3fd4', 'Never miss a moment.'], ['Ironhouse Gym', 'gyms', '#475569', 'Earned, not given.'], ['Ridgeline Watches', 'watches', '#0f766e', 'Every second counts.'], ['Bluepeak Insurance', 'insurance', '#1d4ed8', 'Protection you can count on.'], ['Hardwood Audio', 'headphones', '#27272a', 'Tune the noise out.']];
+  const brandPost = (b, text) => ({ who: '@' + b.name.toLowerCase().replace(/[^a-z]/g, ''), name: b.name, ver: true, col: b.col, text, likes: Math.round((C.fans || 0) * 0.02) + 30, re: 6 });
+  function dealsAfter() {
+    const so = social(); so.deals = so.deals || [];
+    for (const d of so.deals) C.me.sp += 1;
+    if (so.deals.length && so.hype < 25) { const d = so.deals.pop(); C.news.unshift(`${d.name} ends its deal with ${C.me.last}`); C.feed.unshift(brandPost(d, `${d.name} and ${PB.full(C.me)} have parted ways. We wish him well.`)); }
+    so.hot = so.hype >= 55 ? (so.hot || 0) + 1 : 0;
+    if (so.offer && ++so.offer.age > 2) so.offer = null;
+    if (!so.offer && so.hot >= 2 && so.deals.length < 2) { const left = BRANDS.filter(b => !so.deals.some(d => d.name === b[0])), b = left[Math.floor(PB.rand() * left.length)]; so.offer = { name: b[0], kind: b[1], col: b[2], line: b[3], age: 0, sign: 3 }; so.hot = 0; C.news.unshift(`${b[0]} wants ${C.me.last}`); }
+  }
+  function dealAnswer(yes) {
+    const so = social(), o = so.offer; if (!o) return;
+    if (yes) { (so.deals = so.deals || []).push({ name: o.name, kind: o.kind, col: o.col }); C.me.sp += o.sign; C.fans = Math.round((C.fans || 0) * 1.02) + 200;
+      C.feed.unshift(brandPost(o, `Welcome to the ${o.name} family, ${PB.full(C.me)}. ${o.line}`), Object.assign(myPost(`Proud to be with ${o.name}.`, 1.2), {})); C.news.unshift(`${C.me.last} signs with ${o.name} (+${o.sign} skill points, and one more every game)`); }
+    so.offer = null; save(); const y = scr().scrollTop; hub(); scr().scrollTop = y;
+  }
+  const offerHtml = () => { const o = social().offer; return o ? `<div class="callout offer"><small>An offer · ${esc(o.kind)}</small><b><i class="sw" style="background:${o.col}"></i>${esc(o.name)}</b> wants you. “${esc(o.line)}”<br>+${o.sign} skill points to sign, and +1 every game while it lasts. They walk if your hype falls under 25.${o.age ? ' Last chance: the offer is gone after your next game.' : ''}<div class="seg wrapseg"><button data-of="y">Sign</button><button data-of="n">Pass</button></div></div>` : ''; };
+
   /* calling out the next opponent: talk (win and play well) or a guarantee (win). Backed up, it pays in skill points,
      followers and hype; eaten, it costs you the coach's trust and your hype, and the internet does not forget */
   const CALL_SP = { trash: 2, guarantee: 3 };
@@ -2072,6 +2140,7 @@
     so.hype = PB.clamp(so.hype + (res.sim ? 0 : res.gscore >= 10 ? 7 : res.gscore >= 8 ? 4 : res.gscore <= 3 ? -6 : 0) + (res.win ? 1 : 0) + ((res.line.pts || 0) >= 30 ? 5 : 0) - 2, 0, 100);
     C.fans = Math.round((C.fans || 0) * (1 + so.hype / 100 * 0.012));
     so.hist = (so.hist || []).concat(C.fans).slice(-14);
+    dealsAfter();
     C.feed = C.feed.slice(0, 30);
   }
   /* three messages about your last game: from home, from your agent, from a teammate; your rival before you meet him */
@@ -2101,18 +2170,19 @@
   let socTab = 'feed', socAll = false;
   function tabSocial() {
     const so = social(), me = C.me, t = PB.team(C.team), ver = (C.fans || 0) >= 10000, nx = nextGame(), next = nx ? PB.team(nx.opp) : null, face = portrait(), c = so.callout;
-    const partners = [C.endorse && C.endorse.brand ? [C.endorse.brand, 'Signature shoe', C.endorse.color || '#fff', `${M(C.endorse.pay)} a year`] : null].filter(Boolean);
+    const partners = [C.endorse && C.endorse.brand ? [C.endorse.brand, 'Signature shoe', C.endorse.color || '#fff', `${M(C.endorse.pay)} a year`] : null].concat((so.deals || []).map(d => [d.name, d.kind, d.col, '+1 skill point a game'])).filter(Boolean);
     const st = (k, l, n) => `<button data-st="${k}" class="${socTab === k ? 'on' : ''}">${l}${n ? `<i>${n}</i>` : ''}</button>`;
     const list = socAll ? C.feed : C.feed.slice(0, 8);
     let body;
     if (socTab === 'feed') body = C.feed.length ? `<div class="feedl">${list.map(f => postCard(f, C.feed.indexOf(f))).join('')}</div>${C.feed.length > 8 ? `<button class="ghost fmore" id="socall">${socAll ? 'Show fewer' : `Show all ${C.feed.length} posts`}</button>` : ''}` : '<p class="fine">Play a game and the internet will have something to say.</p>';
     else if (socTab === 'dm') body = `<div class="chat">${dms().map(m => `<div class="msg${m.rival ? ' rv' : ''}"><span class="pav" style="--c:${m.from === 'Mom' ? '#5a3a4a' : m.rival && C.rival ? PB.team(C.rival.team).c1 : m.role ? '#3a3f4a' : t.c1}">${esc(m.role ? 'AG' : m.from.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}</span><div><b>${esc(m.from)}${m.role ? ` <u>${esc(m.role)}</u>` : m.rival ? ' <u>Your rival</u>' : ''}<small>${esc(m.wk || '')}</small></b><p>${esc(m.text)}</p></div></div>`).join('')}</div>`;
     else if (socTab === 'rec') body = so.quotes.length ? `<ul class="quotes">${so.quotes.map(q => `<li><span class="tone">${esc(q.tone || '')}</span>“${esc(q.q)}”<small>${esc(q.wk || '')}</small></li>`).join('')}</ul>` : '<p class="fine">What you say at the podium, and every callout, is kept here.</p>';
-    else body = (partners.length ? partners.map(x => `<div class="deal"><span><i class="sw" style="background:${x[2]}"></i>${esc(x[0])} · ${esc(x[1])}</span><b>${esc(x[3])}</b></div>`).join('') : '<p class="fine">No partners yet.</p>') + '<p class="fine">Shoe companies come calling as your following grows: the first offer near 25K followers, bigger ones at 150K, 600K and 2M.</p>';
+    else body = (partners.length ? partners.map(x => `<div class="deal"><span><i class="sw" style="background:${x[2]}"></i>${esc(x[0])} · ${esc(x[1])}</span><b>${esc(x[3])}</b></div>`).join('') : '<p class="fine">No partners yet.</p>') + '<p class="fine">Two games in a row with your hype at 55 or more bring an offer from a brand: it pays a skill point every game until your hype falls under 25. Two at most. A shoe deal is separate: it comes as your following grows.</p>';
     return `<div class="sprof" style="--c:${t.c1}">${face ? `<span class="pav pic big" style="--c:${t.c1}"><img alt="" src="${face}"></span>` : `<span class="pav big" style="--c:${t.c1};color:${PB.ink(t.c1, t.c2)}">${esc(me.last.slice(0, 2).toUpperCase())}</span>`}<div><b>${esc(PB.full(me))}${ver ? '<i class="ver" aria-label="verified"></i>' : ''}</b><span>@${esc(handle())} · ${esc(t.name)} ${me.pos} #${me.num}</span></div></div>
       <div class="sstats"><div><b>${fmtFans(C.fans || 0)}</b><span>Followers</span></div><div><b>${so.hype}</b><span>Hype</span></div><div><b>${so.backed}–${so.ate}</b><span>Callouts</span></div><div><b>${partners.length}</b><span>Partners</span></div></div>
-      <div class="hypebar"><i style="width:${so.hype}%"></i></div><p class="fine hypen">Hype rises with good nights, posts and callouts you back up, and cools a little every game. The more you have, the faster your following grows.</p>
+      <div class="hypebar"><i style="width:${so.hype}%"></i></div><div class="hypek"><span style="left:25%">25 · partners stay</span><span style="left:55%">55 · offers come</span></div><p class="fine hypen">Hype rises with good nights, posts and callouts you back up, and cools a little every game. The more you have, the faster your following grows.</p>
       ${folTrend(so)}
+      ${offerHtml()}
       ${c ? `<p class="callout"><small>${c.kind === 'guarantee' ? 'Your guarantee' : 'Your callout'} · ${esc(PB.team(c.opp).name)}</small>“${esc(c.quote)}”<br>${c.kind === 'guarantee' ? 'Win that game' : 'Win and play well (a B or better)'}: +${CALL_SP[c.kind]} skill points. Lose and it costs you the coach's trust and your hype.</p>` : so.lastCall && so.lastCall.shown !== gameNo() ? `<p class="callout ${so.lastCall.ok ? 'ok' : 'no'}"><small>${so.lastCall.ok ? 'Backed it up' : 'Ate it'}</small>${so.lastCall.ok ? `You called out the ${esc(PB.team(so.lastCall.opp).name)} and delivered.` : `You called out the ${esc(PB.team(so.lastCall.opp).name)}. They saved the screenshot.`}</p>` : ''}
       ${so.posted !== gameNo() ? `<div class="spost"><small>Post something · once a game</small><div class="seg wrapseg"><button data-sp="fans">Thank the fans</button><button data-sp="hype">${next ? 'Hype the next game' : 'Stay hungry'}</button><button data-sp="mate">Shout out a teammate</button><button data-sp="pic">Post a photo</button></div></div>` : '<p class="fine posted">Posted. Your next post is after your next game.</p>'}
       ${next && !c ? `<div class="spost"><small>Call out the ${esc(next.name)}</small><div class="seg wrapseg"><button data-co="trash">Talk a little</button><button data-co="guarantee">Guarantee the win</button></div></div>` : ''}
@@ -2304,6 +2374,7 @@
     if (ws <= -4) return S('streak_l', 'Losing streak', `${-ws} straight losses: somebody has to stop it`);
     if (meet && !meet.res.win) return S('rematch', 'Rematch', `The ${o.name} beat you ${meet.res.them}-${meet.res.us} last time`);
     if (meet && meet.res.win && (meet.res.line.pts || 0) >= 25) return S('again', 'They remember you', `You had ${meet.res.line.pts} on the ${o.name} last time`);
+    if (g.prime) return S('prime', 'Primetime', 'National television tonight: a quarter more skill points, and everybody watching');
     if (g.b2b) return S('b2b', 'Back-to-back', 'Second night in a row: heavy legs');
     return null;
   }
@@ -2343,7 +2414,7 @@
   function nextGame() {
     if (C.phase === 'regular') {
       const g = C.games[C.gi];
-      return g && { opp: g.opp, home: g.home, label: `${g.cup ? (g.cup === 'group' ? 'Cup night · ' + (C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Group stage') : CUP_ROUNDS[g.cup]) + ' · ' : ''}Game ${C.gi + 1} of ${C.games.length} · ${g.neutral ? 'Neutral floor' : g.home ? 'Home' : 'Away'}${g.b2b ? ' · Back-to-back' : ''}`, g };
+      return g && { opp: g.opp, home: g.home, label: `${g.cup ? (g.cup === 'group' ? 'Cup night · ' + (C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Group stage') : CUP_ROUNDS[g.cup]) + ' · ' : ''}Game ${C.gi + 1} of ${C.games.length} · ${g.neutral ? 'Neutral floor' : g.home ? 'Home' : 'Away'}${g.b2b ? ' · Back-to-back' : ''}${g.prime ? ' · Primetime' : ''}`, g };
     }
     if (C.phase === 'playoffs') {
       const sr = mySeries();
@@ -2395,7 +2466,7 @@
     PB.Game.start({ teams: [t, o], rosters: [mine5, opp5], bench: [benchOf(C.team, mine5), benchOf(o.id, opp5)], userId: 'me', qlen: S.qlen, level: S.level,
       floor: bigNight ? Object.assign({}, g.home || g.neutral ? t : o, { cup: !!g.cup, stage: bigNight.kind, stageText: bigNight.title }) : g.cup ? Object.assign({}, g.home || g.neutral ? t : o, { cup: true }) : g.home ? t : o, stage: bigNight || (g.cup ? { title: g.cup === 'group' ? 'Cup night' : CUP_ROUNDS[g.cup], sub: g.cup === 'group' && C.cup ? 'Group ' + C.cup.groups[C.cup.mine].name : 'Win or go home' } : null),
       strength: [strength(C.team), strength(o.id)], playoff: !!g.po || (!!g.cup && g.cup !== 'group'), clinch: (() => { if (g.cup === 'F') return [true, true]; const sr = g.po && mySeries(); if (!sr || sr.conf !== 'Finals') return null; const m = sr.a === C.team ? sr.wa : sr.wb, th = sr.a === C.team ? sr.wb : sr.wa; return [m + 1 > sr.bo / 2, th + 1 > sr.bo / 2]; })(), onEnd: r => result(r, g),
-      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
+      stints: stintsFor(role()), hot: hotZones(), tired: !!g.b2b, callIntro: introCall(g), story: tale, prime: !!g.prime, homeKit: g.home ? C.homeKit : null, goals: C.goals, highs: C.highs, rivalId: C.rival && g.opp === C.rival.team ? C.rival.id : null });
   }
   /* several games at once: it stops for All-Star weekend and the playoffs; a word from the coach, life and offers
      wait on the hub. The run shows as a list. */
@@ -2512,7 +2583,8 @@
     C.trust = PB.clamp((C.trust ?? 45) + (res.gscore - 6) * 1.3 + (res.win ? 1 : -0.5), 0, 100);
     /* points scale with the season's length, so a long season grows you about as fast in seasons as a short one */
     const spScale = PB.clamp(20 / (C.len || 20), 0.3, 1.5);
-    const sp = Math.max(1, Math.round((res.gscore * 0.9 + (res.win ? 2 : 0) + (g.po ? 2 : 0)) * spScale));
+    const sp = Math.max(1, Math.round((res.gscore * 0.9 + (res.win ? 2 : 0) + (g.po ? 2 : 0)) * spScale * (g.prime ? 1.25 : 1)));
+    if (g.prime) { res.prime = true; C.fans = Math.round(C.fans * 1.012) + 150; }
     res.sp = sp; me.sp += sp;
     C.fans = Math.round(C.fans * (1 + Math.max(-0.01, (res.line.pts - 8) * 0.002 + (res.win ? 0.004 : 0) + (res.gscore - 6) * 0.002)) + res.line.pts * 15);
     /* badge counters, and any new tier */
@@ -2568,6 +2640,10 @@
     { k: 'podcast', q: 'A popular basketball podcast wants an interview.', a: [['Be humble', { fans: 3, trust: 1 }, 'Nice clip going around: team first.'], ['Talk big', { fans: 9, trust: -3 }, 'Every show is talking about you now. Your coach too.']] },
     { k: 'trainer', q: 'A private trainer offers an off-day shooting session.', a: [['Book it', { sp: 3, fans: -1 }, 'Two hundred makes. Your shot feels pure.'], ['Not now', {}, 'Maybe next week.']] },
     { k: 'charity', q: 'The team foundation asks you to visit the children\'s hospital.', a: [['Go', { fans: 5, trust: 2 }, 'A day you will remember. The fans will too.'], ['Send a signed jersey', { fans: 1 }, 'A nice gesture.']] },
+    { k: 'viral', q: 'A clip of you missing a wide-open dunk in warmups is going around.', a: [['Post it yourself with a joke', { fans: 5, hype: 6 }, 'You got there first. Now it is your joke.'], ['Say nothing', { hype: -3 }, 'It ran for three days without you.'], ['Ask the team to take it down', { trust: -2, hype: -5 }, 'That made it a story.']] },
+    { k: 'latenight', q: 'A late-night show wants you on the couch the night before a game.', a: [['Do the show', { fans: 8, hype: 9, trust: -3 }, 'Good segment. Short night.'], ['Tape it on an off day', { fans: 4, hype: 4 }, 'Same couch, more sleep.'], ['Pass', { trust: 1 }, 'The coach heard you said no.']] },
+    { k: 'dinner', q: 'Your point guard wants to get dinner and talk through how the two of you play together.', a: [['Go, and bring the film', { chem: 8, trust: 1 }, 'Two hours, one tablet. You are seeing the same game now.'], ['Go, keep it light', { chem: 4, fans: 1 }, 'Good night out.'], ['Another time', { chem: -3 }, 'He ate alone.']] },
+    { k: 'beef', q: 'A fan account keeps posting that you are overrated. It has a hundred thousand followers.', a: [['Reply once, with your numbers', { fans: 3, hype: 7, trust: -1 }, 'The reply did better than the post.'], ['Let the game talk', { trust: 2 }, 'The coach noticed what you did not say.'], ['Like the post', { fans: 2, hype: 4 }, 'The internet lost its mind.']] },
     { k: 'slump', q: 'A veteran teammate is in a shooting slump and asks you to stay after practice with him.', a: [['Stay and rebound for him', { trust: 3, sp: -1 }, 'He found his stroke. The locker room noticed who helped.'], ['Head home', { sp: 1 }, 'Rest matters too.']] },
     { k: 'sneaker', q: 'A sneaker blog wants to feature your game-day shoes.', a: [['Do the shoot', { fans: 4 }, 'Your kicks are trending.'], ['Keep it low-key', { trust: 1 }, 'All business.']] },
     { k: 'vet', q: 'The team\'s oldest player offers to show you his pregame routine.', a: [['Learn it', { sp: 2, trust: 2 }, 'Stretch, film, quiet. It works.'], ['Keep your own', {}, 'You know what works for you.']] },
@@ -2587,7 +2663,9 @@
   ];
   function eventCard() {
     const ev = EVENTS.find(e => e.k === C.event); if (!ev) return '';
-    return `<div class="next event"><p class="kick">Between games</p><p class="q">${esc(ev.q)}</p>${ev.a.map((a, i) => `<button class="ghost" data-ev="${i}">${esc(a[0])}</button>`).join('')}</div>`;
+    /* what each answer does is written under it, before you pick */
+    const fxTxt = fx => [fx.fans && `${fx.fans > 0 ? '+' : '−'}${Math.abs(fx.fans)}% followers`, fx.hype && `${fx.hype > 0 ? '+' : '−'}${Math.abs(fx.hype)} hype`, fx.trust && `${fx.trust > 0 ? '+' : '−'}${Math.abs(fx.trust)} trust`, fx.sp && `${fx.sp > 0 ? '+' : '−'}${Math.abs(fx.sp)} skill point${Math.abs(fx.sp) === 1 ? '' : 's'}`, fx.chem && `${fx.chem > 0 ? '+' : '−'}${Math.abs(fx.chem)} chemistry`].filter(Boolean).join(' · ') || 'nothing changes';
+    return `<div class="next event"><p class="kick">Between games</p><p class="q">${esc(ev.q)}</p>${ev.a.map((a, i) => `<button class="ghost" data-ev="${i}">${esc(a[0])}<small>${fxTxt(a[1])}</small></button>`).join('')}</div>`;
   }
   function eventPick(i) {
     const ev = EVENTS.find(e => e.k === C.event); if (!ev) return;
@@ -2595,6 +2673,8 @@
     if (fx.fans) C.fans = Math.round(C.fans * (1 + fx.fans / 100));
     if (fx.sp) C.me.sp = Math.max(0, C.me.sp + fx.sp);
     if (fx.trust) C.trust = PB.clamp(C.trust + fx.trust, 0, 100);
+    if (fx.hype) { const so = social(); so.hype = PB.clamp(so.hype + fx.hype, 0, 100); }
+    if (fx.chem && typeof chemAdd === 'function') chemAdd(fx.chem);
     C.news.unshift(`${C.me.last}: ${txt}`);
     C.event = null; save(); hub();
   }
@@ -2650,8 +2730,17 @@
     if (res.win && g.po) extra.unshift(['@league', `${t.name} take one in the playoffs. ${me.last}: ${l.pts} points.`]);
     for (let i = extra.length - 1; i > 0; i--) { const j = Math.floor(PB.rand() * (i + 1)); [extra[i], extra[j]] = [extra[j], extra[i]]; }
     for (const e of extra.slice(0, 3)) posts.push(e);
+    /* a poll now and then, and a tag that trends after a night worth one */
+    const special = [];
+    if (PB.rand() < 0.3) { const yes = PB.clamp(Math.round(38 + (res.gscore - 6) * 6 + (l.pts - 12) * 0.8 + PB.gauss() * 6), 8, 93);
+      const Q = l.pts >= 25 ? [`Is ${me.last} an All-Star this season?`, 'Yes', 'Not yet'] : C.year === 1 ? [`${me.last}: rookie of the year?`, 'Lock it in', 'Too early'] : res.win ? [`Best player on the ${t.name} tonight?`, me.last, 'Somebody else'] : [`Whose fault was that loss?`, 'Not ' + me.last, me.last];
+      const y2 = Q[1] === 'Not ' + me.last ? yes : Q[2] === me.last ? 100 - yes : yes;
+      special.push({ who: '@hoopstalk', text: Q[0], poll: { o: [[Q[1], y2], [Q[2], 100 - y2]], n: Math.round((C.fans || 2000) * (0.05 + PB.rand() * 0.1)) + 120, v: null }, likes: Math.round((C.fans || 2000) / 300) + 9, re: 14 }); }
+    if (l.pts >= 30 || (res.win && g.po) || res.gscore >= 11) { const tag = say(`#${me.last.replace(/[^A-Za-z]/g, '')}SZN`, `#${t.name.replace(/[^A-Za-z]/g, '')}Rising`, `#The${me.last.replace(/[^A-Za-z]/g, '')}Effect`, `#${(t.ab || t.id)}vs${(o.ab || o.id)}`);
+      special.push({ who: '#', kind: 'trend', text: tag, sub: `Trending in basketball · ${kfmt(Math.round((C.fans || 2000) * (0.6 + PB.rand())) + 900)} posts` }); }
     const big = Math.max(1, Math.round((C.fans || 2000) / 400));
     for (const [w, x] of posts.slice(0, 5)) C.feed.unshift({ who: w, text: x, likes: Math.round(big * (0.2 + PB.rand() * 1.4)) + Math.floor(PB.rand() * 9), re: Math.floor(PB.rand() * 4) });
+    for (const sp of special) C.feed.unshift(sp);
     C.feed = C.feed.slice(0, 30);
   }
 
@@ -2748,7 +2837,7 @@
       ${r.log && r.log.length ? `<div class="card"><h3>What moved your grade</h3>${summarize(r.log)}</div>` : ''}
       ${r.shots && r.shots.length ? shotChart(r.shots) : ''}
       ${r.boxHtml || ''}
-      <div class="card earn"><b>+${r.sp} skill points</b><span>${C.me.sp} to spend on the Player tab · coach trust ${Math.round(C.trust)}</span></div>
+      <div class="card earn"><b>+${r.sp} skill points${r.prime ? ' · primetime' : ''}</b><span>${C.me.sp} to spend on the Player tab · coach trust ${Math.round(C.trust)}</span></div>
       <button class="big" id="go">Continue</button></div>`);
     if (P) scr().querySelectorAll('#press .ans').forEach(b => b.onclick = () => {
       const a = P.a[+b.dataset.i];

@@ -1033,7 +1033,7 @@
     if (p.isUser) grade(-1, 'Got blocked');
     /* from behind at a run: the chase-down */
     { const hx = 0 - p.x, hz = hoopZ(p.team) - p.z, hl = hyp(hx, hz) || 1, behind = ((o.x - p.x) * hx + (o.z - p.z) * hz) / hl < -0.6, chase = behind && hyp(o.vx, o.vz) > 9;
-      if (R.pow) { R.pow(chase ? 'SWAT!' : pickOf(['BLOCK!', 'NOPE!', 'DENIED!', 'GET OUT!']), at.x, at.y + 0.9, at.z, 1.15, G.user && o.team !== G.user.team); if (R.burst) R.burst(at.x, at.y, at.z, 5, 0.7); if (R.zoom) R.zoom(at.x, at.y + 0.9, at.z, 1.1, G.user && o.team !== G.user.team); } if (chase) B('chasedown', { prio: 5 }); if (R.shock) R.shock(o.x, o.z, 7);
+      if (R.pow) { R.pow(chase ? 'SWAT!' : pickOf(['BLOCK!', 'NOPE!', 'DENIED!', 'GET OUT!']), at.x, at.y + 0.9, at.z, 1.15, G.user && o.team !== G.user.team); if (R.burst) R.burst(at.x, at.y, at.z, 5, 0.7); if (R.zoom) R.zoom(at.x, at.y + 0.9, at.z, 1.1, G.user && o.team !== G.user.team); trackCard(o, 'Blocked at', `${at.y.toFixed(1)} ft`, 'above the floor'); } if (chase) B('chasedown', { prio: 5 }); if (R.shock) R.shock(o.x, o.z, 7);
       toast(chase ? 'CHASE-DOWN BLOCK' : 'BLOCKED', 'blk'); feed(`${chase ? 'Chase-down block' : 'Block'} · ${o.name}`); if (chase) { R.benchJump && R.benchJump(o.team); if (o.isUser) grade(1, 'Chase-down block'); }
       if (!G.drill && rand() < 0.6) { o.celebK = 'wag'; o.celebT = 1.7; } }   // not in here: the finger wagged once he is down
     AU().play('block', { x: o.x }); AU().crowd.react(home(o.team) ? 'roar' : 'ooh', home(o.team) ? 1 : 0.8); R.hype(1, 0.5); B('block', { prio: 4, follow: 0.4 });
@@ -1497,7 +1497,11 @@
         badgePop(p, clutchTime() && bt(p, 'clutch') ? 'clutch' : k); }
       /* the broadcast's graphic: a scorer's line when he reaches ten, twenty, thirty... or his third three */
       { const full = p.st.pts * 12 / (G.qlen || 3), was = (p.st.pts - s.pts) * 12 / (G.qlen || 3), step = Math.floor(full / 10);
-        if (!G.drill && ((step > Math.floor(was / 10) && step >= 1) || (s.three && p.st.tpm === 3))) statPop(p, s.three && p.st.tpm === 3 && !(step > Math.floor(was / 10)) ? `${p.st.tpm} threes` : null); }
+        if (!G.drill && ((step > Math.floor(was / 10) && step >= 1) || (s.three && p.st.tpm === 3))) statPop(p, s.three && p.st.tpm === 3 && !(step > Math.floor(was / 10)) ? `${p.st.tpm} threes` : null);
+        else if (s.three && s.d >= 27.5) trackCard(p, 'Shot distance', `${Math.round(s.d)} ft`, 'from deep');
+        else if (s.kind !== 'dunk' && s.prob < 0.3) trackCard(p, 'Make probability', `${Math.max(1, Math.round(s.prob * 100))}%`, 'a tough one');
+        else if ((s.kind === 'dunk' || s.kind === 'layup') && (p.topSp || 0) > 19) trackCard(p, 'Top speed', `${(p.topSp * 0.6818).toFixed(1)} mph`, 'on the way to the rim');
+        else if (s.kind === 'dunk' && s.d >= 5.5) trackCard(p, 'Takeoff', `${s.d.toFixed(1)} ft out`, 'and he got there'); }
       const run = G.run && G.run.team === p.team ? G.run : (G.run = { team: p.team, pts: 0, said: false });
       run.pts += s.pts;
       if ((s.kind === 'dunk' || s.three) && home(p.team) && R.board) R.board(s.kind === 'dunk' ? 'SLAM!' : 'SPLASH!', 2.2);
@@ -2378,6 +2382,13 @@
     e.innerHTML = `<i>${'◆'.repeat(tier)}</i>${b.name}`; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(badgePop.h); badgePop.h = setTimeout(() => e.classList.remove('on'), 2200);
   }
   /* a lower-third for a player having a night: his team's color, his name, his line */
+  /* the broadcast's tracking numbers: one card for a play worth measuring (how far, how unlikely, how fast, how high) */
+  function trackCard(p, title, value, sub) {
+    if (!G || G.drill || G.replay || G.park || G.half || G.t < (G.trackT || 0)) return;
+    const e = $('#statpop'); if (!e) return; G.trackT = G.t + 12;
+    e.innerHTML = `<i style="background:${G.teams[p.team].c1}"></i><div><b>${title} · ${value}</b><span>${p.num !== undefined ? '#' + p.num + ' ' : ''}${p.name}${sub ? ' · ' + sub : ''}</span></div>`;
+    e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(statPop.h); statPop.h = setTimeout(() => e.classList.remove('on'), 3400);
+  }
   function statPop(p, lead) {
     const e = $('#statpop'); if (!e) return;
     const t = G.teams[p.team], st = p.st;
@@ -2851,7 +2862,7 @@
       p.x += p.vx * dt; p.z += p.vz * dt;
       /* a hard cut squeaks the sneakers */
       if (live) {
-        const acc = hyp(p.vx - (p.pvx || 0), p.vz - (p.pvz || 0)) / dt, spd = hyp(p.vx, p.vz);
+        const acc = hyp(p.vx - (p.pvx || 0), p.vz - (p.pvz || 0)) / dt, spd = hyp(p.vx, p.vz); p.topSp = Math.max((p.topSp || 0) * (1 - dt * 0.3), spd);   // his fastest moment lately, for the tracking card
         if (acc > 70 && spd > 6 && G.t > G.squeakT && rand() < 0.35) { G.squeakT = G.t + rr(0.12, 0.35); AU().play('squeak', { x: p.x, vol: p.isUser ? 1 : 0.7 }); if (R.puff && p.y <= 0) R.puff(p.x, p.z, 0.8); if (R.skid && p.y <= 0 && !G.park) R.skid(p.x, p.z, Math.atan2(p.pvx || p.vx, p.pvz || p.vz), clamp(spd / 9, 0.9, 1.9)); }
       }
       if (p.burstT > G.t && p.y <= 0 && R.puff && G.t > (p.burstP || 0)) { p.burstP = G.t + 0.09; R.puff(p.x - p.vx * 0.06, p.z - p.vz * 0.06, 0.6); }   // dust at his heels while it lasts
@@ -3803,6 +3814,7 @@
       }
       /* what tonight is about, from the career's memory */
       if (o.story && G.user) setTimeout(() => { if (G) feed(o.story.feed); }, 900);
+      if (o.prime && G.user) setTimeout(() => { if (!G) return; if (!(o.story && o.story.k === 'prime')) feed('Primetime · national television tonight'); if (R.board) R.board('PRIMETIME', 5); }, 1700);
       /* the second night of a back-to-back: your legs start heavier */
       if (o.tired && G.user) { G.user.energy = 0.78; if (!(o.story && o.story.k === 'b2b')) setTimeout(() => feed('Second night of a back-to-back: heavy legs'), 600); }
       /* your minutes: the game before you check in is played out by the teams' strength, every point of it someone's */
