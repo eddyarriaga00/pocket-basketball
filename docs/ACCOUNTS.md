@@ -1,7 +1,7 @@
 # Accounts and saves in an account
 
 The game's accounts live on the same Firebase project as the chat (`blockfootball-a13c9`, shared with Pocket Football).
-Two things have to be switched on once, in the Firebase console, by the project's owner. Until they are, the Account
+Two things have to be switched on once, in the Firebase console, by the project's owner. **Done on 2026-11-23:** Email/Password is enabled, `eddyarriaga00.github.io` is an authorized domain, and the rules below are published. Until they are, the Account
 page says so and nothing breaks: careers stay on the phone as before.
 
 ## 1. Turn on email and password sign-in
