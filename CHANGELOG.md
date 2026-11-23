@@ -4,6 +4,13 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Quit. The pause menu has a Quit button: tap it twice and the game ends there with no result. In a career the game stays on your schedule.
+- A cover while a game loads: the two teams and three dots from the moment you tap until the first picture of the game is drawn, in place of a frozen screen.
+- Off the bench, your own way in: when you do not start, you get up from the scorer's table and jog on with the camera in front of you, the clock on the card, and the home crowd behind you on a debut.
+- Cutscenes have sound: the menu's music under them, a soft tick as each line comes up, and the room where there is one (the crowd when your name is called, the murmur when it is somebody else's).
+- The ball stays with you. Through a hard cut it no longer swings far out to the side (it used to get almost five feet away; now a little over three), and it is not left behind you when you take off from a standstill.
+- Head to head, by link. Play a late-game situation and send it to a friend: the link carries the challenge, your name and how you did; he plays the same situation with the same teams and the two results are set side by side; he can send his back. Winning beats losing, then the margin, then your own points. A record is kept on your phone. There is no server and no account; playing each other live, at the same time, is not in the game.
+- Your saves, safer. The game asks the browser to keep its storage instead of clearing it to make room, and after every few games of a career it offers a copy of everything through the share sheet, to Files, iCloud or Drive. Saves still live on the device: there is no account and no automatic sync.
 - Fixed: the page after a game was laid out sideways, in tall thin columns running off the screen. The new timeline's post style had the same name as that page's, and was being applied to it.
 - Nine things brought over from the football game.
   - Primetime: three nights a season (two in a short one) are on national television, a quarter more skill points and more followers; a game against your rival is always one of them.

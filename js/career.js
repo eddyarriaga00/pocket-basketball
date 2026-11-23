@@ -116,6 +116,7 @@
   }
   function save() {
     if (!C) return;
+    keepAsk();
     if (C.me && C.trophies) achCheck();
     let id = curId();
     const list = slots();
@@ -207,7 +208,7 @@
         <button class="tile art" id="btop" data-art="4"><b>Blacktop</b></button>
         <button class="tile art" id="clsc" data-art="5"><b>Classics</b></button>
       </div>
-      <div class="tlinks"><button id="chat">Chat</button><button id="prof">Profile</button><button id="about">News</button><button id="how">How to play</button><button id="set">Settings</button></div>
+      <div class="tlinks"><button id="h2h">Head to head</button><button id="chat">Chat</button><button id="prof">Profile</button><button id="about">News</button><button id="how">How to play</button><button id="set">Settings</button></div>
       ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
       ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
       <p class="fine">Every team and player is fictional.</p></div>`);
@@ -219,6 +220,7 @@
     $('#qg').onclick = quick;
     $('#prac').onclick = practice;
     $('#daily').onclick = daily;
+    if ($('#h2h')) $('#h2h').onclick = () => headToHead();
     $('#btop').onclick = () => blacktop();
     $('#clsc').onclick = () => classics();
     $('#seas').onclick = () => PB.Season.start();
@@ -329,8 +331,8 @@
   /* the daily challenge: today's late-game situation, the same for everyone on this date; a streak on the device */
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
   const dailyDone = () => { const D = load('pbb.daily') || {}; return D.last === today() && D.won; };
-  function dailySpec() {
-    let h = 0; for (const ch of today()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  function dailySpec(seed) {
+    let h = 0; if (seed !== undefined) h = seed >>> 0; else for (const ch of today()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     const R = n => { h = (h * 1103515245 + 12345) >>> 0; return h % n; };
     const kinds = [
       { k: 'win', title: 'Down two, your ball', text: 'Down 2 with 14 seconds left. Win it, in regulation or in overtime.', clock: 14, diff: -2, poss: 0 },
@@ -344,6 +346,82 @@
     let b = ids[R(ids.length)]; if (b === a) b = ids[(ids.indexOf(a) + 7) % ids.length];
     return { ...sp, a, b, pos: ['PG', 'SG', 'SF', 'PF', 'C'][R(5)], base: 98 + R(14) };
   }
+  /* a late-game situation, set up and played: the two rosters, you at 85 overall at the spec's position, the score and the clock */
+  function playSpec(sp, onEnd, o) {
+    const A = PB.team(sp.a), B = PB.team(sp.b), tk = new Set(), fa = PB.makeRoster(80, tk), fb = PB.makeRoster(80, tk), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
+    const me = ra[PB.POS.indexOf(sp.pos)]; me.r = PB.makeRatings(sp.pos, 85); me.ovr = PB.ovr(me.r, sp.pos); { const n = youName(); me.first = n[0]; me.last = n[1]; }
+    const score = [sp.base + Math.max(0, sp.diff), sp.base + Math.max(0, -sp.diff)];
+    scr().hidden = true;
+    PB.Game.start(Object.assign({ teams: [A, B], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: me.id, qlen: S.qlen, level: 'All-Star', floor: A,
+      scenario: { q: 4, clock: sp.clock, score, poss: sp.poss, title: sp.title }, onEnd }, o || {}));
+  }
+
+  /* ---------- head to head, by link ----------
+     No server and no account: a challenge is a late-game situation picked by a number, and the link carries the number,
+     your name and how you did. Your friend opens it, plays the same situation with the same teams, and the two results
+     are set side by side; he can send his back. Winning beats losing, then the margin, then your own points. A record
+     of the ones you have won and lost is kept on this device. */
+  const b64u = t => btoa(unescape(encodeURIComponent(t))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const ub64 = t => { try { return decodeURIComponent(escape(atob(String(t).replace(/-/g, '+').replace(/_/g, '/')))); } catch (e) { return null; } };
+  const h2hLink = d => `${location.origin}${location.pathname}?vs=${b64u(JSON.stringify(d))}`;
+  /* a link is something a stranger wrote: every part of it is checked before it is used, and the name loses anything that could be markup */
+  function h2hRead(code) {
+    const t = ub64(code); if (!t || t.length > 400) return null; let d; try { d = JSON.parse(t); } catch (e) { return null; }
+    const run = r => Array.isArray(r) && r.length === 4 && typeof r[0] === 'string' && [1, 2, 3].every(i => Number.isFinite(r[i]) && Math.abs(r[i]) < 200) ? { n: r[0].replace(/[<>&"'`]/g, '').slice(0, 24) || 'A friend', w: r[1] ? 1 : 0, m: Math.round(r[2]), p: Math.max(0, Math.round(r[3])) } : null;
+    if (!Array.isArray(d) || !Number.isFinite(d[0])) return null; const a = run(d[1]), b = d[2] ? run(d[2]) : null; if (!a) return null;
+    return { seed: d[0] >>> 0, a, b };
+  }
+  const h2hBeats = (x, y) => x.w !== y.w ? x.w > y.w : x.m !== y.m ? x.m > y.m : x.p > y.p;
+  const h2hLine = r => `${r.w ? 'won' : 'lost'} by ${Math.abs(r.m)}, with ${r.p} point${r.p === 1 ? '' : 's'} of ${r.n === 'You' ? 'your' : 'his'} own`;
+  function h2hSend(link, text) {
+    if (navigator.share) { navigator.share({ title: 'Pocket Basketball', text, url: link }).catch(() => {}); return; }
+    const done = () => { const b = $('#h2send'); if (b) b.textContent = 'Link copied'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done).catch(() => prompt('Copy this link and send it:', link)); else prompt('Copy this link and send it:', link);
+  }
+  function headToHead(inc) {
+    const H = load('pbb.h2h') || { w: 0, l: 0, seen: [] }, me = youName().join(' ');
+    /* an answer to one of yours: the two results, and who took it */
+    if (inc && inc.b) {
+      const mineWon = h2hBeats(inc.a, inc.b), key = inc.seed + ':' + inc.b.n; if (!H.seen.includes(key)) { H.seen.push(key); H.seen = H.seen.slice(-40); if (mineWon) H.w++; else H.l++; store('pbb.h2h', H); }
+      const sp = dailySpec(inc.seed);
+      show(`<div class="page post"><p class="kick">Head to head · the answer</p><h2>${mineWon ? 'You took it' : esc(inc.b.n) + ' took it'}</h2>
+        <div class="card"><h3>${esc(sp.title)}</h3><p><b>${esc(inc.a.n)}</b> ${h2hLine(inc.a)}.</p><p><b>${esc(inc.b.n)}</b> ${h2hLine(inc.b)}.</p></div>
+        <p class="mute">Your head-to-head record: ${H.w}-${H.l}</p><button class="big" id="go">Start another</button><button class="ghost" id="done">Main menu</button></div>`);
+      $('#go').onclick = () => headToHead(); $('#done').onclick = title; return; }
+    const seed = inc ? inc.seed : (Math.floor(Math.random() * 4294967295) >>> 0), sp = dailySpec(seed), A = PB.team(sp.a), B = PB.team(sp.b);
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Head to head</h2><p class="mute">${inc ? `${esc(inc.a.n)} sent you a challenge` : 'Play a situation, then send it to a friend: same teams, same clock, best result wins'} · your record ${H.w}-${H.l}</p>
+      <div class="card"><h3>${esc(sp.title)}</h3><p>${esc(sp.text)}</p><p class="fine">You: the ${PB.POS_NAME[sp.pos].toLowerCase()} of the ${esc(tname(A))} (85 overall), against the ${esc(tname(B))}. Fourth quarter.</p>
+      ${inc ? `<p><b>${esc(inc.a.n)}</b> ${h2hLine(inc.a)}. Beat that.</p>` : ''}
+      <button class="big" id="go">${inc ? 'Take the challenge' : 'Play it'}</button>${inc ? '' : '<button class="ghost" id="other">A different one</button>'}</div>
+      <p class="fine">No account and no server: the link itself carries the challenge and the result. Winning beats losing, then the margin, then your own points.</p></div>`);
+    $('#bk').onclick = title; if ($('#other')) $('#other').onclick = () => headToHead();
+    $('#go').onclick = () => playSpec(sp, r => {
+      const mine = { n: me, w: r.score[0] > r.score[1] ? 1 : 0, m: r.score[0] - r.score[1], p: (r.user && r.user.pts) || 0 }, arr = x => [x.n, x.w, x.m, x.p];
+      let verdict = '';
+      if (inc) { const won = h2hBeats(mine, inc.a), key = inc.seed + ':' + inc.a.n; if (!H.seen.includes(key)) { H.seen.push(key); H.seen = H.seen.slice(-40); if (won) H.w++; else H.l++; store('pbb.h2h', H); }
+        verdict = `<div class="card"><h3>${won ? 'You win the head to head' : esc(inc.a.n) + ' wins this one'}</h3><p><b>You</b> ${h2hLine(Object.assign({}, mine, { n: 'You' }))}.</p><p><b>${esc(inc.a.n)}</b> ${h2hLine(inc.a)}.</p><p class="mute">Your record: ${H.w}-${H.l}</p></div>`; }
+      const link = h2hLink(inc ? [seed, arr(inc.a), arr(mine)] : [seed, arr(mine)]);
+      show(`<div class="page post"><p class="kick">Head to head</p><div class="final"><div>${badge(A)}<b>${r.score[0]}</b></div><em>${mine.w ? 'WIN' : 'LOSS'}</em><div><b>${r.score[1]}</b>${badge(B)}</div></div>
+        <p class="mute">${esc(sp.title)} · you ${mine.w ? 'won' : 'lost'} by ${Math.abs(mine.m)} with ${mine.p} point${mine.p === 1 ? '' : 's'}</p>${verdict}
+        <button class="big" id="h2send">${inc ? 'Send your result back' : 'Send the challenge'}</button><button class="ghost" id="again">${inc ? 'Start one of your own' : 'A new one'}</button><button class="ghost" id="done">Main menu</button></div>`);
+      $('#h2send').onclick = () => h2hSend(link, inc ? `I ${mine.w ? 'won' : 'lost'} by ${Math.abs(mine.m)}. Here is how it came out.` : `${sp.title}: I ${mine.w ? 'won' : 'lost'} by ${Math.abs(mine.m)} with ${mine.p}. Beat that.`);
+      $('#again').onclick = () => headToHead(); $('#done').onclick = title;
+    });
+  }
+
+  /* ---------- keeping your saves ----------
+     Everything is kept in this browser. Two things make that safer: the browser is asked to treat the game's storage as
+     something to keep (it then does not clear it to make room), and after every few games of a career you are offered
+     a copy of everything as a file, through the share sheet, so it can go to Files, iCloud or Drive. */
+  const saveBlob = () => { const o = {}; for (const k of Object.keys(localStorage)) if (k.startsWith('pbb.')) o[k] = localStorage.getItem(k); return new Blob([JSON.stringify({ pocketBasketball: 1, at: new Date().toISOString(), data: o })], { type: 'application/json' }); };
+  function keepAsk() { if (keepAsk.done) return; keepAsk.done = true; try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(ok => { PB.kept = !!ok; }).catch(() => {}); } catch (e) { /* not offered here */ } }
+  function backupNow() { shareFile(saveBlob(), 'pocket-basketball-save.json', 'Pocket Basketball save'); store('pbb.backup', { at: new Date().toISOString(), gp: (C && C.totals && C.totals.gp) || 0 }); }
+  function backupCard() {
+    if (!C || !C.totals) return ''; const B = load('pbb.backup') || {}, gp = C.totals.gp || 0, since = gp - (B.gp || 0), snooze = (B.snooze || 0);
+    if (gp < 3 || since < 8 || gp < snooze) return '';
+    return `<div class="next backup"><p class="kick">Your save</p><p class="q">${B.at ? `${since} games since your last copy.` : 'This career is kept on this phone only.'} Save a copy to Files, iCloud or Drive, and a cleared browser cannot take it.</p><button class="ghost" id="bkup">Save a copy now</button><button class="ghost sm" id="bklater">Later</button></div>`;
+  }
+
   function daily() {
     const sp = dailySpec(), D = load('pbb.daily') || {}, A = PB.team(sp.a), B = PB.team(sp.b);
     show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>Daily challenge</h2><p class="mute">${today()} · a new one every day${D.streak ? ` · streak ${D.streak}` : ''}${D.best ? ` · best ${D.best}` : ''}</p>
@@ -352,13 +430,7 @@
       <button class="big" id="go">Play it</button></div>`);
     $('#bk').onclick = title;
     $('#go').onclick = () => {
-      const tk = new Set(), fa = PB.makeRoster(80, tk), fb = PB.makeRoster(80, tk), ra = fa.slice(0, 5), rb = fb.slice(0, 5);
-      const me = ra[PB.POS.indexOf(sp.pos)]; me.r = PB.makeRatings(sp.pos, 85); me.ovr = PB.ovr(me.r, sp.pos); { const n = youName(); me.first = n[0]; me.last = n[1]; }
-      const score = [sp.base + Math.max(0, sp.diff), sp.base + Math.max(0, -sp.diff)];
-      scr().hidden = true;
-      PB.Game.start({ teams: [A, B], rosters: [ra, rb], bench: [fa.slice(5, 9), fb.slice(5, 9)], userId: me.id, qlen: S.qlen, level: 'All-Star', floor: A,
-        scenario: { q: 4, clock: sp.clock, score, poss: sp.poss, title: sp.title },
-        onEnd: r => {
+      playSpec(sp, r => {
           const won = r.score[0] > r.score[1], ok = won && (!sp.pts || (r.user && r.user.pts >= sp.pts));
           const D2 = load('pbb.daily') || {};
           if (D2.last !== today() || !D2.won) {
@@ -370,7 +442,7 @@
             <p class="mute">${ok ? `Challenge complete. Streak: ${(load('pbb.daily') || {}).streak || 1}.` : sp.pts && won ? `You won, but you needed ${sp.pts} points yourself (you had ${(r.user || {}).pts || 0}).` : 'So close. Try it again.'}</p>
             ${potg(r)}<button class="big" id="again">Try again</button><button class="ghost" id="done">Main menu</button></div>`);
           $('#again').onclick = daily; $('#done').onclick = title;
-        } });
+        });
     };
   }
   /* practice: the contests on your own, with your career player if you have one */
@@ -735,7 +807,7 @@
     if (id === 'closet') { tab = 'player'; hub(); setTimeout(() => { const e = scr().querySelector('.lookh') || scr().querySelector('[data-look]'); if (e) e.scrollIntoView({ block: 'start' }); }, 60); return; }
     if (id === 'next') { if (nextLive()) { C.goals = C.goals || makeGoals(); playGame(); } else { tab = 'home'; hub(); } return; }
     if (id.startsWith('hub:')) { tab = id.slice(4); hub(); return; }
-    const pages = { quick, season: () => PB.Season.start(), blacktop: () => blacktop(), classics, daily, players: myPlayers, ach: achievements, hall: recordBook,
+    const pages = { quick, season: () => PB.Season.start(), blacktop: () => blacktop(), classics, daily, h2h: () => headToHead(), players: myPlayers, ach: achievements, hall: recordBook,
       how, settings, chat: () => { if (PB.online) PB.online.open(); else park(); } };
     if (pages[id]) { pages[id](); return; }
     tab = 'home'; hub();
@@ -808,7 +880,7 @@
         ${tile('pick1', MIC.career, '1 on 1', 'pick-up to 11')}${tile('pick3', MIC.list, '3 on 3', 'pick-up to 21')}${tile('court', MIC.vs, 'Pro-Am', '5 on 5')}</div>
       <h4>More</h4>
       <div class="pmgrid sm">${tile('closet', MIC.career, 'Closet')}${tile('players', MIC.list, 'My Player')}${tile('ach', MIC.cup, 'Achievements')}${tile('hall', MIC.clock, 'Record book')}
-        ${tile('chat', MIC.chat, 'Chat')}${tile('how', MIC.target, 'How to play')}<button class="pmt" id="pmtut">${MIC.day}<b>Tutorial</b></button>${tile('settings', MIC.list, 'Settings')}</div>
+        ${tile('h2h', MIC.vs, 'Head to head')}${tile('chat', MIC.chat, 'Chat')}${tile('how', MIC.target, 'How to play')}<button class="pmt" id="pmtut">${MIC.day}<b>Tutorial</b></button>${tile('settings', MIC.list, 'Settings')}</div>
       <button class="ghost" id="pmres">Back to the park</button></div>`;
     $('#pmx').onclick = ctl.close; $('#pmres').onclick = ctl.close; $('#pmtut').onclick = () => { store('pbb.tut', 0); store('pbb.tutAt', 0); ctl.tutorial(); };
     ov.querySelectorAll('[data-go]').forEach(b => b.onclick = () => ctl.go(b.dataset.go));
@@ -1624,6 +1696,7 @@
           <button class="ghost sm" id="nobrand">Not now</button></div>` + card;
       }
       if (C.event) card = eventCard() + card;
+      card = backupCard() + card;
       if (C.coachTalk) {
         const s5 = C.games.filter(x => x.done).slice(-5), avgG = s5.reduce((a, x) => a + (x.res.gscore || 6), 0) / Math.max(1, s5.length);
         const r = role(), tr = C.trust;
@@ -1768,6 +1841,8 @@
     if ($('#socall')) $('#socall').onclick = () => { socAll = !socAll; const y = scr().scrollTop; hub(); scr().scrollTop = y; };
     const talked = () => { C.talk = `${C.year}-${C.gi}-${C.phase}`; };
     if ($('#mday')) $('#mday').onclick = mediaDay;
+    if ($('#bkup')) $('#bkup').onclick = () => { backupNow(); const y = scr().scrollTop; hub(); scr().scrollTop = y; };
+    if ($('#bklater')) $('#bklater').onclick = () => { const B = load('pbb.backup') || {}; B.snooze = ((C.totals && C.totals.gp) || 0) + 10; store('pbb.backup', B); const y = scr().scrollTop; hub(); scr().scrollTop = y; };
     if ($('#clap')) $('#clap').onclick = () => { talked(); C.fans = Math.round(C.fans * 1.04); C.trust = Math.max(0, C.trust - 1); C.clapped = true; C.feed.unshift({ who: '@' + (C.me.first + C.me.last).toLowerCase(), text: `See you tomorrow. Bring your best.` }); C.news.unshift(`${C.me.last} fires back at his rival`); save(); hub(); };
     if ($('#quiet')) $('#quiet').onclick = () => { talked(); C.trust = Math.min(100, C.trust + 1); C.clapped = false; save(); hub(); };
     if ($('#trade')) $('#trade').onclick = requestTrade;
@@ -3634,6 +3709,9 @@
   PB.boot = () => {
     /* without WebGL the menus and the career still work; only the court cannot be drawn */
     try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }
+    /* opened from a head-to-head link: the challenge (or the answer to yours) comes up first, and the link is taken out of the address */
+    let vs = null; try { const q = new URLSearchParams(location.search).get('vs'); if (q) { vs = h2hRead(q); history.replaceState(null, '', location.pathname); } } catch (e) { /* no address to read */ }
+    if (vs) { C = openCur(); headToHead(vs); return; }
     splash();
   };
 })();
