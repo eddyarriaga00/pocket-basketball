@@ -2827,6 +2827,7 @@
         { const fresh = p.wvT !== undefined && G.t - p.wvT < 0.1, wx = fresh ? p.wvx : p.dribVX, wz = fresh ? p.wvz : p.dribVZ;
           p.leadVX = p.dribVX * 0.4 + wx * 0.6; p.leadVZ = p.dribVZ * 0.4 + wz * 0.6;
           { const L = hyp(p.leadVX, p.leadVZ), cap = Math.max(2, speed); if (L > cap) { p.leadVX *= cap / L; p.leadVZ *= cap / L; } }   // (his direction, not a head start: no farther ahead than his feet can follow)
+          { const ease = 1 - 0.65 * (p.brakeD || 0); p.leadVX *= ease; p.leadVZ *= ease; }   // braking or cutting: the next push is a short one, kept close until he is going again
           const gap = b.floorX !== undefined && b.pushCycle !== null && b.pushCycle !== undefined ? hyp(b.floorX - p.x, b.floorZ - p.z) : 0;
           p.chaseD = (p.chaseD || 0) + (clamp((gap - 3.2) / 2.5, 0, 1) - (p.chaseD || 0)) * Math.min(1, dt * 14); }
         p.dribRate = 7.4 * (1 + 0.28 * p.prot + 0.16 * p.brakeD - 0.2 * p.runD + 0.7 * p.chaseD) * (ds === 'low' ? 1.25 : ds === 'high' ? 0.85 : 1);
@@ -3064,6 +3065,13 @@
           /* never through his legs or his body on the way back to the hand: it goes round, on the side of the hand it is in */
           /* and never out of his reach: past a long stride and a half, the rest of the way is squeezed in */
           { const ex = b.x - p.x, ez = b.z - p.z, e = hyp(ex, ez), lim = 4.3; if (e > lim) { const k = (lim + (e - lim) * 0.3) / e; b.x = p.x + ex * k; b.z = p.z + ez * k; } }
+          /* and it stays with him through a hard cut or a stop: in his own frame it may run well out in front (a push
+             dribble at a sprint), but not far out to the side and not behind him. What is over is squeezed in, and the
+             squeeze is eased from frame to frame so the ball slides back to him and never jumps. */
+          { const fx = Math.sin(p.face), fz = Math.cos(p.face), ex = b.x - p.x, ez = b.z - p.z, ah = ex * fx + ez * fz, sd = ex * fz - ez * fx;
+            const sl = 2.2, bl = -1.2, sd2 = Math.abs(sd) > sl ? Math.sign(sd) * (sl + (Math.abs(sd) - sl) * 0.12) : sd, ah2 = ah < bl ? bl + (ah - bl) * 0.2 : ah;
+            const wx = (ah2 - ah) * fx + (sd2 - sd) * fz, wz = (ah2 - ah) * fz - (sd2 - sd) * fx, kk = Math.min(1, dt * 26);
+            p.bcx = (p.bcx || 0) + (wx - (p.bcx || 0)) * kk; p.bcz = (p.bcz || 0) + (wz - (p.bcz || 0)) * kk; b.x += p.bcx; b.z += p.bcz; }
           const dx = b.x - p.x, dz = b.z - p.z, d = hyp(dx, dz), R0 = 1.0;
           if (d < R0 && b.y < 4.7) { const fx = Math.sin(p.face), fz = Math.cos(p.face), sd = (p.dribHand || 1) >= 0 ? 1 : -1, w = (R0 - d) / R0;
             let ox = dx + fz * sd * w * 0.6, oz = dz - fx * sd * w * 0.6; const ol = hyp(ox, oz) || 1; ox /= ol; oz /= ol;
