@@ -249,11 +249,72 @@
   }
   function shockTick(dt) { for (const r of shocks) { if (r.t <= 0) { r.m.visible = false; continue; } r.t -= dt; const k = 1 - r.t / 0.55; r.m.scale.setScalar(1 + k * r.size); r.m.material.opacity = 0.8 * (1 - k) * (1 - k); } }
   let crowdMaps = [], hype = 0, shake = 0, trail = null, trailPts = [];
+  /* signs in the stands: home fans hold up cards (DEFENSE, the team, MVP, and one for you when you play at home).
+     Held low most of the time; up and shaking on a big play and while the visitors shoot free throws. One mesh: the
+     cards' words are one picture, each card a cell of it; the lift and the shake are done in the vertex shader. */
+  let signs = null;
+  function buildSigns(home) {
+    if (!home || home.stage === 'park') return null;
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 512; const g = cv.getContext('2d');
+    const nick = String(home.name || home.id || '').toUpperCase(), ab = String(home.ab || home.id || '').toUpperCase();
+    const lum = c => { const n = parseInt(String(c).slice(1), 16); return (n >> 16) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11; };
+    const cell = (i, text, bg, fg, sub) => { const x = (i % 2) * 256, y = Math.floor(i / 2) * 128;
+      g.fillStyle = bg; g.fillRect(x + 4, y + 4, 248, 120); g.strokeStyle = fg; g.lineWidth = 5; g.strokeRect(x + 10, y + 10, 236, 108);
+      g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle';
+      let fs = sub ? 50 : 64; g.font = `900 ${fs}px Archivo, Arial`; while (g.measureText(text).width > 220 && fs > 18) { fs -= 2; g.font = `900 ${fs}px Archivo, Arial`; }
+      g.fillText(text, x + 128, y + (sub ? 52 : 66));
+      if (sub) { let f2 = 26; g.font = `800 ${f2}px Archivo, Arial`; while (g.measureText(sub).width > 220 && f2 > 12) { f2 -= 2; g.font = `800 ${f2}px Archivo, Arial`; } g.fillText(sub, x + 128, y + 96); } };
+    const c1 = home.c1 || '#222', c2 = home.c2 || '#fff', ink = lum(c1) > 150 ? '#111' : '#fff';
+    cell(0, 'DEFENSE', '#ffffff', '#111111'); cell(1, nick, c1, ink, "LET'S GO"); cell(2, 'MVP', c2, lum(c2) > 150 ? '#111' : '#fff');
+    cell(3, 'BUCKETS', '#111111', '#ffffff'); cell(4, ab, c2, lum(c2) > 150 ? c1 : '#fff', 'OUR HOUSE'); cell(5, 'NOISE!', c1, ink);
+    cell(6, 'WE BELIEVE', '#ffffff', c1);
+    g.fillStyle = '#111'; g.fillRect(256, 384, 256, 128);   // cell 7: yours, drawn once the game knows who you are (signsFor)
+    const tex = new T.CanvasTexture(cv); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
+    const P = [], UV = [], PH = [], TG = [], IX = []; let n = 0;
+    const add = (cx, cy, cz, ry, k, ph) => { const w = 4.0, h = 2.0, c = Math.cos(ry), sn = Math.sin(ry), u0 = (k % 2) * 0.5, v0 = 1 - Math.floor(k / 2) * 0.25;
+      for (const [a, b, u, v] of [[-1, -1, u0, v0 - 0.25], [1, -1, u0 + 0.5, v0 - 0.25], [1, 1, u0 + 0.5, v0], [-1, 1, u0, v0]]) {
+        P.push(cx + a * w / 2 * c, cy + b * h / 2, cz - a * w / 2 * sn); UV.push(u, v); PH.push(ph); TG.push(c, -sn); }
+      IX.push(n, n + 1, n + 2, n, n + 2, n + 3); n += 4; };
+    const rnd = PB.rand || Math.random;
+    let k = 0;
+    for (const side of [-1, 1]) {
+      for (let j = 0; j < 6; j++) { const i = 1 + (j % 4), d = 8 + i * 5, h = 3 + i * 3.2;   // behind the baskets
+        add(-30 + j * 12 + (rnd() - 0.5) * 5, h - 0.9, side * (57 + d - 2.5 - 0.35), side > 0 ? Math.PI : 0, j === 2 ? 7 : k++ % 7, rnd() * 6.28); }
+      for (let j = 0; j < 5; j++) { const i = 1 + ((j + 1) % 4), d = 8 + i * 5, h = 3 + i * 3.2;   // along the sidelines
+        add(side * (25 + d - 2.5 - 0.35), h - 0.9, -36 + j * 18 + (rnd() - 0.5) * 6, side > 0 ? -Math.PI / 2 : Math.PI / 2, j === 2 ? 7 : k++ % 7, rnd() * 6.28); }
+    }
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(P, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(UV, 2));
+    geo.setAttribute('aPh', new T.Float32BufferAttribute(PH, 1)); geo.setAttribute('aTg', new T.Float32BufferAttribute(TG, 2)); geo.setIndex(IX);
+    const u = { uUp: { value: 0 }, uT: { value: 0 } };
+    const mat = new T.MeshBasicMaterial({ map: tex, color: 0xd6d6d6, side: T.DoubleSide });
+    mat.onBeforeCompile = sh => { Object.assign(sh.uniforms, u);
+      sh.vertexShader = 'attribute float aPh;\nattribute vec2 aTg;\nuniform float uUp;\nuniform float uT;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+  { float sk = sin(uT * 9.0 + aPh); transformed.y += uUp * (1.5 + 0.35 * sk) + (1.0 - uUp) * 0.12 * sin(uT * 1.3 + aPh);
+    transformed.xz += aTg * uUp * 0.45 * sin(uT * 6.0 + aPh * 1.7); }`); };
+    mat.customProgramCacheKey = () => 'pb-signs';
+    const mesh = new T.Mesh(geo, mat); mesh.frustumCulled = false;
+    return { mesh, u, cv, g, tex, mine: '', up: 0 };
+  }
+  /* the card that is yours: your number and name, held up by a fan when you play at home */
+  function signsFor(G) {
+    if (!signs || !G.user || G.park || G.drill) return;
+    const u = G.user, home = G.home === undefined ? 0 : G.home, mine = u.team === home;
+    const key = mine ? `${u.num}|${(u.d && u.d.last) || ''}` : 'x';
+    if (key === signs.mine) return; signs.mine = key;
+    const g = signs.g, x = 256, y = 384, t = G.teams && G.teams[home];
+    g.fillStyle = mine ? '#ffffff' : '#111111'; g.fillRect(x + 4, y + 4, 248, 120);
+    g.fillStyle = mine && t ? t.c1 : '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (mine) { const nm = String((u.d && u.d.last) || '').toUpperCase(); let fs = 60; g.font = `900 ${fs}px Archivo, Arial`; const s1 = `#${u.num != null ? u.num : ''} ${nm}`; while (g.measureText(s1).width > 220 && fs > 18) { fs -= 2; g.font = `900 ${fs}px Archivo, Arial`; }
+      g.fillText(s1, x + 128, y + 54); g.font = '800 26px Archivo, Arial'; g.fillText('♥ OUR GUY', x + 128, y + 98); }
+    else { g.font = '900 60px Archivo, Arial'; g.fillText('LOUDER!', x + 128, y + 66); }
+    signs.tex.needsUpdate = true;
+  }
   /* the building jumps: the crowd bounces for a moment, the camera shakes on the biggest plays */
   let boardMsg = null;
   R.board = (text, secs) => { boardMsg = { text, t: secs || 3 }; };   // the scoreboard shows a message for a few seconds
   R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk && !(PB.settings && PB.settings.shakeOn === 'Off')) shake = Math.max(shake, shk); if ((power || 1) >= 0.9) camFlash = Math.max(camFlash, 0.9 * (power || 1)); };
   /* small things an arena does: the backboards light red at a horn; cameras flash in the stands after a big play */
+  let scUnit = null;   // the backboards' shot clock picture
   const leds = []; let hornT = 0, camFlash = 0, flashPts = null;
   R.horn = sec => { hornT = Math.max(hornT, sec || 1.5); };
   /* a title won: paper in the winners' colors comes down over the floor */
@@ -441,6 +502,13 @@
     { const lm = new T.MeshBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0, depthWrite: false }), led = new T.Group(); led.material = lm;
       for (const [w, h, x, y] of [[6.3, 0.16, 0, 1.83], [6.3, 0.16, 0, -1.83], [0.16, 3.82, 3.07, 0], [0.16, 3.82, -3.07, 0]]) { const e = new T.Mesh(new T.BoxGeometry(w, h, 0.14), lm); e.position.set(x, y, 0); led.add(e); }
       led.position.set(0, 11.25, s * 43); g.add(led); leds.push(led); }
+    /* the shot clock on top of the backboard, the game clock under it: a dark box with a lit face toward the floor and
+       one toward the stands. Both baskets share one picture (drawn in the render loop, beside the scoreboard). Not on an outdoor court. */
+    if (!(home && (home.park || home.street))) {
+    if (!scUnit) { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; const tex = new T.CanvasTexture(cv); tex.colorSpace = T.SRGBColorSpace; scUnit = { cv, g: cv.getContext('2d'), tex, key: '' }; }
+    { const box = new T.Mesh(new T.BoxGeometry(2.3, 1.1, 0.45), steel); box.position.set(0, 13.68, s * 43.1); g.add(box);
+      const fm = new T.MeshBasicMaterial({ map: scUnit.tex });
+      for (const k of [-1, 1]) { const f = new T.Mesh(new T.PlaneGeometry(2.1, 0.95), fm); f.position.set(0, 13.68, s * 43.1 + k * s * 0.231); f.rotation.y = k * s > 0 ? 0 : Math.PI; g.add(f); } } }
     return g;
   }
 
@@ -787,7 +855,12 @@
     /* the sole's normal in each foot bone's own frame, to keep planted shoes flat on the floor */
     const footUp = {}; for (const sd of ['L', 'R']) { const fb = bones[bk(`DEF-foot.${sd}`)]; if (fb) footUp[sd] = V3(0, 1, 0).applyQuaternion(fb.getWorldQuaternion(Q4()).invert()); }
     { const d = at('DEF-toe.L').sub(at('DEF-foot.L')); footUp.slope = d.y / Math.hypot(d.x, d.z); }   // the foot bone runs down from the ankle to the ball of the foot
-    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR, simpleGeo, footUp, model: !!model, faceGeo, Hs: model ? Hs : 0 };
+    /* the shorts' hem and waistband heights (kpos.y), for the sway */
+    let shY = null;
+    if (simpleGeo && simpleGeo.attributes.rA) { const ra = simpleGeo.attributes.rA, kp = simpleGeo.attributes.kpos; let lo = 1e9, hi = -1e9;
+      for (let i = 0; i < ra.count; i++) if (ra.getZ(i) > 0.5) { const y = kp.getY(i); if (y < lo) lo = y; if (y > hi) hi = y; }
+      if (hi > lo) shY = [lo, lo + (hi - lo) * 0.62]; }
+    return { scene, clips, H, decals, sideR, torsoZ, box, headP, shortsGeo, headR, simpleGeo, footUp, model: !!model, faceGeo, Hs: model ? Hs : 0, shY };
   }
   /* the kit: colors by body region, and a design on the jersey and shorts. Designs (cols.pat):
      0 plain, 1 side panels (down the jersey and the shorts), 2 pinstripes, 3 a chest band, 4 a fade to dark,
@@ -796,9 +869,11 @@
     const m = new T.MeshLambertMaterial({ color: 0xffffff });
     const u = { cTrim: { value: new T.Color(cols.trim || cols.jersey) }, cSkin: { value: new T.Color(cols.skin) }, cJersey: { value: new T.Color(cols.jersey) }, cShorts: { value: new T.Color(cols.shorts) },
       cShoe: { value: new T.Color(cols.shoe) }, cSock: { value: new T.Color(cols.sock) }, cAlt: { value: new T.Color(cols.alt || cols.trim || cols.jersey) }, kPat: { value: cols.pat || 0 }, kTat: { value: cols.tat || 0 }, kSlv: { value: cols.sleeve ? 1 : 0 }, kRef: { value: +cols.ref || 0 }, kTights: { value: cols.tights ? 1 : 0 }, kSock: { value: cols.socks === 'high' ? 1 : cols.socks === 'low' ? 2 : 0 }, kShoe: { value: +cols.shoeStyle || 0 }, kBic: { value: cols.bicep ? 1 : 0 }, cBic: { value: new T.Color(cols.bicep || '#f2f2f2') }, kTee: { value: cols.tee ? 1 : 0 }, cTee: { value: new T.Color(cols.tee || '#f2f2f2') }, cSlv: { value: new T.Color(cols.sleeve || '#111111') } };
+    Object.assign(u, swayU());
+    m.userData.u = u;
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, u);
-      sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;');
+      sh.vertexShader = 'attribute vec4 rA;\nattribute vec4 rB;\nattribute vec3 kpos;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' + SWAY_DECL + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vRA = rA; vRB = rB; vK = kpos;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + SWAY_GLSL);
       /* a rim light: the edge of the body catches light, so players pop off the floor */
       sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', '#include <dithering_fragment>\n  { vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0), 3.0); gl_FragColor.rgb += rim * 0.28; }');
       sh.fragmentShader = 'uniform vec3 cSkin;\nuniform vec3 cJersey;\nuniform vec3 cShorts;\nuniform vec3 cShoe;\nuniform vec3 cSock;\nuniform vec3 cTrim;\nuniform vec3 cAlt;\nuniform float kPat;\nuniform float kTat;\nuniform float kSlv;\nuniform float kRef;\nuniform float kTee;\nuniform float kTights;\nuniform float kSock;\nuniform float kShoe;\nuniform float kBic;\nuniform vec3 cBic;\nuniform vec3 cTee;\nuniform vec3 cSlv;\nvarying vec4 vRA;\nvarying vec4 vRB;\nvarying vec3 vK;\n' +
@@ -884,6 +959,30 @@
   }
   const orphans = [];   // face geometries of players substituted out, freed with the arena
   let lite = false;   // set when a slow phone has had the men on the bench taken away (see R.render)
+  /* shorts that sway: the hem of the shorts trails a little behind the way he moves (and rides up as he comes down
+     from a jump), on a spring, so a stop or a cut makes it swing. uSway is the hem's offset in the body's own space,
+     set every frame from the player's speed (animSway); uShY the height of the hem and of the waistband (kpos.y), so
+     the waistband stays put and the hem moves most. The outline gets the same offset, so no dark edge shows. */
+  const SWAY_DECL = 'uniform vec3 uSway;\nuniform vec2 uShY;\nuniform float uSwT;\n';
+  const SWAY_GLSL = '  if (rA.z > 0.5 && uShY.y > uShY.x) { float swk = clamp((uShY.y - kpos.y) / (uShY.y - uShY.x), 0.0, 1.0); swk *= swk; transformed += uSway * swk * (1.0 + 0.3 * sin(uSwT * 17.0 + kpos.x * 40.0 + kpos.z * 25.0)); }';
+  const swayU = () => ({ uSway: { value: new T.Vector3() }, uShY: { value: new T.Vector2(TPL && TPL.shY ? TPL.shY[0] : 0, TPL && TPL.shY ? TPL.shY[1] : 0) }, uSwT: { value: 0 } });
+  const outlineSway = u => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
+    m.onBeforeCompile = sh => { Object.assign(sh.uniforms, { uSway: u.uSway, uShY: u.uShY, uSwT: u.uSwT });
+      sh.vertexShader = 'attribute vec4 rA;\nattribute vec3 kpos;\n' + SWAY_DECL + sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = vec3( position ) + normal * 0.011;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + SWAY_GLSL); };
+    m.customProgramCacheKey = () => 'pb-outline-sway'; m.userData.outline = true; return m; };
+  const _swM = new T.Matrix3(), _swV = V3();
+  function animSway(p, m, G, dt) {
+    const U = m.swayU, sb = m.swayM; if (!U || !sb) return;
+    dt = Math.min(dt, 0.05); if (!(dt > 0)) return;
+    const S = m.sw || (m.sw = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, py: p.y || 0 });
+    const vy = ((p.y || 0) - S.py) / dt; S.py = p.y || 0;
+    let tx = -(p.vx || 0) * 0.0075, ty = -Math.max(-30, Math.min(30, vy)) * 0.005, tz = -(p.vz || 0) * 0.0075;
+    const L = Math.hypot(tx, ty, tz); if (L > 0.17) { tx *= 0.17 / L; ty *= 0.17 / L; tz *= 0.17 / L; }
+    S.vx += ((tx - S.x) * 95 - S.vx * 9) * dt; S.vy += ((ty - S.y) * 95 - S.vy * 9) * dt; S.vz += ((tz - S.z) * 95 - S.vz * 9) * dt;
+    S.x += S.vx * dt; S.y += S.vy * dt; S.z += S.vz * dt;
+    _swM.setFromMatrix4(sb.matrixWorld).invert(); _swV.set(S.x, S.y, S.z).applyMatrix3(_swM);
+    U.uSway.value.copy(_swV); U.uSwT.value = G.t || 0;
+  }
   const OUTLINE_MAT = (() => { const m = new T.MeshBasicMaterial({ color: 0x0a0a0d, side: T.BackSide });
     m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = vec3( position ) + normal * 0.011;'); };
     m.customProgramCacheKey = () => 'pb-outline'; m.userData.shared = true; return m; })();
@@ -1052,6 +1151,7 @@
     body.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.frustumCulled = false; } if (o.isBone) bones[bk(o.name)] = o; });
     /* the shorts over the legs: the shorts' color, a side stripe in the design color, a hem in the trim color */
     let faceM = null;   // the model's face and hair mesh, for the blink
+    let swayM = null;   // the body whose shorts sway (animSway)
     if (TPL.shortsGeo) {
       const cs = [new T.Color(shorts), new T.Color(kit.alt || kit.c2), new T.Color(kit.c2)];
       const sm = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide });
@@ -1064,7 +1164,8 @@
         sb.position.copy(bodyMesh.position); sb.quaternion.copy(bodyMesh.quaternion); sb.scale.copy(bodyMesh.scale); sb.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); sb.boundingSphere = restSphere(TPL.simpleGeo);
         bodyMesh.visible = false;
         /* a thin dark outline (the inside of a slightly fatter copy): players read clearly against the floor */
-        if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, OUTLINE_MAT); ol.frustumCulled = false; bodyMesh.parent.add(ol);
+        swayM = sb;
+        if (!(PB.settings && PB.settings.gfx === 'Low')) { const ol = new T.SkinnedMesh(TPL.simpleGeo, TPL.shY ? outlineSway(mat.userData.u) : OUTLINE_MAT); ol.frustumCulled = false; bodyMesh.parent.add(ol);
           ol.position.copy(bodyMesh.position); ol.quaternion.copy(bodyMesh.quaternion); ol.scale.copy(bodyMesh.scale); ol.bind(bodyMesh.skeleton, bodyMesh.bindMatrix); ol.boundingSphere = restSphere(TPL.simpleGeo); }
       }
       if (bodyMesh && TPL.model && TPL.faceGeo && !PB.mannequin) {
@@ -1223,7 +1324,7 @@
     const headB = bones[bk('DEF-head')]; if (headB) headB.scale.setScalar(headS);
     const chest = bones[bk('DEF-spine.002')];
     const idle = { chest, base: new T.Quaternion(), applied: false, still: 0, breath: 0, phase: act.Idle_Loop.time * 3 };
-    return { kind: 'skin', dcl, idle, headS, root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0 };
+    return { kind: 'skin', dcl, idle, headS, root, body, mixer, act, bones, head: headB, hg, R: arm('R'), L: arm('L'), shadow, sc, pw: 0, pose: '', poseW: 0, phase: 0, swayM, swayU: swayM && TPL.shY ? mat.userData.u : null };
   }
 
   /* turn a bone so the segment from it to `tip` points along `dir` (world), by `w` of the way */
@@ -1548,6 +1649,7 @@
     if (introFocus === p && intro > 0 && intro < 2.4) { let d = Math.atan2(cam.position.x - p.x, cam.position.z - p.z) - p.face; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
       m.introL = (m.introL === undefined ? d : m.introL) + (d - (m.introL === undefined ? d : m.introL)) * Math.min(1, dt * 8); m.lookY = Math.max(-0.75, Math.min(0.75, m.introL)); } else m.introL = undefined;
     if (m.head && Math.abs(m.lookY || 0) > 0.01) { m.head.getWorldQuaternion(_qw); _q.setFromAxisAngle(_up, m.lookY).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); }
+    animSway(p, m, G, dt);
     if (m.hg && m.hg.userData.blink) m.hg.userData.blink.visible = (G.t + m.hg.userData.bph) % 3.8 < 0.13;
     if (m.hg && m.hg.userData.faceM) { const fm = m.hg.userData.faceM, sh = (G.t + (m.bph2 || (m.bph2 = Math.random() * 3.8))) % 3.8 < 0.13, yl = /^(roar|flex|celebrate|dunk1|dunk2|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2), mood = p.celebT > 0 ? (p.celebK === 'ugh' ? 'stern' : p.celebK === 'call' ? '' : 'happy') : p.pose === 'sad' ? (p.tiredP ? 'tired' : 'stern') : '', ix = yl ? fm.userData.yell : sh ? fm.userData.shut : (mood && fm.userData[mood]) || fm.userData.open; if (fm.geometry.index !== ix) fm.geometry.setIndex(ix); }   // the model blinks
     if (m.hg && m.hg.userData.yell) m.hg.userData.yell.visible = /^(roar|flex|chest|celebrate|dunk1|dunk2|windmill|hang)$/.test(p.pose) || (p.fallT !== undefined && G.t - p.fallT < 1.2);   // a little bigger head: more character at phone size
@@ -2028,7 +2130,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0; skids.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; scUnit = null; signs = null; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0; skids.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
@@ -2077,6 +2179,7 @@
     }
     scene.add(new T.Mesh(mergeGeo(sides), new T.MeshLambertMaterial({ map: sideM, color: 0xa9a7b0, emissive: 0x4a4852, emissiveMap: sideM })));
     scene.add(new T.Mesh(mergeGeo(ends), new T.MeshLambertMaterial({ map: endM, color: 0xa9a7b0, emissive: 0x4a4852, emissiveMap: endM })));
+    signs = buildSigns(home); if (signs) scene.add(signs.mesh);
     /* the center-hung scoreboard: four screens over center court showing the score and the clock, and a ring of light */
     const jc = document.createElement('canvas'); jc.width = 512; jc.height = 256;
     board = { cv: jc, g: jc.getContext('2d'), tex: new T.CanvasTexture(jc), key: '' }; board.tex.colorSpace = T.SRGBColorSpace;
@@ -2275,7 +2378,7 @@
       const th = B('DEF-thigh.L'); if (th) dy = 1.95 - th.getWorldPosition(V3()).y;
     }
     const v = V3(), M = new T.Matrix4().makeRotationY(faceY); M.setPosition(x, dy, z);
-    m.root.traverse(o => { if (!o.isSkinnedMesh || o.material === OUTLINE_MAT || !o.visible || !o.geometry.attributes.skinIndex) return;
+    m.root.traverse(o => { if (!o.isSkinnedMesh || o.material === OUTLINE_MAT || o.material.userData.outline || !o.visible || !o.geometry.attributes.skinIndex) return;
       const g0 = o.geometry, n = g0.attributes.position.count, P = new Float32Array(n * 3);
       const used = new Uint8Array(n), ia = g0.index ? g0.index.array : null; if (ia) for (let k = 0; k < ia.length; k++) used[ia[k]] = 1;   // only what is drawn (one hairstyle of many)
       /* the same sums SkinnedMesh.getVertexPosition does, with each bone's matrix worked out once for the whole mesh
@@ -2532,6 +2635,17 @@
         }
       }
     }
+    if (scUnit && G.teams) {
+      const off = G.drill || G.show || G.park, sc = Math.max(0, G.shotClock || 0), c = Math.max(0, G.clock || 0);
+      const scs = off ? '' : sc < 5 && sc > 0 ? sc.toFixed(1) : String(Math.ceil(sc));
+      const cs = off ? '' : c >= 60 ? `${Math.floor(c / 60)}:${String(Math.floor(c % 60)).padStart(2, '0')}` : c.toFixed(1);
+      const key = scs + '|' + cs;
+      if (key !== scUnit.key) { scUnit.key = key; const g = scUnit.g;
+        g.fillStyle = '#07080b'; g.fillRect(0, 0, 256, 128); g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillStyle = sc < 5 && !off ? '#ff2a2a' : '#ff4a3d'; g.font = '900 80px Archivo, Arial'; g.fillText(scs, 128, 50);
+        g.fillStyle = '#f2f2f2'; g.font = '800 30px Archivo, Arial'; g.fillText(cs, 128, 108);
+        scUnit.tex.needsUpdate = true; }
+    }
     for (const r of ribbons) r.offset.x = (r.offset.x + dt * 0.05) % 1;
     trophyTick(G);
     if (tag && tagP) tag.position.set(tagP.x, (tagP.ht || 78) / 12 + 3.9 + tagP.y, tagP.z);
@@ -2556,6 +2670,10 @@
       if (flashT > 0 && G.user) { flashT -= dt; const k = 1 - flashT / 0.6; flash.position.x = G.user.x; flash.position.z = G.user.z; flash.scale.setScalar(1 + k * 1.2); flash.material.opacity = 0.85 * (1 - k); } else flash.material.opacity = 0;
     }
     arenaBits(dt);
+    if (signs) { signsFor(G);
+      const ftv = (G.phase === 'ft' || G.phase === 'ftflight') && G.ftq && G.ftq.shooter && G.home !== undefined && G.ftq.shooter.team !== G.home;
+      const want = hype > 0.2 || ftv ? 1 : 0; signs.up += (want - signs.up) * Math.min(1, dt * (want ? 6 : 1.5));
+      signs.u.uUp.value = signs.up; signs.u.uT.value = G.t || 0; }
     if (hype > 0) { hype = Math.max(0, hype - dt); const j = Math.abs(Math.sin(G.t * 14)) * 0.035 * Math.min(1, hype); for (const m of crowdMaps) m.offset.y = j; }
     /* the end stands wave at a visiting shooter at the line */
     if (crowdMaps[1]) crowdMaps[1].offset.x = (G.phase === 'ft' || G.phase === 'ftflight') && G.ftq && G.ftq.shooter && G.home !== undefined && G.ftq.shooter.team !== G.home ? Math.sin(G.t * 11) * 0.012 : 0;
