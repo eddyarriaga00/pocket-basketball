@@ -131,7 +131,7 @@
   /* the hub drawn again in place after a tap that changes one thing (an attribute, a badge, a jersey): where you had
      scrolled to stays put and nothing fades in again */
   const stay = () => { const s = scr(), y = s.scrollTop, wy = window.scrollY; s.classList.add('still'); hub(); s.scrollTop = y; window.scrollTo(0, wy); clearTimeout(stay.h); stay.h = setTimeout(() => s.classList.remove('still'), 600); };
-  function show(html) { const s = scr(); s.classList.remove('over3d'); if (PB.R && PB.R.showcase) PB.R.showcase(null); s.innerHTML = html; s.hidden = false; s.scrollTop = 0; }
+  function show(html) { const s = scr(); s.classList.remove('over3d'); if (PB.R && PB.R.showcase) PB.R.showcase(null); s.innerHTML = html; s.hidden = false; s.scrollTop = 0; const f = s.firstElementChild; if (f) f.classList.add('enter'); }
   const badge = t => `<i class="tb" style="background:${t.c1};color:${PB.ink(t.c1, t.c2)}">${esc(t.ab || t.id)}</i>`;
   const tname = t => `${t.city} ${t.name}`;
 
@@ -144,16 +144,42 @@
     classicTitle();
   }
   /* the first screen: the logo over your player, a tap to start (which also lets the sound in), and the park */
+  /* ---------- the title's parts ----------
+     The wordmark (letters that rise in, a ball that spins, a shine that crosses it now and then), a top bar with the
+     version and your account, a ticker of headlines along the bottom, and the links as a grid of icons. */
+  const LOGO = `<div class="logo2"><svg class="lball" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18"/><path d="M2 20h36M20 2v36M7 7c7 6 7 20 0 26M33 7c-7 6-7 20 0 26"/></svg>
+    <p class="lsmall">${[...'POCKET'].map((c, i) => `<span style="--i:${i}">${c}</span>`).join('')}</p><h1 class="lbig">${[...'BASKETBALL'].map((c, i) => `<span style="--i:${i + 3}">${c}</span>`).join('')}</h1><i class="lshine"></i></div>`;
+  function topBar() {
+    const u = PB.account && PB.account.user(), nm = u && (u.name || u.email || '');
+    return `<div class="tbar"><span class="tver">v${esc(PB.VERSION)}</span><button class="tacct" id="tacct">${u ? `<i>${esc(nm.slice(0, 2).toUpperCase())}</i>${esc(nm.split('@')[0].slice(0, 14))}` : `${MIC.career}Sign in`}</button></div>`;
+  }
+  function ticker() {
+    const cur = openCur(), lines = (cur && cur.news ? cur.news.slice(0, 8) : []).filter(Boolean);
+    const day = new Date(), t1 = PB.TEAMS[(day.getDate() * 3) % PB.TEAMS.length], t2 = PB.TEAMS[(day.getDate() * 5 + 7) % PB.TEAMS.length], dd = dailySpec();
+    const extra = [`Today's daily challenge: ${dd.title}`, `Tonight: the ${t1.name} host the ${t2.name}`, 'Every team and player is fictional', dailyDone() ? 'Daily challenge done today' : 'A new daily challenge every day'];
+    const all = lines.concat(extra).map(x => esc(String(x).slice(0, 90)));
+    const row = all.map(x => `<span>${x}</span>`).join('<b>•</b>');
+    return `<div class="ticker" aria-hidden="true"><div style="--n:${all.length}">${row}<b>•</b>${row}<b>•</b></div></div>`;
+  }
+  function iconLinks(items) {
+    return `<div class="tgrid">${items.filter(Boolean).map(([id, ic, label]) => `<button id="${id}">${ic}<span>${label}</span></button>`).join('')}</div>`;
+  }
+  function wireTop(back) { if ($('#tacct')) $('#tacct').onclick = () => PB.account && PB.account.open(back); }
+
   function splash() {
     C = openCur();
     if (!C || !C.me || PB.noGL) { classicTitle(); return; }
     if (PB.audio) PB.audio.music(true);
     const t = C.team ? PB.team(C.team) : null;
-    show(`<div class="title splash"><div class="logo"><div class="ball"></div><h1>Pocket<br>Basketball</h1></div>
+    const face = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? (() => { try { return portrait(); } catch (e) { return null; } })() : null;
+    show(`<div class="title splash v2" style="--tc:${t ? t.c1 : '#333'}">${topBar()}${LOGO}
       <div class="spacer"></div>
-      <button class="big" id="start">Tap to start<small>${esc(PB.full(C.me))} · ${t ? esc(t.name) : 'pre-draft'} · ${C.me.ovr} OVR</small></button>
-      <div class="row2"><button class="ghost sm" id="sw">Switch player</button><button class="ghost sm" id="set">Settings</button></div></div>`);
-    whatsNew();
+      <div class="pchip">${face ? `<img alt="" src="${face}">` : ''}<div><b>${esc(PB.full(C.me))}</b><span>${t ? esc(t.city + ' ' + t.name) : 'Pre-draft'} · ${esc(C.me.pos)} · Season ${C.year}</span></div><em>${C.me.ovr}<small>OVR</small></em></div>
+      <button class="big tstart" id="start"><span>Tap to start</span></button>
+      ${iconLinks([['sw', MIC.list, 'Players'], ['set', MIC.target, 'Settings'], ['about', MIC.day, 'News'], ['chat', MIC.chat, 'Chat']])}
+      ${ticker()}</div>`);
+    whatsNew(); wireTop(splash);
+    $('#about').onclick = about; $('#chat').onclick = () => { PB.R.showcase(null); if (PB.online) PB.online.open(); };
     title3d(C.me, t);
     $('#start').onclick = () => { PB.R.showcase(null); scr().classList.remove('over3d'); park(); };
     $('#sw').onclick = myPlayers; $('#set').onclick = settings;
@@ -198,23 +224,22 @@
     C = openCur();
     const list = slots();
     const live = C && C.me;
-    show(`<div class="title">
-      <div class="logo"><div class="ball"></div><h1>Pocket<br>Basketball</h1><p>Your career, from draft night to the Hall of Fame.</p></div>
-      ${live ? `<button class="mode pri" id="cont">${MIC.career}<span><b>My Career</b><small>Continue as ${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></span><em>›</em></button>` : ''}
+    show(`<div class="title v2">${topBar()}
+      ${LOGO}<p class="ltag">Your career, from draft night to the Hall of Fame.</p>
+      ${live ? `<button class="mode pri" id="cont">${(() => { try { const f = !PB.noGL && PB.R.modelReady && PB.R.modelReady() ? portrait() : null; return f ? `<img class="cface" alt="" src="${f}">` : MIC.career; } catch (e) { return MIC.career; } })()}<span><b>My Career</b><small>Continue as ${esc(PB.full(C.me))}${C.team ? ' · ' + esc(PB.team(C.team).name) : ' · pre-draft'} · Season ${C.year}</small></span><em>›</em></button>` : ''}
       ${list.length ? `<button class="mode ${live ? '' : 'pri'}" id="careers">${MIC.list}<span><b>My Player</b><small>${list.length} player${list.length > 1 ? 's' : ''} on this device · switch, or build another</small></span><em>›</em></button>` : `<button class="mode pri" id="newc">${MIC.career}<span><b>My Career</b><small>Build your My Player and take him from draft night to the Hall of Fame.</small></span><em>›</em></button>`}
       <div class="modes art">
-        <button class="tile art" id="qg" data-art="0"><b>Quick game</b></button>
-        <button class="tile art" id="seas" data-art="1"><b>Season</b></button>
-        <button class="tile art" id="prac" data-art="2"><b>Practice</b></button>
-        <button class="tile art" id="daily" data-art="3"><b>Daily${dailyDone() ? ' ✓' : ''}</b></button>
-        <button class="tile art" id="btop" data-art="4"><b>Blacktop</b></button>
-        <button class="tile art" id="clsc" data-art="5"><b>Classics</b></button>
+        <button class="tile art" id="qg" data-art="0" style="--i:0"><b>Quick game<small>one game</small></b></button>
+        <button class="tile art" id="seas" data-art="1" style="--i:1"><b>Season<small>run a team</small></b></button>
+        <button class="tile art" id="prac" data-art="2" style="--i:2"><b>Practice<small>the gym</small></b></button>
+        <button class="tile art" id="daily" data-art="3" style="--i:3"><b>Daily${dailyDone() ? ' ✓' : ''}<small>${dailyDone() ? 'done today' : 'new today'}</small></b></button>
+        <button class="tile art" id="btop" data-art="4" style="--i:4"><b>Blacktop<small>1v1 to 3v3</small></b></button>
+        <button class="tile art" id="clsc" data-art="5" style="--i:5"><b>Classics<small>great nights</small></b></button>
       </div>
-      <div class="tlinks"><button id="acct">${PB.account && PB.account.user() ? 'Account' : 'Sign in'}</button><button id="h2h">Head to head</button><button id="chat">Chat</button><button id="prof">Profile</button><button id="about">News</button><button id="how">How to play</button><button id="set">Settings</button></div>
-      ${(load('pbb.hall') || []).length || load('pbb.records') ? '<button class="ghost sm" id="hall">Record book and the Hall of Fame</button>' : ''}
-      ${load('pbb.ach') ? `<button class="ghost sm" id="achv">Achievements <small>${Object.keys(load('pbb.ach')).length} of ${ACH.length}</small></button>` : ''}
-      <p class="fine">Every team and player is fictional.</p></div>`);
-    whatsNew(); artTiles();
+      ${iconLinks([['h2h', MIC.vs, 'Head to head'], ['chat', MIC.chat, 'Chat'], ['prof', MIC.career, 'Profile'], ['about', MIC.day, 'News'], ['how', MIC.target, 'How to play'], ['set', MIC.list, 'Settings'],
+        ['hall', MIC.clock, 'Records'], ['achv', MIC.cup, load('pbb.ach') ? `Awards <small>${Object.keys(load('pbb.ach')).length}/${ACH.length}</small>` : 'Awards']])}
+      ${ticker()}</div>`);
+    whatsNew(); artTiles(); wireTop(title);
     if (live) $('#cont').onclick = () => { tab = 'home'; hub(); };
     title3d(live ? C.me : null, live && C.team ? PB.team(C.team) : null);
     if ($('#newc')) $('#newc').onclick = () => { setCur(''); C = null; create(); };
@@ -223,7 +248,6 @@
     $('#prac').onclick = practice;
     $('#daily').onclick = daily;
     if ($('#h2h')) $('#h2h').onclick = () => headToHead();
-    if ($('#acct')) $('#acct').onclick = () => PB.account && PB.account.open(title);
     $('#btop').onclick = () => blacktop();
     $('#clsc').onclick = () => classics();
     $('#seas').onclick = () => PB.Season.start();
@@ -234,35 +258,19 @@
     if ($('#achv')) $('#achv').onclick = achievements;
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-18h';
+  const NEW_V = '2026-11-23a';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V) return;
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
-    const el = document.createElement('div'); el.className = 'card whatsnew';
-    el.innerHTML = `<h3>New in PocketBasketball</h3><ul>
-      <li>The park is home: you start there. A wall of doors has every mode (My Career, Quick game, Season, the gym, the closet, Blacktop, Classics, Daily, My Player), and the pick-up games and Pro-Am are courtside</li>
-      <li>Menu, top left in the park: everything in one place, and a map of the park: tap a ring and you are there</li>
-      <li>A walk-through on your first visit: walking, sprinting, shooting, moves, the menu and the doors</li>
-      <li>A new player model, sculpted for this game: hairstyles, beards, faces, builds, and it blinks and shouts</li>
-      <li>The pump fake: tap Shoot quickly. A defender who jumps at it is out of the play</li>
-      <li>On defense, an arrow shows where your man is going: green while you are in front of him</li>
-      <li>The full awards night: MVP, Defensive Player, Sixth Man, Most Improved, Clutch, Coach, All-League, All-Defensive and All-Rookie teams</li>
-      <li>Real rotation minutes by your role, and your numbers kept exactly as you put them up</li>
-      <li>My Player: build several players, each with his own career, in a step-by-step builder with weight and wingspan</li>
-      <li>The Park: walk your player around, shoot around, pick-up games, Pro-Am, the gym and the closet</li>
-      <li>Blacktop: 1v1, 2v2 and 3v3 on a half court, to 11, 15 or 21</li>
-      <li>Rank up for new gear, quests, a daily reward, the Playoff Picker, Around the World, and Watch mode</li>
-      <li>Classics: replay the league's great nights, for up to three stars each</li>
-      <li>The full box score (minutes, plus/minus), hot zones, a schedule with scores around the league, Player of the Month</li>
-      <li>Passes thrown to the man, and nobody jumping from place to place on screen</li>
-      <li>A smarter floor: help defense on your drives, teammates who space out and get open</li>
-      <li>New moves: a real layup with a finger roll, passes that snap, size-up dribbles, five more celebrations</li>
-      <li>Your Look card: an undershirt, tights, tattoos and a sleeve that sit on the arm, dyed hair</li>
-      <li>Your reserves on the bench, coaches in suits, referees in stripes and long pants</li>
-      <li>Slow motion on a last-second shot, a rim that bends on a dunk, confetti for a title</li></ul>
-      <button class="big" id="newok">Let's go</button>`;
-    const t = scr().querySelector('.title'); if (!t) return; t.insertBefore(el, t.querySelector('.logo').nextSibling);
-    $('#newok').onclick = () => { store('pbb.seen', NEW_V); el.remove(); };
+    const items = [['Accounts', 'Sign in to keep your save in an account and play on any phone'], ['Four ways in', 'Top prospect, first round, second round or undrafted, each with its own story and cutscenes'],
+      ['Social', 'Posts, callouts, polls, media day, and partners who follow your hype'], ['Chemistry and abilities', 'A bond with your running mate, and abilities you equip'], ['Head to head', 'Send a late-game challenge to a friend by link'], ['Dunks', 'Hold Shoot through them: no timing']];
+    const el = document.createElement('div'); el.className = 'wnsheet';
+    el.innerHTML = `<div class="wnbox"><p class="kick">What's new · v${esc(PB.VERSION)}</p><h3>New in Pocket Basketball</h3>${items.map(([a, b], i) => `<div class="wni" style="--i:${i}"><b>${a}</b><span>${b}</span></div>`).join('')}
+      <button class="big" id="newok">Let's go</button><button class="ghost sm" id="newall">Everything that changed</button></div>`;
+    document.body.appendChild(el);
+    const close = () => { store('pbb.seen', NEW_V); el.classList.add('out'); setTimeout(() => el.remove(), 250); };
+    el.querySelector('#newok').onclick = close; el.querySelector('#newall').onclick = () => { close(); PB.R && PB.R.showcase && PB.R.showcase(null); about(); };
+    el.onclick = e => { if (e.target === el) close(); };
   }
   /* the title over the arena: your player at center court (or tonight's featured player), the camera circling */
   let featured = null;

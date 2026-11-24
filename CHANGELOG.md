@@ -4,6 +4,9 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- Version 1.1.0, and a new title screen. The wordmark rises in letter by letter under a spinning ball, with a shine that crosses it now and then; a bar along the top has the version and your account (or Sign in); the modes rise in one after another, each with a line under its name; the links are a grid of icons in place of a row of words that ran off the screen; and a ticker along the bottom runs your latest headlines, tonight's matchup and the day's challenge. With a career, the start screen shows your player card (name, team, position, overall) over your player at center court and a Tap to start that breathes.
+- What's new is a short sheet from the bottom with the six biggest changes, and a link to everything else, in place of a wall of text.
+- Everywhere: pages come in with a short rise, buttons give a little when pressed, the Back link is a pill, cards have a faint top light, and a row of tabs never cuts a name short (it scrolls instead).
 - Dunks are not timed any more. At the rim, hold Shoot and he goes up and throws it down at the top of the jump by himself, as strong as a green release used to make it; there is no meter. Let go on the way up and it is a softer dunk that misses a little more often. (The dunk contest is scored its own way and is unchanged.)
 - The green band is a shade narrower (8 percent) on every jump shot and at the free-throw line: a little harder to hit.
 - In the park a shot goes up square to the nearest basket, whichever way you were walking or looking when you pressed Shoot (it used to start up to half a turn away and swing round in the air). Everywhere else, going up for a shot turns you to the rim faster.

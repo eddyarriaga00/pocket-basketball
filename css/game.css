@@ -1088,3 +1088,62 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 .aconfg b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase}.aconfg span{display:block;margin-top:4px;font-size:13px}.aconfg small{display:block;margin-top:4px;font-size:11px;color:var(--mute)}
 .warnc{border-color:rgba(255,90,107,.45)}.big.danger{background:#ff5a6b;color:#fff;border-color:#ff5a6b}
 .acctoast{position:fixed;left:50%;bottom:calc(30px + var(--sb,0px));transform:translateX(-50%);z-index:300;padding:11px 16px;border-radius:999px;background:#fff;color:#000;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+
+/* ---------- the title, redrawn (v1.1) ---------- */
+.title.v2{justify-content:flex-start;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.tbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 6px;position:relative;z-index:2}
+.tver{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.55);padding:5px 9px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(0,0,0,.35)}
+.tacct{display:flex;align-items:center;gap:7px;width:auto;margin:0;padding:5px 12px 5px 5px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(10,10,12,.7);color:#fff;font-size:12.5px;font-weight:700;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.tacct i{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#fff;color:#000;font-style:normal;font-size:10px;font-weight:900}
+.tacct .mi{width:24px;height:24px;margin:0;border-radius:50%;background:rgba(255,255,255,.12)}.tacct .mi svg{width:14px;height:14px}
+.logo2{position:relative;text-align:center;margin:4px auto 0;padding:4px 0 2px;overflow:hidden;isolation:isolate}
+.logo2 .lball{width:30px;height:30px;display:block;margin:0 auto 6px;fill:none;stroke:#fff;stroke-width:2;animation:lspin 6s linear infinite}
+.logo2 .lball circle{fill:rgba(255,255,255,.06)}
+@keyframes lspin{to{transform:rotate(360deg)}}
+.logo2 p.lsmall{margin:0;font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.62em;padding-left:.62em;color:rgba(255,255,255,.75)}
+.logo2 h1.lbig{margin:2px 0 0;font-family:var(--display);font-weight:900;font-stretch:125%;font-size:clamp(28px,9.6vw,48px);line-height:.95;letter-spacing:-.02em;white-space:nowrap;text-shadow:0 6px 30px rgba(0,0,0,.65)}
+.logo2 span{display:inline-block;animation:lrise .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 45ms + 80ms)}
+@keyframes lrise{from{opacity:0;transform:translateY(60%)}}
+.logo2 .lshine{position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.28) 50%,transparent 60%);transform:translateX(-120%);animation:lshine 5.5s ease-in-out 1.4s infinite;pointer-events:none;mix-blend-mode:overlay}
+@keyframes lshine{0%{transform:translateX(-120%)}18%,100%{transform:translateX(120%)}}
+.title.v2 .ltag{text-align:center;margin:8px 0 auto;font-size:13px;color:rgba(255,255,255,.7);text-shadow:0 2px 12px rgba(0,0,0,.8)}
+.title.v2.t3d{background:linear-gradient(180deg,rgba(9,9,11,.82) 0%,rgba(9,9,11,.2) 22%,rgba(9,9,11,0) 34%,rgba(9,9,11,.2) 50%,rgba(9,9,11,.9) 62%,var(--bg) 76%)}
+.title.v2 .mode.pri .cface{width:46px;height:46px;border-radius:50%;object-fit:cover;background:#000;flex:none}
+.tile.art{animation:tup .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 55ms + 200ms)}
+@keyframes tup{from{opacity:0;transform:translateY(14px) scale(.98)}}
+.tile.art b small{display:block;margin-top:2px;font-family:var(--body);font-weight:600;font-size:10.5px;letter-spacing:.02em;text-transform:none;color:rgba(255,255,255,.7)}
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0 4px}
+.tgrid button{display:flex;flex-direction:column;align-items:center;gap:5px;margin:0;min-height:0;padding:10px 2px 9px;border-radius:14px;border:1px solid var(--line);background:rgba(18,18,21,.82);color:#fff;font-size:11px;font-weight:700;line-height:1.15;transition:transform .1s,background .15s}
+.tgrid button:active{transform:scale(.95);background:rgba(40,40,46,.9)}
+.tgrid .mi{width:30px;height:30px;margin:0;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center}.tgrid .mi svg{width:17px;height:17px}
+.tgrid span{text-align:center;overflow-wrap:anywhere}.tgrid span small{display:block;font-weight:500;color:var(--mute);font-size:10px}
+.ticker{position:relative;overflow:hidden;margin:10px -18px 0;padding:9px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(10,10,12,.7);font-size:12px;color:rgba(255,255,255,.75);white-space:nowrap;-webkit-mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.ticker>div{display:inline-flex;gap:14px;align-items:center;animation:tick calc(var(--n) * 5.5s) linear infinite}
+.ticker b{color:rgba(255,255,255,.35);font-weight:400}
+@keyframes tick{to{transform:translateX(-50%)}}
+.title.splash.v2 .spacer{flex:1;min-height:26vh}
+.pchip{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:18px;background:rgba(12,12,14,.78);border:1px solid rgba(255,255,255,.12);border-left:4px solid var(--tc);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.pchip img{width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--tc)}.pchip div{flex:1;min-width:0;text-align:left}
+.pchip b{display:block;font-family:var(--display);font-weight:900;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pchip span{display:block;font-size:12px;color:var(--mute)}
+.pchip em{font-style:normal;font-family:var(--display);font-weight:900;font-size:28px;line-height:1;text-align:center}.pchip em small{display:block;font-size:9px;letter-spacing:.14em;color:var(--mute);font-weight:700}
+.tstart{position:relative;overflow:hidden;min-height:58px;margin-top:10px}
+.tstart span{position:relative;z-index:1;letter-spacing:.08em;text-transform:uppercase}
+.tstart::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(0,0,0,.14) 50%,transparent 65%);animation:lshine 2.6s ease-in-out infinite}
+.tstart{animation:tpulse 2.6s ease-in-out infinite}@keyframes tpulse{50%{transform:scale(1.015)}}
+/* what's new: a sheet from the bottom */
+.wnsheet{position:fixed;inset:0;z-index:150;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);animation:dimin .2s ease-out;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.wnsheet.out{opacity:0;transition:opacity .22s}
+.wnbox{width:100%;max-width:460px;max-height:86vh;overflow:auto;box-sizing:border-box;padding:18px 18px calc(18px + var(--sb));border-radius:22px 22px 0 0;background:var(--panel);border:1px solid var(--line);border-bottom:0;animation:sheetin .3s cubic-bezier(.2,.75,.2,1) both}
+.wnbox h3{margin:2px 0 10px;font-family:var(--display);font-weight:900;font-size:22px}
+.wni{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);text-align:left;animation:tup .4s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 50ms + 120ms)}
+.wni b{font-size:14px}.wni span{font-size:12.5px;color:var(--mute);margin-top:2px}
+/* ---------- everywhere: a page comes in with a short rise; buttons answer a press; the back link is a pill ---------- */
+#screen>.enter{animation:penter .24s cubic-bezier(.2,.8,.2,1) both}
+@keyframes penter{from{opacity:0;transform:translateY(8px)}}
+.big,.ghost{transition:transform .09s ease,filter .15s}.big:active,.ghost:active{transform:scale(.975);filter:brightness(1.12)}
+.back{display:inline-flex;align-items:center;gap:2px;width:auto;margin:0 0 6px;padding:7px 13px 7px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(28,28,31,.7);color:#fff;font-size:13px;font-weight:700}
+.back:active{transform:scale(.96)}
+.page h2{letter-spacing:-.01em}
+.card{background-image:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 40%)}
+@media (prefers-reduced-motion:reduce){.logo2 span,.logo2 .lshine,.logo2 .lball,.tile.art,.ticker>div,.tstart,.tstart::after,.wni,#screen>.enter{animation:none}}
+.stabs button{flex:1 0 auto;padding:9px 12px}   /* a tab is never narrower than its name: the row scrolls instead */
