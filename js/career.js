@@ -151,7 +151,7 @@
     <p class="lsmall">${[...'POCKET'].map((c, i) => `<span style="--i:${i}">${c}</span>`).join('')}</p><h1 class="lbig">${[...'BASKETBALL'].map((c, i) => `<span style="--i:${i + 3}">${c}</span>`).join('')}</h1><i class="lshine"></i></div>`;
   function topBar() {
     const u = PB.account && PB.account.user(), nm = u && (u.name || u.email || '');
-    return `<div class="tbar"><span class="tver">v${esc(PB.VERSION)}</span><button class="tacct" id="tacct">${u ? `<i>${esc(nm.slice(0, 2).toUpperCase())}</i>${esc(nm.split('@')[0].slice(0, 14))}` : `${MIC.career}Sign in`}</button></div>`;
+    return `<div class="tbar"><span class="tver">v${esc(PB.VERSION)}</span><button class="tacct" id="tacct">${u ? `<i data-st="${esc(PB.account.status ? PB.account.status() : '')}">${esc(PB.account.initials ? PB.account.initials(nm) : nm.slice(0, 2).toUpperCase())}</i>${esc(nm.split('@')[0].slice(0, 14))}` : `${MIC.career}Sign in`}</button></div>`;
   }
   function ticker() {
     const cur = openCur(), lines = (cur && cur.news ? cur.news.slice(0, 8) : []).filter(Boolean);
@@ -258,11 +258,11 @@
     if ($('#achv')) $('#achv').onclick = achievements;
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-23a';
+  const NEW_V = '2026-11-24a';
   function whatsNew() {
     if (load('pbb.seen') === NEW_V || (navigator.webdriver && !window.PBforceCut)) return;   // (the test tools drive the title by its buttons)
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
-    const items = [['Accounts', 'Sign in to keep your save in an account and play on any phone'], ['Four ways in', 'Top prospect, first round, second round or undrafted, each with its own story and cutscenes'],
+    const items = [['Sign in with Google', 'Or GitHub, or email: a cleaner sign in, a password reset screen and your sync status'], ['Four ways in', 'Top prospect, first round, second round or undrafted, each with its own story and cutscenes'],
       ['Social', 'Posts, callouts, polls, media day, and partners who follow your hype'], ['Chemistry and abilities', 'A bond with your running mate, and abilities you equip'], ['Head to head', 'Send a late-game challenge to a friend by link'], ['Dunks', 'Hold Shoot through them: no timing']];
     const el = document.createElement('div'); el.className = 'wnsheet';
     el.innerHTML = `<div class="wnbox"><p class="kick">What's new · v${esc(PB.VERSION)}</p><h3>New in Pocket Basketball</h3>${items.map(([a, b], i) => `<div class="wni" style="--i:${i}"><b>${a}</b><span>${b}</span></div>`).join('')}

@@ -12,6 +12,27 @@ Firebase console → the project → **Build → Authentication → Sign-in meth
 While there, **Authentication → Settings → Authorized domains** should list `eddyarriaga00.github.io` (it is needed for
 the password-reset and confirmation emails to link back to the game).
 
+## 1b. Google and GitHub sign-in
+
+The sign-in page also has **Continue with Google** and **Continue with GitHub** (a pop-up window; a chat that has you
+signed in anonymously is linked to the account, as email sign-up does). Signing in with Google or GitHub skips the email
+confirmation, and the account page has no password row; deleting the account asks the provider to confirm it is you.
+
+- **Google: on since 2026-11-24.** Authentication → Sign-in method → Google → Enable, with a support email. Its public
+  name on Google's consent screen is the project's public-facing name (Project settings → General).
+- **GitHub: not on yet.** It needs a GitHub OAuth app of its own (the one on another Firebase project cannot be reused,
+  because a GitHub OAuth app has one callback URL):
+  1. github.com → Settings → Developer settings → OAuth Apps → **New OAuth App**. Homepage URL
+     `https://eddyarriaga00.github.io/pocket-basketball/`; authorization callback URL
+     `https://blockfootball-a13c9.firebaseapp.com/__/auth/handler`.
+  2. Register it, then **Generate a new client secret**.
+  3. Firebase → Authentication → Sign-in method → Add new provider → **GitHub** → Enable, paste the Client ID and the
+     Client secret → Save.
+  Until then the GitHub button says GitHub sign-in is not switched on yet.
+
+A GitHub or Google account with the same email as an existing password account is refused with "That email already
+has an account here" (Firebase's one account per email setting); sign in with the password instead.
+
 ## 2. Publish the database rules
 
 Firebase console → **Build → Realtime Database → Rules**. Replace the whole text with the contents of
@@ -21,12 +42,13 @@ The file is the chat's rules as they are now (identical to Pocket Football's `do
 parts, `saves` and `accounts`:
 
 - `saves/<uid>`: one copy of a player's whole save. Only that player can read or write it, and only when signed in with
-  a password (an anonymous chat session cannot). Each field is checked: the save at most 6 MB of text, a time that is
+  a password, Google or GitHub (an anonymous chat session cannot). Each field is checked: the save at most 6 MB of text, a time that is
   not in the future, a device id, and three short labels (a name, how many players, up to three player names).
 - `accounts/<uid>`: the account's name and when it last saved. Same owner-only rule.
 
-Pocket Football keeps working: its chat paths are unchanged. If Pocket Football's rules are ever changed, paste the union
-of the two files, not one over the other.
+Pocket Football keeps working: its chat paths are unchanged. The project is also shared with PocketSoccer (its
+`soccer/<uid>` saves): always publish the union of all the games' rules, never one file over another. PocketSoccer's
+`docs/firebase-rules.json` is that union; the version published on 2026-11-24 is it with Google and GitHub allowed.
 
 ## What is stored, and deleting it
 

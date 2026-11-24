@@ -1,6 +1,6 @@
 /* PocketBasketball: service worker. Network first, cache as a fallback: online you always get the newest build,
    offline the last one you loaded still plays. */
-const CACHE = 'pocketbasketball-v4';
+const CACHE = 'pocketbasketball-v5';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
