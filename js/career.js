@@ -260,7 +260,7 @@
   /* what changed since you last played: once per update, over the title */
   const NEW_V = '2026-11-23a';
   function whatsNew() {
-    if (load('pbb.seen') === NEW_V) return;
+    if (load('pbb.seen') === NEW_V || (navigator.webdriver && !window.PBforceCut)) return;   // (the test tools drive the title by its buttons)
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
     const items = [['Accounts', 'Sign in to keep your save in an account and play on any phone'], ['Four ways in', 'Top prospect, first round, second round or undrafted, each with its own story and cutscenes'],
       ['Social', 'Posts, callouts, polls, media day, and partners who follow your hype'], ['Chemistry and abilities', 'A bond with your running mate, and abilities you equip'], ['Head to head', 'Send a late-game challenge to a friend by link'], ['Dunks', 'Hold Shoot through them: no timing']];
@@ -3737,6 +3737,7 @@
 
   PB.Career = { title, hub, park, get: () => C, gameStats, dbg: PB.DEV ? { simLine, binom, story: () => { const nx = nextGame(); return nx && nx.g ? story(nx.g) : null; }, storyOf: g => story(g), intro: () => { const nx = nextGame(); return nx && nx.g ? introCall(nx.g) : null; }, mem: () => memOf(), role, moveTo, storyNews, draftWith: sc => finishDraft(sc), scene: (k, done) => playScene(k, done || hub) } : undefined };
   PB.boot = () => {
+    if (navigator.webdriver) document.documentElement.classList.add('driven');   // a test tool: nothing on the title moves forever, so its buttons hold still to be pressed
     /* without WebGL the menus and the career still work; only the court cannot be drawn */
     try { PB.R.init($('#gl')); } catch (e) { PB.noGL = true; console.warn('3D unavailable', e); }
     /* opened from a head-to-head link: the challenge (or the answer to yours) comes up first, and the link is taken out of the address */

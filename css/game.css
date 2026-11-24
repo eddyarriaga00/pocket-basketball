@@ -1147,3 +1147,4 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 .card{background-image:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 40%)}
 @media (prefers-reduced-motion:reduce){.logo2 span,.logo2 .lshine,.logo2 .lball,.tile.art,.ticker>div,.tstart,.tstart::after,.wni,#screen>.enter{animation:none}}
 .stabs button{flex:1 0 auto;padding:9px 12px}   /* a tab is never narrower than its name: the row scrolls instead */
+.driven .tstart,.driven .tstart::after{animation:none}
