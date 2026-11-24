@@ -315,6 +315,7 @@
   R.hype = (power, shk) => { hype = Math.max(hype, 1.6 * (power || 1)); if (shk && !(PB.settings && PB.settings.shakeOn === 'Off')) shake = Math.max(shake, shk); if ((power || 1) >= 0.9) camFlash = Math.max(camFlash, 0.9 * (power || 1)); };
   /* small things an arena does: the backboards light red at a horn; cameras flash in the stands after a big play */
   let scUnit = null;   // the backboards' shot clock picture
+  let spots = [];      // the intro's spotlights
   const leds = []; let hornT = 0, camFlash = 0, flashPts = null;
   R.horn = sec => { hornT = Math.max(hornT, sec || 1.5); };
   /* a title won: paper in the winners' colors comes down over the floor */
@@ -494,8 +495,10 @@
     rim.rotation.x = Math.PI / 2; rim.position.set(0, 10, s * 41.75); g.add(rim);
     const neck = new T.Mesh(new T.BoxGeometry(0.25, 0.1, 0.6), rim.material); neck.position.set(0, 10, s * 42.75); g.add(neck);
     /* net */
-    const net = new T.Mesh(new T.CylinderGeometry(0.75, 0.42, 1.5, 12, 3, true),
-      new T.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.8 }));
+    /* a nylon net indoors; outdoors a chain one, steel grey (and it jingles: PB.chainNets, in the sound) */
+    const outdoor = !!(home && (home.park || home.street)); PB.chainNets = outdoor;
+    const net = new T.Mesh(new T.CylinderGeometry(0.75, outdoor ? 0.5 : 0.42, outdoor ? 1.35 : 1.5, outdoor ? 10 : 12, outdoor ? 4 : 3, true),
+      new T.MeshBasicMaterial({ color: outdoor ? 0xa9adb5 : 0xffffff, wireframe: true, transparent: true, opacity: outdoor ? 0.95 : 0.8 }));
     net.position.set(0, 9.25, s * 41.75); g.add(net);
     nets.push({ mesh: net, s, swish: 0, rim, snap: 0, grp: g });
     /* the red light round the backboard: on at the horn */
@@ -2130,7 +2133,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; scUnit = null; signs = null; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0; skids.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; scUnit = null; signs = null; spots = []; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0; skids.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
@@ -2244,6 +2247,26 @@
     /* scorer's table */
     const table = new T.Mesh(new T.BoxGeometry(2.5, 3, 24), new T.MeshLambertMaterial({ color: new T.Color(home.c1) }));
     table.position.set(29, 1.5, 0); scene.add(table);   // across from the broadcast camera, between the benches
+    /* by each bench: a water cooler with a stack of cups on the lid, and towels folded over the end chair */
+    { const parts = [], col = (g, c) => { const cc = new T.Color(c), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute('color', new T.BufferAttribute(a, 3)); return g; };
+      for (const side of [-1, 1]) { const z = side * 12.4, x = 28.6;
+        parts.push(col(new T.CylinderGeometry(0.55, 0.5, 1.2, 16).translate(x, 0.6, z), '#f2f2f2'));
+        parts.push(col(new T.CylinderGeometry(0.58, 0.58, 0.16, 16).translate(x, 1.28, z), home.c1 || '#c0392b'));
+        parts.push(col(new T.CylinderGeometry(0.13, 0.1, 0.5, 8).translate(x + 0.22, 1.61, z), '#e8e8e8'));
+        parts.push(col(new T.BoxGeometry(0.16, 0.1, 0.16).translate(x - 0.25, 0.85, z - side * 0.54), '#202020'));   // the spout
+        for (let i = 0; i < 3; i++) parts.push(col(new T.BoxGeometry(0.9, 0.08, 0.6).translate(28.9 + i * 0.03, 0.06 + i * 0.09, side * 26.6 + (i - 1) * 0.06), i === 1 ? (home.c1 || '#ffffff') : '#ffffff')); }
+      const merged = mergeGeo(parts);
+      if (merged) scene.add(new T.Mesh(merged, new T.MeshLambertMaterial({ vertexColors: true }))); }
+    /* spotlights for the introductions: beams from the roof that sweep the floor while the lights are down */
+    spots = [];
+    { const tc = document.createElement('canvas'); tc.width = 128; tc.height = 128; const tg = tc.getContext('2d'), gr = tg.createRadialGradient(64, 64, 4, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.6, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); tg.fillStyle = gr; tg.fillRect(0, 0, 128, 128);
+      const pool = new T.CanvasTexture(tc);
+      for (let i = 0; i < 4; i++) {
+        const beam = new T.Mesh(new T.CylinderGeometry(0.4, 4.2, 1, 20, 1, true).translate(0, -0.5, 0), new T.MeshBasicMaterial({ color: i % 2 ? 0xffffff : new T.Color(home.c2 || '#ffffff').lerp(new T.Color('#ffffff'), 0.5), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide }));
+        const spot = new T.Mesh(new T.PlaneGeometry(9, 9).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ map: pool, color: beam.material.color, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
+        beam.visible = spot.visible = false; scene.add(beam); scene.add(spot); spots.push({ beam, spot, ph: i * 1.57, ox: i % 2 ? 1 : -1 });
+      } }
     }
     /* the ball and the rings under you and the ball handler */
     const bc = document.createElement('canvas'); bc.width = 128; bc.height = 64;
@@ -2670,6 +2693,12 @@
       if (flashT > 0 && G.user) { flashT -= dt; const k = 1 - flashT / 0.6; flash.position.x = G.user.x; flash.position.z = G.user.z; flash.scale.setScalar(1 + k * 1.2); flash.material.opacity = 0.85 * (1 - k); } else flash.material.opacity = 0;
     }
     arenaBits(dt);
+    if (spots.length) { const k = intro > 0 && introT > 0 && !G.park ? Math.min(1, intro / 0.6, (introT - intro) / 0.5 + 0.2) : 0;
+      for (const S of spots) { const on = k > 0.01; S.beam.visible = S.spot.visible = on; if (!on) continue;
+        const t = (G.t || 0) * 0.7 + S.ph, fx = Math.sin(t * 1.3) * 16, fz = Math.cos(t * 0.9 + S.ox) * 32, sx = S.ox * 20, sy = 46, sz = S.ox * 10;
+        const dx = fx - sx, dy = 0.05 - sy, dz = fz - sz, L = Math.hypot(dx, dy, dz);
+        S.beam.position.set(sx, sy, sz); S.beam.scale.set(1, L, 1); S.beam.quaternion.setFromUnitVectors(_up, _ax.set(-dx / L, -dy / L, -dz / L));
+        S.beam.material.opacity = 0.09 * k; S.spot.position.set(fx, 0.06, fz); S.spot.material.opacity = 0.55 * k; } }
     if (signs) { signsFor(G);
       const ftv = (G.phase === 'ft' || G.phase === 'ftflight') && G.ftq && G.ftq.shooter && G.home !== undefined && G.ftq.shooter.team !== G.home;
       const want = hype > 0.2 || ftv ? 1 : 0; signs.up += (want - signs.up) * Math.min(1, dt * (want ? 6 : 1.5));
@@ -2690,7 +2719,7 @@
     if (trail.visible) { const pos = trail.geometry.attributes.position; for (let i = 0; i < 24; i++) { const q = trailPts[Math.min(i, trailPts.length - 1)]; pos.setXYZ(i, q.x, q.y, q.z); } pos.needsUpdate = true; trail.geometry.computeBoundingSphere(); }
     for (const n of nets) {
       n.swish = Math.max(0, n.swish - dt * 2.2);
-      n.mesh.scale.set(1 - n.swish * 0.25, 1 + n.swish * 0.35, 1 - n.swish * 0.25);
+      { const k = PB.chainNets ? 0.55 : 1; n.mesh.scale.set(1 - n.swish * 0.25 * k, 1 + n.swish * 0.35 * k, 1 - n.swish * 0.25 * k); }
       /* a dunk pulls the rim down and lets it go: it springs back, the net with it */
       if (n.snap > 0 || n.bent) { n.snap = Math.max(0, n.snap - dt * 1.9); const bend = n.snap * n.snap * Math.cos((1 - n.snap) * 21) * 0.15; n.bent = n.snap > 0;
         n.grp.position.z = bend * 0.9 * n.s; n.grp.position.y = -Math.abs(bend) * 0.35;   // the whole stanchion rocks with it

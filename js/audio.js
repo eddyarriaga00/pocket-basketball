@@ -106,6 +106,12 @@
     chain(noise(c, 'white', t, 0.03), filt(c, 'bandpass', 2400, 1), env(c, t, 0.001, 0.5 * power, 0.03), out);
     chain(osc(c, 'sine', 140, t, 0.12), env(c, t, 0.002, 0.35 * power, 0.1), out);
   }
+  /* a chain net (the park and street courts): a shower of small metal links, high, bright and short, in a burst */
+  function chainNet(c, out, t, power) {
+    for (let i = 0; i < 16; i++) { const t0 = t + Math.random() * 0.22 * (0.6 + power), f = rnd(2600, 7400), d = rnd(0.05, 0.22);
+      chain(osc(c, i % 3 ? 'sine' : 'triangle', f, t0, d), env(c, t0, 0.001, rnd(0.03, 0.08) * power, d), out); }
+    chain(noise(c, 'white', t, 0.3), filt(c, 'bandpass', 6200, 1.6), env(c, t, 0.004, 0.12 * power, 0.28), out);
+  }
   function slap(c, out, t, v, tone) {   // a catch, a pass hitting hands, a strip
     chain(noise(c, 'white', t, 0.06), filt(c, 'bandpass', tone || 1800, 1.4), env(c, t, 0.001, 0.6 * v, 0.05), out);
     chain(osc(c, 'sine', 180, t, 0.08), env(c, t, 0.002, 0.25 * v, 0.06), out);
@@ -324,11 +330,11 @@
       switch (name) {
         case 'bounce': clip(variants('bounce', 8), out, t, { vol: 0.3, rate: rnd(0.95, 1.06) }); break;
         case 'squeak': clip(variants('squeak', 8), out, t, { vol: 0.32, rate: rnd(0.92, 1.1) }); break;
-        case 'swish': clip(variants('swish', 8), out, t, { vol: 0.85 }); break;
+        case 'swish': clip(variants('swish', 8), out, t, { vol: 0.85 }); if (window.PB && PB.chainNets) chainNet(ctx, out, t + 0.03, 0.9); break;
         case 'board': clip(variants('board', 8), out, t, { vol: 0.8, rate: rnd(0.95, 1.05) }); break;
         case 'rim': rim(ctx, out, t, o.power || 0.7); clip(variants('board', 8), out, t, { vol: 0.25, rate: 1.4 }); break;
-        case 'rimin': rim(ctx, out, t, 0.35); clip(variants('swish', 8), out, t + 0.06, { vol: 0.6 }); break;
-        case 'dunk': rim(ctx, out, t, 1.1); clip(variants('swish', 8), out, t + 0.02, { vol: 0.9 }); clip(variants('board', 8), out, t, { vol: 0.5 }); break;
+        case 'rimin': rim(ctx, out, t, 0.35); clip(variants('swish', 8), out, t + 0.06, { vol: 0.6 }); if (window.PB && PB.chainNets) chainNet(ctx, out, t + 0.03, 0.7); break;
+        case 'dunk': rim(ctx, out, t, 1.1); clip(variants('swish', 8), out, t + 0.02, { vol: 0.9 }); clip(variants('board', 8), out, t, { vol: 0.5 }); if (window.PB && PB.chainNets) chainNet(ctx, out, t + 0.03, 1.1); break;
         case 'block': slap(ctx, out, t, 1.2, 900); clip(variants('board', 8), out, t, { vol: 0.35, rate: 0.8 }); break;
         case 'catch': slap(ctx, out, t, 0.55); break;
         case 'steal': slap(ctx, out, t, 0.9, 1300); break;
