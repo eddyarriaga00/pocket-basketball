@@ -846,6 +846,8 @@
   function startShot(p, forUser, force) {
     if (p.shoot || G.ball.holder !== p) return;
     if (p.y > 0.05) return;   // still coming down with a rebound: a shot from here was a second jump off thin air
+    /* in the park a shot goes up square to the nearest basket, whichever way he was walking or looking when he let it go */
+    if (G.park) { p.face = Math.atan2(0 - p.x, hoopZ(p.team) - p.z); }
     const d = distHoop(p.x, p.z, p.team);
     const sp = hyp(p.vx, p.vz);
     let kind = 'jumper';
@@ -2967,7 +2969,7 @@
       else if (sp > 2.5) want = Math.atan2(p.vx, p.vz);
       else want = Math.atan2(b.x - p.x, b.z - p.z);
       let da = want - p.face; while (da > Math.PI) da -= 6.2832; while (da < -Math.PI) da += 6.2832;
-      p.face += da * Math.min(1, dt * 10);
+      p.face += da * Math.min(1, dt * (p.shoot ? 26 : 10));   // going up for a shot he squares to the rim at once
     }
     /* the body-up: a ball handler who runs into a defender set in front of him (in his stance, between him and the
        rim) is cut off: most of his speed toward the rim is gone and he is pushed off line */
