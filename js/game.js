@@ -26,7 +26,8 @@
   const foulK = () => ({ Fewer: 0.5, More: 1.5 })[PB.settings && PB.settings.fouls] || 1;   // Settings › Game: how often the whistle blows
   const tired = () => !(PB.settings && PB.settings.fatigueOn === 'Off');
   const SHOTQ = 0.86;   // every jump shot is this much quicker than it was; the green band is that much wider on the meter, so it lasts as long as it did
-  const timingEase = () => ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1) * (PB.settings && PB.settings.meterOn === 'Off' ? 1.15 : 1);   // no meter on screen: shooting by the look of the jump earns a wider window
+  const GREENK = 0.92;   // the green band, a shade narrower than it was (2026-11-23): a little harder to hit, on every shot and at the line
+  const timingEase = () => GREENK * ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1) * (PB.settings && PB.settings.meterOn === 'Off' ? 1.15 : 1);   // no meter on screen: shooting by the look of the jump earns a wider window
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
 
   let G = null, raf = 0, last = 0, opts = null;
@@ -965,7 +966,12 @@
     const hp = b.state === 'held' && b.holder === p && p.pose !== 'windmill' ? { x: b.x, y: b.y, z: b.z } : handPos(p);   // from where the ball is: up and in front (ballStep keeps it there)
     let prob = baseProb(p, p.x, p.z, s.kind) * (s.js === 'quick' ? 0.97 : 1) * (s.fade ? 0.9 + 0.025 * bt(p, 'fade') : 1) * (s.kind === 'hook' ? 1 + 0.025 * bt(p, 'post') : 1);
     let timing = '';
-    if (s.user) {
+    if (s.user && s.kind === 'dunk') {
+      /* held all the way up: a full-strength dunk (what a green release used to be); let go on the way up: a softer one */
+      const held = s.letGo === undefined || s.letGo >= 0.7;
+      timing = held ? 'Excellent' : 'Early'; if (held) prob = prob + (1 - prob) * 0.62; else prob *= 0.88;
+      showRelease(held ? 'Excellent' : 'Let go early', 0.82, 0.06); buzz(held ? [12, 40, 12] : 10); G.greenShot = false;
+    } else if (s.user) {
       const w = (0.045 + (s.kind === 'jumper' ? (s.three ? p.r.three : p.r.mid) : p.r.close) * 0.0006) * timingEase() * (tkoOn() ? 1.4 : 1) * (s.kind === 'jumper' ? 1 / SHOTQ : 1.1);
       const err = meter - 0.82;
       const ae = Math.abs(err);
@@ -1175,7 +1181,7 @@
   const TUT = [
     ['Walk', 'Put your left thumb down anywhere on the lower left of the screen and drag.'],
     ['Sprint', 'Push the stick all the way to the edge to run. It drains your stamina; walking brings it back.'],
-    ['Shoot', 'Hold Shoot and let go at the top of your jump, when the meter is in the green.'],
+    ['Shoot', 'Hold Shoot and let go at the top of your jump, when the meter is in the green. At the rim it is a dunk: just hold Shoot through it.'],
     ['Knock one down', 'Make a shot. Closer is easier: walk in toward the rim and try a layup.'],
     ['Dunk it', 'Walk right up to the rim and hold Shoot. At the rim, Shoot is a dunk.'],
     ['Dribble moves', 'Tap Move for a crossover. Swipe it down for a step-back, up for a spin.'],
@@ -2453,6 +2459,7 @@
       }
     } else if (u.shoot && u.shoot.user) {
       if (u.shoot.kind === 'jumper' && u.shoot.t < 0.14 && !G.drill && !(u.fakeCd > G.t) && !(PB.settings && PB.settings.tapShoot === 'Shoot')) pumpFake(u);   // a quick tap is a pump fake
+      else if (u.shoot.kind === 'dunk') { if (u.shoot.letGo === undefined) u.shoot.letGo = u.shoot.t / u.shoot.T; }   // a dunk is not timed: he goes on up and throws it down; letting go early only makes it a softer one
       else release(u, u.shoot.t / u.shoot.T);
     }
   }
@@ -2884,7 +2891,8 @@
         const s = p.shoot;
         if (s.kind === 'layup') { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 2.2; seek(p, dt, 0.8); }
         else if (s.kind === 'dunk') { const dx = 0 - p.x, dz = hoopZ(p.team) - dirOf(p.team) * 1.0 - p.z, d = hyp(dx, dz), v = d > 0.05 ? Math.min(21, d / Math.max(0.05, s.T * 0.85 - s.t)) : 0; p.vx = d > 0.05 ? dx / d * v : 0; p.vz = d > 0.05 ? dz / d * v : 0; }   // a dunk is carried all the way to the rim: he arrives as the ball goes down
-        if (s.user && s.t / s.T > 1.12) release(p, s.t / s.T);
+        if (s.user && s.kind === 'dunk' && s.t / s.T >= 0.82) release(p, 0.82);   // yours goes down at the top of the jump by itself: hold Shoot through it
+        else if (s.user && s.t / s.T > 1.12) release(p, s.t / s.T);
         else if (!s.user && s.t / s.T >= s.aiRel) release(p, s.aiRel);
       }
       if (p.npc) { /* a park regular: parkStep moves him */ }
@@ -3520,7 +3528,7 @@
     const u = G.user;
     const s = u && u.shoot && u.shoot.user ? u.shoot : null;
     const ftm = G.phase === 'ft' && G.ftq && G.ftq.shooter === u ? (G.ftMeter || 0.0001) : 0;
-    setHidden(m, (!s && !ftm) || (!ftm && !(G.drill && G.drill.kind !== 'free') && PB.settings && PB.settings.meterOn === 'Off'));   // (the meter stays for free throws and the contests)
+    setHidden(m, (!s && !ftm) || (s && s.kind === 'dunk' && !ftm) || (!ftm && !(G.drill && G.drill.kind !== 'free') && PB.settings && PB.settings.meterOn === 'Off'));   // (the meter stays for free throws and the contests)
     if (m.hidden) return;
     const v = s ? s.t / s.T : ftm;
     const w = (s ? (0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006) * (s.kind === 'jumper' ? 1 / SHOTQ : 1.1) * (tkoOn() ? 1.4 : 1) : 0.05 + u.r.ft * 0.0007) * timingEase();   // the band drawn is the band judged
@@ -3673,7 +3681,7 @@
           <details class="help pcat"${dk.indexOf(dc) >= 4 ? ' open' : ''}><summary>Zones, traps and more<small>${dk.length - 4}</small></summary><div class="row3 r2">${dk.slice(4).map(db).join('')}</div></details></div>`; })() : ''}
         </section><section data-t="opts"><button class="ghost" id="pc">Camera: ${R.CAMS[R.getCam()]}</button>
         ${PB.settings ? `<div class="card set">${[['psnd', 'Sound', PB.settings.sound !== false], ['pcom', 'Commentary', PB.settings.commentary !== false]].map(([id, n, on]) => `<div class="srow"><label>${n}</label><div class="seg sw"><button class="tog${on ? ' on' : ''}" id="${id}" role="switch" aria-checked="${on}" aria-label="${n}"><i></i></button></div></div>`).join('')}</div>` : ''}
-        <details class="help" open><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint. With the ball your feet beat a man too: cut hard the other way at speed, stop and go, or explode from a standstill. Once you are past him he stays behind you.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim, down and to a side for an escape dribble. Cross against the way he is sliding and he is beaten.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, Y escape dribble, I spin, O pick.</span></p></details></section>
+        <details class="help" open><summary>Controls</summary><p><b>Move</b><span>Left thumb. Push to the edge to sprint. With the ball your feet beat a man too: cut hard the other way at speed, stop and go, or explode from a standstill. Once you are past him he stays behind you.</span></p><p><b>Shoot</b><span>Hold, and let go at the top of the jump (the green band). A quick tap is a pump fake. A perfect release goes in unless it is blocked. At the rim it is a dunk: hold Shoot through it, no timing.</span></p><p><b>Fadeaway</b><span>Pull the stick away from the rim as you shoot: you hop back and it is harder to contest. Out of a post-up it is a turnaround.</span></p><p><b>Pass</b><span>To the open man, or the one your stick points at. Or tap a teammate on the floor: the ball goes to him.</span></p><p><b>Move button</b><span>Tap for a crossover. Swipe left or right to cross that way, down for a step-back, up to spin to the rim, down and to a side for an escape dribble. Cross against the way he is sliding and he is beaten.</span></p><p><b>Pick</b><span>With the ball: your big comes over to screen your man.</span></p><p><b>Off the ball</b><span>Call asks for it. Cut runs you to the rim.</span></p><p><b>Defense</b><span>Slide to stay between your man and the rim: get set in front and you cut him off. Steal when the button lights up. Jump as he shoots. Lift your thumb and you stay in front by yourself.</span></p><p><b>Keyboard</b><span>WASD, J or Space to shoot or jump, K pass or steal, L crossover, U step-back, Y escape dribble, I spin, O pick.</span></p></details></section>
         <section data-t="stats">${G.drill ? '' : `<div class="pbox">${liveBox()}</div>`}</section></div><div class="pzf"><button class="big" id="pr">Resume</button></div></div>`;
       { const tabs = [...ov.querySelectorAll('.ptabs button')], setTab = t => { if (!tabs.some(b => b.dataset.t === t)) t = 'game'; pauseTab = t; ov.querySelectorAll('section[data-t]').forEach(s => { s.hidden = s.dataset.t !== t; }); tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t)); const bd = ov.querySelector('.pzb'); if (bd) bd.scrollTop = 0; };
         tabs.forEach(b => { b.onclick = () => setTab(b.dataset.t); }); setTab(pauseTab); }
