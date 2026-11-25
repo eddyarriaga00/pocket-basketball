@@ -316,7 +316,10 @@
   /* small things an arena does: the backboards light red at a horn; cameras flash in the stands after a big play */
   let scUnit = null;   // the backboards' shot clock picture
   let spots = [];      // the intro's spotlights
+  let snappers = null; // the photographers sitting on the floor under each basket, and their flashes
+  let mascot = null, shooter = null, arrow = null;   // the home team's mascot, the camera operator on the floor, the possession arrow
   const leds = []; let hornT = 0, camFlash = 0, flashPts = null;
+  R._snappers = () => snappers;   // for the test tools
   R.horn = sec => { hornT = Math.max(hornT, sec || 1.5); };
   /* a title won: paper in the winners' colors comes down over the floor */
   let confPts = null, confV = null;
@@ -2133,7 +2136,7 @@
     /* things made once, the first time they are needed, and hung in the arena: a new arena clears them out, so they
        are forgotten here and made again (the shot's trail and the cameras flashing in the stands used to be gone
        from the second game of a sitting on) */
-    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; scUnit = null; signs = null; spots = []; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0; skids.length = 0;
+    trail = null; trailPts = []; flashPts = null; confPts = null; parkMovers.length = 0; leds.length = 0; scUnit = null; signs = null; spots = []; snappers = null; mascot = shooter = arrow = null; shocks.length = 0; pows.length = 0; sparks.length = 0; dizzies.length = 0; zooms.length = 0; skids.length = 0;
     /* the last game's players, floor, stands, hoops and benches are let go of first: what they held in graphics
        memory (the floor alone is a seven-megabyte picture) used to stay there, game after game, until the phone gave up */
     for (const m of meshes.values()) { scene.remove(m.root); freeTree(m.root, true); }
@@ -2267,6 +2270,67 @@
         const spot = new T.Mesh(new T.PlaneGeometry(9, 9).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ map: pool, color: beam.material.color, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
         beam.visible = spot.visible = false; scene.add(beam); scene.add(spot); spots.push({ beam, spot, ph: i * 1.57, ox: i % 2 ? 1 : -1 });
       } }
+    /* a soft round dot for lights drawn as points (a point is a hard square without one) */
+    const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 1, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.22, 'rgba(255,255,255,.85)'); gr.addColorStop(0.5, 'rgba(255,255,255,.25)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
+    /* photographers on the floor under each basket, four a side of the stanchion: their cameras flash on a shot at their end */
+    { const parts = [], col = (g, c) => { const cc = new T.Color(c), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute('color', new T.BufferAttribute(a, 3)); return g; };
+      const skins = ['#8d5a3b', '#c69072', '#e8c1a0', '#5b3a29', '#b07a55'], shirts = ['#1b1d22', '#2b2f38', '#111216', '#3a3f4a'], at = [];
+      for (const s2 of [-1, 1]) for (const x of [-15.5, -12, -8.5, -5.5, 5.5, 8.5, 12, 15.5]) { const z = s2 * (50.2 + Math.abs(x) * 0.06), j = parts.length;
+        const sh = shirts[(j + (x > 0 ? 1 : 0)) % 4], sk = skins[Math.floor(Math.random() * skins.length)];
+        parts.push(col(new T.BoxGeometry(1.5, 0.5, 1.3).translate(x, 0.25, z), '#2a2c31'));                       // the stool, low
+        parts.push(col(new T.BoxGeometry(1.3, 1.9, 0.95).translate(x, 1.45, z + s2 * 0.1), sh));                    // the back, hunched
+        parts.push(col(new T.BoxGeometry(1.25, 0.45, 1.5).translate(x, 0.75, z - s2 * 0.75), '#2c3340'));           // the thighs
+        parts.push(col(new T.SphereGeometry(0.5, 10, 8).translate(x, 2.75, z - s2 * 0.15), sk));                     // the head
+        parts.push(col(new T.BoxGeometry(0.9, 0.62, 0.55).translate(x, 2.6, z - s2 * 0.72), '#0c0c0e'));            // the camera
+        parts.push(col(new T.CylinderGeometry(0.27, 0.3, 1.1, 10).rotateX(Math.PI / 2).translate(x, 2.55, z - s2 * 1.5), '#16171a'));   // the long lens
+        at.push(x, 2.62, z - s2 * 2.08); }
+      const merged = mergeGeo(parts);
+      if (merged) scene.add(new T.Mesh(merged, new T.MeshLambertMaterial({ vertexColors: true })));
+      const fg = new T.BufferGeometry(), fcol = new Float32Array(at.length);
+      fg.setAttribute('position', new T.BufferAttribute(new Float32Array(at), 3)); fg.setAttribute('color', new T.BufferAttribute(fcol, 3));
+      const fp = new T.Points(fg, new T.PointsMaterial({ size: 5, map: dotTex, vertexColors: true, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
+      fp.frustumCulled = false; scene.add(fp); snappers = { fp, fcol, t: new Float32Array(at.length / 3), n: at.length / 3, shot: null }; }
+    /* figures made of a few plain shapes, each part its own mesh so it can swing (vertex colors, one material) */
+    const vcol = (g, c) => { const cc = new T.Color(c), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute('color', new T.BufferAttribute(a, 3)); return g; };
+    const figM = new T.MeshLambertMaterial({ vertexColors: true });
+    const part = (list, x, y, z) => { const m = new T.Mesh(mergeGeo(list), figM); m.position.set(x || 0, y || 0, z || 0); return m; };
+    const S2 = (r, x, y, z, sx, sy, sz) => new T.SphereGeometry(r, 14, 10).scale(sx || 1, sy || 1, sz || 1).translate(x, y, z);
+    const B3 = (w, h, d, x, y, z) => new T.BoxGeometry(w, h, d).translate(x, y, z);
+    const C3 = (r1, r2, h, x, y, z) => new T.CylinderGeometry(r1, r2, h, 12).translate(x, y, z);
+    /* the mascot: a big furry thing in the home colors, behind the basket the visitors shoot at. He bounces to the music,
+       waves both arms over his head at a visiting free throw shooter, and jumps with his arms up after a big home play */
+    { const c1 = home.c1 || '#c0392b', c2 = home.c2 || '#ffffff', fur = new T.Color(c1).lerp(new T.Color('#000000'), 0.08).getStyle(), g = new T.Group();
+      const body = part([vcol(S2(1.25, 0, 3.2, 0, 1, 1.25, 0.9), fur), vcol(S2(0.95, 0, 3.05, 0.42, 0.9, 1.05, 0.5), c2),
+        vcol(C3(0.42, 0.36, 1.7, -0.55, 1.1, 0), fur), vcol(C3(0.42, 0.36, 1.7, 0.55, 1.1, 0), fur),
+        vcol(S2(0.55, -0.6, 0.28, 0.28, 1, 0.5, 1.5), '#f4f4f4'), vcol(S2(0.55, 0.6, 0.28, 0.28, 1, 0.5, 1.5), '#f4f4f4')]);
+      const head = part([vcol(S2(1.45, 0, 0, 0), fur), vcol(S2(0.75, 0, -0.35, 1.05, 1.1, 0.8, 0.8), c2), vcol(S2(0.22, 0, 0, 1.75), '#1a1a1a'),
+        vcol(S2(0.4, -1.05, 1.05, 0), fur), vcol(S2(0.4, 1.05, 1.05, 0), fur), vcol(S2(0.22, -1.05, 1.05, 0.2), c2), vcol(S2(0.22, 1.05, 1.05, 0.2), c2),
+        vcol(S2(0.36, -0.5, 0.35, 1.15, 1, 1.2, 0.6), '#ffffff'), vcol(S2(0.36, 0.5, 0.35, 1.15, 1, 1.2, 0.6), '#ffffff'),
+        vcol(S2(0.17, -0.45, 0.3, 1.38), '#111111'), vcol(S2(0.17, 0.45, 0.3, 1.38), '#111111'),
+        vcol(B3(0.7, 0.14, 0.2, -0.5, 0.88, 1.15).rotateZ(0), '#111111'), vcol(B3(0.7, 0.14, 0.2, 0.5, 0.88, 1.15), '#111111')], 0, 5.6, 0);
+      const arm = sd => { const a = part([vcol(C3(0.3, 0.26, 1.9, 0, -0.95, 0), fur), vcol(S2(0.38, 0, -2.0, 0.05), '#f4f4f4')], sd * 1.3, 4.0, 0); a.rotation.z = sd * 0.35; return a; };
+      const aL = arm(-1), aR = arm(1); g.add(body, head, aL, aR); g.position.set(-20.5, 0, 51); scene.add(g);
+      mascot = { g, head, aL, aR, jump: 0, vy: 0 }; }
+    /* the camera operator on the floor: walks the sideline in front of the scorer's table with the ball, a camera on his shoulder */
+    { const g = new T.Group(), sk = ['#8d5a3b', '#c69072', '#5b3a29'][Math.floor(Math.random() * 3)];
+      const body = part([vcol(B3(1.3, 2.2, 0.8, 0, 4.0, 0), '#1c1f26'), vcol(S2(0.5, 0, 5.6, 0), sk), vcol(B3(1.1, 0.25, 1.1, 0, 6.05, 0), '#101114'),
+        vcol(B3(0.7, 0.75, 1.6, 0.75, 5.55, 0.25), '#202227'), vcol(C3(0.26, 0.3, 0.7, 0.75, 5.55, 1.35).rotateX(0), '#111111'),
+        vcol(B3(0.5, 0.35, 0.05, 0.75, 5.6, -0.6), '#3d5f7a'), vcol(C3(0.16, 0.16, 1.4, 0.55, 4.6, 0.35), '#202227'),
+        vcol(B3(1.25, 0.5, 0.75, 0, 2.7, 0), '#2c3340')]);
+      const leg = sd => { const l = part([vcol(B3(0.48, 2.5, 0.55, 0, -1.25, 0), '#2c3340'), vcol(B3(0.55, 0.3, 0.95, 0, -2.45, 0.15), '#e8e8e8')], sd * 0.33, 2.6, 0); return l; };
+      const lL = leg(-1), lR = leg(1); g.add(body, lL, lR); g.position.set(26.4, 0, 0); scene.add(g);
+      shooter = { g, lL, lR, ph: 0 }; }
+    /* on the scorer's table: monitors and laptops (their backs to the floor), water bottles, and the possession arrow */
+    { const parts = [];
+      for (const z of [-9, -5, 5, 9]) { parts.push(vcol(B3(0.12, 1.1, 1.8, 28.9, 3.75, z), '#16171b'), vcol(B3(0.35, 0.18, 0.5, 29.05, 3.08, z), '#16171b'), vcol(B3(0.05, 0.95, 1.65, 28.98, 3.75, z), '#2d3a52')); }
+      for (const z of [-7, 7, -2.5]) { parts.push(vcol(B3(0.9, 0.06, 1.3, 29.4, 3.03, z), '#9aa0a8'), vcol(B3(0.06, 0.8, 1.3, 28.95, 3.42, z).rotateZ(0), '#9aa0a8')); }
+      for (const [x, z] of [[28.3, -11], [28.3, -10.4], [28.3, 10.6], [28.4, 11.2], [29.6, 1.2]]) parts.push(vcol(C3(0.13, 0.13, 0.75, x, 3.37, z), '#dfe9f2'), vcol(C3(0.08, 0.08, 0.14, x, 3.8, z), '#1f6fd1'));
+      parts.push(vcol(B3(0.35, 1.0, 2.6, 28.2, 3.5, 0), '#0d0e11'));   // the arrow's box
+      scene.add(new T.Mesh(mergeGeo(parts), figM));
+      const sh = new T.Shape(); sh.moveTo(0, 1.1); sh.lineTo(-0.38, 0.35); sh.lineTo(-0.14, 0.35); sh.lineTo(-0.14, -1.1); sh.lineTo(0.14, -1.1); sh.lineTo(0.14, 0.35); sh.lineTo(0.38, 0.35); sh.closePath();
+      arrow = new T.Mesh(new T.ShapeGeometry(sh).rotateZ(-Math.PI / 2).rotateY(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xff3030, side: T.DoubleSide }));
+      arrow.position.set(28.0, 3.5, 0); scene.add(arrow); }
     }
     /* the ball and the rings under you and the ball handler */
     const bc = document.createElement('canvas'); bc.width = 128; bc.height = 64;
@@ -2699,6 +2763,32 @@
         const dx = fx - sx, dy = 0.05 - sy, dz = fz - sz, L = Math.hypot(dx, dy, dz);
         S.beam.position.set(sx, sy, sz); S.beam.scale.set(1, L, 1); S.beam.quaternion.setFromUnitVectors(_up, _ax.set(-dx / L, -dy / L, -dz / L));
         S.beam.material.opacity = 0.09 * k; S.spot.position.set(fx, 0.06, fz); S.spot.material.opacity = 0.55 * k; } }
+    if (mascot) { const M = mascot, t = G.t || 0, vis = G.home !== undefined && !G.half && !G.park && !G.drill;
+      M.g.visible = vis;
+      if (vis) { const e = 1 - G.home === 0 ? 1 : -1; M.g.position.z = e * 51; M.g.rotation.y = e > 0 ? Math.PI : 0;
+        const ftv = (G.phase === 'ft' || G.phase === 'ftflight') && G.ftq && G.ftq.shooter && G.ftq.shooter.team !== G.home;
+        if (hype > 0.6 && M.jump <= 0) { M.jump = 0.01; M.vy = 13; }
+        if (M.jump > 0) { M.jump += dt; M.vy -= 40 * dt; M.g.position.y = Math.max(0, M.g.position.y + M.vy * dt); if (M.g.position.y <= 0 && M.vy < 0) M.jump = 0; }
+        else M.g.position.y = Math.abs(Math.sin(t * 4.2)) * 0.25;
+        if (M.jump > 0) { M.aL.rotation.z = -2.7; M.aR.rotation.z = 2.7; M.aL.rotation.x = M.aR.rotation.x = 0; }
+        else if (ftv) { M.aL.rotation.z = -2.3 - Math.sin(t * 13) * 0.6; M.aR.rotation.z = 2.3 - Math.sin(t * 13) * 0.6; M.g.position.x = -20.5 + Math.sin(t * 3) * 3.5; M.head.rotation.z = Math.sin(t * 6.5) * 0.3; }
+        else { M.aL.rotation.z = -0.35 - Math.max(0, Math.sin(t * 4.2)) * 0.5; M.aR.rotation.z = 0.35 + Math.max(0, Math.sin(t * 4.2 + 1.6)) * 0.5; M.head.rotation.z = Math.sin(t * 2.1) * 0.12; M.g.position.x += (-20.5 - M.g.position.x) * Math.min(1, dt * 2); }
+        M.head.rotation.y = Math.sin(t * 0.9) * 0.35; } }
+    if (shooter) { const C = shooter, b = G.ball, vis = !G.park && !G.drill && G.home !== undefined; C.g.visible = vis;
+      if (vis && b) { const want = PB.clamp(b.z * 0.92, -40, 40), dz = want - C.g.position.z, step = Math.sign(dz) * Math.min(Math.abs(dz), 13 * dt);
+        C.g.position.z += step; const sp = Math.abs(step) / Math.max(dt, 1e-3);
+        C.ph += dt * sp * 0.55; const sw = Math.min(1, sp / 6) * 0.6; C.lL.rotation.x = Math.sin(C.ph) * sw; C.lR.rotation.x = -Math.sin(C.ph) * sw;
+        C.g.position.y = Math.abs(Math.sin(C.ph)) * 0.12 * Math.min(1, sp / 6);
+        const ya = Math.atan2(b.x - C.g.position.x, b.z - C.g.position.z); C.g.rotation.y += (ya - C.g.rotation.y) * Math.min(1, dt * 5); } }
+    if (arrow) { const d = G.poss === 1 ? -1 : 1; arrow.scale.z = d; arrow.visible = !G.park && !G.drill; }
+    if (snappers) { const S = snappers, b = G.ball, c = S.fcol; let dirty = false;
+      /* a shot going up at one end: most of the cameras there fire once, a beat apart, as it flies and as it lands */
+      if (b && b.state === 'shot' && !G.park && !G.drill) { const key = b.sx + ',' + b.sz; if (S.shot !== key) { S.shot = key; S.end = (b.sz !== undefined ? b.sz : b.z) >= 0 ? 1 : -1; S.fired = 0; }
+        const half = S.end > 0 ? 1 : 0;
+        for (let i = half * S.n / 2; i < (half + 1) * S.n / 2; i++) if (!(S.fired & (1 << i)) && Math.random() < dt * 2.4) { S.fired |= 1 << i; S.t[i] = 0.14; } }
+      else S.shot = null;
+      for (let i = 0; i < S.n; i++) { const v = S.t[i] > 0 ? (S.t[i] -= dt, Math.max(0, S.t[i]) / 0.14) : 0; if (v > 0 || c[i * 3] > 0) { c[i * 3] = c[i * 3 + 1] = c[i * 3 + 2] = v; dirty = true; } }
+      if (dirty) S.fp.geometry.attributes.color.needsUpdate = true; }
     if (signs) { signsFor(G);
       const ftv = (G.phase === 'ft' || G.phase === 'ftflight') && G.ftq && G.ftq.shooter && G.home !== undefined && G.ftq.shooter.team !== G.home;
       const want = hype > 0.2 || ftv ? 1 : 0; signs.up += (want - signs.up) * Math.min(1, dt * (want ? 6 : 1.5));
