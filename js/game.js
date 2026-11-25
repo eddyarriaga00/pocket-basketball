@@ -574,6 +574,41 @@
     }
     g.fillStyle = '#ffb02e'; g.beginPath(); g.arc(sx(G.ball.x), sz(G.ball.z), 2, 0, 7); g.fill();
   }
+  /* opponents off the screen: an arrow on the edge of the screen pointing at each one, his number on it, so a man
+     behind the camera or down the floor is never a surprise. The one with the ball gets the bigger, solid arrow */
+  const offEls = [];
+  function offArrows() {
+    const box = $('#offs'); if (!box) return;
+    const u = G.user, show = u && R.toScreen && !G.paused && !G.replay && !G.switching && (!G.drill || G.park) && !(PB.settings && PB.settings.offOn === 'Off');
+    let n = 0;
+    if (show) {
+      /* the frame the arrows ride on: under the scoreboard, in from the sides by an arrow, down to the bottom; along the
+         bottom they keep to the gap between the stick and the buttons */
+      const W = box.clientWidth, Hh = box.clientHeight, x0 = 30, x1 = W - 30, y0 = 118, y1 = Hh - 34, cx = W / 2, cy = (y0 + y1) / 2, hx = (x1 - x0) / 2, hy = (y1 - y0) / 2,
+        low = Hh * 0.56, lefty = $('#game').classList.contains('lefty'), gx0 = W * (lefty ? 0.44 : 0.3), gx1 = W * (lefty ? 0.7 : 0.56);
+      const placed = [];
+      for (const p of G.pl) {
+        if (p.npc || p.team === u.team || p.out) continue;
+        const q = R.toScreen(p.x, (p.y || 0) + 3.2, p.z); if (!q) continue;
+        let dx = q.x - cx, dy = q.y - cy;
+        if (q.on && q.x > -4 && q.x < W + 4 && q.y > -4 && q.y < Hh + 4) continue;   // on the screen: he can be seen
+        if (!q.on) { dx = -dx; dy = -dy; if (Math.abs(dy) < 1e-3) dy = 1; dy = Math.abs(dy) + hy;   /* behind the camera: he is below the screen, toward you */ }
+        const k = Math.min(hx / Math.max(Math.abs(dx), 1e-3), hy / Math.max(Math.abs(dy), 1e-3));
+        let e = offEls[n]; if (!e) { e = document.createElement('div'); e.className = 'off'; e.innerHTML = '<i></i><b></b>'; box.appendChild(e); offEls[n] = e; }
+        const ball = G.ball.holder === p, num = String(p.num != null ? p.num : '');
+        if (e.lastChild.textContent !== num) e.lastChild.textContent = num;
+        e.classList.toggle('ball', ball);
+        let ax = cx + dx * k, ay = cy + dy * k;
+        if (ay > low) { ay = y1; ax = Math.max(gx0, Math.min(gx1, cx + dx / Math.max(dy, 1e-3) * (y1 - cy))); }   // below the play: the bottom edge, clear of the controls
+        for (let t = 0; t < 6 && placed.some(([a, c]) => Math.hypot(a - ax, c - ay) < 32); t++) { if (ay >= y1 - 1 || ay <= y0 + 1) ax += ax > cx ? -33 : 33; else ay += ay > cy ? -33 : 33; }   // two in one spot: side by side
+        placed.push([ax, ay]);
+        e.style.transform = `translate(${ax.toFixed(1)}px,${ay.toFixed(1)}px)`;
+        e.firstChild.style.transform = `rotate(${Math.atan2(dy, dx).toFixed(3)}rad)`;
+        if (e.hidden) e.hidden = false; n++;
+      }
+    }
+    for (let i = n; i < offEls.length; i++) if (!offEls[i].hidden) offEls[i].hidden = true;
+  }
   // The HUD is checked every frame. Only replace a label or attribute when it changes.
   function setLabel(element, text) {
     if (element.textContent !== text) element.textContent = text;
@@ -582,7 +617,7 @@
     if (element.hidden !== hidden) element.hidden = hidden;
   }
   function hud() {
-    highCheck(); featCheck(); radar();
+    highCheck(); featCheck(); radar(); offArrows();
     $('#game').classList.toggle('drill', !!(G && G.drill));
     $('#game').classList.toggle('dunk', !!(G && G.drill && (G.drill.kind === 'dunk' || G.drill.kind === 'free' || G.drill.kind === 'horse')));
     $('#game').classList.toggle('lefty', !!(PB.settings && PB.settings.hand === 'Left-handed'));
@@ -1161,15 +1196,43 @@
     b.x = fx; b.y = fy; b.z = fz;
     AU().play('catch', { x: fx, vol: 0.3 });
   }
-  function freeLands(s) {
-    const D = G.drill, b = G.ball;
+  function freeLands(s, gb) {
+    const D = G.drill, b = gb || G.ball;
     if (G.park) parkSay(s.made ? (s.kind === 'dunk' ? 'dunk' : 'make') : 'miss');
     D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(hoopZ(0) > 0 ? 1 : -1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); if (G.park && D.streak >= 3 && D.streak % 3 === 0 && G.user) { celebrate(G.user, ['three', 'point', 'flex']); setTimeout(() => G && G.park && parkSay('streak', 40), 500); } }
     else { D.streak = 0; AU().play('rim', { x: b.ex, power: 0.6 }); }
     /* the way 2K does it: the moment the shot comes down, somebody on the side fires the ball back to you (in the park
        the regular nearest that rim, anywhere else a rebounder under the basket), there in about a third of a second */
+    if (gb) return;   // a second ball: the first is already back in your hands
     if (G.user && !D.over) { feedTo(G.user, b.ez === undefined ? b.z : b.ez); return; }
     b.state = 'drop'; b.t = 0; D.next = 0.9;
+  }
+  /* two balls in free shooting, the 2K way: a third of a second after your shot leaves your hands, the rebounder is
+     already passing you the second ball. The shot goes on as a ball of its own: it lands, counts, drops through the net or
+     comes off the rim, rolls, and is gone */
+  function spareBall(b) {
+    const u = G.user, D = G.drill;
+    if (!u || !D || D.kind !== 'free' || D.over || b.t < 0.3 || !b.shot || b.shot.shooter !== u || b.shot.ft) return false;
+    G.ghosts = G.ghosts || [];
+    G.ghosts.push({ st: 'air', sx: b.sx, sy: b.sy, sz: b.sz, ex: b.ex, ey: b.ey, ez: b.ez, apex: b.apex, dur: b.dur, t: b.t, shot: b.shot, x: b.x, y: b.y, z: b.z, vx: 0, vy: 0, vz: 0, life: 0 });
+    feedTo(u, b.ez);
+    return true;
+  }
+  function ghostStep(dt) {
+    const L = G.ghosts; if (!L || !L.length) return;
+    for (let i = L.length - 1; i >= 0; i--) { const g = L[i];
+      if (g.st === 'air') { g.t += dt; const u = Math.min(1, g.t / g.dur);
+        g.x = g.sx + (g.ex - g.sx) * u; g.z = g.sz + (g.ez - g.sz) * u; g.y = g.sy + (g.ey - g.sy) * u + 4 * g.apex * u * (1 - u);
+        if (u >= 1) { g.st = 'down';
+          if (G.drill && G.drill.kind === 'free') freeLands(g.shot, g);
+          if (g.shot.made) { g.vx = rr(-0.6, 0.6); g.vz = rr(-0.6, 0.6); g.vy = -6; }   // through the net
+          else { const dx = g.x, dz = g.z - Math.sign(g.z) * RIM, k = hyp(dx, dz) || 1; g.vx = dx / k * rr(4, 8); g.vz = dz / k * rr(4, 8) - Math.sign(g.z) * rr(1, 3); g.vy = rr(3, 6); } }
+        continue; }
+      g.life += dt; g.vy -= GRAV * dt; g.x += g.vx * dt; g.y += g.vy * dt; g.z += g.vz * dt;
+      if (g.y < 0.39) { g.y = 0.39; g.vy = Math.abs(g.vy) > 2 ? -g.vy * 0.6 : 0; g.vx *= 0.86; g.vz *= 0.86; if (Math.abs(g.vy) > 3) AU().play('bounce', { x: g.x, vol: 0.25 }); }
+      if (g.vy === 0) { g.vx *= 1 - dt * 1.5; g.vz *= 1 - dt * 1.5; }
+      if (g.life > 2.6) L.splice(i, 1);   // the rebounder has it: back in the rack
+    }
   }
   /* ---------- the park ----------
      Your home: you spawn here. Your player walks it with the stick; Shoot puts one up at the nearer rim. One side is a
@@ -3050,7 +3113,7 @@
         const need = Math.sqrt(2.3 * 2.3 - dz * dz) - Math.abs(dx), sg = dx < 0 ? -1 : 1;
         const mv = Math.min(need, dt * 18); if (held.includes(c)) { a.x -= sg * mv / 2; c.x += sg * mv / 2; } else c.x += sg * mv; }
     }
-    ballStep(dt);
+    ballStep(dt); ghostStep(dt);
   }
 
   function ballStep(dt) {
@@ -3166,6 +3229,7 @@
       const u = Math.min(1, b.t / b.dur);
       b.x = b.sx + (b.ex - b.sx) * u; b.z = b.sz + (b.ez - b.sz) * u; b.y = b.sy + (b.ey - b.sy) * u + 4 * b.apex * u * (1 - u);
       if (G.phase === 'live' && !G.drill && u < 1) { inFlight(u); if (b.state !== 'shot') return; }
+      if (u < 1 && G.drill && spareBall(b)) return;
       if (u >= 1) { if (b.shot.ft) ftLands(); else shotLands(); }
       return;
     }
@@ -3186,7 +3250,7 @@
     if (b.state === 'feed') {   // a pass back to the shooter (free shooting): a quick, flat arc into his hands
       const f = b.feed, u = G.user; b.t += dt; const k = Math.min(1, b.t / f.T), hp = handPos(u);
       b.x = f.x + (hp.x - f.x) * k; b.z = f.z + (hp.z - f.z) * k; b.y = f.y + (hp.y - f.y) * k + Math.sin(k * Math.PI) * f.arc;
-      if (k >= 1) { b.feed = null; give(u); AU().play('catch', { x: u.x, vol: 0.55 }); }
+      if (k >= 1 && (u.y || 0) <= 0.05) { b.feed = null; give(u); AU().play('catch', { x: u.x, vol: 0.55 }); }   // (still coming down from the shot: caught in the air, his on landing)
       return;
     }
     if (b.state === 'drop') {

@@ -326,11 +326,13 @@
     return p;
   };
 
-  /* A roster: five starters and five reserves, with a talent level set by the team's strength. */
+  /* A roster of fifteen: five starters, five reserves and five at the end of the bench (young men and old hands who
+     play when somebody is hurt), with a talent level set by the team's strength. */
+  PB.DEEP = [16, 17, 18, 19, 20];   // the last five on a bench, under the team's strength
   PB.makeRoster = (strength, taken) => {   // taken: a Set of full names shared across a league, so no two players in it carry the same one
     const out = [], used = new Set();
-    const tiers = [strength + 6, strength + 2, strength, strength - 2, strength - 4, strength - 8, strength - 9, strength - 11, strength - 13, strength - 15];
-    const pos = ['PG', 'SG', 'SF', 'PF', 'C', 'PG', 'SG', 'SF', 'PF', 'C'];
+    const tiers = [strength + 6, strength + 2, strength, strength - 2, strength - 4, strength - 8, strength - 9, strength - 11, strength - 13, strength - 15].concat(PB.DEEP.map(d => strength - d));
+    const pos = ['PG', 'SG', 'SF', 'PF', 'C', 'PG', 'SG', 'SF', 'PF', 'C', 'PG', 'SG', 'SF', 'PF', 'C'];
     tiers.forEach((t, i) => {
       const p = PB.makePlayer(pos[i], Math.round(t + PB.gauss() * 2));
       while (used.has(p.num)) p.num = PB.ri(0, 55);
@@ -344,6 +346,17 @@
       out.push(p);
     });
     return out;
+  };
+  /* a save from before rosters were fifteen: the end of each bench is filled the same way (a man for each spot that is
+     short, a little younger and weaker than the reserves) */
+  PB.fillRoster = (ro, strength, rosters) => {
+    if (!Array.isArray(ro) || ro.length >= 15) return ro;
+    const nums = new Set(ro.map(p => p.num)), have = PB.POS.map(pos => ro.filter(p => p.pos === pos).length);
+    while (ro.length < 15) { const i = have.indexOf(Math.min(...have)), d = PB.DEEP[Math.min(4, Math.max(0, ro.length - 10))];
+      const p = PB.makePlayer(PB.POS[i], Math.round(strength - d + PB.gauss() * 2), PB.ri(19, 27));
+      while (nums.has(p.num)) p.num = PB.ri(0, 55);
+      nums.add(p.num); have[i]++; ro.push(p); PB.freshName(p, ro, rosters || {}); }
+    return ro;
   };
   PB.teamOvr = roster => {
     const s = roster.map(p => p.ovr).sort((a, b) => b - a);

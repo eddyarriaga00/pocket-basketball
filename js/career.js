@@ -11,7 +11,7 @@
   const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
   const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window: the career lasts the session */ } };
   let C = null;                                   // the career in play
-  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake', ball: 'Classic', fxOn: 'On', shakeOn: 'On', meterOn: 'On', speed: 'Normal', fouls: 'Normal', fatigueOn: 'On', coachPlays: 'On', introOn: 'On', warmOn: 'On', freezeOn: 'On', slowOn: 'On', callsOn: 'On', quipsOn: 'On', feedOn: 'On', volCrowd: 'Normal', volMusic: 'Normal', volSfx: 'Normal', volBooth: 'Normal' }, load(SET) || {});
+  const S = Object.assign({ qlen: 3, level: 'Pro', season: 20, cam: 'Player lock', sound: true, music: true, soundOn: 'On', musicOn: 'On', commentaryOn: 'On', commentary: true, replaysOn: 'On', replays: true, vibrateOn: 'On', vibrate: true, timing: 'Normal', hand: 'Right-handed', radarOn: 'On', radar: true, offOn: 'On', gfx: 'High', camDist: 'Default', btnSize: 'Normal', tapShoot: 'Pump fake', ball: 'Classic', fxOn: 'On', shakeOn: 'On', meterOn: 'On', speed: 'Normal', fouls: 'Normal', fatigueOn: 'On', coachPlays: 'On', introOn: 'On', warmOn: 'On', freezeOn: 'On', slowOn: 'On', callsOn: 'On', quipsOn: 'On', feedOn: 'On', volCrowd: 'Normal', volMusic: 'Normal', volSfx: 'Normal', volBooth: 'Normal' }, load(SET) || {});
   PB.settings = S; PB.saveSettings = () => saveSettings();
   const saveSettings = () => store(SET, S);
   /* careers: up to six kept on this device, one of them current. A career saved by an older build (one slot) moves
@@ -42,6 +42,8 @@
     num(m, 'ovr', 1, 99, 60); num(m, 'sp', 0, 400, 0); num(m, 'age', 17, 50, 19); num(m, 'num', 0, 99, 0);
     num(c, 'fans', 0, 2e9, 0); num(c, 'earnings', 0, 5000, 0); num(c, 'trust', 0, 100, 50); num(c, 'year', 1, 60, 1); num(c, 'vc', 0, 1e7, 0); num(c, 'coins', 0, 1e7, 0);
     for (const k of ['first', 'last', 'from']) if (typeof m[k] === 'string') m[k] = m[k].slice(0, 24);
+    /* rosters of ten from before: filled out to fifteen */
+    for (const id of Object.keys(c.rosters)) { const ro = c.rosters[id]; if (Array.isArray(ro) && ro.length && ro.length < 15) { const top = ro.map(p => +p.ovr || 60).sort((a, b) => b - a); PB.fillRoster(ro, top[Math.min(2, top.length - 1)], c.rosters); } }
     return c; };
   const openCur = () => guard(loadCur());
   /* your name outside a career: your career player's, or one of your own kept on the device */
@@ -571,7 +573,7 @@
       Controls: [opt('hand', ['Right-handed', 'Left-handed'], 'Buttons'), opt('btnSize', ['Normal', 'Large'], 'Button size'), opt('meterOn', ['On', 'Off'], 'Shot meter', 'off: shoot by the look of the jump, with a wider green window'),
         opt('tapShoot', ['Pump fake', 'Shoot'], 'A quick tap on Shoot', 'a fake, or the shot let go at once'), opt('vibrateOn', ['On', 'Off'], 'Vibration', 'Android')],
       Camera: [opt('cam', ['Player lock', 'Broadcast', 'Overhead'], 'Camera'), opt('camDist', ['Closer', 'Default', 'Farther'], 'Player lock distance'), opt('shakeOn', ['On', 'Off'], 'Camera shake', 'on dunks and blocks'), opt('freezeOn', ['On', 'Off'], 'Freeze on big plays', 'the beat a block or a dunk lands on'), opt('slowOn', ['On', 'Off'], 'Slow motion', 'on a shot to tie or win it'),
-        opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players'), opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right')],
+        opt('tags', ['You and the ball', 'You', 'Off'], 'Name tags over players'), opt('radarOn', ['On', 'Off'], 'Radar', 'the whole floor, top right'), opt('offOn', ['On', 'Off'], 'Off-screen arrows', 'where an opponent off the screen is')],
       Look: [opt('gfx', ['High', 'Low'], 'Graphics', 'Low for older phones'), opt('ball', ['Classic', 'Black', 'White', 'Street'], 'Ball', 'from your next game'), opt('fxOn', ['On', 'Off'], 'Comic hit effects', 'BLOCK!, SLAM!, stars'), opt('callsOn', ['On', 'Off'], 'Big calls on screen', 'SPLASH, BLOCKED, STOLEN'),
         opt('quipsOn', ['On', 'Off'], 'Coach and teammate comments'), opt('feedOn', ['On', 'Off'], 'Play-by-play', 'the lines under the scoreboard')],
       Sound: [opt('soundOn', ['On', 'Off'], 'Sound'), opt('musicOn', ['On', 'Off'], 'Menu music'), opt('commentaryOn', ['On', 'Off'], 'Commentary'), opt('volCrowd', ['Low', 'Normal', 'High'], 'Crowd volume'), opt('volBooth', ['Low', 'Normal', 'High'], 'Commentary volume'),

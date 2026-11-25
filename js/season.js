@@ -24,6 +24,7 @@
 
   function start() {
     Z = load();
+    if (Z && Z.rosters) for (const id of Object.keys(Z.rosters)) { const ro = Z.rosters[id]; if (Array.isArray(ro) && ro.length && ro.length < 15) { const top = ro.map(p => +p.ovr || 60).sort((a, b) => b - a); PB.fillRoster(ro, top[Math.min(2, top.length - 1)], Z.rosters); } }   // rosters of ten from before: fifteen now
     if (Z && Z.team) { hub(); return; }
     pick();
   }

@@ -1216,3 +1216,14 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 @media (prefers-reduced-motion:reduce){.logo2 span,.logo2 .lshine,.logo2 .lball,.tile.art,.ticker>div,.tstart,.tstart::after,.wni,#screen>.enter{animation:none}}
 .stabs button{flex:1 0 auto;padding:9px 12px}   /* a tab is never narrower than its name: the row scrolls instead */
 .driven .tstart,.driven .tstart::after{animation:none}
+
+/* arrows on the screen's edge toward opponents who are off it */
+#offs{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#offs .off{position:absolute;left:-15px;top:-15px;width:30px;height:30px;transition:opacity .2s}
+#offs .off i{position:absolute;inset:0;border-radius:50%;background:rgba(10,10,12,.72);box-shadow:0 0 0 1.5px rgba(255,255,255,.85),0 4px 10px rgba(0,0,0,.4)}
+#offs .off i::after{content:"";position:absolute;right:-9px;top:50%;margin-top:-6px;border-left:9px solid #fff;border-top:6px solid transparent;border-bottom:6px solid transparent}
+#offs .off b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:12px;color:#fff;letter-spacing:-.02em}
+#offs .off.ball{transform-origin:center}
+#offs .off.ball i{background:#fff;box-shadow:0 0 0 1.5px #0a0a0c,0 4px 12px rgba(0,0,0,.5)}
+#offs .off.ball b{color:#0a0a0c}
+#game:has(#intro:not([hidden])) #offs{opacity:0}

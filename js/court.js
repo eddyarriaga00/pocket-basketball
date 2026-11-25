@@ -2700,6 +2700,9 @@
       if (G.park || G.warm) for (const p of G.pl) if (p.pb) {
         let m = parkBalls[n]; if (!m) { m = new T.Mesh(ballMesh.geometry, ballMesh.material); scene.add(m); parkBalls[n] = m; }
         m.visible = true; m.position.set(p.pb.x, p.pb.y, p.pb.z); m.rotation.x += dt * (p.pb.st === 'air' ? -9 : 6); n++; }
+      if (G.ghosts) for (const g of G.ghosts) {   // free shooting's second ball, still in the air or rolling away
+        let m = parkBalls[n]; if (!m) { m = new T.Mesh(ballMesh.geometry, ballMesh.material); scene.add(m); parkBalls[n] = m; }
+        m.visible = true; m.position.set(g.x, g.y, g.z); m.rotation.x += dt * (g.st === 'air' ? -9 : 8); n++; }
       for (let i = n; i < parkBalls.length; i++) parkBalls[i].visible = false; }
     const u = G.user;
     userRing.visible = !!u;

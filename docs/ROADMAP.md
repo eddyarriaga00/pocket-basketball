@@ -140,7 +140,7 @@ The two node tools need Playwright (`npm i -g playwright`).
       projected role, team strength), trade requests, career earnings (2026-11-17)
 - [x] The league turns over: veterans retire, a rookie class arrives every summer, free agents move, trades now and
       then during the season (2026-11-17)
-- [ ] Ten-man rosters to fifteen
+- [x] Ten-man rosters to fifteen (2026-11-25)
 - [x] Retirement from 33 and the Hall of Fame vote; your athleticism slips after 30 (2026-11-17)
 - [x] Banners: your titles and your retired jersey hang in that team's arena from then on, in every mode (2026-11-17)
 
@@ -178,6 +178,6 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 - A zone defense for computer teams (tried 2026-11-17: the simple 2-3 gave up 120 shots a game; it needs real
   closeouts and rotations before it can ship)
-- Fifteen-man rosters, two-way contracts, trades you propose
+- Two-way contracts, trades you propose
 - Draw calls: one atlas for each player's number and wordmark (the shadows are one instanced mesh since 2026-11-17)
 - Online head to head by code
