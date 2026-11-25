@@ -225,7 +225,19 @@
   const CPUPLAYS = BOOK.filter(b => b.kind !== 'slow' && !b.slow && b.id !== 'iso' && b.id !== 'screen').map(b => b.id);
   const mkPlay = (id, left) => ({ id, kind: BOOK.find(b => b.id === id).kind, def: BOOK.find(b => b.id === id), left, done: false });
   const playOf = team => !G || G.drill ? null : team === 0 && G.play ? G.play : !G.half && G.cp && G.cp.team === team ? G.cp : null;
-  const dplayOf = team => G && team === 0 && G.dplay && !G.drill ? DBOOK[G.dplay.kind] || NOPLAY : NOPLAY;
+  const dplayOf = team => { if (!G || G.drill) return NOPLAY; if (team === 0 && G.dplay) return DBOOK[G.dplay.kind] || NOPLAY; const z = cpuZone(team); return z ? DBOOK[z] : NOPLAY; };
+  /* some computer coaches play zone. Which ones is set by the matchup (the two teams), not the dice, so the same game
+     is defended the same way every time (a challenge link, a replayed classic); about one game in five. Never a team
+     with you on it (you call your own), never in the park or a half-court game */
+  function cpuZone(team) {
+    if (G.half || G.park || (G.user && G.user.team === team && !G.auto) || !G.teams) return null;
+    if (PB.forceZone !== undefined) return PB.forceZone;   // (a test can make every team play one)
+    if (!G.cz) { const key = (G.teams[0].id || '') + '|' + (G.teams[1].id || ''); let h = 7; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 1000003;
+      G.cz = [0, 1].map(t => (h >> (t * 4)) % 5 === 0 ? ['z23', 'z23', 'z32', 'z131'][(h >> (8 + t * 2)) % 4] : null);
+      const o = G.user && !G.auto ? 1 - G.user.team : -1;   // the booth tells you what they are in
+      if (o >= 0 && G.cz[o] && G.teams[o]) setTimeout(() => { if (G && G.cz) { feed(`The ${G.teams[o].name} are in a ${DBOOK[G.cz[o]].name}`); toast(`${DBOOK[G.cz[o]].name}: find the gaps`, 'call'); } }, 0); }
+    return G.cz[team];
+  }
   const pFast = P => !!P && (P.kind === 'fast' || !!(P.def && P.def.fast));
   const pSlow = P => !!P && (P.kind === 'slow' || !!(P.def && P.def.slow));
   /* a team's scorer: the points on the board tonight, then the ratings */
@@ -786,7 +798,7 @@
     if (!R.cine || G.drill) { toast(why ? 'Timeout: ' + why.toLowerCase() : 'Timeout', 'call'); return; }
     const sd = rand() < 0.5 ? 1 : -1; G.deadT = Math.max(G.deadT || 0, 2.6); if (R.refSignal) R.refSignal('sigt', 3);
     /* the big screen fills the break */
-    if (R.board && !G.park && !G.half) { const cams = ['KISS CAM', 'DANCE CAM', 'FLEX CAM', 'NOISE METER', 'T-SHIRT TOSS', 'FAN OF THE GAME', 'SLOW MO CAM', 'DOG CAM']; G.camI = ((G.camI ?? Math.floor(rand() * cams.length)) + 1) % cams.length; setTimeout(() => { if (G && R.board) { R.board(cams[G.camI], 4); AU().crowd.react('applause', 0.4); feed(`On the big screen · ${cams[G.camI].toLowerCase().replace(/^./, c => c.toUpperCase())}`); } }, 700); }
+    if (R.board && !G.park && !G.half) { const cams = ['KISS CAM', 'DANCE CAM', 'FLEX CAM', 'NOISE METER', 'T-SHIRT TOSS', 'FAN OF THE GAME', 'SLOW MO CAM', 'DOG CAM']; G.camI = ((G.camI ?? Math.floor(rand() * cams.length)) + 1) % cams.length; const cm = cams[G.camI]; setTimeout(() => { if (G && R.board) { R.board(cm, 4); AU().crowd.react('applause', 0.4); feed(`On the big screen · ${cm.toLowerCase().replace(/^./, c => c.toUpperCase())}`); } }, 700); }
     /* both fives walk to their benches and stand round the coach (the cut covers the walk); the camera goes to the
        huddle of the side that called it */
     if (!G.half && !G.park) { cut(); const g0 = G, was = G.pl.map(p => [p, p.x, p.z, p.face]); let back = () => { back = () => {}; if (G !== g0) return; cut(); for (const [p, x, z, f] of was) { p.x = x; p.z = z; p.face = f; p.vx = p.vz = 0; p.y = 0; p.vy = 0; } };   // and are back where they stood when it ends
@@ -2252,14 +2264,36 @@
     const d = distHoop(h.x, h.z, h.team);
     return d < 20 && hyp(h.vx, h.vz) > maxSpeed(h) * 0.5 && (0 - h.x) * h.vx + (hoopZ(h.team) - h.z) * h.vz > 0;
   }
+  /* a zone, the match-up way: each man has a piece of the floor, and he guards whoever is standing in it (the five
+     are paired with the five on the other team by who is nearest which piece, looked at again every half second as
+     they move, so a cut across the zone is handed from one man to the next). Off the ball a zone man sags toward the
+     ball; he boxes out the man he has. A zone that guarded empty spots gave up a catch-and-shoot three on every swing.
+     Box and one: four in the zone, and the fifth stays man to man on their scorer. Returns defender -> man, or null */
+  function zoneMap(team) {
+    const DD = dplayOf(team); if (!DD.zone) return null;
+    const offT = 1 - team, zA = G.zA || (G.zA = {}); let A = zA[team];
+    if (A && A.poss === G.possN) return A.map;
+    /* paired once a trip, when the ball is over half court and the offense is setting up; until then it is man to man
+       (paired again every half second, the zone had men swapping who they had in the middle of a play and left the
+       ball open) */
+    const h0 = G.ball.holder; if (!h0 || h0.team !== offT || distHoop(h0.x, h0.z, offT) > 30) return null;
+    const st = DD.one ? star(offT) : null, Z = ZONES[DD.zone];
+    const mates = teamOf(team).filter(o => !o.isUser && !(st && o.slot === st.slot)).sort((a, c) => a.slot - c.slot);
+    const offs = G.pl.filter(o => o.team === offT && o !== st), pairs = [];
+    mates.forEach((m, k) => { if (!Z[k]) return; const h = toCourt(offT, Z[k][0], Z[k][1]); for (const o of offs) pairs.push([hyp(o.x - h.x, o.z - h.z) * 0.3 + hyp(o.x - m.x, o.z - m.z), m, o]); });   // his piece of the floor, and the man nearest him now: a zone does not send its men running across the floor to swap
+    pairs.sort((a, c) => a[0] - c[0]); const map = new Map(), took = new Set();
+    for (const [, m, o] of pairs) if (!map.has(m) && !took.has(o)) { map.set(m, o); took.add(o); }
+    zA[team] = { poss: G.possN, map }; return map;
+  }
   function defAI(p, dt) {
     const offT = 1 - p.team;
     if (p.helping > 0) p.helping -= dt * 0.1;   // slow on purpose: one "help!" from a man every several seconds
-    let man = p.switchUntil > G.t && p.switchPoss === G.possN && G.pl.includes(p.switchOn) ? p.switchOn : G.pl.find(o => o.team === offT && o.slot === p.slot);
+    const ZM = p.isUser ? null : zoneMap(p.team);
+    let man = p.switchUntil > G.t && p.switchPoss === G.possN && G.pl.includes(p.switchOn) ? p.switchOn : (ZM && ZM.get(p)) || G.pl.find(o => o.team === offT && o.slot === p.slot);
     /* help: a driver who has beaten his man into the paint draws the nearest defender, who steps in front of him */
     const drv = G.ball.holder;
     if (!p.isUser && drv && drv.team === offT && drv !== man && attacking(drv) && distHoop(drv.x, drv.z, offT) < 15) {
-      const own = G.pl.find(o => o.team === p.team && o.slot === drv.slot);
+      const own = (ZM && [...ZM].find(e => e[1] === drv) || [])[0] || G.pl.find(o => o.team === p.team && o.slot === drv.slot);   // (in a zone: whoever has him)
       const beaten = own && distHoop(own.x, own.z, offT) > distHoop(drv.x, drv.z, offT) + 1;
       if (beaten) {
         let near = null, nd = 1e9;
@@ -2309,21 +2343,8 @@
         if (near === p && nd < 24) { const dx = H.x - hh.x, dz = H.z - hh.z, L = hyp(dx, dz) || 1, sd = hh.x > 0 ? -1 : 1; p.tx = hh.x + dx / L * 2.2 + sd * 1.8; p.tz = hh.z + dz / L * 2.2; p.pose = 'guard'; return; }
       }
     }
-    /* a zone: each man has a piece of the floor that leans toward the ball; the one nearest the ball takes it.
-       Box and one: four in the zone, and the fifth stays man to man on their scorer */
-    let zs = null;
-    if (DD.zone && !p.isUser && !(DD.one && st && p.slot === st.slot) && b.state !== 'shot') {
-      const mates = teamOf(p.team).filter(o => !(DD.one && st && o.slot === st.slot)).sort((a, c) => a.slot - c.slot), Z = ZONES[DD.zone], i = mates.indexOf(p);
-      if (i >= 0 && Z[i]) {
-        zs = toCourt(offT, Z[i][0], Z[i][1]); zs.x += clamp(bx - zs.x, -8, 8) * 0.35; zs.z += clamp(bz - zs.z, -6, 6) * 0.25;
-        if (hh && hh.team === offT && distHoop(hh.x, hh.z, offT) < 28) {
-          let near = null, nd = 1e9; for (const o of mates) if (!o.isUser) { const d = hyp(o.x - hh.x, o.z - hh.z); if (d < nd) { nd = d; near = o; } }
-          if (near === p) { man = hh; zs = null; }
-        }
-      }
-    }
-    if (zs) { p.tx = zs.x; p.tz = zs.z; p.pose = ''; if (G.phase === 'live') p.offD = G.t; }
-    else if (man === b.holder) {
+    const inZone = !!(ZM && ZM.get(p) === man);
+    if (man === b.holder) {
       /* he guards where the ball is going, not where it was: a good defender reads the first step and is already
          sliding there (he used to aim at the dribbler's feet, a step late on every drive) */
       const lead = p.isUser || p.stun > 0 || !man.isUser || G.auto || G.t - (man.mvAt || -9) < 0.6 ? 0 : 0.12 + p.r.perD / 99 * 0.2,   // (no reading the first step out of a dribble move)
@@ -2370,10 +2391,10 @@
     } else {
       const dx = H.x - man.x, dz = H.z - man.z, L = hyp(dx, dz) || 1;
       const db = hyp(bx - man.x, bz - man.z);
-      const off = p.isUser ? '' : DD.deny && man === st ? 'deny' : DD.off3 ? (L > 21 ? 'tight' : '') : DD.off || '';
+      const off = p.isUser ? '' : DD.deny && man === st ? 'deny' : inZone ? 'zone' : DD.off3 ? (L > 21 ? 'tight' : '') : DD.off || '';
       const gap = off === 'deny' ? 2.3 : off === 'tight' ? clamp(2.6 + db * 0.07, 2.6, 6) : off === 'sag' ? clamp(5.5 + db * 0.26, 5.5, 15) : clamp(3.5 + db * 0.18, 3.5, 11);
       let tx = man.x + dx / L * gap, tz = man.z + dz / L * gap;
-      tx += (bx - tx) * (off === 'sag' ? 0.26 : off === 'deny' ? 0.05 : 0.18); tz += (bz - tz) * (off === 'deny' ? 0.04 : 0.12);
+      tx += (bx - tx) * (off === 'sag' ? 0.26 : off === 'zone' ? 0.24 : off === 'deny' ? 0.05 : 0.18); tz += (bz - tz) * (off === 'deny' ? 0.04 : 0.12);
       /* wall the rim: the five stays in the lane, between the ball and the basket */
       if (DD.wall && p.slot === 4 && !p.isUser) { const c = toCourt(offT, clamp(bx * 0.2, -3, 3), 4.5); tx = c.x; tz = c.z; }
       p.tx = tx; p.tz = tz; p.pose = '';
