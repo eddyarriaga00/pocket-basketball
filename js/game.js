@@ -615,7 +615,8 @@
     if (G.phase === 'live' && G.t > 2) { if (has) tip('ball'); else if (!off && G.ball.holder) tip('def'); else if (off && G.ball.holder) tip('mate'); }
     if (ft) tip('ft');
     const dunk = G.drill && G.drill.kind === 'dunk';
-    const shoot = ft || has || G.drill;
+    const shoot = ft || has || (G.drill && G.drill.kind !== 'free');
+    $('#game').classList.toggle('empty', !!(G.drill && G.drill.kind === 'free' && !has));   // free shooting with the ball away: no dribble moves to make
     const a = $('#bA'), buttonClass = shoot ? 'btn a shoot' : 'btn a jump';
     setLabel(a, dunk ? 'Dunk' : shoot ? 'Shoot' : 'Jump');
     if (a.className !== buttonClass) a.className = buttonClass;
@@ -1149,11 +1150,25 @@
     if (D.over && G.ball.state !== 'shot') { D.endT = (D.endT || 0) + dt; if (D.endT > 2.6) finish(); }
   }
   /* the shoot-around: shoot from anywhere, the ball comes back to you; no clock. Pause to finish. */
+  function feedTo(u, rimZ) {
+    const b = G.ball, rz = Math.sign(rimZ || 1) * RIM;
+    let from = null, bd = 1e9;
+    if (G.park) for (const p of G.pl) if (p.npc && !p.isUser) { const d = hyp(p.x, p.z - rz); if (d < 34 && d < bd) { bd = d; from = p; } }
+    const side = u.x >= 0 ? -1 : 1, fx = from ? from.x : side * 7, fz = from ? from.z : rz - Math.sign(rz) * 2.5, fy = from ? (from.ht || 78) / 12 * 0.75 : 4.2;
+    if (from && !(from.pbUp !== undefined)) { from.face = from.passA = Math.atan2(u.x - from.x, u.z - from.z); from.passT0 = G.t; from.pose = 'chestPass'; from.reachT = 0.32; }
+    const d = hyp(u.x - fx, u.z - fz);
+    b.state = 'feed'; b.holder = null; b.t = 0; b.feed = { x: fx, y: fy, z: fz, T: clamp(0.22 + d * 0.004, 0.24, 0.4), arc: Math.min(2.2, d * 0.05) };
+    b.x = fx; b.y = fy; b.z = fz;
+    AU().play('catch', { x: fx, vol: 0.3 });
+  }
   function freeLands(s) {
     const D = G.drill, b = G.ball;
     if (G.park) parkSay(s.made ? (s.kind === 'dunk' ? 'dunk' : 'make') : 'miss');
     D.att++; if (s.made) { D.made++; D.score += s.pts; D.streak = (D.streak || 0) + 1; D.best = Math.max(D.best || 0, D.streak); R.swish(hoopZ(0) > 0 ? 1 : -1); AU().play(s.prob > 0.55 || rand() < 0.6 ? 'swish' : 'rimin', { x: b.x }); if (D.streak >= 5 && D.streak % 5 === 0) toast(`${D.streak} straight`, 'make'); if (G.park && D.streak >= 3 && D.streak % 3 === 0 && G.user) { celebrate(G.user, ['three', 'point', 'flex']); setTimeout(() => G && G.park && parkSay('streak', 40), 500); } }
     else { D.streak = 0; AU().play('rim', { x: b.ex, power: 0.6 }); }
+    /* the way 2K does it: the moment the shot comes down, somebody on the side fires the ball back to you (in the park
+       the regular nearest that rim, anywhere else a rebounder under the basket), there in about a third of a second */
+    if (G.user && !D.over) { feedTo(G.user, b.ez === undefined ? b.z : b.ez); return; }
     b.state = 'drop'; b.t = 0; D.next = 0.9;
   }
   /* ---------- the park ----------
@@ -3166,6 +3181,12 @@
         const dx = Math.sin(ang), dz = Math.cos(ang);
         b.vx = dx * rr(4, 9); b.vz = dz * rr(4, 9) - dirOf(R0.team) * rr(1, 4); b.vy = rr(3, 6);
       }
+      return;
+    }
+    if (b.state === 'feed') {   // a pass back to the shooter (free shooting): a quick, flat arc into his hands
+      const f = b.feed, u = G.user; b.t += dt; const k = Math.min(1, b.t / f.T), hp = handPos(u);
+      b.x = f.x + (hp.x - f.x) * k; b.z = f.z + (hp.z - f.z) * k; b.y = f.y + (hp.y - f.y) * k + Math.sin(k * Math.PI) * f.arc;
+      if (k >= 1) { b.feed = null; give(u); AU().play('catch', { x: u.x, vol: 0.55 }); }
       return;
     }
     if (b.state === 'drop') {

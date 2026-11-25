@@ -1877,6 +1877,14 @@
     R.loadModel();
   };
 
+  /* props built from plain shapes: each shape painted one color (as vertex colors), so many merge into one mesh */
+  const vcol = (g, c) => { const cc = new T.Color(c), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute('color', new T.BufferAttribute(a, 3)); return g; };
+  const S2 = (r, x, y, z, sx, sy, sz) => new T.SphereGeometry(r, 14, 10).scale(sx || 1, sy || 1, sz || 1).translate(x, y, z);
+  const B3 = (w, h, d, x, y, z) => new T.BoxGeometry(w, h, d).translate(x, y, z);
+  const C3 = (r1, r2, h, x, y, z) => new T.CylinderGeometry(r1, r2, h, 12).translate(x, y, z);
+  /* a rounded limb from point a to point b ([x, y, z]), r thick */
+  const LIMB = (a, b, r) => { const d = new T.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]), L = d.length();
+    return new T.CylinderGeometry(r, r, L, 10).applyQuaternion(new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize())).translate((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2); };
   /* indexed geometries with the same attributes, end to end in one */
   function mergeGeo(list) {
     const names = Object.keys(list[0].attributes), out = new T.BufferGeometry(), idx = [];
@@ -2250,8 +2258,15 @@
     /* scorer's table */
     const table = new T.Mesh(new T.BoxGeometry(2.5, 3, 24), new T.MeshLambertMaterial({ color: new T.Color(home.c1) }));
     table.position.set(29, 1.5, 0); scene.add(table);   // across from the broadcast camera, between the benches
+    /* its front, painted: the club's name between two stripes in the second color */
+    { const c = document.createElement('canvas'); c.width = 1024; c.height = 104; const x = c.getContext('2d');
+      x.fillStyle = home.c1 || '#202020'; x.fillRect(0, 0, 1024, 104); x.fillStyle = home.c2 || '#ffffff'; x.fillRect(0, 8, 1024, 6); x.fillRect(0, 90, 1024, 6);
+      x.font = '900 46px "Archivo Black", Arial Black, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#ffffff';
+      const nm = `${home.city || ''} ${home.name || home.id || ''}`.trim().toUpperCase(); const fs = Math.min(46, 46 * 440 / Math.max(1, x.measureText(nm).width)); x.font = `900 ${fs | 0}px "Archivo Black", Arial Black, sans-serif`; x.fillText(nm, 256, 54); x.fillText(nm, 768, 54);
+      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
+      const f = new T.Mesh(new T.PlaneGeometry(23.6, 2.4), new T.MeshLambertMaterial({ map: t })); f.position.set(27.73, 1.55, 0); f.rotation.y = -Math.PI / 2; scene.add(f); }
     /* by each bench: a water cooler with a stack of cups on the lid, and towels folded over the end chair */
-    { const parts = [], col = (g, c) => { const cc = new T.Color(c), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute('color', new T.BufferAttribute(a, 3)); return g; };
+    { const parts = [], col = vcol;
       for (const side of [-1, 1]) { const z = side * 12.4, x = 28.6;
         parts.push(col(new T.CylinderGeometry(0.55, 0.5, 1.2, 16).translate(x, 0.6, z), '#f2f2f2'));
         parts.push(col(new T.CylinderGeometry(0.58, 0.58, 0.16, 16).translate(x, 1.28, z), home.c1 || '#c0392b'));
@@ -2273,18 +2288,32 @@
     /* a soft round dot for lights drawn as points (a point is a hard square without one) */
     const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 1, 32, 32, 32);
       gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.22, 'rgba(255,255,255,.85)'); gr.addColorStop(0.5, 'rgba(255,255,255,.25)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
-    /* photographers on the floor under each basket, four a side of the stanchion: their cameras flash on a shot at their end */
-    { const parts = [], col = (g, c) => { const cc = new T.Color(c), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute('color', new T.BufferAttribute(a, 3)); return g; };
-      const skins = ['#8d5a3b', '#c69072', '#e8c1a0', '#5b3a29', '#b07a55'], shirts = ['#1b1d22', '#2b2f38', '#111216', '#3a3f4a'], at = [];
-      for (const s2 of [-1, 1]) for (const x of [-15.5, -12, -8.5, -5.5, 5.5, 8.5, 12, 15.5]) { const z = s2 * (50.2 + Math.abs(x) * 0.06), j = parts.length;
-        const sh = shirts[(j + (x > 0 ? 1 : 0)) % 4], sk = skins[Math.floor(Math.random() * skins.length)];
-        parts.push(col(new T.BoxGeometry(1.5, 0.5, 1.3).translate(x, 0.25, z), '#2a2c31'));                       // the stool, low
-        parts.push(col(new T.BoxGeometry(1.3, 1.9, 0.95).translate(x, 1.45, z + s2 * 0.1), sh));                    // the back, hunched
-        parts.push(col(new T.BoxGeometry(1.25, 0.45, 1.5).translate(x, 0.75, z - s2 * 0.75), '#2c3340'));           // the thighs
-        parts.push(col(new T.SphereGeometry(0.5, 10, 8).translate(x, 2.75, z - s2 * 0.15), sk));                     // the head
-        parts.push(col(new T.BoxGeometry(0.9, 0.62, 0.55).translate(x, 2.6, z - s2 * 0.72), '#0c0c0e'));            // the camera
-        parts.push(col(new T.CylinderGeometry(0.27, 0.3, 1.1, 10).rotateX(Math.PI / 2).translate(x, 2.55, z - s2 * 1.5), '#16171a'));   // the long lens
-        at.push(x, 2.62, z - s2 * 2.08); }
+    /* photographers on the floor under each basket, four a side of the stanchion: sat low on a stool, knees up, the camera
+       held to the eye in both hands and its long lens on the rim. Their cameras flash on a shot at their end */
+    { const parts = [];
+      const skins = ['#8d5a3b', '#c69072', '#e8c1a0', '#5b3a29', '#b07a55'], shirts = ['#1b1d22', '#2b2f38', '#3a3f4a', '#4a5340', '#22303f'], at = [];
+      let k = 0;
+      for (const s2 of [-1, 1]) for (const x of [-15.5, -12, -8.5, -5.5, 5.5, 8.5, 12, 15.5]) { const z = s2 * (50.2 + Math.abs(x) * 0.06), f = -s2, n = k++;
+        const sh = shirts[n % shirts.length], sk = skins[(n * 7 + 3) % skins.length], pants = n % 3 ? '#2c3340' : '#5a5148';
+        const P = (dx, y, dz) => [x + dx, y, z + f * dz];   // across, up, toward the floor
+        parts.push(vcol(B3(1.2, 0.55, 1.1, x, 0.28, z), '#2a2c31'));                                       // the stool, low
+        parts.push(vcol(S2(0.62, x, 1.55, z + f * 0.05, 1.1, 1.25, 0.85), sh));                             // the body, leaning in
+        parts.push(vcol(S2(0.4, x, 0.75, z, 1.6, 0.6, 1), pants));                                           // the seat
+        for (const sd of [-1, 1]) { parts.push(vcol(LIMB(P(sd * 0.32, 0.8, 0.05), P(sd * 0.36, 1.25, 0.95), 0.2), pants));   // thighs, knees up
+          parts.push(vcol(LIMB(P(sd * 0.36, 1.25, 0.95), P(sd * 0.36, 0.2, 1.15), 0.17), pants));                         // shins
+          parts.push(vcol(S2(0.2, ...P(sd * 0.36, 0.12, 1.3), 1, 0.55, 1.6), n % 2 ? '#e8e8e8' : '#1a1a1a'));              // shoes
+          parts.push(vcol(LIMB(P(sd * 0.55, 2.0, 0.15), P(sd * 0.42, 1.75, 0.65), 0.15), sh));                            // upper arms
+          parts.push(vcol(LIMB(P(sd * 0.42, 1.75, 0.65), P(sd * 0.3, 2.3, 0.78), 0.13), sh));                             // forearms up to the camera
+          parts.push(vcol(S2(0.14, ...P(sd * 0.3, 2.32, 0.8)), sk)); }                                                    // hands
+        parts.push(vcol(S2(0.44, ...P(0, 2.6, 0.2), 1, 1.08, 1), sk));                                        // the head
+        if (n % 3 !== 1) { parts.push(vcol(S2(0.46, ...P(0, 2.72, 0.18), 1, 0.62, 1), n % 2 ? '#1c1c1c' : '#ececec'));   // a cap, the brim turned back
+          parts.push(vcol(B3(0.5, 0.06, 0.4, ...P(0, 2.78, -0.35)), n % 2 ? '#1c1c1c' : '#ececec')); }
+        else parts.push(vcol(S2(0.46, ...P(0, 2.7, 0.15), 1, 0.6, 1), '#20160f'));                          // or just hair
+        parts.push(vcol(B3(0.22, 0.3, 0.04, ...P(0.12, 1.75, 0.56)), '#f2f2f2'));                           // the credential on a lanyard
+        parts.push(vcol(B3(0.72, 0.52, 0.45, ...P(0, 2.48, 0.85)), '#0c0c0e'));                             // the camera at the eye
+        parts.push(vcol(C3(0.24, 0.27, 1.0, 0, 0, 0).rotateX(Math.PI / 2).translate(...P(0, 2.45, 1.55)), '#18191c'));   // the long lens
+        parts.push(vcol(C3(0.27, 0.27, 0.14, 0, 0, 0).rotateX(Math.PI / 2).translate(...P(0, 2.45, 1.98)), '#d9d9d9'));  // its white band
+        at.push(...P(0, 2.95, 0.85)); }   // the flash sits on top of the camera
       const merged = mergeGeo(parts);
       if (merged) scene.add(new T.Mesh(merged, new T.MeshLambertMaterial({ vertexColors: true })));
       const fg = new T.BufferGeometry(), fcol = new Float32Array(at.length);
@@ -2292,20 +2321,17 @@
       const fp = new T.Points(fg, new T.PointsMaterial({ size: 5, map: dotTex, vertexColors: true, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
       fp.frustumCulled = false; scene.add(fp); snappers = { fp, fcol, t: new Float32Array(at.length / 3), n: at.length / 3, shot: null }; }
     /* figures made of a few plain shapes, each part its own mesh so it can swing (vertex colors, one material) */
-    const vcol = (g, c) => { const cc = new T.Color(c), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute('color', new T.BufferAttribute(a, 3)); return g; };
     const figM = new T.MeshLambertMaterial({ vertexColors: true });
     const part = (list, x, y, z) => { const m = new T.Mesh(mergeGeo(list), figM); m.position.set(x || 0, y || 0, z || 0); return m; };
-    const S2 = (r, x, y, z, sx, sy, sz) => new T.SphereGeometry(r, 14, 10).scale(sx || 1, sy || 1, sz || 1).translate(x, y, z);
-    const B3 = (w, h, d, x, y, z) => new T.BoxGeometry(w, h, d).translate(x, y, z);
-    const C3 = (r1, r2, h, x, y, z) => new T.CylinderGeometry(r1, r2, h, 12).translate(x, y, z);
     /* the mascot: a big furry thing in the home colors, behind the basket the visitors shoot at. He bounces to the music,
        waves both arms over his head at a visiting free throw shooter, and jumps with his arms up after a big home play */
     { const c1 = home.c1 || '#c0392b', c2 = home.c2 || '#ffffff', fur = new T.Color(c1).lerp(new T.Color('#000000'), 0.08).getStyle(), g = new T.Group();
-      const body = part([vcol(S2(1.25, 0, 3.2, 0, 1, 1.25, 0.9), fur), vcol(S2(0.95, 0, 3.05, 0.42, 0.9, 1.05, 0.5), c2),
+      const lc = new T.Color(c2), c2l = lc.r * 0.3 + lc.g * 0.59 + lc.b * 0.11 < 0.35 ? new T.Color(c1).lerp(new T.Color('#ffffff'), 0.6).getStyle() : c2;
+      const body = part([vcol(S2(1.25, 0, 3.2, 0, 1, 1.25, 0.9), fur), vcol(S2(0.95, 0, 3.05, 0.42, 0.9, 1.05, 0.5), c2l),
         vcol(C3(0.42, 0.36, 1.7, -0.55, 1.1, 0), fur), vcol(C3(0.42, 0.36, 1.7, 0.55, 1.1, 0), fur),
         vcol(S2(0.55, -0.6, 0.28, 0.28, 1, 0.5, 1.5), '#f4f4f4'), vcol(S2(0.55, 0.6, 0.28, 0.28, 1, 0.5, 1.5), '#f4f4f4')]);
-      const head = part([vcol(S2(1.45, 0, 0, 0), fur), vcol(S2(0.75, 0, -0.35, 1.05, 1.1, 0.8, 0.8), c2), vcol(S2(0.22, 0, 0, 1.75), '#1a1a1a'),
-        vcol(S2(0.4, -1.05, 1.05, 0), fur), vcol(S2(0.4, 1.05, 1.05, 0), fur), vcol(S2(0.22, -1.05, 1.05, 0.2), c2), vcol(S2(0.22, 1.05, 1.05, 0.2), c2),
+      const head = part([vcol(S2(1.45, 0, 0, 0), fur), vcol(S2(0.75, 0, -0.35, 1.05, 1.1, 0.8, 0.8), c2l), vcol(S2(0.22, 0, 0, 1.75), '#1a1a1a'),
+        vcol(S2(0.4, -1.05, 1.05, 0), fur), vcol(S2(0.4, 1.05, 1.05, 0), fur), vcol(S2(0.22, -1.05, 1.05, 0.2), c2l), vcol(S2(0.22, 1.05, 1.05, 0.2), c2l),
         vcol(S2(0.36, -0.5, 0.35, 1.15, 1, 1.2, 0.6), '#ffffff'), vcol(S2(0.36, 0.5, 0.35, 1.15, 1, 1.2, 0.6), '#ffffff'),
         vcol(S2(0.17, -0.45, 0.3, 1.38), '#111111'), vcol(S2(0.17, 0.45, 0.3, 1.38), '#111111'),
         vcol(B3(0.7, 0.14, 0.2, -0.5, 0.88, 1.15).rotateZ(0), '#111111'), vcol(B3(0.7, 0.14, 0.2, 0.5, 0.88, 1.15), '#111111')], 0, 5.6, 0);
