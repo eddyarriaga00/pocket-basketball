@@ -1263,3 +1263,11 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 #netsheet .nsw{display:flex;gap:4px;padding:4px;margin:8px 0 10px;border-radius:12px;background:#0c0c0f;border:1px solid rgba(255,255,255,.14)}
 #netsheet .nsw button{flex:1;height:38px;border-radius:9px;font-family:var(--display);font-weight:800;font-size:14px;color:#8a8a92}
 #netsheet .nsw button.on{background:#fff;color:#000}
+
+#netsheet .rsides{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 4px}
+#netsheet .rsides>div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px;min-height:84px;display:flex;flex-direction:column;gap:6px}
+#netsheet .rsides .kick{margin:0 0 2px;font-size:11px}
+#netsheet .rchip{display:block;width:100%;margin:0;padding:7px 8px;border-radius:9px;background:#fff;color:#000;font-weight:700;font-size:13px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#netsheet .rchip.me{background:rgba(255,255,255,.14);color:#fff}
+#netsheet .asked{font-size:12px;color:var(--mute);padding:8px 4px}
+#netsheet button[disabled]{opacity:.4}

@@ -177,6 +177,9 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 ## Later: ideas not started
 
+- [x] Runs at the park (2026-11-26): more than two people in one online game, 3 on 3 or a full game; the host asks
+      whoever he wants, puts them on sides, and the computer plays the open spots
+
 - [x] A zone defense for computer teams (2026-11-25): match-up zones, paired once a trip by area and distance; both teams
       in a 2-3 score about 123 a game against 111 man to man (the first try, 2026-11-17, gave up 120 shots)
 - [x] Trades you propose (2026-11-25): Season mode, up to three for three, valued by rating and age with a premium on a

@@ -57,7 +57,7 @@ copy of the save. **Delete my account** on the Account page removes the save cop
 The owner can also delete a user from **Authentication → Users**; their `saves/<uid>` entry can then be removed from the
 Realtime Database data view.
 
-## Online play: the park and games (rules published 2026-11-25)
+## Online play: the park and games (rules published 2026-11-25, runs 2026-11-26)
 
 Online play uses the same project, with anonymous sign-in (as the chat), under three paths in `docs/firebase-rules.json`:
 
@@ -67,14 +67,17 @@ Online play uses the same project, with anonymous sign-in (as the chat), under t
   his connection drops.
 - `bchal/<to>/<from>`: a challenge and its answer. Only the two of them can write it, and only the one it is for can
   read his own.
-- `bgame/<gid>`: a game. `m` (who hosts, who plays, the teams) is written once by the host; `s` (the host's frames, up
-  to 12000 characters) only by the host and read only by the guest; `i` (the guest's stick and buttons) the other way
-  round. The host removes the game when it ends.
+- `bgame/<gid>`: a game. `m` (who hosts, the guests as `,uid,uid,`, the teams) is written once by the host; `s` (the
+  host's frames, up to 12000 characters) only by the host and read only by the guests; `i/<uid>` (each guest's stick and
+  buttons) only by that guest and read only by the host. The host removes the game when it ends. A run (more than two
+  people in one game) is the same game with up to nine guests; its invitations are challenges marked `run`.
 
 A game sends about fifteen frames a second to the guest: 0.5 KB in a 1 on 1, about 2 KB in a full game, so roughly
 25 MB (1 on 1) to 120 MB (full game) downloaded per hour played. Within the Spark plan's 10 GB a month that is some
 80 hours of full games a month across everyone; past that, Firebase stops serving until the month turns over (nothing is
-charged on Spark). `tools/online.js` plays two windows against each other with no network (`KIND=3` or `KIND=5`).
+charged on Spark). In a run each guest downloads the same frames, so a full game with nine guests is nine times the
+download. `tools/online.js` plays two windows against each other with no network (`KIND=3` or `KIND=5`);
+`tools/online-run.js` three (`KIND=5` for a full game, `LOW=1` for low graphics, which a software GPU needs there).
 
 ## Free plan limits
 

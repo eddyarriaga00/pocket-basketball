@@ -328,7 +328,7 @@
 
   /* ---------- HUD and feedback ---------- */
   function toast(txt, cls) {
-    if (G && G.asNet) { netFx.push(['t', String(txt), cls || '']); return; }   // the other player's: shown on his phone
+    if (G && G.asNet) { netFx.push(['t', String(txt), cls || '', G.pl.indexOf(G.user)]); return; }   // another player's: shown on his phone
     if ((cls === 'make' || cls === 'blk') && PB.settings && PB.settings.callsOn === 'Off') return;   // Settings › Look: the big calls
     const t = $('#toast'); t.textContent = txt; t.className = 'on ' + (cls || ''); clearTimeout(toast.h);
     t.style.fontSize = (!cls || cls === 'make' || cls === 'blk') && txt.length > 11 ? (txt.length > 16 ? '22px' : '27px') : '';   // a long call stays on one line
@@ -1157,7 +1157,7 @@
 
   let relT = 0;
   function showRelease(txt, m, w) {
-    if (G && G.asNet) { netFx.push(['rel', txt]); return; }
+    if (G && G.asNet) { netFx.push(['rel', txt, G.pl.indexOf(G.user)]); return; }
     const r = $('#rel'); r.textContent = txt === 'Excellent' ? 'Perfect' : txt; r.className = 'on ' + (txt === 'Excellent' ? 'g' : /Slightly/.test(txt) ? 'y' : 'r');
     relT = 1.4;
   }
@@ -3604,7 +3604,7 @@
   const rn = v => typeof v === 'number' ? Math.round(v * 100) / 100 : typeof v === 'string' || typeof v === 'boolean' ? v : null;
   function asUser(p, fn) {
     const u0 = G.user, i0 = input, a0 = G.asNet;
-    G.user = p; input = G.netIn || { w: null }; G.asNet = true;
+    G.user = p; input = p.netIn || { w: null }; G.asNet = true;
     try { return fn(); } finally { G.user = u0; input = i0; G.asNet = a0; }
   }
   const ctl = (p, fn) => (p.remote ? asUser(p, fn) : fn());
@@ -3619,9 +3619,12 @@
   }
   /* the host: the guest's controls in, frames out */
   function netHost(dt) {
-    const N = G.net, me = N.remote;
-    if (me && G.netIn && G.netIn.e) for (const e of G.netIn.e) { if (e[0] <= netEv) continue; netEv = e[0]; netEvent(me, e); }
-    if (me && me.remote && N.lastIn && performance.now() - N.lastIn > 12000) { me.remote = false; toast(`${N.name} lost the connection: the computer has him`, 'call'); }
+    const N = G.net;
+    for (const me of N.remotes) {
+      const v = me.netIn;
+      if (me.remote && v && v.e) for (const e of v.e) { if (e[0] <= (me.netEv || 0)) continue; me.netEv = e[0]; netEvent(me, e); }
+      if (me.remote && me.netLast && performance.now() - me.netLast > 12000) { me.remote = false; toast(`${me.netName} lost the connection: the computer has him`, 'call'); }
+    }
     netSendT += dt;
     if (netSendT >= 1 / 15) { netSendT = 0; const f = netSnap(); N.lastLen = f.length; N.link.send(f); }
   }
@@ -3633,7 +3636,7 @@
         if (G.phase === 'ft' && G.ftq && G.ftq.shooter === p && G.ftMeter > 0) G.ftMeter = Math.max(0.0001, held / 0.9);
         else if (p.shoot && p.shoot.user && p.shoot.kind !== 'dunk') p.shoot.t = clamp(held, 0, p.shoot.T * 1.12);   // his timing, by his own clock: the network's delay is not his
         pressA(false); }
-      else if (k === 'L') { p.remote = false; G.net.left = true; const a0 = G.asNet; G.asNet = false; toast(`${G.net.name} left the game: the computer has him`, 'call'); G.asNet = a0; }
+      else if (k === 'L') { p.remote = false; if (!G.net.remotes.some(q => q.remote)) G.net.left = true; const a0 = G.asNet, u0 = G.user; G.asNet = false; G.user = G.net.me; toast(`${p.netName} left the game: the computer has him`, 'call'); G.asNet = a0; G.user = u0; }
       else if (k === 'B') pressB();
       else if (k === 'C') pressC(e[2] || undefined, +e[3] || undefined);
       else if (k === 'D') pressD();
@@ -3651,8 +3654,8 @@
   }
   function netPlayFx(x) {
     try {
-      if (x[0] === 't') { const a0 = G.asNet; G.asNet = false; toast(x[1], x[2]); G.asNet = a0; }
-      else if (x[0] === 'rel') showRelease(x[1]);
+      if (x[0] === 't') { if (x[3] != null && x[3] >= 0 && G.pl[x[3]] !== G.user) return; const a0 = G.asNet; G.asNet = false; toast(x[1], x[2]); G.asNet = a0; }
+      else if (x[0] === 'rel') { if (x[2] != null && x[2] >= 0 && G.pl[x[2]] !== G.user) return; showRelease(x[1]); }
       else if (x[0] === 'a') AU().play(x[1], x[2] || undefined);
       else if (x[0] === 'cr') AU().crowd.react(x[1], x[2]);
       else if (x[0] === 'r' && typeof R[x[1]] === 'function') R[x[1]](...x[2].map(v => (v && v.p !== undefined ? G.pl[v.p] : v)));
@@ -4115,8 +4118,12 @@
       /* online: the host plays the other man by what his phone sends; the guest draws what the host sends */
       netFx = []; netSeq = 0; netEv = 0; netSendT = 0;
       if (o.net) { G.net = Object.assign({ ev: [] }, o.net);
-        if (o.net.role === 'host') { const r = pl.find(p => p.d.id === o.net.guestId); if (r) { r.remote = true; G.net.remote = r; }
-          o.net.link.onInput(v => { G.netIn = v; G.net.lastIn = performance.now(); }); netTap(true); }
+        if (o.net.role === 'host') {
+          const gs = o.net.guests || [{ id: o.net.guestId, uid: null, name: o.net.name }], by = {};
+          G.net.remotes = []; G.net.me = G.user;
+          for (const g of gs) { const r = pl.find(p => p.d.id === g.id); if (!r) continue; r.remote = true; r.netName = g.name || 'The other player'; r.netEv = 0; G.net.remotes.push(r); by[g.uid] = r; }
+          G.net.remote = G.net.remotes[0] || null;
+          o.net.link.onInput((k, v) => { const r = by[k] || (gs.length === 1 ? G.net.remotes[0] : null); if (r) { r.netIn = v; r.netLast = performance.now(); } G.net.lastIn = performance.now(); }); netTap(true); }
         else o.net.link.onFrame(v => { if (G && G.net && G.net.link === o.net.link) netFrameIn(v); }); }
       { const rp = $('#rp'); if (rp) rp.hidden = true; $('#game').classList.remove('replaying'); }   // nothing of the last game's replay is left on screen
       $('#game').classList.toggle('watching', !G.user && !o.drill); $('#game').classList.remove('park', 'horse'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; } if (R.setStations) R.setStations([]);   // spectating: the broadcast without the controls

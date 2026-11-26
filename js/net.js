@@ -6,7 +6,7 @@
    rules in docs/firebase-rules.json allow:
      bpark/<ROOM>/<uid>   who is in a park: a name, what he looks like (k), where he is (s), when (at)
      bchal/<to>/<from>    a challenge, and the answer to one
-     bgame/<gid>          a game: who hosts and who plays (m), the host's frames (s), the guest's stick and buttons (i)
+     bgame/<gid>          a game: who hosts and who plays (m), the host's frames (s), each guest's stick and buttons (i/<uid>)
    Nothing connects until the park goes online, and the connection closes when it is left. A second backend runs in
    the page alone (BroadcastChannel) for the tests: two windows of one browser play each other with no network. */
 (function () {
@@ -137,28 +137,30 @@
   function stop() { leavePark(); if (be) { be.stop(); be = null; } uid = null; }
 
   /* ---------- challenges ---------- */
-  const challenge = (to, kind, name) => backend().set(`bchal/${to}/${uid}`, { n: cleanName(name), kind: +kind || 1, room, at: backend().stamp() });
+  const challenge = (to, kind, name, run) => backend().set(`bchal/${to}/${uid}`, Object.assign({ n: cleanName(name), kind: +kind || 1, room, at: backend().stamp() }, run ? { run: 1 } : {}));
   const answer = (to, ok, name) => backend().set(`bchal/${to}/${uid}`, { n: cleanName(name), ok: ok ? 1 : 0, at: backend().stamp() });
   const sendGo = (to, gid, name) => backend().set(`bchal/${to}/${uid}`, { n: cleanName(name), go: gid, at: backend().stamp() });
   const clearChal = from => backend().remove(`bchal/${uid}/${from}`).catch(() => {});
 
   /* ---------- a game: the host writes m (the setup) and s (frames), the guest writes i (stick and buttons) ---------- */
-  function hostGame(guest, setup) {
-    const gid = uid + '_' + now().toString(36);
+  /* guests: one uid, or a list of them (a run at the park: up to nine others in one game); each guest writes his
+     own controls at i/<uid> */
+  function hostGame(guests, setup) {
+    const gs = [].concat(guests), gid = uid + '_' + now().toString(36);
     const base = `bgame/${gid}`;
-    return backend().set(`${base}/m`, { h: uid, g: guest, at: backend().stamp(), r: JSON.stringify(setup) }).then(() => ({
+    return backend().set(`${base}/m`, { h: uid, g: ',' + gs.join(',') + ',', at: backend().stamp(), r: JSON.stringify(setup) }).then(() => ({
       gid,
       send: s => backend().set(`${base}/s`, s).catch(() => {}),
-      onInput: cb => { const off = backend().value(`${base}/i`, v => { if (v) cb(v); }); offs.push(off); return off; },
+      onInput: cb => { const off = backend().child(`${base}/i`, (k, v) => { if (v) cb(k, v); }); offs.push(off); return off; },
       end: () => backend().remove(base).catch(() => {})
     }));
   }
   async function joinGame(gid) {
     const base = `bgame/${gid}`, m = await backend().get(`${base}/m`);
-    if (!m || m.g !== uid) throw new Error('no such game');
+    if (!m || !String(m.g || '').split(',').includes(uid)) throw new Error('no such game');
     return {
       gid, host: m.h, setup: JSON.parse(m.r),
-      send: i => backend().set(`${base}/i`, i).catch(() => {}),
+      send: i => backend().set(`${base}/i/${uid}`, i).catch(() => {}),
       onFrame: cb => { const off = backend().value(`${base}/s`, v => { if (v) cb(v); }); offs.push(off); return off; },
       end: () => {}
     };
