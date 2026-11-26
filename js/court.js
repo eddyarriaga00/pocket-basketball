@@ -519,15 +519,31 @@
   }
 
   /* A player: legs, shorts, torso with the number, arms and a head, built at 6.1 ft and scaled to his height. */
-  function wordTex(word, color, edge) {
-    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
-    const g = cv.getContext('2d');
-    g.font = '900 44px Archivo, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
-    const w = g.measureText(word.toUpperCase()).width, sc = Math.min(1, 236 / Math.max(1, w));
-    g.save(); g.translate(128, 34); g.scale(sc, 1);
-    if (edge) { g.lineWidth = 7; g.strokeStyle = edge; g.strokeText(word.toUpperCase(), 0, 0); }
-    g.fillStyle = color; g.fillText(word.toUpperCase(), 0, 0); g.restore();
+  /* one 256 sheet of a player's lettering: his number top left (128 square), the team's name and his own name below
+     (256 by 64 each), drawn the same way as numberTex and the old word textures */
+  function letterSheet(num, team, last, ink, edge) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+    const g = cv.getContext('2d'); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    g.font = '900 78px Archivo, Arial'; g.lineWidth = edge ? 12 : 8; g.strokeStyle = edge || 'rgba(0,0,0,.35)'; g.strokeText(String(num), 64, 70); g.fillStyle = ink; g.fillText(String(num), 64, 70);
+    const word = (w, y) => { if (!w) return; w = w.toUpperCase(); g.font = '900 44px Archivo, Arial'; const sc = Math.min(1, 236 / Math.max(1, g.measureText(w).width));
+      g.save(); g.translate(128, y); g.scale(sc, 1); if (edge) { g.lineWidth = 7; g.strokeStyle = edge; g.strokeText(w, 0, 0); } g.fillStyle = ink; g.fillText(w, 0, 0); g.restore(); };
+    word(team, 128 + 34); word(last, 192 + 34);
     const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; return t;
+  }
+  /* flat cards in one geometry: [{pos, quat}, width, height, [x0, y0, x1, y1] on the 256 sheet] each, laid out as
+     a PlaneGeometry would be and moved to where the card sits */
+  function decalCards(list) {
+    const n = list.length, P = new Float32Array(n * 12), N = new Float32Array(n * 12), U = new Float32Array(n * 8), I = [];
+    const v = V3(), nr = V3(), M = new T.Matrix4(), one = V3(1, 1, 1);
+    list.forEach(([dc, w, h, r], k) => {
+      M.compose(dc.pos, dc.quat, one); nr.set(0, 0, 1).applyQuaternion(dc.quat);
+      const u0 = r[0] / 256, u1 = r[2] / 256, vt = 1 - r[1] / 256, vb = 1 - r[3] / 256;
+      [[-w / 2, h / 2, u0, vt], [w / 2, h / 2, u1, vt], [-w / 2, -h / 2, u0, vb], [w / 2, -h / 2, u1, vb]].forEach(([x, y, u, vv], j) => {
+        v.set(x, y, 0).applyMatrix4(M); const i = k * 4 + j; P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; N[i * 3] = nr.x; N[i * 3 + 1] = nr.y; N[i * 3 + 2] = nr.z; U[i * 2] = u; U[i * 2 + 1] = vv; });
+      const b = k * 4; I.push(b, b + 2, b + 1, b + 2, b + 3, b + 1);
+    });
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(P, 3)); g.setAttribute('normal', new T.BufferAttribute(N, 3)); g.setAttribute('uv', new T.BufferAttribute(U, 2)); g.setIndex(I);
+    return g;
   }
   function numberTex(num, c1, c2, edge) {
     const cv = document.createElement('canvas'); cv.width = cv.height = 128;
@@ -1207,18 +1223,18 @@
        the team color; on a light one they are the team color */
     const lum = c => { const n = parseInt(String(c).slice(1), 16); return (n >> 16) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11; };
     const jl = lum(kit.c1) > 170, ink = jl ? kit.c2 : lum(kit.c2) > 150 ? kit.c2 : '#ffffff', edge = jl ? null : (lum(kit.alt || kit.c2) < 120 ? kit.alt || kit.c2 : '#0c0c0e');
-    const tex = numberTex(p.num, null, ink, edge);
-    const numMat = new T.MeshLambertMaterial({ map: tex, transparent: true, alphaTest: 0.4, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    /* all his lettering on one sheet (the number, the team's name, his own name) and the four pieces on his shirt
+       one mesh: one draw for the lot where there were four, each with its own texture. Back-facing pieces are
+       culled by the card itself (the old per-piece visibility test is not needed). */
+    const sheet = letterSheet(p.num, kit.name || '', d.last || '', ink, edge);
+    const numMat = new T.MeshLambertMaterial({ map: sheet, transparent: true, alphaTest: 0.38, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     const H = TPL.H;
     const dcl = [], put = (bone, dc, obj) => { obj.position.copy(dc.pos); obj.quaternion.copy(dc.quat); bone.add(obj); dcl.push(obj); };
-    put(bones[bk('DEF-spine.003')], TPL.decals.back, new T.Mesh(new T.PlaneGeometry(H * 0.13, H * 0.13), numMat));
-    put(bones[bk('DEF-spine.003')], TPL.decals.front, new T.Mesh(new T.PlaneGeometry(H * 0.08, H * 0.08), numMat));
-    if (TPL.decals.shorts && !(TPL.model && !PB.mannequin)) put(bones[bk('DEF-thigh.L')], TPL.decals.shorts, new T.Mesh(new T.PlaneGeometry(H * 0.045, H * 0.045), numMat));
-    /* the team's name across the chest, over the number */
-    const wm = new T.Mesh(new T.PlaneGeometry(H * 0.15, H * 0.04), new T.MeshLambertMaterial({ map: wordTex(kit.name || '', ink, edge), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
-    /* and his name across the back, over the number */
-    if (TPL.decals.nameBack && d.last) put(bones[bk('DEF-spine.003')], TPL.decals.nameBack, new T.Mesh(new T.PlaneGeometry(H * 0.12, H * 0.032), new T.MeshLambertMaterial({ map: wordTex(d.last, ink, edge), transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })));
-    put(bones[bk('DEF-spine.003')], TPL.decals.chest, wm);
+    const NUM = [0, 0, 128, 128], TEAM = [0, 128, 256, 192], NAME = [0, 192, 256, 256];
+    const shirt = [[TPL.decals.back, H * 0.13, H * 0.13, NUM], [TPL.decals.front, H * 0.08, H * 0.08, NUM], [TPL.decals.chest, H * 0.15, H * 0.04, TEAM]];
+    if (TPL.decals.nameBack && d.last) shirt.push([TPL.decals.nameBack, H * 0.12, H * 0.032, NAME]);
+    bones[bk('DEF-spine.003')].add(new T.Mesh(decalCards(shirt), numMat));
+    if (TPL.decals.shorts && !(TPL.model && !PB.mannequin)) put(bones[bk('DEF-thigh.L')], TPL.decals.shorts, new T.Mesh(decalCards([[{ pos: V3(), quat: new T.Quaternion() }, H * 0.045, H * 0.045, NUM]]), numMat));
     /* the look: hair (style and color), a headband, an arm sleeve; yours from the Look card, everyone else's picked
        once from his id so the floor is not ten identical heads */
     const look = d.look || autoLook(d);

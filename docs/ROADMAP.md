@@ -182,5 +182,6 @@ The two node tools need Playwright (`npm i -g playwright`).
       team's best man and less for each extra piece; "What would it take?"; a deadline at three quarters of the season
 - [x] Two-way contracts (2026-11-25): Season mode, two G League spots for men 24 and under off the top ten; they skip
       your games and grow about five points a season
-- Draw calls: one atlas for each player's number and wordmark (the shadows are one instanced mesh since 2026-11-17)
+- [x] Draw calls (2026-11-25): each player's lettering is one sheet and one mesh (236 draws a frame to about 222);
+      the shadows are one instanced mesh since 2026-11-17
 - Online head to head by code
