@@ -167,7 +167,8 @@ The two node tools need Playwright (`npm i -g playwright`).
       players on the floor) (2026-11-17)
 - [x] Game controllers (2026-11-17)
 - [x] A phone turned sideways gets a turn-upright screen and the game pauses; desktops keep the centered column (2026-11-17)
-- [ ] Online head to head by code
+- [x] Online: the park with other people in it (the public park, or a private one by a code), and games against each
+      other from there: 1 on 1, 3 on 3 or a full game (2026-11-25)
 - [x] Daily challenge: a late-game situation a day, the same for everyone, with a streak (2026-11-17)
 - [x] Season mode keeps going: next season with the same team, aging, rookies, a title count (2026-11-17)
 - [x] Achievements across careers; a 3D title screen; a Graphics setting for older phones (2026-11-17)
@@ -184,4 +185,3 @@ The two node tools need Playwright (`npm i -g playwright`).
       your games and grow about five points a season
 - [x] Draw calls (2026-11-25): each player's lettering is one sheet and one mesh (236 draws a frame to about 222);
       the shadows are one instanced mesh since 2026-11-17
-- Online head to head by code

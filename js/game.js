@@ -20,7 +20,7 @@
   const bt = (p, k) => { const d = p && p.d; if (!d) return 0; let v = (d.badges && d.badges[k]) || 0; const on = d.perks && d.perks.on;
     if (on && on.length) for (const id of on) { const m = PB.PERKS[id]; if (m && m.bt && m.bt[k]) v += m.bt[k]; } return Math.min(4, v); };   // never more than four tiers' worth, however it is made up
   /* a short buzz in the hand, where the phone allows it (Android; iPhones do not let web pages vibrate) */
-  const buzz = ms => { if (PB.settings && PB.settings.vibrate === false) return; if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;   // (a browser refuses, loudly, before the first touch)
+  const buzz = ms => { if (G && G.asNet) return; if (PB.settings && PB.settings.vibrate === false) return; if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;   // (a browser refuses, loudly, before the first touch)
     try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* not allowed */ } };
   /* Settings › Shot timing: how wide the green band is */
   const foulK = () => ({ Fewer: 0.5, More: 1.5 })[PB.settings && PB.settings.fouls] || 1;   // Settings › Game: how often the whistle blows
@@ -31,7 +31,7 @@
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
 
   let G = null, raf = 0, last = 0, opts = null;
-  const input = { sx: 0, sy: 0, active: false, A: false, Adown: 0, B: 0, C: 0, keys: {} };
+  let input = { sx: 0, sy: 0, active: false, A: false, Adown: 0, B: 0, C: 0, keys: {} };   // (swapped for the other player's in an online game: see asUser)
 
   /* ---------- geometry ---------- */
   const distHoop = (x, z, team) => hyp(x, z - hoopZ(team));
@@ -328,6 +328,7 @@
 
   /* ---------- HUD and feedback ---------- */
   function toast(txt, cls) {
+    if (G && G.asNet) { netFx.push(['t', String(txt), cls || '']); return; }   // the other player's: shown on his phone
     if ((cls === 'make' || cls === 'blk') && PB.settings && PB.settings.callsOn === 'Off') return;   // Settings › Look: the big calls
     const t = $('#toast'); t.textContent = txt; t.className = 'on ' + (cls || ''); clearTimeout(toast.h);
     t.style.fontSize = (!cls || cls === 'make' || cls === 'blk') && txt.length > 11 ? (txt.length > 16 ? '22px' : '27px') : '';   // a long call stays on one line
@@ -420,6 +421,7 @@
     notify(HANDLES[Math.floor(rand() * HANDLES.length)], fresh(sit && rand() < 0.45 ? CHATTER_SIT[sit] : CHATTER), { quiet: true });
   }
   function feed(txt) {
+    if (G && G.net && G.net.role === 'host') netFx.push(['f', String(txt)]);
     const f = $('#feed'); f.style.display = PB.settings && PB.settings.feedOn === 'Off' ? 'none' : ''; const e = document.createElement('div'); e.textContent = txt; f.prepend(e);
     while (f.children.length > 3) f.lastChild.remove();
     setTimeout(() => e.classList.add('old'), 3500);
@@ -480,7 +482,7 @@
   const powAt = (word, p, size, dark, up) => { if (R.pow && p && !G.replay) R.pow(word, p.x, (p.ht || 78) / 12 * 0.62 + (p.y || 0) + (up || 0.6), p.z, size || 0.85, dark); };
   const pickOf = a => a[Math.floor(rand() * a.length)];
   function grade(delta, why) {
-    if (!G.user || G.switching) return;
+    if (!G.user || G.switching || G.asNet) return;
     quip(why);
     const before = gradeLetter(G.grade);
     G.grade = clamp(G.grade + delta, -26, 26);
@@ -533,7 +535,7 @@
   };
   let seenTips = null;
   function tip(k) {
-    if (!G.user || G.drill || G.auto) return;
+    if (!G.user || G.drill || G.auto || G.asNet || G.net) return;
     if (!seenTips) { try { seenTips = JSON.parse(localStorage.getItem('pbb.tips') || '{}'); } catch (e) { seenTips = {}; } }
     if (seenTips[k]) return;
     seenTips[k] = 1; try { localStorage.setItem('pbb.tips', JSON.stringify(seenTips)); } catch (e) { /* fine */ }
@@ -570,6 +572,7 @@
       for (const s0 of PARK) { g.fillStyle = s0.color; g.globalAlpha = s0.id === G.parkAt ? 1 : 0.75; g.beginPath(); g.arc(sx(s0.x), sz(s0.z), 2.3, 0, 7); g.fill(); }
       g.globalAlpha = 1; g.fillStyle = 'rgba(255,255,255,.45)';
       for (const p of G.pl) if (p.npc) { g.beginPath(); g.arc(sx(p.x), sz(p.z), 1.6, 0, 7); g.fill(); }
+      g.fillStyle = '#ffffff'; for (const p of G.pl) if (p.netP) { g.beginPath(); g.arc(sx(p.x), sz(p.z), 2.6, 0, 7); g.fill(); }   // people online: bigger, solid white
       const u = G.user; if (u) { const x = sx(u.x), z = sz(u.z); g.fillStyle = '#4cffb0'; g.beginPath(); g.arc(x, z, 3.2, 0, 7); g.fill();
         g.strokeStyle = '#4cffb0'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, z); g.lineTo(x - Math.sin(u.face) * 6, z - Math.cos(u.face) * 6); g.stroke(); }
       return;
@@ -600,7 +603,7 @@
         low = Hh * 0.56, lefty = $('#game').classList.contains('lefty'), gx0 = W * (lefty ? 0.44 : 0.3), gx1 = W * (lefty ? 0.7 : 0.56);
       const placed = [];
       for (const p of G.pl) {
-        if (p.npc || p.team === u.team || p.out) continue;
+        if (p.npc || p.netP || p.team === u.team || p.out) continue;
         const q = R.toScreen(p.x, (p.y || 0) + 3.2, p.z); if (!q) continue;
         let dx = q.x - cx, dy = q.y - cy;
         if (q.on && q.x > -4 && q.x < W + 4 && q.y > -4 && q.y < Hh + 4) continue;   // on the screen: he can be seen
@@ -654,7 +657,7 @@
     if (G.tf) { $('#sd0').classList.toggle('bonus', G.tf[1] >= 5); $('#sd1').classList.toggle('bonus', G.tf[0] >= 5); }
     /* the buttons read what they do right now */
     const u = G.user; if (!u) return;
-    const off = G.poss === 0 || (G.poss === null && G.ball.holder && G.ball.holder.team === 0);
+    const off = G.poss === u.team || (G.poss === null && G.ball.holder && G.ball.holder.team === u.team);
     const has = G.ball.holder === u;
     const ft = G.phase === 'ft' && G.ftq && G.ftq.shooter === u;
     { const ct = !G.drill && clutchTime(); document.querySelector('.bug').classList.toggle('clutch', ct); if (ct && !G.clutchSaid) { G.clutchSaid = true; toast('Clutch time', 'call'); }
@@ -678,6 +681,7 @@
   }
   /* call for a pick: the nearest big comes to set a screen on your man, then rolls to the rim */
   function pressD() {
+    if (netG()) { netPress('D'); return; }
     const u = G.user; if (!u || G.phase !== 'live' || G.ball.holder !== u || u.inb || G.drill) return;
     if (G.t < (G.pickCd || 0)) return;
     const bigs = teamOf(u.team).filter(o => o !== u && o.slot >= 3).sort((a, b) => hyp(a.x - u.x, a.z - u.z) - hyp(b.x - u.x, b.z - u.z));
@@ -948,8 +952,8 @@
       p.vx = -hx / L * back + p.vx * 0.15; p.vz = -hz / L * back + p.vz * 0.15; p.fadeV = { x: p.vx, z: p.vz };
       if (forUser) toast(fade === 'turn' ? 'Turnaround' : 'Fadeaway', 'call'); }
     /* a defender close by goes up with him */
-    for (const o of G.pl) if (o.team !== p.team && !o.isUser && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25) * SHOTQ;
-    if (kind === 'jumper' && rand() < 0.3) { const o = nearestDef(p).who; if (o && !o.isUser) CH('ch_shot', o); }
+    for (const o of G.pl) if (o.team !== p.team && !human(o) && hyp(o.x - p.x, o.z - p.z) < 7 && rand() < 0.75) o.contestT = rr(0.05, 0.25) * SHOTQ;
+    if (kind === 'jumper' && rand() < 0.3) { const o = nearestDef(p).who; if (o && !human(o)) CH('ch_shot', o); }
   }
 
   /* the contest dunk: up from wherever you are inside the free-throw line, carried to the rim, the dunk you picked */
@@ -1048,7 +1052,7 @@
     const nd = nearestDef(p);
     if (R.pow && !s.ft && s.kind !== 'dunk' && nd.who && nd.d < 4.2 && (nd.who.y > 0.3 || nd.who.pose === 'contest')) R.pow('', (p.x + nd.who.x) / 2, (p.ht || 78) / 12 + p.y + 1.4, (p.z + nd.who.z) / 2, nd.d < 2.4 ? 0.62 : 0.42);   // a hand in it
     /* how covered you were, next to the timing: a miss explains itself */
-    if (s.user && timing) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing === 'Excellent' ? 'Perfect' : timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}${hotZ ? ' · Hot zone' : ''}`; }
+    if (s.user && timing && !G.asNet) { const cov = nd.d > 6 ? 'Wide open' : nd.d > 3.5 ? 'Open' : nd.d > 2 ? 'Contested' : 'Smothered'; $('#rel').textContent = `${timing === 'Excellent' ? 'Perfect' : timing} · ${cov}${s.fade ? ' · Fadeaway' : s.kind === 'hook' ? ' · Hook' : ''}${hotZ ? ' · Hot zone' : ''}`; }
     /* your defense on the shot, said out loud: it is how you learn what a good contest is */
     { const u = G.user;
       if (u && p.team !== u.team && !G.drill && s.kind !== 'dunk' && !s.oop && (nd.who === u || u.slot === p.slot)) {
@@ -1153,6 +1157,7 @@
 
   let relT = 0;
   function showRelease(txt, m, w) {
+    if (G && G.asNet) { netFx.push(['rel', txt]); return; }
     const r = $('#rel'); r.textContent = txt === 'Excellent' ? 'Perfect' : txt; r.className = 'on ' + (txt === 'Excellent' ? 'g' : /Slightly/.test(txt) ? 'y' : 'r');
     relT = 1.4;
   }
@@ -1393,7 +1398,51 @@
     const c = $('#parkcard'), t = $('#tut'); if (!c) return;
     c.style.top = t && !t.hidden ? `${t.offsetTop + t.offsetHeight + 8}px` : '';
   }
+  /* ---------- the park, online: other people walking around in it (PB.net brings them; see js/net.js) ----------
+     Each one is a player of his own on team 1, moved by what his phone sends a few times a second: smoothed toward
+     where he was last seen, his ball carried along between updates by its own speed and gravity. */
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const netKit = d => PB.kit(PB.team(d.kitT) || PB.TEAMS[(String(d.id || '').length * 7) % PB.TEAMS.length], 'icon');
+  function netJoin(id, name, d) {
+    if (!G || !G.park || G.netP[id]) return;
+    const p = mkOnCourt(Object.assign({}, d, { id: 'net:' + id }), 1, 20 + Object.keys(G.netP).length);
+    p.netP = id; p.name = name; p.x = rr(-6, 6); p.z = rr(-30, 30); p.seen = false; p.d.handle = name;
+    G.pl.push(p); G.netP[id] = p; R.addPlayer(p, netKit(d));
+    toast(`${name} is here`, 'call'); AU().play('click');
+  }
+  function netMove(id, s) {
+    const p = G && G.netP && G.netP[id]; if (!p) return;
+    const a = String(s).split(',');
+    const n = i => { const v = parseFloat(a[i]); return isFinite(v) ? v : 0; };
+    p.nt = { x: clamp(n(0), -40, 40), z: clamp(n(1), -70, 70), face: n(2), pose: (a[3] || '').replace(/[^a-z0-9]/gi, '').slice(0, 12), y: clamp(n(4), 0, 12) };
+    if (a.length >= 11) { const st = a[10] === 'a' ? 'air' : a[10] === 'h' ? 'hold' : 'loose', bb = { x: n(5), y: n(6), z: n(7), vx: n(8), vy: n(9), vz: 0, st };
+      bb.vz = n(11); p.pb = Object.assign(p.pb || {}, bb); } else p.pb = null;
+    if (!p.seen) { p.seen = true; p.x = p.nt.x; p.z = p.nt.z; p.face = p.nt.face; }
+  }
+  function netLeave(id) {
+    const p = G && G.netP && G.netP[id]; if (!p) return;
+    delete G.netP[id]; const i = G.pl.indexOf(p); if (i >= 0) G.pl.splice(i, 1); R.removePlayer && R.removePlayer(p);
+    if (G.parkAt === 'net:' + id) { G.parkAt = undefined; $('#parkcard').hidden = true; }
+    toast(`${p.name} left`, '');
+  }
+  function netPark(dt) {
+    for (const id in G.netP) {
+      const p = G.netP[id], t = p.nt; if (!t) continue;
+      const k = Math.min(1, dt * 7), ox = p.x, oz = p.z;
+      p.x += (t.x - p.x) * k; p.z += (t.z - p.z) * k; p.y += (t.y - p.y) * Math.min(1, dt * 14);
+      let df = t.face - p.face; df = Math.atan2(Math.sin(df), Math.cos(df)); p.face += df * Math.min(1, dt * 9);
+      p.vx = dt > 0 ? (p.x - ox) / dt : 0; p.vz = dt > 0 ? (p.z - oz) / dt : 0; p.pose = t.pose;
+      if (p.pb && p.pb.st !== 'hold') { const b = p.pb; b.vy -= 32 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; if (b.y < 0.39) { b.y = 0.39; b.vy = Math.abs(b.vy) > 3 ? -b.vy * 0.55 : 0; } }
+      else if (p.pb) { const f = p.face; p.pb.x = p.x + Math.sin(f) * 1.2; p.pb.z = p.z + Math.cos(f) * 1.2; p.pb.y = 0.6 + Math.abs(Math.sin(G.t * 7)) * 2.4; }
+    }
+    /* and where you are, for everyone else */
+    if (PB.net && PB.net.room && G.user) { const u = G.user, b = G.ball, f1 = v => (Math.round(v * 10) / 10).toString(), bp = G.nbp || { x: b.x, y: b.y, z: b.z };
+      const bv = dt > 0 ? { x: (b.x - bp.x) / dt, y: (b.y - bp.y) / dt, z: (b.z - bp.z) / dt } : { x: 0, y: 0, z: 0 }; G.nbp = { x: b.x, y: b.y, z: b.z };   // the ball's speed, from where it was a frame ago
+      const has = b.holder === u, st = has ? 'h' : b.state === 'shot' || b.state === 'pass' || b.state === 'feed' ? 'a' : 'l';
+      PB.net.move([u.x, u.z, Math.round(u.face * 100) / 100].map(f1).join(',') + ',' + (u.pose || '') + ',' + f1(u.y || 0) + ',' + [b.x, b.y, b.z, bv.x, bv.y].map(f1).join(',') + ',' + st + ',' + f1(bv.z)); }
+  }
   function parkStep(dt) {
+    if (G.netP) netPark(dt);
     if (R.cineOn && R.cineOn() && G.user && Math.hypot(G.user.vx || 0, G.user.vz || 0) > 2) R.cine(null);   // walking off ends the arrival shot
     const u = G.user;
     /* the stanchions are solid */
@@ -1402,9 +1451,16 @@
     if (G.guideXZ && near && near.id === G.guideXZ.id) G.guideXZ = null;
     /* or a regular: walk right up to one and you can challenge him */
     let guy = null;
-    if (!near) { let bd = 4.2; for (const p of G.pl) if (p.npc) { const d = hyp(p.x - u.x, p.z - u.z); if (d < bd) { bd = d; guy = p; } } }
-    const key = near ? near.id : guy ? 'npc:' + guy.d.id : undefined;
-    if (key !== G.parkAt && guy && !near) {
+    if (!near) { let bd = 4.2; for (const p of G.pl) if (p.npc || p.netP) { const d = hyp(p.x - u.x, p.z - u.z); if (d < (p.netP ? 6 : bd)) { bd = d; guy = p; } } }
+    const key = near ? near.id : guy ? (guy.netP ? 'net:' + guy.netP : 'npc:' + guy.d.id) : undefined;
+    if (key !== G.parkAt && guy && guy.netP && !near) {
+      /* someone online: challenge him (his phone asks him) */
+      G.parkAt = key; R.stationLit && R.stationLit(null); const c = $('#parkcard'), id = guy.netP;
+      c.innerHTML = `<div class="pci" style="--sc:#ffffff"><b>${esc(guy.name)}</b><span>online · ${esc(guy.d.pos || '')} · ${+guy.d.ovr || ''} overall</span></div><div class="pcb"><button class="big" data-nk="1">1 on 1</button><div class="pc2"><button class="ghost" data-nk="3">3 on 3</button><button class="ghost" data-nk="5">Full game</button></div></div>`;
+      c.hidden = false; placeCard();
+      c.querySelectorAll('[data-nk]').forEach(b0 => b0.onclick = () => { if (opts.onNetChallenge) opts.onNetChallenge(id, +b0.dataset.nk, guy.name); });
+    }
+    else if (key !== G.parkAt && guy && !near) {
       G.parkAt = key; R.stationLit && R.stationLit(null); const c = $('#parkcard');
       c.innerHTML = `<div class="pci" style="--sc:#4cffb0"><b>${guy.name}</b><span>park regular · ${guy.d.pos} · ${guy.d.ovr} overall</span></div><div class="pcb"><button class="big" id="parkgo">1 on 1</button><div class="pc2"><button class="ghost" id="parkhs">HORSE</button><button class="ghost" id="parktk">Talk</button></div></div>`;
       c.hidden = false; placeCard(); $('#parkgo').onclick = () => leavePark(key); $('#parkhs').onclick = () => leavePark('horse:' + guy.d.id);
@@ -2074,7 +2130,7 @@
     if (G.shotClock < 6 && rand() < 0.3) startShot(p);
     /* the computer has moves too: a crossover at a defender in his face, which can leave him (or you) stumbling */
     if (p.moveCd <= 0 && p.hold > 0.6 && nd < 4 && rand() < 0.04 + p.r.handle / 2500) {
-      const def = nearestDef(p).who, Bs = R.basis(), side = rand() < 0.5 ? 1 : -1;
+      const def = nearestDef(p).who, Bs = basis(), side = rand() < 0.5 ? 1 : -1;
       p.move = 0.35; p.moveCd = 1.6;
       const sp = maxSpeed(p) * 1.3; p.vx = (Bs.rx * side) * sp; p.vz = (Bs.rz * side) * sp;
       { const from = p.dribHand || 1, fx = Math.sin(p.face), fz = Math.cos(p.face); p.dribHand = (p.vx * -fz + p.vz * fx) >= 0 ? 1 : -1;
@@ -2447,13 +2503,17 @@
   }
 
   /* ---------- the user ---------- */
+  /* the camera's right and forward, for turning the stick into the floor: the other player's own, in an online game */
+  const basis = () => (G && G.asNet && input.B ? input.B : R.basis());
+  const human = p => !!(p && (p.isUser || p.remote));   // a man someone is playing: the computer's reactions are not his
   function stickWorld() {
+    if (G && G.asNet) { const w = input.w; return w && w.m > 0.12 ? { x: w.x, z: w.z, m: Math.min(1, w.m) } : null; }
     let sx = input.sx, sy = input.sy;
     const k = input.keys;
     if (k.left || k.right || k.up || k.down) { sx = (k.right ? 1 : 0) - (k.left ? 1 : 0); sy = (k.down ? 1 : 0) - (k.up ? 1 : 0); const L = hyp(sx, sy) || 1; sx /= L; sy /= L; }
     const m = hyp(sx, sy);
     if (m < 0.12) return null;
-    const B = R.basis();
+    const B = basis();
     return { x: B.rx * sx + B.fx * -sy, z: B.rz * sx + B.fz * -sy, m: Math.min(1, m) };
   }
   function userStep(u, dt) {
@@ -2474,7 +2534,7 @@
     }
     const w = stickWorld();
     footwork(u, w, dt);
-    const off = G.ball.holder ? G.ball.holder.team === 0 : G.poss === 0;
+    const off = G.ball.holder ? G.ball.holder.team === u.team : G.poss === u.team;
     if (w) {
       G.idle = 0;
       const sprint = w.m > 0.82 ? 1 : 0.72;
@@ -2543,6 +2603,7 @@
   /* H-O-R-S-E: while he shoots, you watch (no jumping at his shot, no reaching for his ball) */
   const sidelined = () => !!(G.horse && G.drill && G.drill.shooter !== G.user);
   function pressA(down) {
+    if (netG()) { netPress(down ? 'A1' : 'A0'); return; }
     const u = G.user; if (!u || sidelined()) return;
     if (G.phase === 'ft' && G.ftq && G.ftq.shooter === u) {
       if (down) { G.ftMeter = 0.0001; } else if (G.ftMeter > 0) { const m = G.ftMeter; G.ftMeter = 0; shootFT(m); }
@@ -2568,10 +2629,10 @@
     p.shoot = null; if (p.y > 0 || p.vy > 0) p.vy = -5; p.pose = ''; p.fakeN = p.fakeT !== undefined && G.t - p.fakeT < 5 ? (p.fakeN || 1) + 1 : 1; p.fakeT = G.t; p.fakeCd = G.t + 0.55;
     let bit = null;
     for (const o of G.pl) { if (o.team === p.team || o.contestT === undefined) continue; delete o.contestT;
-      if (o.isUser || o.y > 0 || hyp(o.x - p.x, o.z - p.z) > 6.5) continue;
+      if (human(o) || o.y > 0 || hyp(o.x - p.x, o.z - p.z) > 6.5) continue;
       const ch = clamp(0.62 - (o.r.perD || 60) * 0.005 + ((p.r.three || 60) + (p.r.mid || 60) - 120) * 0.002, 0.12, 0.6) / p.fakeN;
       if (rand() < ch) { o.jg = GRAV * 1.6; o.vy = Math.sqrt(2 * o.jg * (1.5 + o.r.vert * 0.02)); o.pose = 'contest'; o.bitT = G.t; bit = o; } }
-    if (p.isUser) { if (bit) { toast(pickOf(['He bit on the fake', 'Got him in the air', 'He jumped at it']), 'make'); { const v = nearestDef(p).who; if (v) powAt('!?', v, 0.8, false, 1.6); } grade(0.3, 'Pump fake'); buzz(10); if (home(p.team)) AU().crowd.react('ooh', 0.5); }
+    if (p === G.user) { if (bit) { toast(pickOf(['He bit on the fake', 'Got him in the air', 'He jumped at it']), 'make'); { const v = nearestDef(p).who; if (v) powAt('!?', v, 0.8, false, 1.6); } grade(0.3, 'Pump fake'); buzz(10); if (home(p.team)) AU().crowd.react('ooh', 0.5); }
       else { /* the first few times, say what just happened: a tap is a fake, a hold is a shot */
         let n = 0; try { n = +localStorage.getItem('pbb.fakes') || 0; if (n < 5) localStorage.setItem('pbb.fakes', n + 1); } catch (e) { /* fine */ }
         toast(n < 5 ? 'Pump fake · hold Shoot to shoot' : 'Pump fake', 'call'); }
@@ -2583,9 +2644,11 @@
     let best = null, bd = 54;
     for (const m of G.pl) { if (m.team !== u.team || m === u) continue; const q = R.toScreen(m.x, m.y + 3.4, m.z); if (!q) continue; const d = Math.hypot(q.x - cx, q.y - cy); if (d < bd) { bd = d; best = m; } }
     if (!best) return false;
+    if (netG()) { netPress('P', G.pl.indexOf(best)); return true; }
     if (u.inb) { u.inb = false; G.inb = null; } passTo(u, best); buzz(8); return true;
   }
   function pressB() {
+    if (netG()) { netPress('B'); return; }
     const u = G.user; if (!u || G.phase !== 'live' || sidelined()) return;
     const b = G.ball;
     if (b.holder === u) {
@@ -2594,7 +2657,7 @@
       if (r) { if (u.inb) { u.inb = false; G.inb = null; } passTo(u, r); }
       return;
     }
-    const off = b.holder ? b.holder.team === 0 : G.poss === 0;
+    const off = b.holder ? b.holder.team === G.user.team : G.poss === G.user.team;
     if (off) { G.callT = 2.5; toast('Calling for it', 'call'); CH('ch_ball', u); return; }
     /* steal */
     if (u.reachCd > 0) return;
@@ -2628,7 +2691,7 @@
   function footwork(u, w, dt) {
     const bh0 = G.ball.holder, offBall = !!bh0 && bh0 !== u && bh0.team === u.team && !G.park;   // without the ball: a cut or a burst loses the man guarding you, and you are open for the pass
     if ((bh0 !== u && !offBall) || u.shoot || u.move > 0 || u.postUp > 0 || u.inb || G.phase !== 'live' || (G.drill && G.drill.kind !== 'free')) { u.fwStill = 0; u.fwStop = 0; return; }
-    const sp = hyp(u.vx, u.vz), top = maxSpeed(u), nd = nearestDef(u), dv = nd.who && !nd.who.isUser && nd.d < 6.5 ? nd.who : null;
+    const sp = hyp(u.vx, u.vz), top = maxSpeed(u), nd = nearestDef(u), dv = nd.who && !human(nd.who) && nd.d < 6.5 ? nd.who : null;
     const hx = 0 - u.x, hz = hoopZ(u.team) - u.z, hl = hyp(hx, hz) || 1;
     /* a step on him: he trails */
     if (dv && !offBall && distHoop(u.x, u.z, u.team) < distHoop(dv.x, dv.z, u.team) - 0.7 && (u.vx * hx + u.vz * hz) / hl > 5.5) {
@@ -2665,14 +2728,15 @@
     } else { dv.stun = Math.max(dv.stun || 0, 0.12); dv.beatAmt = 0.3; }
   }
   function pressC(kind, dir) {
+    if (netG()) { netPress('C', kind || 0, dir || 0); return; }
     const u = G.user; if (!u || G.phase !== 'live' || u.inb || sidelined()) return;
     if (G.drill && G.drill.kind === 'dunk') { if (!u.shoot && u.y <= 0) { const D = G.drill; D.style = (D.style + (kind === 'step' ? STYLES.length - 1 : 1)) % STYLES.length; toast(STYLES[D.style][0], 'call'); buzz(8); } return; }
     const b = G.ball;
     if (b.holder === u) {
       if (u.moveCd > 0 || u.shoot) return;
       kind = kind || 'cross';
-      const nd = nearestDef(u), Bs = R.basis();
-      const hx = 0 - u.x, hz = hoopZ(0) - u.z, hl = hyp(hx, hz) || 1;
+      const nd = nearestDef(u), Bs = basis();
+      const hx = 0 - u.x, hz = hoopZ(u.team) - u.z, hl = hyp(hx, hz) || 1;
       /* a big inside sixteen feet: down on Move posts up instead of stepping back */
       if (kind === 'step' && ['PF', 'C'].includes(u.d.pos) && hl < 16 && !u.postUp) { u.postSaid = false; u.postUp = 2.6; u.moveCd = 0.6; toast('Post up', 'call'); buzz(10); return; }
       let dx, dz, sp = maxSpeed(u) * 1.4, shake = 0.18, lbl = '';
@@ -2725,11 +2789,11 @@
         const wrong = Math.abs(dl) > 2 && Math.abs(ml) > 0.35 && dl * ml < 0, caught = dv.y > 0.3 || dv.reachT > 0;
         let ch = clamp(shake + 0.1 + (u.r.handle - dv.r.perD) * 0.008, 0.2, 0.7) + 0.05 * bt(u, 'handles') + (tkoOn() ? 0.15 : 0) + (wrong ? 0.42 : 0) + (caught ? 0.5 : 0) - (u.comboN >= 2 ? 0 : stale(u, kind));
         if (u.comboN >= 3) ch = Math.max(ch, 0.8);   // the third move of a combo: nobody stays in front of that
-        if (!dv.isUser) { dv.stun = Math.max(dv.stun || 0, 0.15 + 0.05 * u.comboN); dv.respT = G.t + 1.3; }
+        if (!human(dv)) { dv.stun = Math.max(dv.stun || 0, 0.15 + 0.05 * u.comboN); dv.respT = G.t + 1.3; }
         dv.beatT = G.t; dv.beatAmt = 0.4; dv.beatSide = ml >= 0 ? -1 : 1;   // he leans at the fake   // even a move he reads costs him half a step, and he gives you a step of room after it
         u.mvAt = G.t;
         if (rand() < Math.min(ch, 0.95)) { if (wrong || caught) feedMove(caught ? 'Caught him reaching' : 'Wrong-footed'); nd.who.lagT = G.t + lagFor(nd.who) * 1.1; dv.beatAmt = 1;
-          if (!dv.isUser && kind !== 'step' && kind !== 'escape') { dv.vx = -dx / L * 7; dv.vz = -dz / L * 7; }   /* a stumbling step the wrong way as you go the other */ if (R.puff) R.puff(dv.x, dv.z, 1.1); nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.2;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); B('ankles', { prio: 5, follow: 0.6 }); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
+          if (!human(dv) && kind !== 'step' && kind !== 'escape') { dv.vx = -dx / L * 7; dv.vz = -dz / L * 7; }   /* a stumbling step the wrong way as you go the other */ if (R.puff) R.puff(dv.x, dv.z, 1.1); nd.who.stun = kind === 'spin' ? 0.9 : 0.75; u.st.shake++; u.burstT = G.t + 1.2;   /* past him: a second of extra speed to make it count */ if (rand() < (tkoOn() ? 0.5 : 0.28)) { ankles(nd.who); B('ankles', { prio: 5, follow: 0.6 }); toast('Ankles!', 'make'); powAt('ANKLES!', nd.who, 1.05, false, 1.5); if (R.burst) R.burst(nd.who.x, 1.2, nd.who.z, 6, 0.6); AU().crowd.react('roar', 1); buzz([20, 40, 20]); } else { toast(kind === 'step' || kind === 'escape' ? pickOf(['Created space', 'Room to shoot', 'Stepped back']) : pickOf(['Shook him', 'Lost him', 'Left him there', 'Got by him']), 'make'); powAt(kind === 'step' || kind === 'escape' ? 'SPACE!' : pickOf(['SHOOK!', 'BYE!', 'LATER!']), nd.who, 0.8); } grade(1, 'Beat your man'); B('shake', { prio: 4 }); AU().crowd.react('ooh', 0.9); }
         else if (kind === 'spin' && rand() < clamp(0.08 + (nd.who.r.steal - u.r.handle) * 0.003, 0.02, 0.18)) {
           /* a spin into a set defender can cost you the ball */
           nd.who.st.stl++; u.st.tov++; grade(-3, 'Lost it on the spin'); toast('Stripped', 'opp'); AU().play('steal', { x: u.x }); give(nd.who); return;
@@ -2738,7 +2802,7 @@
       AU().play('squeak', { x: u.x }); if (G.tut) G.tut.moved = true; if (G.park && rand() < 0.5) parkSay('move', 18);
       return;
     }
-    const off = b.holder ? b.holder.team === 0 : G.poss === 0;
+    const off = b.holder ? b.holder.team === G.user.team : G.poss === G.user.team;
     if (!off && G.switching) { switchNearest(); return; }
     if (off) { u.cutUser = 1.6; toast('Cutting', 'call'); G.callT = 2; }
   }
@@ -2785,7 +2849,9 @@
     G.pmLast = G.score.slice();
   }
   /* leaving a game from the pause menu: it ends here, nothing is recorded, and you are back where you came from */
+  const netG = () => !!(G && G.net && G.net.role === 'guest' && !G.asNet);
   function quitGame() {
+    if (G && G.net && !G.net.over) { netQuit(); return; }
     const o = opts; cancelAnimationFrame(raf);
     AU().muffle(false); if (AU().pulse) AU().pulse(false); if (AU().crowd) AU().crowd.on(false); if (PB.booth) PB.booth.stop();
     if (R.cine) R.cine(null); if (R.setIntro) R.setIntro(0);
@@ -2919,6 +2985,7 @@
     /* players */
     const live = G.phase === 'live';
     for (const p of G.pl) {
+      if (p.netP) continue;   // someone online, in his own park: netPark moves him
       if (p.stun > 0) p.stun -= dt;
       /* stamina (yours): sprinting drains it, walking and stoppages bring it back; empty legs are slow and short */
       if (p.isUser && !G.switching && !G.drill) {
@@ -2990,14 +3057,15 @@
         const s = p.shoot;
         if (s.kind === 'layup') { p.tx = 0; p.tz = hoopZ(p.team) - dirOf(p.team) * 2.2; seek(p, dt, 0.8); }
         else if (s.kind === 'dunk') { const dx = 0 - p.x, dz = hoopZ(p.team) - dirOf(p.team) * 1.0 - p.z, d = hyp(dx, dz), v = d > 0.05 ? Math.min(21, d / Math.max(0.05, s.T * 0.85 - s.t)) : 0; p.vx = d > 0.05 ? dx / d * v : 0; p.vz = d > 0.05 ? dz / d * v : 0; }   // a dunk is carried all the way to the rim: he arrives as the ball goes down
-        if (s.user && s.kind === 'dunk' && s.t / s.T >= 0.82) release(p, 0.82);   // yours goes down at the top of the jump by itself: hold Shoot through it
-        else if (s.user && s.t / s.T > 1.12) release(p, s.t / s.T);
+        if (s.user && s.kind === 'dunk' && s.t / s.T >= 0.82) ctl(p, () => release(p, 0.82));   // yours goes down at the top of the jump by itself: hold Shoot through it
+        else if (s.user && s.t / s.T > 1.12) ctl(p, () => release(p, s.t / s.T));
         else if (!s.user && s.t / s.T >= s.aiRel) release(p, s.aiRel);
       }
       if (p.npc) { /* a park regular: parkStep moves him */ }
       else if (!live) { if (G.phase === 'check' && p.ckx !== undefined) { p.tx = p.ckx; p.tz = p.ckz; seek(p, dt, 0.7); if (b.holder === p) p.pose = 'dribble'; } else if (G.phase === 'dead' || G.phase === 'ftflight') { p.vx *= 0.9; p.vz *= 0.9; } }
       else if (p.inb) { /* out of bounds with the ball: inboundStep has him */ }
       else if (p.isUser && G.drill) { if ((G.drill.kind === 'dunk' || G.drill.kind === 'free' || (G.drill.kind === 'horse' && G.drill.free)) && !p.shoot && p.y <= 0 && !G.auto) userStep(p, dt); /* else the drill moves you */ }
+      else if (p.remote && !G.auto) asUser(p, () => userStep(p, dt));   // the other player, online
       else if (p.isUser && !G.auto) {
         userStep(p, dt);
         if (p.cutUser > 0) { p.cutUser -= dt; if (!stickWorld()) { p.tx = 0; p.tz = hoopZ(0) - 6; seek(p, dt, 1); } }
@@ -3394,6 +3462,10 @@
     $('#h2').onclick = () => { ov.hidden = true; G.paused = false; AU().muffle(false); };
   }
   function finish() {
+    if (G.net && G.net.role === 'host' && !G.net.over) {   // the last frame tells the other phone how it ended
+      G.net.over = true; netTap(false);
+      G.net.link.send(JSON.stringify({ n: ++netSeq, end: { score: G.score.slice(), box: G.pl.map(p => ({ ...p.st })), quit: !!G.net.quit }, fx: netFx.splice(0) }));
+      setTimeout(() => G.net.link.end && G.net.link.end(), 4000); }
     if (R.cine) R.cine(null);
     { const wg = $('#warmgo'); if (wg) { wg.remove(); const fm = $('#ftmsg'); if (fm) { fm.hidden = true; fm.textContent = ''; } } }
     G.phase = 'end';
@@ -3407,6 +3479,7 @@
     const line = (G.qsc || []).concat([G.score.slice()]), flow = (G.flow || []).concat([[Math.round(G.q * G.qlen * 60), G.score[0] - G.score[1]]]);
     const res = { line, flow, qlen: G.qlen, drill: G.drill ? { kind: G.drill.kind, score: G.drill.score, made: G.drill.made, att: G.drill.att, scores: G.drill.scores } : null, reels: G.reels || [], score: G.score.slice(), box, grade: G.user ? gradeLetter(G.grade) : null, gradeScore: G.grade,
       gradeLog: G.gradeLog, parkGo: G.parkGo || null, user: G.user ? { ...G.user.st } : null, teams: G.teams, q: G.q, winner: !!G.userWinner, half: G.half ? { target: G.target, ones: G.ones, n: G.pl.length / 2 } : null,
+      net: G.net ? { role: G.net.role, name: G.net.name, kind: G.net.kind, left: !!G.net.left, quit: !!G.net.quit || !!(G.netResult && G.netResult.quit), lost: !!(G.netResult && (G.netResult.lost || G.netResult.left)), mine: G.user ? G.user.team : 0 } : null,
       shots: (G.shotLog || []).filter(x => x.user).map(x => [Math.round(x.x * 10) / 10, Math.round(x.a * 10) / 10, x.made ? 1 : 0]), chem: G.chem ? { toMe: G.chem.toMe, fromMe: G.chem.fromMe } : null };
     /* your profile: everything you have done in real games (full court and the blacktop), in every mode */
     if (G.user && !G.park && !G.drill && !G.horse && G.t > 30) { try {
@@ -3519,6 +3592,140 @@
      and-one of yours or a shot at the buzzer plays back at half speed from a camera circling the play, in the pause
      before the inbound; a tap skips it. Settings can turn them off. */
   const SNAP = ['x', 'y', 'z', 'vx', 'vz', 'face', 'pose', 'jg', 'vy', 'spinA', 'reachT'];
+
+  /* ---------- an online game (js/net.js carries it) ----------
+     The host runs the game. The other player's man (p.remote) is moved by the stick and buttons his phone sends: the
+     same controls as yours, run with him standing in for you (asUser), his camera's directions, his toasts and his
+     shot feedback sent back to him. Fifteen times a second the host sends everyone's place, pose and motion, the
+     ball, the clock and the score, and the sounds and effects since the last frame; the guest's phone draws that a
+     frame behind (so it always has two to move between) and sends its controls twenty times a second. */
+  let netFx = [], netSeq = 0, netSendT = 0, netEv = 0, netLastIn = 0;
+  const NETK = ['x', 'y', 'z', 'vx', 'vz', 'face', 'pose', 'vy', 'jg', 'spinA', 'reachT', 'dribHand', 'celebK', 'celebT', 'fallT', 'inb', 'hangT', 'fakeT', 'passT0', 'fadeT', 'burstT', 'dunkRel', 'offD', 'runD', 'stun', 'count', 'dph', 'tiredP', 'beatT', 'beatSide', 'beatAmt', 'sigT', 'brakeD', 'handOnly', 'catchT'];
+  const rn = v => typeof v === 'number' ? Math.round(v * 100) / 100 : typeof v === 'string' || typeof v === 'boolean' ? v : null;
+  function asUser(p, fn) {
+    const u0 = G.user, i0 = input, a0 = G.asNet;
+    G.user = p; input = G.netIn || { w: null }; G.asNet = true;
+    try { return fn(); } finally { G.user = u0; input = i0; G.asNet = a0; }
+  }
+  const ctl = (p, fn) => (p.remote ? asUser(p, fn) : fn());
+  function netSnap() {
+    const b = G.ball, ix = q => (q ? G.pl.indexOf(q) : -1);
+    return JSON.stringify({ n: ++netSeq, t: rn(G.t),
+      p: G.pl.map(p => [NETK.map(k => rn(p[k])), p.shoot ? [rn(p.shoot.t), rn(p.shoot.T), p.shoot.kind, p.shoot.js ? 1 : 0, p.shoot.fade ? 1 : 0, rn(p.shoot.gather || 0), p.shoot.user ? 1 : 0, p.shoot.three ? 1 : 0] : 0,
+        p.mv ? [p.mv.k, rn(p.mv.t0), rn(p.mv.T), p.mv.a, p.mv.b, p.mv.side] : 0, p.st ? [p.st.pts, p.st.reb, p.st.ast] : 0]),
+      b: [rn(b.x), rn(b.y), rn(b.z), b.state, ix(b.holder), ix(b.to), b.bounce ? 1 : 0, rn(b.sx), rn(b.sz)],
+      g: [G.score[0], G.score[1], G.q, rn(G.clock), rn(G.shotClock), G.phase, G.poss, G.possN || 0, G.ftq ? ix(G.ftq.shooter) : -1, G.to ? G.to.slice() : [0, 0], G.tf.slice()],
+      fx: netFx.splice(0, 40) });
+  }
+  /* the host: the guest's controls in, frames out */
+  function netHost(dt) {
+    const N = G.net, me = N.remote;
+    if (me && G.netIn && G.netIn.e) for (const e of G.netIn.e) { if (e[0] <= netEv) continue; netEv = e[0]; netEvent(me, e); }
+    if (me && me.remote && N.lastIn && performance.now() - N.lastIn > 12000) { me.remote = false; toast(`${N.name} lost the connection: the computer has him`, 'call'); }
+    netSendT += dt;
+    if (netSendT >= 1 / 15) { netSendT = 0; const f = netSnap(); N.lastLen = f.length; N.link.send(f); }
+  }
+  function netEvent(p, e) {
+    const k = e[1];
+    asUser(p, () => {
+      if (k === 'A1') pressA(true);
+      else if (k === 'A0') { const held = clamp(+e[2] || 0, 0, 3);
+        if (G.phase === 'ft' && G.ftq && G.ftq.shooter === p && G.ftMeter > 0) G.ftMeter = Math.max(0.0001, held / 0.9);
+        else if (p.shoot && p.shoot.user && p.shoot.kind !== 'dunk') p.shoot.t = clamp(held, 0, p.shoot.T * 1.12);   // his timing, by his own clock: the network's delay is not his
+        pressA(false); }
+      else if (k === 'L') { p.remote = false; G.net.left = true; const a0 = G.asNet; G.asNet = false; toast(`${G.net.name} left the game: the computer has him`, 'call'); G.asNet = a0; }
+      else if (k === 'B') pressB();
+      else if (k === 'C') pressC(e[2] || undefined, +e[3] || undefined);
+      else if (k === 'D') pressD();
+      else if (k === 'P') { const m = G.pl[+e[2]]; if (m && m.team === p.team && m !== p && G.ball.holder === p && !p.shoot && G.phase === 'live') { if (p.inb) { p.inb = false; G.inb = null; } passTo(p, m); } }
+    });
+  }
+  /* the guest: two frames kept, drawn between them */
+  function netFrameIn(str) {
+    let f; try { f = JSON.parse(str); } catch (e) { return; }
+    const N = G.net; if (!f || !(f.n > (N.lastN || 0))) return;
+    N.lastN = f.n; N.lastIn = performance.now();
+    if (f.end) { for (const x of f.fx || []) netPlayFx(x); netEnd(f.end); return; }
+    f.at = N.lastIn; N.a = N.b || f; N.b = f;
+    for (const x of f.fx || []) netPlayFx(x);
+  }
+  function netPlayFx(x) {
+    try {
+      if (x[0] === 't') { const a0 = G.asNet; G.asNet = false; toast(x[1], x[2]); G.asNet = a0; }
+      else if (x[0] === 'rel') showRelease(x[1]);
+      else if (x[0] === 'a') AU().play(x[1], x[2] || undefined);
+      else if (x[0] === 'cr') AU().crowd.react(x[1], x[2]);
+      else if (x[0] === 'r' && typeof R[x[1]] === 'function') R[x[1]](...x[2].map(v => (v && v.p !== undefined ? G.pl[v.p] : v)));
+      else if (x[0] === 'bo' && PB.booth) PB.booth.say(x[1], x[2] || undefined);
+      else if (x[0] === 'f') feed(x[1]);
+    } catch (e) { /* an effect that does not apply here */ }
+  }
+  function netApply() {
+    const N = G.net, A = N.a, Bf = N.b; if (!Bf) return;
+    const span = Math.max(30, Bf.at - A.at), u = A === Bf ? 1 : clamp((performance.now() - Bf.at) / span, 0, 1);
+    const L = (a, c) => (typeof a === 'number' && typeof c === 'number' ? a + (c - a) * u : c);
+    G.t = L(A.t, Bf.t);
+    G.pl.forEach((p, i) => {
+      const fa = A.p[i], fb = Bf.p[i]; if (!fb) return;
+      NETK.forEach((k, j) => { const v = L(fa ? fa[0][j] : fb[0][j], fb[0][j]); p[k] = v === null ? undefined : v; });
+      if (k2(fa, fb)) { let d = fb[0][5] - fa[0][5]; d = Math.atan2(Math.sin(d), Math.cos(d)); p.face = fa[0][5] + d * u; }
+      const sh = fb[1]; p.shoot = sh ? { t: sh[0], T: sh[1], kind: sh[2], js: !!sh[3], fade: !!sh[4], gather: sh[5] || 0, user: !!sh[6], three: !!sh[7] } : null;
+      const mv = fb[2]; p.mv = mv ? { k: mv[0], t0: mv[1], T: mv[2], a: mv[3], b: mv[4], side: mv[5], bn: true } : null;
+      if (fb[3]) { p.st.pts = fb[3][0]; p.st.reb = fb[3][1]; p.st.ast = fb[3][2]; }
+    });
+    const b = G.ball, ba = A.b, bb = Bf.b;
+    b.x = L(ba[0], bb[0]); b.y = L(ba[1], bb[1]); b.z = L(ba[2], bb[2]); b.state = bb[3]; b.holder = bb[4] >= 0 ? G.pl[bb[4]] : null; b.to = bb[5] >= 0 ? G.pl[bb[5]] : null; b.bounce = !!bb[6]; b.sx = bb[7]; b.sz = bb[8];
+    const g = Bf.g; G.score[0] = g[0]; G.score[1] = g[1]; G.q = g[2]; G.clock = L(A.g[3], g[3]); G.shotClock = L(A.g[4], g[4]); G.phase = g[5]; G.poss = g[6]; G.possN = g[7];
+    G.ftq = g[8] >= 0 ? { shooter: G.pl[g[8]] } : null; G.to = g[9]; G.tf = g[10];
+  }
+  const k2 = (fa, fb) => !!(fa && fb);
+  function netGuest(dt) {
+    const N = G.net;
+    netApply();
+    /* the free-throw meter runs here, on his own clock */
+    if (G.ftMeter > 0) { G.ftMeter += dt / 0.9; if (G.ftMeter > 1.15) G.ftMeter = 0; }
+    N.sendT = (N.sendT || 0) + dt;
+    if (N.sendT >= 0.05 || N.dirty) { N.sendT = 0; N.dirty = false; netSendIn(); }
+    if (N.lastIn && performance.now() - N.lastIn > 10000 && !N.lost) { N.lost = true; toast('Lost the host', 'opp'); setTimeout(() => { if (G && G.net === N) netEnd({ lost: true }); }, 1500); }
+  }
+  function netSendIn() {
+    const N = G.net, w = (() => { const a0 = G.asNet; G.asNet = false; const r = stickWorld(); G.asNet = a0; return r; })(), Bs = R.basis();
+    N.link.send({ w: w ? { x: rn(w.x), z: rn(w.z), m: rn(w.m) } : 0, B: { rx: rn(Bs.rx), rz: rn(Bs.rz), fx: rn(Bs.fx), fz: rn(Bs.fz) }, e: N.ev.slice(-12), at: Date.now() });
+  }
+  /* a button on the guest's phone: sent, not played here */
+  function netPress(k, a, b2) {
+    const N = G.net; N.evN = (N.evN || 0) + 1;
+    const u = G.user;
+    if (k === 'A1') { N.pressT = performance.now(); if (G.phase === 'ft' && G.ftq && G.ftq.shooter === u) G.ftMeter = 0.0001; }
+    if (k === 'A0') { a = N.pressT ? (performance.now() - N.pressT) / 1000 : 0; N.pressT = 0; G.ftMeter = 0; }
+    N.ev.push([N.evN, k, a === undefined ? null : a, b2 === undefined ? null : b2]); if (N.ev.length > 24) N.ev.shift();
+    N.dirty = true; buzz(8);
+  }
+  function netQuit() {
+    const N = G.net;
+    if (N.role === 'host') { N.quit = true; finish(); }
+    else { netPress('L'); netSendIn(); netEnd({ left: true }); }
+  }
+  function netEnd(e) {
+    const N = G.net; if (N.over) return; N.over = true;
+    if (e && e.box) G.pl.forEach((p, i) => { if (e.box[i]) Object.assign(p.st, e.box[i]); });
+    if (e && e.score) G.score = e.score.slice();
+    G.netResult = e || {};
+    finish();
+  }
+  /* the host's sounds and effects, also sent to the guest */
+  const NET_R = ['swish', 'rimSnap', 'pow', 'burst', 'puff', 'shock', 'zoom', 'hype', 'board', 'horn', 'flash', 'benchJump', 'refSignal', 'dizzy'];
+  function netTap(on) {
+    const A = PB.audio;
+    if (on) {
+      const N = G.net; N.unwrap = [];
+      const arg = v => (v && typeof v === 'object' && G.pl.includes(v) ? { p: G.pl.indexOf(v) } : v && typeof v === 'object' ? null : v);
+      for (const k of NET_R) if (typeof R[k] === 'function') { const f = R[k]; R[k] = (...a) => { netFx.push(['r', k, a.map(arg)]); return f(...a); }; N.unwrap.push(() => { R[k] = f; }); }
+      if (A && A.play) { const f = A.play; A.play = function (k, o) { if (k !== 'click') netFx.push(['a', k, o ? { x: o.x, vol: o.vol, hi: o.hi, power: o.power, len: o.len } : 0]); return f.apply(this, arguments); }; N.unwrap.push(() => { A.play = f; }); }
+      if (A && A.crowd && A.crowd.react) { const c = A.crowd, f = c.react; c.react = function (k, l) { netFx.push(['cr', k, l]); return f.apply(this, arguments); }; N.unwrap.push(() => { c.react = f; }); }
+      if (PB.booth && PB.booth.say) { const bo = PB.booth, f = bo.say; bo.say = function (k, o) { netFx.push(['bo', k, o && typeof o === 'object' ? { prio: o.prio } : 0]); return f.apply(this, arguments); }; N.unwrap.push(() => { bo.say = f; }); }
+    } else if (G.net && G.net.unwrap) { G.net.unwrap.forEach(f => f()); G.net.unwrap = null; }
+  }
   let tape = [], snapT = 0, replayCd = 0;
   function record(dt) {
     snapT += dt;
@@ -3541,7 +3748,7 @@
   }
   const reelSnd = {};
   function wantReplay(kind) {
-    if (G.park) return;   // the park has no broadcast
+    if (G.park || G.net) return;   // the park has no broadcast
     if (PB.settings && PB.settings.replays === false) return;
     if (G.t < replayCd || G.replay || tape.length < 40) return;
     replayCd = G.t + 25;
@@ -3603,6 +3810,7 @@
       if (!G.park && !G.replay) dt *= ({ Fast: 1.1, Faster: 1.2 })[st.speed] || 1; }   // Settings › Game: game speed
     if (G.hitT > 0) { G.hitT -= dt; dt = 0; }   // the beat a big play lands on: a block, a dunk, broken ankles hold for a few frames
     if (G.slowT) { if (G.ball.state === 'shot' && !G.replay) { dt *= 0.4; if (G.slowT === 1) { G.slowT = 2; AU().muffle(true); } } else { G.slowT = 0; if (!G.paused) AU().muffle(false); } }
+    if (G.net && G.net.role === 'guest') { netGuest(dt); if (G.phase === 'end') return; R.marks(null, null); R.update(G, dt); R.render(); hud(); meterUI(); return; }
     if (G.replay) {
       if (!G.paused) replayFrame(dt);
       R.update(G, G.paused || !G.replay ? 0 : dt * 0.5);
@@ -3613,6 +3821,7 @@
       const n = Math.ceil(dt / 0.017);
       for (let i = 0; i < n && G.phase !== 'end'; i++) step(dt / n);
       if (G.phase === 'end') return;
+      if (G.net) netHost(dt);
       record(dt);
       if (G.reelPend && G.t >= G.reelPend.at) reelTake();
       if (G.replayAt && G.t >= G.replayAt) { G.replayAt = 0; startReplay(); }
@@ -3636,7 +3845,7 @@
     const ftm = G.phase === 'ft' && G.ftq && G.ftq.shooter === u ? (G.ftMeter || 0.0001) : 0;
     setHidden(m, (!s && !ftm) || (s && s.kind === 'dunk' && !ftm) || (!ftm && !(G.drill && G.drill.kind !== 'free') && PB.settings && PB.settings.meterOn === 'Off'));   // (the meter stays for free throws and the contests)
     if (m.hidden) return;
-    const v = s ? s.t / s.T : ftm;
+    const v = s ? (G.net && G.net.role === 'guest' && G.net.pressT ? (performance.now() - G.net.pressT) / 1000 / s.T : s.t / s.T) : ftm;
     const w = (s ? (0.045 + (s.kind === 'jumper' ? (s.three ? u.r.three : u.r.mid) : u.r.close) * 0.0006) * (s.kind === 'jumper' ? 1 / SHOTQ : 1.1) * (tkoOn() ? 1.4 : 1) : 0.05 + u.r.ft * 0.0007) * timingEase();   // the band drawn is the band judged
     const p = R.toScreen(u.x, u.ht / 12 + u.y + 1.2, u.z);
     m.style.transform = `translate(${Math.round(p.x + 26)}px, ${Math.round(p.y - 70)}px)`;
@@ -3745,7 +3954,7 @@
     return `<div class="pcmp">${line}${rows.map(([n, a, b, x, y]) => `<div><b class="${x > y ? 'w' : ''}">${a}</b><span>${n}</span><b class="${y > x ? 'w' : ''}">${b}</b></div>`).join('')}</div>`;
   }
   function pause(on) {
-    G.paused = on;
+    G.paused = on && !G.net;   // an online game goes on: the menu is up, the clock is not stopped
     AU().muffle(on);
     const ov = $('#pause');
     if (on && ov.hidden) pauseTab = 'game';   // opened fresh: the first tab
@@ -3842,6 +4051,8 @@
   let bound = false;
   PB.Game = {
     active: false,
+    /* the park, online: career.js's online controller tells the game who is here and where */
+    net: { join: (id, n, d) => netJoin(id, n, d), move: (id, s) => netMove(id, s), leave: id => netLeave(id), here: () => !!(G && G.park && G.netP && PB.Game.active), frameSize: () => (G && G.net && G.net.lastLen) || 0 },
     toast: (t, k) => { if (G && PB.Game.active) toast(t, k); },
     /* o: { teams:[userTeam, oppTeam], rosters:[[5],[5]], userId, qlen, floor, strength:[a,b], diff, onEnd } */
     start(o) {
@@ -3866,7 +4077,7 @@
       /* the shootaround: before a real game, a minute on the floor by yourself to find your shot. Tip off whenever you
          like. Make five and you start the night loose (a little of the Takeover meter already in). Not before a
          drill, the park, a scenario or the blacktop, and not when a script is driving the page. */
-      if (!o._warm && !o.drill && !o.park && !o.scenario && !o.half && !o.switching && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && o.userId && !(PB.settings && PB.settings.warmOn === 'Off') && (!navigator.webdriver || PB.forceWarm)) {
+      if (!o._warm && !o.net && !o.drill && !o.park && !o.scenario && !o.half && !o.switching && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && o.userId && !(PB.settings && PB.settings.warmOn === 'Off') && (!navigator.webdriver || PB.forceWarm)) {
         const me = (o.rosters[0] || []).find(d => d.id === o.userId);
         if (me) { const real = o; this.start({ teams: o.teams, rosters: [[me].concat((o.rosters[0] || []).filter(d => d.id !== o.userId).slice(0, 4)), []], userId: o.userId, drill: 'free', warm: 60, qlen: 1, level: o.level, floor: o.floor || o.teams[0], homeKit: o.homeKit, _warm: true,
           onEnd: r => { real._warm = true; real.warmed = !!(r && r.drill && r.drill.made >= 5); this.start(real); } }); return; }
@@ -3901,9 +4112,15 @@
       /* the blacktop: half court, one rim, first to the target; no quarters, no free throws, no bench */
       if (o.half) { G.half = true; G.target = o.target || 21; G.ones = !!o.ones; G.mitt = !!o.mitt; G.by2 = o.by2 !== false; G.scLen = 20; G.shotClock = 20; G.qlen = 99; G.clock = 99 * 60; G.to = [0, 0]; }
       G.user = pl.find(p => p.isUser) || null;
+      /* online: the host plays the other man by what his phone sends; the guest draws what the host sends */
+      netFx = []; netSeq = 0; netEv = 0; netSendT = 0;
+      if (o.net) { G.net = Object.assign({ ev: [] }, o.net);
+        if (o.net.role === 'host') { const r = pl.find(p => p.d.id === o.net.guestId); if (r) { r.remote = true; G.net.remote = r; }
+          o.net.link.onInput(v => { G.netIn = v; G.net.lastIn = performance.now(); }); netTap(true); }
+        else o.net.link.onFrame(v => { if (G && G.net && G.net.link === o.net.link) netFrameIn(v); }); }
       { const rp = $('#rp'); if (rp) rp.hidden = true; $('#game').classList.remove('replaying'); }   // nothing of the last game's replay is left on screen
       $('#game').classList.toggle('watching', !G.user && !o.drill); $('#game').classList.remove('park', 'horse'); { const pc = $('#parkcard'); if (pc) pc.hidden = true; const tu = $('#tut'); if (tu) tu.hidden = true; } if (R.setStations) R.setStations([]);   // spectating: the broadcast without the controls
-      G.tko = !o.drill && !o.switching && G.user ? { m: o.warmed ? 0.18 : 0, on: false, until: 0, miss: 0 } : null; tkoHud();
+      G.tko = !o.drill && !o.switching && !o.net && G.user ? { m: o.warmed ? 0.18 : 0, on: false, until: 0, miss: 0 } : null; tkoHud();
       if (o.warmed) setTimeout(() => { if (G && !G.drill) toast('Warmed up', 'call'); }, 2600);
       if (o.warm) setTimeout(() => { if (G && opts.warm) { toast('Shootaround: find your shot', 'call'); if (PB.booth && PB.booth.pa) { /* quiet: the building is still filling up */ } } }, 500);
       G.home = o.floor && o.floor === o.teams[1] ? 1 : 0; G.squeakT = 0; G.organT = 20;
@@ -3936,7 +4153,7 @@
         setTimeout(() => toast(`First to ${G.target}${G.by2 ? ', win by 2' : ''}`, 'call'), 400);
       }
       /* the opening: a sweep over the arena with the matchup on screen; a tap skips it */
-      else if (!o.drill && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario && !(PB.settings && PB.settings.introOn === 'Off')) { const openIntro = () => {
+      else if (!o.drill && !o.net && !o.enterAt && !(o.stints && o.stints[0][0] > 0) && !o.scenario && !(PB.settings && PB.settings.introOn === 'Off')) { const openIntro = () => {
         G.tipT = 8.4; R.setIntro(8.0, G.user);
         const iv = $('#intro');
         iv.innerHTML = `${o.stage ? `<strong class="stg">${o.stage.title}</strong><small class="stgs">${o.stage.sub || ''}</small>` : o.story ? `<strong class="stg">${o.story.title}</strong><small class="stgs">${o.story.sub || ''}</small>` : ''}<div><i style="background:${o.teams[0].c1}"></i><b>${o.teams[0].city}</b><span>${o.teams[0].name}</span></div><em>vs</em><div><i style="background:${o.teams[1].c1}"></i><b>${o.teams[1].city}</b><span>${o.teams[1].name}</span></div><p>${(o.floor || o.teams[0]).city} · ${o.playoff ? 'Playoffs' : 'Tip-off'}</p>`;
@@ -4000,7 +4217,7 @@
       $('#a0').textContent = o.teams[0].ab || o.teams[0].id; $('#a1').textContent = o.teams[1].ab || o.teams[1].id;
       $('#sd0 i').style.background = o.teams[0].c1; $('#sd1 i').style.background = o.teams[1].c1;
       $('#feed').innerHTML = ''; $('#grade').innerHTML = G.user ? '<b>C+</b><span>Grade</span>' : '';
-      $('#grade').hidden = !G.user || !!o.switching; $('#grade').classList.remove('why'); $('#ftmsg').hidden = true; $('#pause').hidden = true;
+      $('#grade').hidden = !G.user || !!o.switching || !!o.net; $('#grade').classList.remove('why'); $('#ftmsg').hidden = true; $('#pause').hidden = true;
       if (o.drill) {
         const def = DRILLS[o.drill];
         G.drill = { kind: o.drill, def: o.drill === 'dunk' ? { ...def, dunks: o.dunks || def.dunks } : def, rack: 0, ball: 0, score: 0, made: 0, att: 0, t: def.secs, next: 0, over: false, n: 0, scores: [], style: 0 };
@@ -4012,7 +4229,7 @@
              shots up at your basket, the other two at the far one */
           if (o.warm) { G.warm = true; pl.filter(p => !p.isUser).forEach((p, i) => { p.npc = true; p.pbRim = (i < 2 ? 1 : -1) * Math.sign(hoopZ(0)); const a = (i % 2 ? 1 : -1) * rr(0.7, 1.15), d = rr(15, 22), rz = p.pbRim * RIM;
             p.x = Math.sin(a) * d; p.z = rz - p.pbRim * Math.cos(a) * d; p.face = Math.atan2(0 - p.x, rz - p.z); p.pb = { st: 'hold', x: p.x, y: 2, z: p.z, vx: 0, vy: 0, vz: 0 }; }); }
-          if (o.park) { G.park = true; G.user.x = 8; G.user.z = -5; G.user.face = 1.2; R.setStations && R.setStations(PARK);   // looking over at the wall of doors
+          if (o.park) { G.park = true; G.netP = {}; G.user.x = 8; G.user.z = -5; G.user.face = 1.2; R.setStations && R.setStations(PARK);   // looking over at the wall of doors
             /* back from a door: you come out of it, a step in front of its ring, facing the park */
             const from = o.parkAt && PARK.find(s => s.id === o.parkAt);
             if (from) { const sd = from.x > 0 ? -1 : 1; G.user.x = from.x + sd * (from.r + 3); G.user.z = from.z; G.user.face = -sd * Math.PI / 2; }   // turned back toward the door, the camera on the park side

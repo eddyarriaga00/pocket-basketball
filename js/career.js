@@ -823,9 +823,10 @@
     if (wt.length) notes.push({ who: 'My Career', text: wt[0], go: 'career' });
     notes.push({ who: 'Pro-Am', text: say('A five is looking for one more', 'Run starting in the next few minutes'), go: 'court' });
     scr().hidden = true;
+    netChip();
     PB.Game.start({ teams: [parkTeam(), PB.TEAMS[(PB.TEAMS.indexOf(parkTeam()) + 7) % PB.TEAMS.length]], rosters: [[C.me], npcs], userId: C.me.id, drill: 'free', park: true, qlen: 1, level: S.level,
       floor: parkFloor(), parkAt: from, guide: C.phase === 'combine' ? 'career' : null, tutorial: !load('pbb.tut'), tutAt: load('pbb.tutAt') || 0, parkInfo: info, parkNotes: notes, userName: C.me.first, onParkTalk: id => { if (C.talkDay !== today()) { C.talkDay = today(); C.talked = []; } if (C.talked.includes(id) || C.talked.length >= 4) return null; C.talked.push(id); C.fans = (C.fans || 0) + 10; save(); return '+10 followers: word gets around'; }, parkNext: nx ? `Play: vs ${PB.team(nx.opp).name}` : null,
-      menu: parkMenu, inPark: { wheel: prizeWheel }, onTut: done => { store('pbb.tut', done ? 1 : 2); store('pbb.tutAt', 0); }, onTutStep: i => store('pbb.tutAt', i), onEnd: r => parkGo(r.parkGo) });
+      menu: parkMenu, inPark: { wheel: prizeWheel }, onNetChallenge: netChallenge, onTut: done => { store('pbb.tut', done ? 1 : 2); store('pbb.tutAt', 0); }, onTutStep: i => store('pbb.tutAt', i), onEnd: r => parkGo(r.parkGo) });
   }
   function parkGo(id) {
     id = id || 'career';
@@ -917,6 +918,142 @@
     ov.querySelectorAll('[data-go]').forEach(b => b.onclick = () => ctl.go(b.dataset.go));
     ov.querySelectorAll('[data-tr]').forEach(g => g.addEventListener('click', () => ctl.travel(g.dataset.tr)));
     ov.scrollTop = 0;
+  }
+
+  /* ---------- the park, online (js/net.js) ----------
+     The Online button at the top of the park: the public park, or a private one by a five-letter code you send a
+     friend. Everyone in it walks around in your park as they walk in theirs; walk up to one and challenge him (1 on 1,
+     3 on 3 or a full game, your AI teammates against his). The one who asks hosts the game. */
+  const NET = { on: false, room: null, people: {}, asked: {}, pend: null, ask: null, busy: false };
+  const netName = () => String((C && C.me && (C.me.handle || `${C.me.first} ${C.me.last}`)) || 'Hooper').slice(0, 16);
+  const netCard = () => Object.assign({}, C.me, { kitT: parkTeam().id });
+  const toastP = (t, k) => PB.Game && PB.Game.toast && PB.Game.toast(t, k || 'call');
+  setInterval(() => { if (NET.on) netSync(); }, 900);
+  function netSync() {
+    const g = PB.Game && PB.Game.net; if (!g || !g.here()) return;
+    for (const id in NET.people) { const q = NET.people[id]; g.join(id, q.n, q.d); if (q.s) g.move(id, q.s); }
+    netChip();
+  }
+  function netChip() {
+    const gm = $('#game'); if (!gm) return;
+    let c = $('#netchip'); if (!c) { c = document.createElement('button'); c.id = 'netchip'; gm.appendChild(c); c.onclick = netSheet; }
+    const n = Object.keys(NET.people).length;
+    c.className = NET.on ? 'on' : '';
+    c.innerHTML = NET.on ? `<i></i>${NET.room === 'PUBLIC' ? 'Online' : 'Park ' + esc(NET.room)}<small>${n} here</small>` : '<i></i>Play online';
+  }
+  async function netGo(room) {
+    if (!PB.net || !PB.net.ready()) { toastP('Online play is not set up on this copy'); return; }
+    NET.people = {}; NET.room = room; NET.on = false; netChip();
+    try {
+      await PB.net.joinPark(room, netCard(), netName(), {
+        join: (id, n, d) => { NET.people[id] = { n, d, s: '' }; netSync(); },
+        move: (id, st) => { const q = NET.people[id]; if (q) q.s = st; const g = PB.Game.net; if (g && g.here()) g.move(id, st); },
+        leave: id => { delete NET.people[id]; const g = PB.Game.net; if (g && g.here()) g.leave(id); netChip(); },
+        challenge: (from, c) => netAsked(from, c),
+        answer: (from, a) => netAnswered(from, a)
+      });
+      NET.on = true; store('pbb.netRoom', room);
+      toastP(room === 'PUBLIC' ? 'You are in the public park' : `Park ${room}: send the code to a friend`);
+    } catch (e) { NET.on = false; NET.room = null; toastP('Could not go online: try again'); }
+    netChip();
+  }
+  function netOff() { if (PB.net) PB.net.stop(); const g = PB.Game.net; if (g && g.here()) for (const id in NET.people) g.leave(id); NET.on = false; NET.room = null; NET.people = {}; netChip(); }
+  function netSheet() {
+    const gm = $('#game'); let el = $('#netsheet'); if (!el) { el = document.createElement('div'); el.id = 'netsheet'; gm.appendChild(el); }
+    const ppl = Object.entries(NET.people);
+    el.innerHTML = `<div class="card"><button class="pmx" id="nsx" aria-label="Close">✕</button><h3>Play online</h3>
+      ${NET.on ? `<p class="mute">${NET.room === 'PUBLIC' ? 'The public park' : `Your park: <b class="code">${esc(NET.room)}</b> · send the code to a friend`} · ${ppl.length} other${ppl.length === 1 ? '' : 's'} here</p>
+        ${ppl.length ? `<div class="nlist">${ppl.map(([id, q]) => `<div class="nrow"><b>${esc(q.n)}</b><span>${esc(q.d.pos || '')} · ${+q.d.ovr || ''}</span><button class="ghost sm" data-nc="${esc(id)}">Challenge</button></div>`).join('')}</div>` : '<p class="fine">Nobody else yet. Walk up to someone when they show up, or challenge them from here.</p>'}
+        <button class="ghost" id="nsoff">Go offline</button>`
+      : `<p class="mute">Walk around the park with other people and play them: 1 on 1, 3 on 3 or a full game.</p>
+        <button class="big" id="nspub">Join the public park<small>anyone playing online</small></button>
+        <button class="ghost" id="nsnew">Make a private park<small>a code to send a friend</small></button>
+        <div class="row2 njoin"><input id="nscode" maxlength="8" placeholder="Friend's code" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="ghost sm" id="nsjoin">Join</button></div>`}
+      <p class="fine">Online you are ${esc(netName())}, as you look in your career.</p></div>`;
+    el.hidden = false;
+    const close = () => { el.hidden = true; };
+    $('#nsx').onclick = close;
+    if ($('#nsoff')) $('#nsoff').onclick = () => { netOff(); close(); };
+    if ($('#nspub')) $('#nspub').onclick = () => { close(); netGo('PUBLIC'); };
+    if ($('#nsnew')) $('#nsnew').onclick = () => { close(); netGo(PB.net.newRoom()); };
+    if ($('#nsjoin')) $('#nsjoin').onclick = () => { const v = ($('#nscode').value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (!PB.net.roomOk(v)) { $('#nscode').focus(); return; } close(); netGo(v); };
+    el.querySelectorAll('[data-nc]').forEach(b => b.onclick = () => { const id = b.dataset.nc, q = NET.people[id]; close(); netKindAsk(id, q ? q.n : 'him'); });
+  }
+  function netKindAsk(id, name) {
+    const gm = $('#game'); let el = $('#netsheet'); if (!el) { el = document.createElement('div'); el.id = 'netsheet'; gm.appendChild(el); }
+    el.innerHTML = `<div class="card"><button class="pmx" id="nsx" aria-label="Close">✕</button><h3>Challenge ${esc(name)}</h3>
+      <button class="big" data-k="1">1 on 1<small>half court, to 11</small></button><button class="ghost" data-k="3">3 on 3<small>to 21, AI teammates</small></button><button class="ghost" data-k="5">Full game<small>5 on 5, quarters</small></button></div>`;
+    el.hidden = false; $('#nsx').onclick = () => { el.hidden = true; };
+    el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { el.hidden = true; netChallenge(id, +b.dataset.k, name); });
+  }
+  const KINDS = { 1: '1 on 1', 3: '3 on 3', 5: 'a full game' };
+  function netChallenge(id, kind, name) {
+    if (!NET.on) return;
+    NET.asked[id] = { kind, at: Date.now(), name };
+    PB.net.challenge(id, kind, netName()).then(() => toastP(`Asked ${name} for ${KINDS[kind] || 'a game'}`)).catch(() => toastP('That did not send'));
+    setTimeout(() => { const a = NET.asked[id]; if (a && Date.now() - a.at >= 29000) { delete NET.asked[id]; toastP(`${name} did not answer`); } }, 30000);
+  }
+  const fresh = v => !v.at || Math.abs(Date.now() - v.at) < 120000;
+  function netAsked(from, c) {
+    PB.net.clearChal(from);
+    if (!fresh(c)) return;
+    if (NET.busy || !(PB.Game.net && PB.Game.net.here())) { PB.net.answer(from, false, netName()); return; }
+    const gm = $('#game'); let el = $('#netask'); if (!el) { el = document.createElement('div'); el.id = 'netask'; gm.appendChild(el); }
+    NET.ask = from;
+    el.innerHTML = `<div><b>${esc(c.n)}</b><span>wants ${KINDS[c.kind] || 'a game'}</span></div><button class="big" id="nay">Play</button><button class="ghost" id="nan">Not now</button>`;
+    el.hidden = false; if (PB.audio) PB.audio.play('click');
+    const done = ok => { if (NET.ask !== from) return; NET.ask = null; el.hidden = true; PB.net.answer(from, ok, netName()); if (ok) { NET.pend = { host: from, kind: c.kind, name: c.n, at: Date.now() }; toastP(`Setting it up with ${c.n}`); } };
+    $('#nay').onclick = () => done(true); $('#nan').onclick = () => done(false);
+    setTimeout(() => done(false), 25000);
+  }
+  async function netAnswered(from, a) {
+    PB.net.clearChal(from);
+    if (!fresh(a)) return;
+    if (a.go) { const P = NET.pend; if (!P || P.host !== from) return; NET.pend = null; netJoinGame(a.go, P); return; }
+    const asked = NET.asked[from]; if (!asked) return; delete NET.asked[from];
+    if (!a.ok) { toastP(`${a.n} said not now`); return; }
+    const q = NET.people[from]; if (!q) { toastP(`${a.n} left the park`); return; }
+    const setup = netSetup(asked.kind, q.d, from);
+    try { const link = await PB.net.hostGame(from, setup); await PB.net.sendGo(from, link.gid, netName()); netPlay(setup, 'host', link, q.n); }
+    catch (e) { toastP('Could not start the game'); }
+  }
+  /* the game: your team against his, each of you with AI teammates at the other spots */
+  function netSetup(kind, foe, fromId) {
+    const o = C.me.ovr, me = netCard(), him = Object.assign({}, foe, { id: 'net_' + String(fromId).slice(0, 20) });
+    let A = parkTeam(), B = PB.team(foe.kitT) || PB.TEAMS[0]; if (B === A) B = PB.TEAMS[(PB.TEAMS.indexOf(A) + 7) % PB.TEAMS.length];
+    const lvl = Math.round((o + (+foe.ovr || o)) / 2) - 2;
+    let ra, rb;
+    if (kind === 1) { ra = [me]; rb = [him]; }
+    else if (kind === 3) { const two = p => [['SF', 'C'], ['PG', 'C'], ['PG', 'C'], ['PG', 'SF'], ['PG', 'SF']][Math.max(0, PB.POS.indexOf(p.pos))]; ra = [me].concat(two(me).map(pos => parkGuy(pos, lvl))); rb = [him].concat(two(him).map(pos => parkGuy(pos, lvl))); }
+    else { ra = PB.POS.map(pos => pos === me.pos ? me : parkGuy(pos, lvl)); rb = PB.POS.map(pos => pos === him.pos ? him : parkGuy(pos, lvl)); if (!ra.includes(me)) ra[0] = me; if (!rb.includes(him)) rb[0] = him; }
+    return { kind, teams: [A.id, B.id], rosters: [ra, rb], hostId: me.id, guestId: him.id, half: kind < 5, target: kind === 1 ? 11 : 21, slots: kind === 1 ? [0] : kind === 3 ? [0, 1, 4] : null, qlen: kind === 5 ? Math.min(S.qlen || 3, 5) : 1, floor: A.id };
+  }
+  async function netJoinGame(gid, P) {
+    try { const link = await PB.net.joinGame(gid); netPlay(link.setup, 'guest', link, P.name); }
+    catch (e) { toastP('Could not join the game'); }
+  }
+  function netPlay(setup, role, link, name) {
+    NET.busy = true; const ask = $('#netask'); if (ask) ask.hidden = true; const sh = $('#netsheet'); if (sh) sh.hidden = true;
+    const A = PB.team(setup.teams[0]), B = PB.team(setup.teams[1]);
+    scr().hidden = true;
+    PB.Game.start({ teams: [A, B], rosters: setup.rosters, slots: setup.slots || undefined, userId: role === 'host' ? setup.hostId : setup.guestId,
+      half: setup.half, target: setup.target, ones: false, mitt: false, qlen: setup.qlen, level: S.level, floor: Object.assign({}, A, { street: true, park: true, court: 0 }), strength: [78, 78],
+      net: { role, link, name, kind: setup.kind, guestId: setup.guestId },
+      onQuit: () => { NET.busy = false; park(); },
+      onEnd: r => { NET.busy = false; netResult(r, name, setup.kind); } });
+  }
+  function netResult(r, name, kind) {
+    const mine = r.net ? r.net.mine : 0, win = r.score[mine] > r.score[1 - mine], P = C.park || (C.park = { w: 0, l: 0 });
+    const counted = !(r.net && (r.net.left || r.net.lost || r.net.quit));
+    if (counted) { P.ow = (P.ow || 0) + (win ? 1 : 0); P.ol = (P.ol || 0) + (win ? 0 : 1); C.fans = Math.round(C.fans + (win ? 600 : 150)); rankUp(); save(); }
+    const u = (r.box || []).find(b => b.user) || {}, st = u.st || r.user || {};
+    const why = r.net && r.net.quit ? `${mine === 0 ? 'You' : name} ended the game` : r.net && (r.net.left || r.net.lost) ? 'The game was cut short' : '';
+    show(`<div class="page post"><p class="kick">Online · ${esc(KINDS[kind] || 'a game')} vs ${esc(name)}</p>
+      <div class="final"><div>${badge(r.teams[mine])}<b>${r.score[mine]}</b></div><em>${why ? '–' : win ? 'WIN' : 'LOSS'}</em><div><b>${r.score[1 - mine]}</b>${badge(r.teams[1 - mine])}</div></div>
+      ${why ? `<p class="mute">${esc(why)}: it does not count.</p>` : `<p class="mute">Online record ${P.ow || 0}-${P.ol || 0} · +${win ? 600 : 150} followers</p>`}
+      <div class="tiles"><div><b>${st.pts || 0}</b><span>PTS</span></div><div><b>${st.reb || 0}</b><span>REB</span></div><div><b>${st.ast || 0}</b><span>AST</span></div></div>
+      <button class="big" id="back">Back to the park</button></div>`);
+    $('#back').onclick = () => park();
   }
   function parkResult(r, again, label) {
     const u = r.user || {}, win = r.score[0] > r.score[1], P = C.park || (C.park = { w: 0, l: 0 });
@@ -3737,7 +3874,7 @@
   }
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 
-  PB.Career = { title, hub, park, get: () => C, gameStats, dbg: PB.DEV ? { simLine, binom, story: () => { const nx = nextGame(); return nx && nx.g ? story(nx.g) : null; }, storyOf: g => story(g), intro: () => { const nx = nextGame(); return nx && nx.g ? introCall(nx.g) : null; }, mem: () => memOf(), role, moveTo, storyNews, draftWith: sc => finishDraft(sc), scene: (k, done) => playScene(k, done || hub) } : undefined };
+  PB.Career = { title, hub, park, get: () => C, gameStats, net: { go: r => netGo(r), off: () => netOff(), state: () => NET, challenge: (id, k, n) => netChallenge(id, k, n), sheet: () => netSheet() }, dbg: PB.DEV ? { simLine, binom, story: () => { const nx = nextGame(); return nx && nx.g ? story(nx.g) : null; }, storyOf: g => story(g), intro: () => { const nx = nextGame(); return nx && nx.g ? introCall(nx.g) : null; }, mem: () => memOf(), role, moveTo, storyNews, draftWith: sc => finishDraft(sc), scene: (k, done) => playScene(k, done || hub) } : undefined };
   PB.boot = () => {
     if (navigator.webdriver) document.documentElement.classList.add('driven');   // a test tool: nothing on the title moves forever, so its buttons hold still to be pressed
     /* without WebGL the menus and the career still work; only the court cannot be drawn */

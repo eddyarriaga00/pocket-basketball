@@ -1239,3 +1239,24 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 .trade .tlog{font-size:13px;margin:6px 0;color:var(--ink)}
 /* Season two-way contracts: a row with a call-up / send-down button */
 .ros.two .ghost.sm{width:auto;margin:0;padding:8px 10px;font-size:12px;flex:none}
+/* The park, online: the Online button at the top, its sheet, a challenge that comes in */
+#netchip{display:none;position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:7;height:36px;padding:0 14px;border-radius:999px;background:rgba(8,8,10,.86);border:1px solid rgba(255,255,255,.22);
+  font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;align-items:center;gap:8px;color:#fff;pointer-events:auto}
+#game.park #netchip{display:flex}
+#netchip i{width:8px;height:8px;border-radius:50%;background:#6a6a72}
+#netchip.on i{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+#netchip small{font-family:var(--body);font-weight:600;font-size:11px;letter-spacing:0;text-transform:none;opacity:.7}
+#netsheet{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);pointer-events:auto}
+#netsheet[hidden]{display:none}
+#netsheet .card{position:relative;width:100%;max-width:380px;max-height:86%;overflow:auto;background:#141418;border:1px solid rgba(255,255,255,.16);border-radius:18px;padding:16px}
+#netsheet .pmx{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08)}
+#netsheet h3{font-size:19px;margin:2px 0 6px}
+#netsheet .code{font-family:var(--display);letter-spacing:.12em;color:#fff}
+#netsheet .njoin{align-items:center}#netsheet .njoin input{flex:2;height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:#0c0c0f;color:#fff;padding:0 12px;font-size:16px;letter-spacing:.1em;text-transform:uppercase}
+#netsheet .njoin button{flex:1;margin:0}
+#netsheet .nrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.1)}#netsheet .nrow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#netsheet .nrow span{font-size:12px;color:var(--mute)}#netsheet .nrow .ghost.sm{width:auto;margin:0;padding:8px 12px}
+#netask{position:absolute;left:12px;right:12px;top:calc(56px + env(safe-area-inset-top,0px));z-index:21;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-radius:16px;background:#fff;color:#000;pointer-events:auto;animation:pop .25s}
+#netask[hidden]{display:none}
+#netask div{flex:1;min-width:0;display:flex;flex-direction:column}#netask b{font-family:var(--display);font-size:17px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#netask span{font-size:12px;opacity:.7}
+#netask .big,#netask .ghost{width:auto;margin:0;padding:10px 14px;font-size:14px}#netask .big{background:#000;color:#fff}#netask .ghost{background:transparent;border-color:rgba(0,0,0,.25);color:#000}

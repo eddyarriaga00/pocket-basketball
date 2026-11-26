@@ -38,6 +38,7 @@
   }
   /* a speech bubble over a park regular's head: what he says, for a few seconds */
   const says = new Map(), parkBalls = [];
+  let netTags = new Set();   // the name tags of people online in the park
   function bubbleSprite(text) {
     const cv = document.createElement('canvas'); cv.width = 512; cv.height = 120; const g = cv.getContext('2d');
     let fs = 40; g.font = `800 ${fs}px Archivo, Arial`; while (g.measureText(text).width > 440 && fs > 22) { fs -= 2; g.font = `800 ${fs}px Archivo, Arial`; }
@@ -66,7 +67,11 @@
     placeTag('ball', mode === 'You and the ball' && h && h !== u && !G.replay ? h : null, false);
     /* the park: everyone's handle over his head, the way a park shows who is out there (the near ones only) */
     if (G && G.park) { const me = G.user, cd = q => Math.hypot(cam.position.x - q.x, cam.position.z - q.z), near = me ? cd(me) * 0.85 : 0;   // (a regular standing between you and the camera keeps his tag off your controls)
-      placeTag('pme', me, true); G.pl.forEach((p, i) => { if (p.npc) placeTag('npc' + i, me && Math.hypot(p.x - me.x, p.z - me.z) < 30 && cd(p) > near ? p : null, false); }); }
+      placeTag('pme', me, true); G.pl.forEach((p, i) => { if (p.npc) placeTag('npc' + i, me && Math.hypot(p.x - me.x, p.z - me.z) < 30 && cd(p) > near ? p : null, false); });
+      /* people online: theirs show from farther off, and go when they leave */
+      const was = netTags; netTags = new Set();
+      for (const p of G.pl) if (p.netP) { const k = 'net' + p.netP; netTags.add(k); placeTag(k, me && Math.hypot(p.x - me.x, p.z - me.z) < 60 && cd(p) > near ? p : null, false); }
+      for (const k of was) if (!netTags.has(k)) placeTag(k, null, false); }
     const now = performance.now();
     for (const [p, o] of says) { if (now > o.until || !G || !G.park || !G.pl.includes(p)) { unsay(p); continue; } o.sp.position.set(p.x, 9.4 + (p.y || 0), p.z); }
   };
