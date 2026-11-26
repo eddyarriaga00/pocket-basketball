@@ -977,7 +977,10 @@
     const V = G.vio && G.vio.n === G.possN ? G.vio : (G.vio = { n: G.possN, crossed: false, start: G.shotClock });
     const h = b.state === 'held' ? b.holder : null;
     const a = h ? along(h.z, t) : along(b.z, t);   // the holder, not the ball: the ball is still where it was the moment he gets it
-    if (!V.crossed && a < HALF - 0.5 && (!h || h.team === t)) V.crossed = true;
+    /* the opening tip: the center taps it back from the circle, which is half court; the trip starts when a teammate
+       has it (a tip back to your guard in the backcourt is not a backcourt violation) */
+    if (V.tip) { if (h && h !== V.tip && h.team === t) V.tip = null; }
+    else if (!V.crossed && a < HALF - 0.5 && (!h || h.team === t)) V.crossed = true;
     /* you have it in the backcourt and the count is half gone: say so once a trip */
     if (!V.crossed && h && h.isUser && !G.auto && !V.told && V.start - G.shotClock > 4) { V.told = true; toast('Get it over half court', 'call'); }
     /* still standing there with six of the eight seconds gone and no hand on the stick: you give it to the nearest
@@ -2931,7 +2934,7 @@
         G.tipWinner = t; G.phase = 'live';
         const pg = teamOf(t).find(o => o.slot === 0);
         /* the winner taps it back to his point guard (the ball used to jump into the guard's hands from mid-air) */
-        { const c = teamOf(t).find(o => o.slot === 4); if (c && pg && c !== pg) { give(c); passTo(c, pg); if (b.state !== 'pass') give(pg); else { c.pose = 'contest'; b.pick = null; } } else give(pg); }   // (a tip is not a pass anyone picks off)
+        { const c = teamOf(t).find(o => o.slot === 4); if (c && pg && c !== pg) { give(c); passTo(c, pg); if (b.state !== 'pass') give(pg); else { c.pose = 'contest'; b.pick = null; } } else give(pg); G.vio = { n: G.possN, crossed: false, start: G.shotClock, tip: c && c !== pg ? c : null }; }   // (a tip is not a pass anyone picks off)
         feed(`${G.teams[t].name} win the tip`); AU().play('whistle', { vol: 0.7 }); B('tip', { prio: 1 });
       }
       b.x = 0; b.z = 0; b.y = 7 + Math.max(0, Math.sin((1.3 - G.tipT) * 2.5)) * 6;

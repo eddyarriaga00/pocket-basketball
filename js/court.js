@@ -1215,7 +1215,12 @@
         const kc = F0.attributes.kc; let vv = F0.userData.vv;   // which part each vertex belongs to: the same for every player, so worked out once
         if (!vv) { vv = F0.userData.vv = new Uint8Array(kc.count); const src = F0.index.array; for (let t = 0; t < tv.length; t++) { vv[src[t * 3]] = tv[t]; vv[src[t * 3 + 1]] = tv[t]; vv[src[t * 3 + 2]] = tv[t]; } }
         const cl = new Float32Array(kc.count * 3);
-        for (let i = 0; i < kc.count; i++) { const r = kc.getX(i), c = cOf[vv[i]] || (r < 0.5 ? hairC : r < 1.5 ? white : dark); cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
+        /* on the two darkest skins a near-black mouth all but disappears under the arena lights (a blank face): there
+           the mouth is a warm light line, and the eyes and brows the blackest black */
+        let eyeY = F0.userData.eyeY;   // the eyes' height: the mouth is the part of a mouth variant below it (the brows above share it)
+        if (eyeY == null) { let sy = 0, n = 0; const P = F0.attributes.position; for (let i = 0; i < kc.count; i++) { const v = vv[i]; if (kc.getX(i) >= 1.5 && ((v >= 16 && v <= 20) || v === 31 || (v >= 36 && v <= 38))) { sy += P.getY(i); n++; } } eyeY = F0.userData.eyeY = n ? sy / n : -1e9; }
+        const deep = skinC.r * 0.3 + skinC.g * 0.59 + skinC.b * 0.11 < 0.12, mouthC = skinC.clone().lerp(new T.Color('#e9a191'), 0.62), ink0 = deep ? new T.Color('#030203') : dark;
+        for (let i = 0; i < kc.count; i++) { const r = kc.getX(i), mouth = deep && r >= 1.5 && (vv[i] === 23 || (vv[i] >= 26 && vv[i] <= 30) || (vv[i] >= 46 && vv[i] <= 48)) && F0.attributes.position.getY(i) < eyeY, c = mouth ? mouthC : cOf[vv[i]] || (r < 0.5 ? hairC : r < 1.5 ? white : ink0); cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b; }
         fg.setAttribute('color', new T.BufferAttribute(cl, 3));
         const fm = new T.SkinnedMesh(fg, new T.MeshLambertMaterial({ vertexColors: true })); fm.frustumCulled = false; bodyMesh.parent.add(fm); faceM = fm; fm.userData.open = ixs; fm.userData.shut = shutIx; fm.userData.yell = setOf(base.concat(eyeV, 23));
         /* how he feels shows on his face: a grin, a scowl, heavy eyes (the happy, stern and sleepy faces, worn for a moment) */
@@ -1227,7 +1232,13 @@
     /* lettering that reads on any design: on a dark jersey the numbers are white (or a light second color) edged in
        the team color; on a light one they are the team color */
     const lum = c => { const n = parseInt(String(c).slice(1), 16); return (n >> 16) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11; };
-    const jl = lum(kit.c1) > 170, ink = jl ? kit.c2 : lum(kit.c2) > 150 ? kit.c2 : '#ffffff', edge = jl ? null : (lum(kit.alt || kit.c2) < 120 ? kit.alt || kit.c2 : '#0c0c0e');
+    const jl = lum(kit.c1) > 170;
+    let ink = jl ? kit.c2 : lum(kit.c2) > 150 ? kit.c2 : '#ffffff', edge = jl ? null : (lum(kit.alt || kit.c2) < 120 ? kit.alt || kit.c2 : '#0c0c0e');
+    /* a chest band, shoulder yokes or a sash put the design's color under part of the lettering: where the ink is
+       too close to anything it sits on (green on a green yoke), white or near-black ink with an outline instead,
+       readable on both */
+    const bgs = [kit.c1].concat([3, 5, 6].includes(+kit.pat) ? [kit.alt || kit.c2] : []), poor = c => bgs.some(b => Math.abs(lum(b) - lum(c)) < 70);
+    if (poor(ink)) { ink = bgs.every(b => lum(b) > 170) ? '#111316' : '#ffffff'; edge = lum(ink) > 128 ? (lum(kit.c2) < 120 ? kit.c2 : '#111316') : null; }
     /* all his lettering on one sheet (the number, the team's name, his own name) and the four pieces on his shirt
        one mesh: one draw for the lot where there were four, each with its own texture. Back-facing pieces are
        culled by the card itself (the old per-piece visibility test is not needed). */
