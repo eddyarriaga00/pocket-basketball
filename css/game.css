@@ -1237,3 +1237,5 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 .tdeal .meter:has(+ .why.ok) i{background:#fff}
 .tdeal button[disabled]{opacity:.4}
 .trade .tlog{font-size:13px;margin:6px 0;color:var(--ink)}
+/* Season two-way contracts: a row with a call-up / send-down button */
+.ros.two .ghost.sm{width:auto;margin:0;padding:8px 10px;font-size:12px;flex:none}

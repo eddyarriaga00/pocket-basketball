@@ -180,6 +180,7 @@ The two node tools need Playwright (`npm i -g playwright`).
       in a 2-3 score about 123 a game against 111 man to man (the first try, 2026-11-17, gave up 120 shots)
 - [x] Trades you propose (2026-11-25): Season mode, up to three for three, valued by rating and age with a premium on a
       team's best man and less for each extra piece; "What would it take?"; a deadline at three quarters of the season
-- Two-way contracts
+- [x] Two-way contracts (2026-11-25): Season mode, two G League spots for men 24 and under off the top ten; they skip
+      your games and grow about five points a season
 - Draw calls: one atlas for each player's number and wordmark (the shadows are one instanced mesh since 2026-11-17)
 - Online head to head by code

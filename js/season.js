@@ -16,9 +16,14 @@
   const S = () => PB.settings || { qlen: 3, level: 'Pro', season: 20 };
   const strength = id => PB.teamOvr(Z.rosters[id]);
   const winP = (a, b, home) => 1 / (1 + Math.exp(-(strength(a) - strength(b) + (home ? 2 : -2)) / 4));
-  const best5 = id => PB.POS.map(pos => Z.rosters[id].filter(p => p.pos === pos).sort((a, b) => b.ovr - a.ovr)[0]);
+  /* two-way contracts: up to two young men at the end of your bench play in the G League instead, where they get
+     games and grow (about five points over a season, whatever its length), and are called up when you want them */
+  const twoIds = () => new Set((Z.two || []).filter(id => Z.rosters[Z.team].some(p => p.id === id)));
+  const active = id => id === Z.team ? Z.rosters[id].filter(p => !twoIds().has(p.id)) : Z.rosters[id];
+  const twoOk = p => p.age <= 24 && Z.rosters[Z.team].slice().sort((a, b) => b.ovr - a.ovr).indexOf(p) >= 10;
+  const best5 = id => PB.POS.map(pos => active(id).filter(p => p.pos === pos).sort((a, b) => b.ovr - a.ovr)[0]);
   /* your starting five is yours to set (Z.line: five ids, point guard to center); everyone else starts their best at each spot */
-  const five = id => { if (id === Z.team && Z.line) { const f = Z.line.map(pid => Z.rosters[id].find(p => p.id === pid)); if (f.every(Boolean) && new Set(Z.line).size === 5) return f; } return best5(id); };
+  const five = id => { if (id === Z.team && Z.line) { const f = Z.line.map(pid => active(id).find(p => p.id === pid)); if (f.every(Boolean) && new Set(Z.line).size === 5) return f; } return best5(id); };
   const rank = conf => PB.TEAMS.filter(t => !conf || t.conf === conf).map(t => t.id)
     .sort((a, b) => (Z.st[b].w - Z.st[b].l) - (Z.st[a].w - Z.st[a].l) || strength(b) - strength(a));
 
@@ -49,6 +54,8 @@
         if (p.age >= 36 || (p.age >= 33 && PB.rand() < 0.35)) { const r = PB.makePlayer(p.pos, Math.round(PB.rr(62, 75)), PB.ri(19, 22)); r.num = p.num; ro[i] = r; PB.freshName(r, ro, Z.rosters); }
       }
     }
+    Z.two = [...twoIds()].filter(id => { const p = Z.rosters[Z.team].find(x => x.id === id); return p && p.age <= 24; });
+    for (const p of Z.rosters[Z.team]) p.gl = 0;
     const n = Z.games.length, others = PB.TEAMS.map(t => t.id).filter(id => id !== Z.team), sched = [];
     while (sched.length < n) for (const o of others.slice().sort(() => PB.rand() - 0.5)) if (sched.length < n) sched.push(o);
     for (const t of PB.TEAMS) Z.st[t.id] = { w: 0, l: 0 };
@@ -92,6 +99,7 @@
       ${Z.po ? `<div class="card bracket"><h3>Playoffs</h3>${Z.po.round.map(m => `<div class="sr ${m.a === Z.team || m.b === Z.team ? 'me' : ''}">${badge(PB.team(m.a))}<b>${m.bo > 1 ? m.wa || 0 : m.w ? (m.w === m.a ? 'W' : 'L') : ''}</b><em>–</em><b>${m.bo > 1 ? m.wb || 0 : m.w ? (m.w === m.b ? 'W' : 'L') : ''}</b>${badge(PB.team(m.b))}<span>${m.w ? esc(PB.team(m.w).name) : ''}</span></div>`).join('')}</div>` : ''}
       ${tradeOpen() ? `<button class="ghost" id="trades">Trades<small>${tradeNote()}</small></button>` : ''}
       ${rosterCard()}
+      ${twoCard()}
       ${L.length ? `<div class="card"><h3>Your leaders <small>a game</small></h3><table class="std"><tr><th></th><th>PTS</th><th>REB</th><th>AST</th></tr>${L.map(x => `<tr><td>${esc(x.name)}</td><td>${x.ppg.toFixed(1)}</td><td>${x.rpg.toFixed(1)}</td><td>${x.apg.toFixed(1)}</td></tr>`).join('')}</table></div>` : ''}
       ${Z.mvp ? `<div class="card earn"><b>${esc(Z.mvp.title)}</b><span>${esc(Z.mvp.name)} · ${Z.mvp.line}</span></div>` : ''}
       ${['East', 'West'].map(c => `<div class="card"><h3>${c}</h3><table class="std"><tr><th></th><th>Team</th><th>W</th><th>L</th></tr>${conf(c)}</table></div>`).join('')}
@@ -108,6 +116,9 @@
       const y = $('#screen').scrollTop; hub(); $('#screen').scrollTop = y; });
     heads();
     if ($('#trades')) $('#trades').onclick = () => trades();
+    document.querySelectorAll('#screen [data-two]').forEach(b => b.onclick = e => { e.stopPropagation(); const id = b.dataset.two, l = [...twoIds()];
+      if (l.includes(id)) Z.two = l.filter(x => x !== id); else if (l.length < 2) { Z.two = l.concat(id); if (Z.line && Z.line.includes(id)) Z.line = null; }
+      save(); const y = $('#screen').scrollTop; hub(); $('#screen').scrollTop = y; });
     if ($('#play')) $('#play').onclick = () => play(nx);
     if ($('#sim')) $('#sim').onclick = () => { const w = PB.rand() < winP(Z.team, nx.opp, nx.home); result(nx, w, null); };
     if ($('#po')) $('#po').onclick = () => { if (!Z.po) startPO(); else { while (!Z.champ) simRound(); } save(); hub(); };
@@ -115,8 +126,24 @@
     if ($('#next')) $('#next').onclick = nextSeason;
     $('#quit').onclick = () => { if (confirm('Leave this season and pick another team?')) { localStorage.removeItem(KEY); pick(); } };
   }
+  function grow() {
+    const ids = twoIds(), per = 3 / Math.max(10, Z.games.length);   // three points a rating, which the overall stretches to about five
+    for (const p of Z.rosters[Z.team]) if (ids.has(p.id)) {
+      p.gl = (p.gl || 0) + 1;
+      for (const k in p.r) if (PB.rand() < per) p.r[k] = Math.min(99, p.r[k] + 1);
+      p.ovr = PB.ovr(p.r, p.pos);
+    }
+  }
+  function twoCard() {
+    const ids = twoIds(), ro = Z.rosters[Z.team], on = ro.filter(p => ids.has(p.id)), can = ro.filter(p => !ids.has(p.id) && twoOk(p)).sort((a, b) => b.ovr - a.ovr);
+    if (!on.length && !can.length) return '';
+    const row = (p, b) => `<div class="ros two"><b class="no">${p.num}</b><div><b>${esc(PB.full(p))}</b><span>${p.pos} · ${p.age}${p.gl ? ` · ${p.gl} G League game${p.gl > 1 ? 's' : ''}` : ''}</span></div><em>${p.ovr}</em><button class="ghost sm" data-two="${esc(p.id)}">${b}</button></div>`;
+    return `<div class="card"><h3>Two-way contracts <small>${on.length} of 2</small></h3>
+      <p class="fine">Young men (24 and under) at the end of your bench can play in the G League: real minutes there, so they grow about five points over a season. They sit out your games until you call them up.</p>
+      ${on.map(p => row(p, 'Call up')).join('')}${on.length < 2 ? can.slice(0, 4).map(p => row(p, 'Send down')).join('') : ''}</div>`;
+  }
   function rosterCard() {
-    const f = five(Z.team), rest = Z.rosters[Z.team].filter(p => !f.includes(p)).sort((a, b) => b.ovr - a.ovr);
+    const f = five(Z.team), tw = twoIds(), rest = Z.rosters[Z.team].filter(p => !f.includes(p) && !tw.has(p.id)).sort((a, b) => b.ovr - a.ovr);
     const row = (p, i) => { const e = Z.lead[p.id], gp = e && e.gp;
       return `<div class="ros" data-pid="${esc(p.id)}" role="button" tabindex="0"><img alt="" data-head="${esc(p.id)}"><b class="no">${p.num}</b>
         <div><b>${esc(PB.full(p))}</b><span>${i < 5 ? PB.POS[i] + (p.pos !== PB.POS[i] ? ' (a ' + p.pos + ')' : '') : p.pos} · ${PB.fmtH(p.ht)}${p.age ? ' · ' + p.age : ''}${gp ? ` · ${(e.pts / gp).toFixed(1)} pts` : ''}</span></div><em>${p.ovr}</em></div>`; };
@@ -135,7 +162,7 @@
   function play(nx) {
     const t = PB.team(Z.team), o = PB.team(nx.opp), me = five(Z.team);
     $('#screen').hidden = true;
-    const of5 = five(o.id), rest = (id, f) => Z.rosters[id].filter(p => !f.includes(p)).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
+    const of5 = five(o.id), rest = (id, f) => active(id).filter(p => !f.includes(p)).sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     PB.Game.start({ teams: [t, o], rosters: [me, of5], bench: [rest(Z.team, me), rest(o.id, of5)], userId: me[0].id, switching: true, qlen: S().qlen, level: S().level,
       floor: nx.home ? t : o, strength: [strength(t.id), strength(o.id)], playoff: !!nx.m,
       onEnd: r => result(nx, r.score[0] > r.score[1], r) });
@@ -143,7 +170,7 @@
   function result(nx, win, r) {
     const sc = 1, q = (S().qlen || 3) / 12;   // lines as they were played; a simulated game is played at the same quarter length
     if (!r) {   /* a simulated game: lines for the top eight, shared out by rating */
-      const ro = Z.rosters[Z.team].slice().sort((a, b) => b.ovr - a.ovr).slice(0, 8), w = ro.map((p, i) => Math.pow(p.ovr, 3) * (i < 5 ? 1.6 : 0.7)), W = w.reduce((a, x) => a + x, 0);
+      const ro = active(Z.team).slice().sort((a, b) => b.ovr - a.ovr).slice(0, 8), w = ro.map((p, i) => Math.pow(p.ovr, 3) * (i < 5 ? 1.6 : 0.7)), W = w.reduce((a, x) => a + x, 0);
       const pts = (112 + PB.gauss() * 9 + (win ? 5 : -5)) * q;
       ro.forEach((p, i) => { const e = Z.lead[p.id] || (Z.lead[p.id] = { name: PB.full(p), gp: 0, pts: 0, reb: 0, ast: 0 }); const f = w[i] / W;
         e.gp++; e.pts += Math.max(0, Math.round(pts * f + PB.gauss() * 2 * Math.sqrt(q))); e.reb += Math.max(0, Math.round(44 * q * f * (['PF', 'C'].includes(p.pos) ? 1.6 : 0.8) + PB.gauss() * Math.sqrt(q))); e.ast += Math.max(0, Math.round(26 * q * f * (p.pos === 'PG' ? 2 : 0.8) + PB.gauss() * Math.sqrt(q))); });
@@ -159,6 +186,7 @@
       for (const o of Z.po.round) if (o !== m && !o.w) { simOne(o); decide(o); }   // the other series play a game too
       advance();
     }
+    grow();
     save();
     const o = PB.team(nx.opp);
     show(`<div class="page post"><p class="kick">${r ? 'Final' : 'Simulated'}${r && r.line && r.line.length > 4 ? ' · ' + (r.line.length > 5 ? r.line.length - 4 : '') + 'OT' : ''}</p>
