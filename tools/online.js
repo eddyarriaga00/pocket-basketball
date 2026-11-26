@@ -15,17 +15,20 @@ const { chromium } = require('playwright');
   await A.waitForFunction(() => window.PB && PB.Career && document.querySelector('#newc'), { timeout: 120000 });
   await A.click('#newc'); await A.fill('#fn', 'Alpha'); await A.fill('#ln', 'One'); for (let k = 0; k < 4 && (await A.$('#go')); k++) await A.click('#go');
   await A.waitForFunction(() => PB.Game.active && PB.G && PB.G.park, null, { timeout: 90000 });
-  await B.goto(s.url); await B.waitForFunction(() => window.PB && PB.Career && PB.Career.park, null, { timeout: 120000 });
-  await B.evaluate(() => PB.Career.park()); await B.waitForFunction(() => PB.Game.active && PB.G && PB.G.park, null, { timeout: 90000 });
   /* the sheet opens from the Online button */
-  await A.click('#netchip'); ok(await A.$('#netsheet:not([hidden]) #nspub'), 'the online sheet did not open'); await A.click('#nsx');
-  await A.evaluate(() => PB.Career.net.go('TEST1')); await B.evaluate(() => PB.Career.net.go('TEST1'));
+  /* both start online in the public park by themselves; then A opens his own park and B comes in by A's invite link */
+  await A.waitForFunction(() => PB.Career.net.state().on && PB.Career.net.state().room === 'PUBLIC', null, { timeout: 15000 }).catch(() => fails.push('A did not start online'));
+  await A.click('#netchip'); await A.click('#nsmine'); await A.waitForFunction(() => PB.Career.net.state().on && PB.Career.net.state().room === PB.Career.net.myRoom(), null, { timeout: 15000 }).catch(() => fails.push('A could not open his own park'));
+  const room = await A.evaluate(() => PB.Career.net.myRoom());
+  await B.goto(s.url + '?park=' + room); await B.waitForFunction(() => window.PB && PB.Career && PB.Career.park, null, { timeout: 120000 });
+  await B.evaluate(() => PB.Career.park()); await B.waitForFunction(() => PB.Game.active && PB.G && PB.G.park, null, { timeout: 90000 });
+  await B.waitForFunction(r => PB.Career.net.state().on && PB.Career.net.state().room === r, room, { timeout: 15000 }).catch(() => fails.push('the invite link did not bring B to A\'s park'));
   await A.waitForFunction(() => PB.G.netP && Object.keys(PB.G.netP).length === 1, null, { timeout: 20000 }).catch(() => fails.push('A never saw B'));
   await B.waitForFunction(() => PB.G.netP && Object.keys(PB.G.netP).length === 1, null, { timeout: 20000 }).catch(() => fails.push('B never saw A'));
   await B.evaluate(() => { const u = PB.G.user; u.x = 2; u.z = -8; }); await A.waitForTimeout(2500);
   const seen = await A.evaluate(() => { const p = Object.values(PB.G.netP)[0]; return p && Math.hypot(p.x - 2, p.z + 8); });
   ok(seen !== undefined && seen < 2, 'B is not where he walked to on A: ' + seen);
-  ok((await A.evaluate(() => document.querySelector('#netchip').textContent)).includes('1 here'), 'the chip does not count B');
+  ok((await A.evaluate(() => document.querySelector('#netchip').textContent)).includes('My park1 here'), 'the chip does not count B: ' + await A.evaluate(() => document.querySelector('#netchip').textContent));
   const bid = await A.evaluate(() => Object.keys(PB.G.netP)[0]);
   await A.evaluate(([id, k]) => PB.Career.net.challenge(id, k, 'B'), [bid, +(process.env.KIND || 1)]);
   await B.waitForSelector('#netask:not([hidden])', { timeout: 10000 }).catch(() => fails.push('the challenge never came'));

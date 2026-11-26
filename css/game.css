@@ -1260,3 +1260,6 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 #netask[hidden]{display:none}
 #netask div{flex:1;min-width:0;display:flex;flex-direction:column}#netask b{font-family:var(--display);font-size:17px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#netask span{font-size:12px;opacity:.7}
 #netask .big,#netask .ghost{width:auto;margin:0;padding:10px 14px;font-size:14px}#netask .big{background:#000;color:#fff}#netask .ghost{background:transparent;border-color:rgba(0,0,0,.25);color:#000}
+#netsheet .nsw{display:flex;gap:4px;padding:4px;margin:8px 0 10px;border-radius:12px;background:#0c0c0f;border:1px solid rgba(255,255,255,.14)}
+#netsheet .nsw button{flex:1;height:38px;border-radius:9px;font-family:var(--display);font-weight:800;font-size:14px;color:#8a8a92}
+#netsheet .nsw button.on{background:#fff;color:#000}
