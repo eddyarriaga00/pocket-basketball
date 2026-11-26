@@ -178,6 +178,8 @@ The two node tools need Playwright (`npm i -g playwright`).
 
 - [x] A zone defense for computer teams (2026-11-25): match-up zones, paired once a trip by area and distance; both teams
       in a 2-3 score about 123 a game against 111 man to man (the first try, 2026-11-17, gave up 120 shots)
-- Two-way contracts, trades you propose
+- [x] Trades you propose (2026-11-25): Season mode, up to three for three, valued by rating and age with a premium on a
+      team's best man and less for each extra piece; "What would it take?"; a deadline at three quarters of the season
+- Two-way contracts
 - Draw calls: one atlas for each player's number and wordmark (the shadows are one instanced mesh since 2026-11-17)
 - Online head to head by code

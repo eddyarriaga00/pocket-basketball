@@ -80,7 +80,7 @@
     if (PB.audio) PB.audio.music(true);
     const t = PB.team(Z.team), st = Z.st[Z.team], nx = nextGame();
     const conf = c => rank(c).map((id, i) => `<tr class="${id === Z.team ? 'me' : ''} ${i === 4 ? 'cut' : ''}"><td>${i + 1}</td><td>${badge(PB.team(id))} ${esc(PB.team(id).name)}</td><td>${Z.st[id].w}</td><td>${Z.st[id].l}</td></tr>`).join('');
-    const L = Object.values(Z.lead).filter(x => x.gp).map(x => ({ ...x, ppg: x.pts / x.gp, rpg: (x.reb || 0) / x.gp, apg: (x.ast || 0) / x.gp })).sort((a, b) => b.ppg - a.ppg).slice(0, 5);
+    const mine = new Set(Z.rosters[Z.team].map(p => p.id)), L = Object.entries(Z.lead).filter(([id, x]) => x.gp && mine.has(id)).map(([, x]) => x).map(x => ({ ...x, ppg: x.pts / x.gp, rpg: (x.reb || 0) / x.gp, apg: (x.ast || 0) / x.gp })).sort((a, b) => b.ppg - a.ppg).slice(0, 5);
     let card;
     if (Z.champ && Z.champ === Z.team && !Z.cf && PB.confetti) { Z.cf = 1; PB.confetti([PB.team(Z.team).c1, PB.team(Z.team).c2], 7); }
     if (Z.champ) card = `<div class="next"><p class="kick">Champions</p><h3>The ${esc(PB.team(Z.champ).city)} ${esc(PB.team(Z.champ).name)}</h3><p>${Z.champ === Z.team ? 'You did it. A title.' : 'Not this year.'}</p><button class="big" id="next">Next season<small>same team, a year older, a new rookie class</small></button><button class="ghost" id="again">Start over with a new team</button></div>`;
@@ -90,6 +90,7 @@
     show(`<div class="hub" style="--c1:${t.c1};--c2:${t.c2}"><div class="hubtop"><div class="me">${badge(t)}<div><b>${esc(t.city)} ${esc(t.name)}</b><span>Season ${Z.year || 1} · ${st.w}-${st.l}${(Z.titles || []).length ? ` · ${Z.titles.length} title${Z.titles.length > 1 ? 's' : ''}` : ''}</span></div></div><button class="ic" id="menu" aria-label="Menu">⌂</button></div>
       ${card}
       ${Z.po ? `<div class="card bracket"><h3>Playoffs</h3>${Z.po.round.map(m => `<div class="sr ${m.a === Z.team || m.b === Z.team ? 'me' : ''}">${badge(PB.team(m.a))}<b>${m.bo > 1 ? m.wa || 0 : m.w ? (m.w === m.a ? 'W' : 'L') : ''}</b><em>–</em><b>${m.bo > 1 ? m.wb || 0 : m.w ? (m.w === m.b ? 'W' : 'L') : ''}</b>${badge(PB.team(m.b))}<span>${m.w ? esc(PB.team(m.w).name) : ''}</span></div>`).join('')}</div>` : ''}
+      ${tradeOpen() ? `<button class="ghost" id="trades">Trades<small>${tradeNote()}</small></button>` : ''}
       ${rosterCard()}
       ${L.length ? `<div class="card"><h3>Your leaders <small>a game</small></h3><table class="std"><tr><th></th><th>PTS</th><th>REB</th><th>AST</th></tr>${L.map(x => `<tr><td>${esc(x.name)}</td><td>${x.ppg.toFixed(1)}</td><td>${x.rpg.toFixed(1)}</td><td>${x.apg.toFixed(1)}</td></tr>`).join('')}</table></div>` : ''}
       ${Z.mvp ? `<div class="card earn"><b>${esc(Z.mvp.title)}</b><span>${esc(Z.mvp.name)} · ${Z.mvp.line}</span></div>` : ''}
@@ -106,6 +107,7 @@
         if (i >= 0 || j >= 0) { Z.line = line; save(); } }
       const y = $('#screen').scrollTop; hub(); $('#screen').scrollTop = y; });
     heads();
+    if ($('#trades')) $('#trades').onclick = () => trades();
     if ($('#play')) $('#play').onclick = () => play(nx);
     if ($('#sim')) $('#sim').onclick = () => { const w = PB.rand() < winP(Z.team, nx.opp, nx.home); result(nx, w, null); };
     if ($('#po')) $('#po').onclick = () => { if (!Z.po) startPO(); else { while (!Z.champ) simRound(); } save(); hub(); };
@@ -125,8 +127,8 @@
   function heads() {
     const imgs = [...document.querySelectorAll('#screen img[data-head]')];
     if (!imgs.length || PB.noGL || !PB.R || !PB.R.modelReady || !PB.R.modelReady()) return;
-    const step = () => { const img = imgs.shift(); if (!img || !img.isConnected) return; const p = Z.rosters[Z.team].find(x => x.id === img.dataset.head);
-      if (p) { const key = Z.team + p.id; if (!(key in headCache)) headCache[key] = PB.R.portrait(p, PB.team(Z.team), 96, { close: true }); if (headCache[key]) img.src = headCache[key]; }
+    const step = () => { const img = imgs.shift(); if (!img || !img.isConnected) return; const tm = img.dataset.team || Z.team, p = (Z.rosters[tm] || []).find(x => x.id === img.dataset.head);
+      if (p) { const key = tm + p.id; if (!(key in headCache)) headCache[key] = PB.R.portrait(p, PB.team(tm), 96, { close: true }); if (headCache[key]) img.src = headCache[key]; }
       setTimeout(step, 0); };
     step();
   }
@@ -168,6 +170,94 @@
     $('#go').onclick = hub;
     if ($('#reel')) $('#reel').onclick = () => PB.Game.reel(r.reels, () => { $('#screen').hidden = false; });
   }
+  /* ---------- trades you propose ----------
+     Pick up to three of yours and up to three of theirs. A team says yes when what it gets is worth a little more
+     than what it gives: worth grows fast with the rating (an 85 is worth about three 75s, and a second or third man counts for less than
+     the first, so three 75s will not get you an 85) and falls with age (a
+     young man is worth more than the same rating at 32). A team's best player costs a third more. Nobody is left
+     without two men at a position; a team that takes on more men than it sends lets its least valuable go, and a
+     team left short signs a young free agent. Open until the deadline (three quarters of the way through the regular
+     season) and again after the Finals. */
+  const worth = p => Math.pow(1.13, p.ovr - 60) * (p.age <= 23 ? 1.25 : p.age <= 26 ? 1.1 : p.age <= 29 ? 1 : p.age <= 31 ? 0.85 : p.age <= 33 ? 0.68 : 0.5);
+  const deadline = () => Math.ceil(Z.games.length * 0.75);
+  const tradeOpen = () => !!Z.champ || (!Z.po && Z.gi < deadline());
+  const tradeNote = () => Z.champ ? 'the offseason: deals before next season' : `deadline after game ${deadline()}`;
+  const posOk = ro => PB.POS.every(pos => ro.filter(p => p.pos === pos).length >= 2);
+  /* what a deal does to a roster: the men out gone, the men in added, cut down to fifteen by worth (keeping two at a spot) */
+  function after(ro, out, inn) {
+    const r = ro.filter(p => !out.includes(p)).concat(inn), cut = [];
+    while (r.length > 15) { const c = r.filter(p => !inn.includes(p) && r.filter(q => q.pos === p.pos).length > 2).sort((a, b) => worth(a) - worth(b))[0]; if (!c) break; r.splice(r.indexOf(c), 1); cut.push(c); }
+    return { r, cut };
+  }
+  /* their answer: { ok, ratio, why } */
+  function verdict(other, give, get) {
+    if (!give.length || !get.length) return { ok: false, ratio: 0, why: '' };
+    const top = Z.rosters[other].slice().sort((a, b) => b.ovr - a.ovr)[0];
+    const need = get.includes(top) ? 1.33 : 1.08, ratio = give.map(worth).sort((a, b) => b - a).reduce((a, w, i) => a + w * [1, 0.6, 0.35][i], 0) / (get.reduce((a, p) => a + worth(p), 0) * need);
+    if (get.length > give.length) return { ok: false, ratio, why: 'You can take on as many men as you send, not more' };
+    if (!posOk(after(Z.rosters[Z.team], give, get).r)) return { ok: false, ratio, why: 'That leaves you without two men at a position' };
+    const them = after(Z.rosters[other], get, give);
+    if (them.r.length > 15 || !posOk(them.r)) return { ok: false, ratio, why: 'That leaves them short at a position' };
+    if (ratio >= 1) return { ok: true, ratio, why: get.includes(top) ? 'They will part with their best man for that' : 'They would take that' };
+    return { ok: false, ratio, why: ratio > 0.85 ? 'Close: they want a little more' : ratio > 0.6 ? 'They want more for that' : 'Not close' };
+  }
+  /* "what would it take": the least of yours (one man, two or three) that gets a yes for the men picked of theirs */
+  function askFor(other, get) {
+    const mine = Z.rosters[Z.team].filter(p => !get.includes(p)), opts = [];
+    mine.forEach((a, i) => { opts.push([a]); mine.forEach((b, j) => { if (j > i) { opts.push([a, b]); mine.forEach((c, k) => { if (k > j) opts.push([a, b, c]); }); } }); });
+    return opts.filter(g => verdict(other, g, get).ok).sort((x, y) => x.reduce((a, p) => a + worth(p), 0) - y.reduce((a, p) => a + worth(p), 0))[0] || null;
+  }
+  function doTrade(other, give, get) {
+    const mineR = Z.rosters[Z.team], theirs = Z.rosters[other];
+    const them = after(theirs, get, give);
+    Z.rosters[Z.team] = mineR.filter(p => !give.includes(p)).concat(get);
+    Z.rosters[other] = them.r;
+    const top = PB.teamOvr(Z.rosters[Z.team]);
+    PB.fillRoster(Z.rosters[Z.team], Math.max(60, top - 2), Z.rosters);
+    /* numbers: a man who comes in wearing a number already taken picks another */
+    for (const ro of [Z.rosters[Z.team], Z.rosters[other]]) { const used = new Set(); for (const p of ro) { while (used.has(p.num)) p.num = PB.ri(0, 55); used.add(p.num); } }
+    if (Z.line && Z.line.some(id => give.some(p => p.id === id))) Z.line = null;
+    const names = l => l.map(p => PB.full(p)).join(' and ');
+    (Z.trades = Z.trades || []).unshift({ y: Z.year || 1, g: Z.gi, t: other, text: `${names(give)} to the ${PB.team(other).name} for ${names(get)}${them.cut.length ? ` (they let ${names(them.cut)} go)` : ''}` });
+    Z.trades = Z.trades.slice(0, 12);
+    save();
+  }
+  function trades(other, keep) {
+    const t = PB.team(Z.team), give = (keep && keep.give) || [], get = (keep && keep.get) || [];
+    other = other || (keep && keep.other) || null;
+    const rows = (ro, sel, tm) => ro.slice().sort((a, b) => b.ovr - a.ovr).map(p => `<div class="ros ${sel.includes(p) ? 'sel' : ''}" data-pid="${esc(p.id)}" data-side="${tm === Z.team ? 'me' : 'them'}" role="button" tabindex="0"><img alt="" data-head="${esc(p.id)}" data-team="${esc(tm)}"><b class="no">${p.num}</b>
+      <div><b>${esc(PB.full(p))}</b><span>${p.pos} · ${PB.fmtH(p.ht)} · ${p.age}</span></div><em>${p.ovr}</em></div>`).join('');
+    const v = other ? verdict(other, give, get) : null, pct = v ? Math.min(100, Math.round(v.ratio * 100)) : 0;
+    const log = (Z.trades || []).filter(x => x.y === (Z.year || 1));
+    show(`<div class="page trade"><button class="back" id="bk">‹ Back</button><h2>Trades</h2>
+      <p class="mute">${Z.champ ? 'The offseason. Deals made now hold for next season.' : `Open until the deadline, after game ${deadline()} of ${Z.games.length}.`} Pick who you send and who you want; they say yes when what they get is worth a bit more than what they give. Young men are worth more, and a team's best man costs extra.</p>
+      <div class="card"><h3>Trade with</h3><div class="tpick">${PB.TEAMS.filter(x => x.id !== Z.team).map(x => `<button class="tbtn ${x.id === other ? 'on' : ''}" data-t="${esc(x.id)}" aria-label="${esc(x.city + ' ' + x.name)}">${badge(x)}<span>${strength(x.id)}</span></button>`).join('')}</div></div>
+      ${other ? `<div class="card tdeal"><h3>The deal</h3>
+        <div class="dside"><p class="kick">You send</p>${give.length ? give.map(p => `<b>${esc(PB.full(p))} <i>${p.ovr}</i></b>`).join('') : '<span class="mute">pick from your team below</span>'}</div>
+        <div class="dside"><p class="kick">The ${esc(PB.team(other).name)} send</p>${get.length ? get.map(p => `<b>${esc(PB.full(p))} <i>${p.ovr}</i></b>`).join('') : '<span class="mute">pick from their team below</span>'}</div>
+        ${keep && keep.note ? `<p class="why ${keep.done ? 'ok' : ''}">${esc(keep.note)}</p>` : ''}
+        ${give.length && get.length ? `<div class="meter" aria-hidden="true"><i style="width:${pct}%"></i></div><p class="why ${v.ok ? 'ok' : ''}">${esc(v.why)}</p>` : ''}
+        <div class="row2"><button class="ghost sm" id="ask" ${get.length ? '' : 'disabled'}>What would it take?</button><button class="big" id="offer" ${v && v.ok ? '' : 'disabled'}>Make the trade</button></div></div>
+        <div class="card"><h3>The ${esc(PB.team(other).name)} <small>tap up to three · ${strength(other)}</small></h3>${rows(Z.rosters[other], get, other)}</div>` : ''}
+      <div class="card"><h3>${esc(t.name)} <small>tap up to three · ${strength(Z.team)}</small></h3>${rows(Z.rosters[Z.team], give, Z.team)}</div>
+      ${log.length ? `<div class="card"><h3>Your deals this season</h3>${log.map(x => `<p class="tlog">${esc(x.text)}</p>`).join('')}</div>` : ''}
+      </div>`);
+    $('#bk').onclick = hub;
+    document.querySelectorAll('#screen .tbtn').forEach(b => b.onclick = () => trades(b.dataset.t, { give, get: [] }));
+    document.querySelectorAll('#screen .ros[data-pid]').forEach(el => el.onclick = () => {
+      const me = el.dataset.side === 'me', ro = Z.rosters[me ? Z.team : other], p = ro.find(x => x.id === el.dataset.pid), l = me ? give : get;
+      if (!p) return;
+      const i = l.indexOf(p); if (i >= 0) l.splice(i, 1); else if (l.length < 3) l.push(p);
+      const y = $('#screen').scrollTop; trades(other, { give, get }); $('#screen').scrollTop = y; });
+    if ($('#ask')) $('#ask').onclick = () => { const g = askFor(other, get), y = $('#screen').scrollTop;
+      trades(other, { give: g || [], get, note: g ? '' : 'Nothing on your team gets that done' }); $('#screen').scrollTop = y; };
+    if ($('#offer')) $('#offer').onclick = () => { if (!verdict(other, give, get).ok) return;
+      const names = l => l.map(p => p.last).join(', ');
+      if (!confirm(`Send ${names(give)} to the ${PB.team(other).name} for ${names(get)}?`)) return;
+      doTrade(other, give, get); if (PB.audio && PB.audio.play) PB.audio.play('click');
+      trades(other, { done: true, note: `Done: ${names(get)} ${get.length > 1 ? 'are' : 'is'} yours` }); };
+    heads();
+  }
   /* series: best of one, three, five or seven by the season's length; the higher seed is home in games 1, 2, 5 and 7 */
   const BO = () => ({ 10: 1, 20: 3, 41: 5, 82: 7 }[Z.games.length] || 3);
   const mk = (a, b) => ({ a, b, wa: 0, wb: 0, bo: BO() });
@@ -195,5 +285,5 @@
     const b = L.sort((a, c) => by(c) - by(a))[0];
     Z.mvp = { title: won ? 'Finals MVP' : 'Team MVP', name: b.name, line: `${(b.pts / b.gp).toFixed(1)} pts, ${((b.reb || 0) / b.gp).toFixed(1)} reb, ${((b.ast || 0) / b.gp).toFixed(1)} ast` };
   }
-  PB.Season = { start };
+  PB.Season = { start, _trade: { worth, verdict: (o, g, t) => verdict(o, g, t), askFor: (o, t) => askFor(o, t), Z: () => Z } };
 })();
