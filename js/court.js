@@ -1504,6 +1504,7 @@
      both at once) to where the body is going. Then the hips sit at `hk` of a leg's length and each leg is solved, hip to
      knee to ankle, with the knee out over the toe. `wide` is half the stance in leg lengths. */
   const _H = V3(), _A = V3(), _K = V3(), _u = V3(), _pl = V3(), _t3 = V3(), _fq = Q4();
+  const _hu = new T.Vector3(), _hx = new T.Vector3();
   const TOE_DIR = 1;   // which way the ankle bone turns to point the toes down
   function plant(p, m, G, dt, w, wide, hk) {
     const B = m.bones, f = p.face + (p.spinA || 0), fx = Math.sin(f), fz = Math.cos(f), rx = -fz, rz = fx;
@@ -1600,10 +1601,15 @@
     if (dt > 0) { const rs = m.lx === undefined ? 0 : Math.hypot(p.x - m.lx, p.z - m.lz) / dt; m.rs = (m.rs || 0) + (Math.min(rs, 30) - (m.rs || 0)) * Math.min(1, dt * 9); m.lx = p.x; m.lz = p.z; }
     const sp = Math.min(Math.hypot(p.vx, p.vz), (m.rs || 0) * 1.2 + 1.5), air = p.y > 0.3;
     /* legs: idle, walk, jog and sprint blended by speed; the stance on defense; the jump in the air */
+    /* the stride follows a speed of its own, eased toward the real one: quick to pick up (he is off at once) and slower
+       to let go, so a stop is a last settling step and not a snap from mid-stride to standing, and a change of pace
+       does not jerk the legs from one gait to the next */
+    if (m.asp === undefined || G.replay) m.asp = sp; else m.asp += (sp - m.asp) * Math.min(1, dt * (sp > m.asp ? 14 : 5.5));
+    const spA = m.asp;
     const ws = {};
     for (let i = 0; i < LOCO.length; i++) {
       const [n, v] = LOCO[i], lo = i ? LOCO[i - 1][1] : -1, hi = i < LOCO.length - 1 ? LOCO[i + 1][1] : 1e9;
-      ws[n] = sp <= v ? (i ? smooth(lo, v, sp) : 1 - smooth(v, hi, sp)) : (i < LOCO.length - 1 ? 1 - smooth(v, hi, sp) : 1);
+      ws[n] = spA <= v ? (i ? smooth(lo, v, spA) : 1 - smooth(v, hi, spA)) : (i < LOCO.length - 1 ? 1 - smooth(v, hi, spA) : 1);
     }
     let crouch = 0;   // (the stance is its own thing: plant(), below)
     if (p.shoot && p.y < 0.6 && p.shoot.t < p.shoot.T * 0.3) crouch = 0.55;
@@ -1632,7 +1638,9 @@
        at an 11 ft/s jog, 3.6 at an 18 ft/s run; a taller man takes longer, slower steps), and within each step the
        time a foot is down is stretched so that it goes back exactly as fast as the floor does, the time in the air
        squeezed to fit. Walk, jog and sprint strike the same foot at the same moment, so the blends between them hold. */
-    { const vN = sp / scl, cad = vN < 3.3 ? Math.max(0.9, 0.6 * vN) : vN < 11 ? 1.98 + (vN - 3.3) * 0.1 : Math.min(4.3, 2.75 + (vN - 11) * 0.121);
+    { const vN = spA / scl, cad0 = vN < 3.3 ? Math.max(0.9, 0.6 * vN) : vN < 11 ? 1.98 + (vN - 3.3) * 0.1 : Math.min(4.3, 2.75 + (vN - 11) * 0.121);
+      /* (the cadence is eased too: the steps speed up and slow down, they do not change rate between two frames) */
+      m.cad = m.cad === undefined ? cad0 : m.cad + (cad0 - m.cad) * Math.min(1, dt * 9); const cad = m.cad;
       /* backing up (getting back on defense with his eyes on the ball): the same stride run the other way, a backpedal */
       const fa = p.face + (p.spinA || 0), hv = Math.hypot(p.vx, p.vz), back = hv > 1.5 && (p.vx * Math.sin(fa) + p.vz * Math.cos(fa)) / hv < -0.35 ? -1 : 1;
       m.gph = ((m.gph === undefined ? PB.rand() : m.gph) + back * dt * cad / 2 + 1) % 1; const ph = m.gph, Tc = 2 / cad;
@@ -1657,7 +1665,20 @@
       idle.breath += dt * (1.6 + 0.7 * (1 - (p.energy ?? 1)));
       idle.chest.rotateX(0.035 * settle * Math.sin(idle.breath + idle.phase));
       idle.chest.rotateZ(0.045 * settle * Math.sin(G.t * 0.78 + idle.phase));
+      /* a man standing is never still: his shoulders rise as he breathes in, his weight drifts from one side to the
+         other on a slow rhythm of his own (every player's is a little different, so five men standing do not sway
+         together), and his head wanders a little, the way a player watches the floor */
+      const br = Math.sin(idle.breath + idle.phase), ws = Math.sin(G.t * (0.34 + 0.09 * Math.sin(idle.phase * 7)) + idle.phase * 3);
+      if (!idle.sh) idle.sh = ['L', 'R'].map(sd => m.bones[bk(`DEF-shoulder.${sd}`)]).filter(Boolean);
+      for (let i = 0; i < idle.sh.length; i++) idle.sh[i].rotateX(-0.03 * settle * (0.5 + 0.5 * br));
+      idle.chest.rotateY(0.035 * settle * ws);
+      if (m.head && !(Math.abs(m.lookY || 0) > 0.05)) { m.head.rotateY(0.07 * settle * Math.sin(G.t * 0.23 + idle.phase * 5)); m.head.rotateX(0.02 * settle * br); m.head.rotateZ(-0.02 * settle * ws); }
     }
+    /* on the move the head stays steadier than the body under it: a runner's eyes hold the floor while his chest pitches
+       and rolls. Part of the head's lean off upright is taken back out (with a big head, the bobbing showed) */
+    if (m.head && p.y <= 0.05 && fall <= 0 && !G.replay) { const mv2 = smooth(2, 7, Math.hypot(p.vx, p.vz)) * (1 - (m.gw || 0));
+      if (mv2 > 0.02) { m.head.getWorldQuaternion(_qw); _hu.set(0, 1, 0).applyQuaternion(_qw); const ang = Math.acos(Math.max(-1, Math.min(1, _hu.y)));
+        if (ang > 0.01) { _hx.set(-_hu.z, 0, _hu.x).normalize(); _q.setFromAxisAngle(_hx, ang * 0.45 * mv2).multiply(_qw); m.head.parent.getWorldQuaternion(_qp).invert().multiply(_q); m.head.quaternion.copy(_qp); } } }
     if (m.head) m.head.scale.setScalar(m.headS || HEAD);
     /* off the floor the feet do not hang flat like a standing man's: the toes point down, most at the top of a leap, and
        come level again just before he lands */

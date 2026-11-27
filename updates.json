@@ -1,4 +1,11 @@
 [
+  { "id": "2026-11-27d", "v": "1.2.3", "date": "Nov 27", "name": "Alive at rest", "lines": [
+    ["feel", "Standing still he breathes, shifts and looks around"],
+    ["feel", "Every player sways on his own rhythm"],
+    ["feel", "The head stays level when he walks and runs"],
+    ["feel", "Smoother starts and stops: a settling step, no snap"],
+    ["look", "A smoother jersey: clean armholes and neckline"]
+  ] },
   { "id": "2026-11-27c", "v": "1.2.2", "date": "Nov 27", "name": "Cleaner player", "lines": [
     ["look", "Jersey straps sit flat, no points at the neck"],
     ["fix", "No jagged shards under a raised arm"],

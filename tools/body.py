@@ -215,7 +215,7 @@ part('shut', 7, 31, [loft('lid', capped([(hv(sg * 0.052 - 0.020, -0.131, -0.010)
 part('band', 5, 24, [loft('band', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((0.034, 1.0), (0.040, 1.045), (0.078, 1.045), (0.084, 1.0))], X, Y, seg=40, power=2.35)])
 part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'lens') for sg in (1, -1)] + [loft('strap', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((-0.014, 1.0), (-0.010, 1.03), (0.008, 1.03), (0.012, 1.0))], X, Y, seg=40, power=2.35)])
 
-B0 = {'hair_spiky': 1600, 'hair_braids': 1700, 'beard_mustache': 160, 'beard_chinstrap': 500, 'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 4200, 'shorts': 4000, 'shoe': 3200, 'sock': 500, 'head': 3200}
+B0 = {'hair_spiky': 1600, 'hair_braids': 1700, 'beard_mustache': 160, 'beard_chinstrap': 500, 'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 5600, 'shorts': 4000, 'shoe': 3200, 'sock': 500, 'head': 3200}
 V0 = {'hair_spiky': 0.0055, 'hair_braids': 0.0045, 'beard_mustache': 0.004, 'hair_twists': 0.0055, 'hair_rows': 0.005, 'hair_curly': 0.0055, 'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
 S0 = {'hair_spiky': 1, 'hair_braids': 1, 'beard_mustache': 1, 'hair_twists': 1, 'hair_rows': 1, 'hair_curly': 1, 'skin': 4, 'jersey': 7, 'shorts': 6, 'shoe': 5, 'sock': 3, 'head': 6}
 part('yell', 7, 23, [hb(0, -0.127, -0.093, 0.021, 0.010, 0.019, 'yell')])   # an open mouth for a shout: it covers the small one
@@ -241,6 +241,9 @@ for g, objs in G.items():
             if q.co.z > shz + 0.034: q.co.z = shz + 0.034 + (q.co.z - shz - 0.034) * 0.3
     dc = o.modifiers.new('Light', 'DECIMATE'); dc.ratio = min(1.0, BUDGET(g) / max(1, sum(len(p.vertices) - 2 for p in o.data.polygons)))
     bpy.ops.object.modifier_apply(modifier='Light')
+    if g in ('jersey', 'shorts'):   # cutting the triangles down leaves small facets and wavy edges on cloth: one more soft pass irons them out
+        sm2 = o.modifiers.new('Iron', 'SMOOTH'); sm2.factor, sm2.iterations = 0.5, 3
+        bpy.ops.object.modifier_apply(modifier='Iron')
     # which layer a vertex belongs to rides along as a vertex color (red = the region number / 8): the game reads it
     ca = o.data.color_attributes.new('Col', 'BYTE_COLOR', 'CORNER')
     CUT = KNEEZ + (hz - KNEEZ) * 0.24
