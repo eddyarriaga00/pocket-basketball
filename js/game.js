@@ -2553,8 +2553,14 @@
         } }
       steer(u, dt, w.x * sp + ax, w.z * sp + az);
       if (G.ball.holder === u) u.pose = 'dribble';
-      else if (!off) { const h = G.ball.holder, mn = G.pl.find(o => o.team !== u.team && o.slot === u.slot);   // a stance near the ball or your man; a run when you are getting back
-        u.pose = (h && hyp(h.x - u.x, h.z - u.z) < 17) || (mn && hyp(mn.x - u.x, mn.z - u.z) < 9) ? 'guard' : ''; }
+      else if (!off) {
+        /* the stance is only for when you are on someone: the ball handler within a couple of steps, or any of them
+           right next to you. Anywhere else you run (it used to drop you into a slide anywhere near the ball or your
+           man, so running back or across the floor looked like a crab walk). Pushing to a sprint you run unless you are
+           right on the handler, staying in front of his drive */
+        const h = G.ball.holder && G.ball.holder.team !== u.team ? G.ball.holder : null, hd = h ? hyp(h.x - u.x, h.z - u.z) : 99;
+        let nd = 99; for (const o of G.pl) if (o.team !== u.team) nd = Math.min(nd, hyp(o.x - u.x, o.z - u.z));
+        u.pose = (w.m > 0.82 ? hd < 4.5 : hd < 7.5 || nd < 4.5) ? 'guard' : ''; }
       else if (!passingPose(u.pose)) u.pose = '';
       if (!off) handsUp(u);
     } else {

@@ -7,7 +7,7 @@ not here: the game draws its own.
 The figure is a stick drawing of the skeleton (a vertex at each joint) given thickness by Blender's Skin modifier and
 smoothed, so its joints sit exactly on the bones; the shoes are rounded blocks. Weights come from Blender's automatic
 (bone heat) skinning, fingers and toes folded into the hand and foot."""
-import bpy, bmesh, sys, math
+import bpy, bmesh, sys, math, os
 from mathutils import Vector
 
 args = sys.argv[sys.argv.index('--') + 1:]
@@ -100,10 +100,11 @@ for S, sg in (('L', 1), ('R', -1)):
     parts.append(loft('thumb' + S, capped([(h0 + X * sg * 0.045 - Y * 0.030, 0.019, 0.017), (h0 + X * sg * 0.070 - Y * 0.062 - Z * 0.006, 0.018, 0.016), (h0 + X * sg * 0.092 - Y * 0.082 - Z * 0.012, 0.015, 0.014)]), Vector((sg * 0.7, 0.7, 0)).normalized(), Z, seg=12, k=1.5))
     hp, kn, an = head(f'DEF-thigh.{S}'), head(f'DEF-shin.{S}'), head(f'DEF-foot.{S}')
     lg = lambda t, a, b, dy=0.0, dx=0.0: Vector((a.x + (b.x - a.x) * t + sg * dx, a.y + (b.y - a.y) * t + dy, a.z + (b.z - a.z) * t))
-    # the leg: a full thigh that narrows to the knee, a calf that sits behind the shin, a slim ankle
+    # the leg: a full thigh that narrows to the knee, a calf that sits behind the shin, a slim ankle. Under the shorts the
+    # thigh is slimmer on the inside, so it stays inside its leg of the shorts and the two legs of the shorts can part
     parts.append(loft('leg' + S, capped([
-        (lg(-0.06, hp, kn, 0.010, 0.0), 0.078, 0.090), (lg(0.12, hp, kn, 0.010, 0.0), 0.084, 0.094), (lg(0.38, hp, kn, 0.008), 0.080, 0.088),
-        (lg(0.70, hp, kn, 0.004), 0.070, 0.074), (lg(0.93, hp, kn), 0.060, 0.063), (lg(0.03, kn, an), 0.058, 0.061),
+        (lg(-0.06, hp, kn, 0.010, 0.008), 0.068, 0.090), (lg(0.12, hp, kn, 0.010, 0.010), 0.068, 0.094), (lg(0.38, hp, kn, 0.008, 0.010), 0.066, 0.088),
+        (lg(0.70, hp, kn, 0.004, 0.004), 0.064, 0.074), (lg(0.93, hp, kn), 0.060, 0.063), (lg(0.03, kn, an), 0.058, 0.061),
         (lg(0.18, kn, an, 0.010), 0.060, 0.066), (lg(0.36, kn, an, 0.014), 0.058, 0.066), (lg(0.62, kn, an, 0.010), 0.047, 0.052),
         (lg(0.86, kn, an, 0.004), 0.038, 0.041), (lg(1.06, kn, an), 0.037, 0.040)]), X, Y, seg=20, k=LIMB))
 
@@ -111,26 +112,28 @@ for S, sg in (('L', 1), ('R', -1)):
 # a loose jersey with a hem, baggy shorts to the knee, crew socks, sneakers with a sole, a toe cap and a tongue
 G = {'skin': parts, 'jersey': [], 'shorts': [], 'sock': [], 'shoe': []}
 jersey = loft('jersey', capped([
-    ((0, 0.014, hz - 0.048), 0.201, 0.129), ((0, 0.012, hz + 0.02), 0.200, 0.129), ((0, 0.008, s1 + 0.05), 0.198, 0.128),
+    ((0, 0.014, hz - 0.006), 0.199, 0.128), ((0, 0.012, hz + 0.03), 0.200, 0.129), ((0, 0.008, s1 + 0.05), 0.198, 0.128),
     ((0, 0.004, s2 + 0.03), 0.208, 0.132), ((0, 0.002, s2 + 0.12), 0.216, 0.134), ((0, 0.006, s3 + 0.045), 0.220, 0.134),
-    ((0, 0.012, shz - 0.045), 0.216, 0.128), ((0, 0.014, shz + 0.008), 0.190, 0.114), ((0, 0.012, shz + 0.046), 0.130, 0.094)]), X, Y, seg=36, power=2.7)
+    ((0, 0.012, shz - 0.045), 0.216, 0.128), ((0, 0.014, shz + 0.008), 0.190, 0.114), ((0, 0.012, shz + 0.034), 0.128, 0.092)]), X, Y, seg=36, power=2.7)
 def cut(o, cutter):
     bpy.context.view_layer.objects.active = o
     m = o.modifiers.new('Cut', 'BOOLEAN'); m.operation = 'DIFFERENCE'; m.object = cutter; m.solver = 'EXACT'
     bpy.ops.object.modifier_apply(modifier='Cut'); bpy.data.objects.remove(cutter, do_unlink=True)
-cut(jersey, ball('neckcut', (0, -0.045, shz + 0.062), (0.092, 0.150, 0.098), seg=24))                 # the scoop of the neck
+cut(jersey, ball('neckcut', (0, -0.040, shz + 0.062), (0.094, 0.166, 0.100), seg=32))                 # the scoop of the neck
 for sg in (1, -1): cut(jersey, ball('armcut', (sg * 0.232, 0.030, shz - 0.030), (0.086, 0.170, 0.118), seg=24))   # the armholes
 G['jersey'].append(jersey)
 G['shorts'].append(loft('shortsTop', capped([
-    ((0, 0.016, hz - 0.150), 0.190, 0.120), ((0, 0.014, hz - 0.070), 0.214, 0.134), ((0, 0.012, hz + 0.010), 0.208, 0.134),
+    ((0, 0.018, hz - 0.128), 0.120, 0.100), ((0, 0.016, hz - 0.090), 0.180, 0.124), ((0, 0.014, hz - 0.045), 0.212, 0.134), ((0, 0.012, hz + 0.010), 0.208, 0.134),
     ((0, 0.010, hz + 0.060), 0.196, 0.128)]), X, Y, seg=32, power=2.6))
 for S, sg in (('L', 1), ('R', -1)):
     hp, kn, an = head(f'DEF-thigh.{S}'), head(f'DEF-shin.{S}'), head(f'DEF-foot.{S}')
     lg = lambda t, a, b, dy=0.0, dx=0.0: Vector((a.x + (b.x - a.x) * t + sg * dx, a.y + (b.y - a.y) * t + dy, a.z + (b.z - a.z) * t))
-    # a leg of the shorts: wide, a little wider still at the hem, ending just above the knee
+    # a leg of the shorts: round, around its own thigh, a little wider at the hem, ending just above the knee. The two
+    # legs part at the crotch with a clear gap (they used to overlap across the middle and fused into one block, a skirt,
+    # and a narrower gap was filled in by the dark outline the game draws round each): between them, the inner thighs
     G['shorts'].append(loft('shortsLeg' + S, [
-        (lg(-0.04, hp, kn, 0.010, 0.012), 0.108, 0.122), (lg(0.20, hp, kn, 0.010, 0.014), 0.114, 0.126), (lg(0.50, hp, kn, 0.008, 0.016), 0.118, 0.128),
-        (lg(0.80, hp, kn, 0.006, 0.018), 0.124, 0.132), (lg(0.84, hp, kn, 0.006, 0.018), 0.110, 0.118)], X, Y, seg=24, power=2.3))
+        (lg(-0.04, hp, kn, 0.010, 0.026), 0.098, 0.122), (lg(0.20, hp, kn, 0.010, 0.030), 0.094, 0.124), (lg(0.50, hp, kn, 0.008, 0.034), 0.094, 0.126),
+        (lg(0.80, hp, kn, 0.006, 0.036), 0.098, 0.130), (lg(0.84, hp, kn, 0.006, 0.036), 0.088, 0.116)], X, Y, seg=24, power=2.1))
     G['sock'].append(loft('sock' + S, [(lg(0.60, kn, an, 0.010), 0.060, 0.066), (lg(0.63, kn, an, 0.010), 0.064, 0.070), (lg(0.80, kn, an, 0.006), 0.056, 0.060), (lg(1.02, kn, an), 0.052, 0.056)], X, Y, seg=18))
     # the sneaker: a sole that shows all the way round, the upper, a toe cap, a padded collar and a tongue
     tip, heel = tail(f'DEF-toe.{S}').y + 0.030, an.y + 0.092
@@ -212,9 +215,9 @@ part('shut', 7, 31, [loft('lid', capped([(hv(sg * 0.052 - 0.020, -0.131, -0.010)
 part('band', 5, 24, [loft('band', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((0.034, 1.0), (0.040, 1.045), (0.078, 1.045), (0.084, 1.0))], X, Y, seg=40, power=2.35)])
 part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'lens') for sg in (1, -1)] + [loft('strap', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((-0.014, 1.0), (-0.010, 1.03), (0.008, 1.03), (0.012, 1.0))], X, Y, seg=40, power=2.35)])
 
-B0 = {'hair_spiky': 1600, 'hair_braids': 1700, 'beard_mustache': 160, 'beard_chinstrap': 500, 'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 1500, 'shorts': 1700, 'shoe': 2200, 'sock': 500, 'head': 3200}
+B0 = {'hair_spiky': 1600, 'hair_braids': 1700, 'beard_mustache': 160, 'beard_chinstrap': 500, 'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 4200, 'shorts': 4000, 'shoe': 2200, 'sock': 500, 'head': 3200}
 V0 = {'hair_spiky': 0.0055, 'hair_braids': 0.0045, 'beard_mustache': 0.004, 'hair_twists': 0.0055, 'hair_rows': 0.005, 'hair_curly': 0.0055, 'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
-S0 = {'hair_spiky': 1, 'hair_braids': 1, 'beard_mustache': 1, 'hair_twists': 1, 'hair_rows': 1, 'hair_curly': 1, 'skin': 4, 'jersey': 3, 'shorts': 3, 'shoe': 2, 'sock': 2, 'head': 6}
+S0 = {'hair_spiky': 1, 'hair_braids': 1, 'beard_mustache': 1, 'hair_twists': 1, 'hair_rows': 1, 'hair_curly': 1, 'skin': 4, 'jersey': 7, 'shorts': 6, 'shoe': 2, 'sock': 2, 'head': 6}
 part('yell', 7, 23, [hb(0, -0.127, -0.093, 0.021, 0.010, 0.019, 'yell')])   # an open mouth for a shout: it covers the small one
 kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') or g.startswith('eyes') or g in ('shut', 'yell') else 'glint' if g.startswith('glint') else g
 BUDGET = lambda g: B0.get(g) or {'hair': 800, 'face': 420, 'glint': 60}[kind(g)]
@@ -242,17 +245,22 @@ for g, objs in G.items():
         import bmesh
         bm = bmesh.new(); bm.from_mesh(o.data)
         bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, CUT), plane_no=(0, 0, 1), clear_inner=False, clear_outer=False)
+        # and along where the insides of the thighs stop being painted the shorts' color (a clean edge, not a ragged one)
+        for co_, no_ in (((0.045, 0, 0), (1, 0, 0)), ((-0.045, 0, 0), (1, 0, 0)), ((0, 0, hz - 0.14), (0, 0, 1))):
+            bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=co_, plane_no=no_, clear_inner=False, clear_outer=False)
         bmesh.ops.triangulate(bm, faces=bm.faces[:]); bm.to_mesh(o.data); bm.free(); o.data.update()
         ca = o.data.color_attributes.get('Col') or ca
-    pz = {}
+    pz, px = {}, {}
     for pl in o.data.polygons:
-        for li in pl.loop_indices: pz[li] = pl.center.z
+        for li in pl.loop_indices: pz[li] = pl.center.z; px[li] = pl.center.x
     for li, d in enumerate(ca.data):
         r = REGION[g]
         if g == 'skin':   # the body under the clothes takes their color, so nothing shows through when he bends: the trunk
             co = o.data.vertices[o.data.loops[li].vertex_index].co   # under the jersey, the hips and upper thighs under the shorts
             if abs(co.x) < 0.215 and hz - 0.20 < co.z < shz - 0.11: r = 2 if co.z < hz + 0.02 else 1
-            elif co.z < hz and pz[li] > CUT and abs(co.x) < 0.26: r = 2
+            elif co.z < hz and pz[li] > CUT and abs(co.x) < 0.26 and not (abs(px[li]) < 0.045 and pz[li] < hz - 0.14): r = 2
+            # (the insides of the thighs below the crotch stay skin: painted too, they filled the gap between the legs
+            # of the shorts and the shorts read as a skirt)
         d.color = (r / 8.0, (VAR.get(g, 0) % 32) / 32.0, (VAR.get(g, 0) // 32) / 8.0, 1.0)   # the variant: green is its low five bits, blue the rest
     mat = bpy.data.materials.new('M_' + g); mat.diffuse_color = {0: (0.62, 0.42, 0.30, 1), 1: (0.93, 0.93, 0.95, 1), 2: (0.10, 0.10, 0.12, 1), 3: (0.95, 0.95, 0.96, 1), 4: (0.85, 0.85, 0.87, 1), 5: (0.06, 0.05, 0.05, 1), 6: (0.97, 0.97, 0.97, 1), 7: (0.05, 0.04, 0.04, 1)}[REGION[g]]
     o['show'] = 1 if g in SHOW else 0
@@ -297,29 +305,89 @@ bpy.ops.object.parent_set(type='ARMATURE_AUTO')
 FOLLOW = {'L_jersey': ('DEF-spine', 'DEF-hips', 'DEF-shoulder', 'DEF-breast', 'DEF-neck', 'DEF-pelvis'),
           'L_shorts': ('DEF-hips', 'DEF-spine', 'DEF-thigh', 'DEF-pelvis'),
           'L_sock': ('DEF-shin', 'DEF-foot'), 'L_shoe': ('DEF-shin', 'DEF-foot', 'DEF-toe')}
-def shortsWeights(o):
-    """the shorts are weighted by where a point is, not by the nearest skin (a leg of the shorts is wider than the thigh
-    and its inside is nearer the other leg, which crumpled it): above the hip joints they ride the hips, below they ride
-    their own thigh, with a soft band between, and at the crotch the two thighs share"""
-    hzL = head('DEF-thigh.L').z; xL = head('DEF-thigh.L').x
-    for vg in list(o.vertex_groups): o.vertex_groups.remove(vg)
-    G_ = {n: o.vertex_groups.new(name=n) for n in ('DEF-hips', 'DEF-spine.001', 'DEF-thigh.L', 'DEF-thigh.R')}
-    for q in o.data.vertices:
-        c = q.co
-        t = min(1.0, max(0.0, (hzL - 0.03 - c.z) / 0.18)); t = t * t * (3 - 2 * t)      # 0 at the waistband, 1 down the leg
-        s = min(1.0, max(0.0, 0.5 + c.x / (2 * abs(xL) * 0.55))); s = s * s * (3 - 2 * s)   # 1 on the left leg's side, 0 on the right
-        if xL < 0: s = 1 - s
-        # the seat and the fly (between the legs, above the hems) stay mostly with the hips, so a split stride stretches
-        # the cloth across instead of tearing it open between a leg swung forward and one swung back
-        mid = 1 - min(1.0, abs(c.x) / (abs(xL) * 0.9)); up = min(1.0, max(0.0, (c.z - (hzL - 0.24)) / 0.12))
-        t *= 1 - 0.65 * mid * up
-        top = 1 - t; sp = max(0.0, min(1.0, (c.z - (hzL + 0.08)) / 0.08)) * top
-        w = {'DEF-spine.001': sp, 'DEF-hips': top - sp, 'DEF-thigh.L': t * s, 'DEF-thigh.R': t * (1 - s)}
+def smoothW(o, n):
+    """soften the weights: cloth does not crease along a single row of triangles"""
+    nb = [[] for _ in o.data.vertices]
+    for e in o.data.edges: a_, b_ = e.vertices; nb[a_].append(b_); nb[b_].append(a_)
+    W = [{o.vertex_groups[g.group].name: g.weight for g in q.groups} for q in o.data.vertices]
+    for _ in range(n):
+        W2 = []
+        for i, w in enumerate(W):
+            acc = {k: v * 0.5 for k, v in w.items()}
+            if nb[i]:
+                f = 0.5 / len(nb[i])
+                for j in nb[i]:
+                    for k, v in W[j].items(): acc[k] = acc.get(k, 0) + v * f
+            else: acc = dict(w)
+            s_ = sum(acc.values()) or 1; W2.append({k: v / s_ for k, v in acc.items()})
+        W = W2
+    for vg in o.vertex_groups: vg.remove(list(range(len(o.data.vertices))))
+    for i, w in enumerate(W):
         for k, v in w.items():
-            if v > 1e-3: G_[k].add([q.index], v, 'REPLACE')
+            if v > 1e-3: o.vertex_groups[k].add([i], v, 'REPLACE')
+SHORTS_UP = float(os.environ.get('SHORTS_UP', '0.12'))
+def shortsFromSkin(o):
+    """the shorts take the bare body's own weights (bone heat bends the hips and thighs smoothly), from the skin on
+    their own side: a leg of the shorts is wider than the thigh, and copied from the nearest skin anywhere its inside
+    took the other leg's weights and crumpled. Each point averages the few nearest skin points of its own leg (both
+    legs at the middle seam), so the cloth bends as softly as the body under it."""
+    from mathutils import kdtree
+    xL = head('DEF-thigh.L').x; sgL = 1 if xL > 0 else -1
+    allow = ('DEF-hips', 'DEF-spine', 'DEF-thigh', 'DEF-pelvis')
+    sv = skinO.data.vertices; names = {g.index: g.name for g in skinO.vertex_groups}
+    pts = [q for q in sv if 0.05 < q.co.z < shz and any(names[e.group].startswith(allow) and e.weight > 1e-3 for e in q.groups)]
+    trees = {}
+    for side in (1, -1, 0):
+        sel = [q for q in pts if (side == 0 and abs(q.co.x) < 0.06) or (side != 0 and q.co.x * side > -0.004)]
+        t = kdtree.KDTree(len(sel))
+        for k_, q in enumerate(sel): t.insert(q.co, k_)
+        t.balance(); trees[side] = (t, sel)
+    for vg in list(o.vertex_groups): o.vertex_groups.remove(vg)
+    out = {}
+    for q in o.data.vertices:
+        side = 0 if abs(q.co.x) < 0.012 else (1 if q.co.x > 0 else -1)
+        t, sel = trees[side]; acc = {}
+        # sampled a little above the point: the bend of the cloth sits lower on the leg than the body's own (taken
+        # level, the top of a leg of the shorts swung with the thigh and opened a gap at the hip)
+        for co, k_, d in t.find_n(q.co + Vector((0, 0, SHORTS_UP)), 10):
+            wgt = 1 / (d + 0.01)
+            for e in sel[k_].groups:
+                n = names[e.group]
+                if n.startswith(allow) and not (n.startswith('DEF-thigh') and ((n.endswith('.L')) != (sgL == side) and side != 0)):
+                    acc[n] = acc.get(n, 0) + e.weight * wgt
+        s_ = sum(acc.values()) or 1
+        for n, v in acc.items():
+            if v / s_ > 1e-3:
+                if n not in out: out[n] = o.vertex_groups.new(name=n)
+                out[n].add([q.index], v / s_, 'REPLACE')
+        if not acc: (out.get('DEF-hips') or out.setdefault('DEF-hips', o.vertex_groups.new(name='DEF-hips'))).add([q.index], 1.0, 'REPLACE')
+def footWeights(o, sock):
+    """shoes and socks are weighted by where a point is too: copied from the slim bare foot inside, the sole and the
+    upper picked different bones and tore apart (the sole peeled off, the sock spiked out) as soon as the heel came up.
+    A shoe is stiff: behind the ball of the foot it rides the foot, in front of it the toe, with a short soft crease
+    over the ball; the collar round the ankle eases onto the shin so it does not cut into the leg as the ankle flexes.
+    A sock rides the shin and only its bottom follows the foot."""
+    xL = head('DEF-thigh.L').x
+    for vg in list(o.vertex_groups): o.vertex_groups.remove(vg)
+    ss = lambda t: (lambda u: u * u * (3 - 2 * u))(min(1.0, max(0.0, t)))
+    for S in ('L', 'R'):
+        for n in (f'DEF-shin.{S}', f'DEF-foot.{S}', f'DEF-toe.{S}'): o.vertex_groups.new(name=n)
+    for q in o.data.vertices:
+        c = q.co; S = 'L' if (c.x > 0) == (xL > 0) else 'R'
+        an = head(f'DEF-foot.{S}'); ball_ = head(f'DEF-toe.{S}')
+        if sock:
+            sh = ss((c.z - (an.z - 0.005)) / 0.08); w = {f'DEF-shin.{S}': sh, f'DEF-foot.{S}': 1 - sh}
+        else:
+            # the crease runs across the ball of the foot (the toe bone's root), a little behind it at the top
+            f = ss((ball_.y + 0.012 - c.y) / 0.045)
+            sh = 0.55 * ss((c.z - (an.z - 0.005)) / 0.075) * (1 - f)
+            w = {f'DEF-shin.{S}': sh, f'DEF-foot.{S}': (1 - sh) * (1 - f), f'DEF-toe.{S}': (1 - sh) * f}
+        for k, v in w.items():
+            if v > 1e-3: o.vertex_groups[k].add([q.index], v, 'REPLACE')
 for o in bodyL:
     if o is skinO: continue
-    if o.name == 'L_shorts': shortsWeights(o); continue
+    if o.name == 'L_shorts': shortsFromSkin(o); smoothW(o, 6); continue
+    if o.name in ('L_shoe', 'L_sock'): footWeights(o, o.name == 'L_sock'); continue
     for q in bpy.data.objects: q.select_set(False)
     o.select_set(True); bpy.context.view_layer.objects.active = o
     dt = o.modifiers.new('Weights', 'DATA_TRANSFER'); dt.object = skinO; dt.use_object_transform = True
@@ -335,25 +403,7 @@ for o in bodyL:
         if not any(e.weight > 1e-4 for e in q.groups):
             best = min((vg for vg in o.vertex_groups), key=lambda vg: (arm.data.bones[vg.name].head_local - q.co).length if vg.name in arm.data.bones else 9)
             best.add([q.index], 1.0, 'REPLACE')
-    # soften it: cloth does not crease along a single row of triangles
-    nb = [[] for _ in o.data.vertices]
-    for e in o.data.edges: a_, b_ = e.vertices; nb[a_].append(b_); nb[b_].append(a_)
-    W = [{o.vertex_groups[g.group].name: g.weight for g in q.groups} for q in o.data.vertices]
-    for _ in range(3):
-        W2 = []
-        for i, w in enumerate(W):
-            acc = {k: v * 0.5 for k, v in w.items()}
-            if nb[i]:
-                f = 0.5 / len(nb[i])
-                for j in nb[i]:
-                    for k, v in W[j].items(): acc[k] = acc.get(k, 0) + v * f
-            else: acc = dict(w)
-            s_ = sum(acc.values()) or 1; W2.append({k: v / s_ for k, v in acc.items()})
-        W = W2
-    for vg in o.vertex_groups: vg.remove(list(range(len(o.data.vertices))))
-    for i, w in enumerate(W):
-        for k, v in w.items():
-            if v > 1e-3: o.vertex_groups[k].add([i], v, 'REPLACE')
+    smoothW(o, 3)
 body = joined(bodyL, 'PocketBody'); headO = joined(headL, 'PocketHead')
 for o in bpy.data.objects: o.select_set(False)
 body.select_set(True); arm.select_set(True)
