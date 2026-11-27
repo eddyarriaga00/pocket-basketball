@@ -281,13 +281,88 @@ def joined(objs, name):
     bpy.context.view_layer.objects.active = objs[0]
     if len(objs) > 1: bpy.ops.object.join()
     objs[0].name = name; bpy.ops.object.shade_smooth(); return objs[0]
-body = joined(bodyL, 'PocketBody'); headO = joined(headL, 'PocketHead')
 for b in arm.data.bones:
     b.use_deform = b.name.startswith('DEF-') and not any(k in b.name for k in ('f_index', 'f_middle', 'f_ring', 'f_pinky', 'thumb'))
+# The clothes bend with the body under them: bone heat is run on the bare body alone (one closed surface, which it
+# solves well), and every piece of the kit copies its weights from the nearest point of that body. Bone heat on the
+# body and the kit together had each loose shell find its own bones: a leg of the shorts hung off the hips and stayed
+# put while the thigh inside it swung forward, and the jersey tore where it and the chest picked different bones.
+skinO = next(o for o in bodyL if o.name == 'L_skin')
+for o in bpy.data.objects: o.select_set(False)
+skinO.select_set(True); arm.select_set(True); bpy.context.view_layer.objects.active = arm
+bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+# what each piece of kit may follow: the jersey the trunk and the shoulders (not the arms: it is a tank top, the arm
+# moves inside the armhole), the shorts the hips, the low back and the thighs (never the shins), socks and shoes the
+# leg below the knee and the foot
+FOLLOW = {'L_jersey': ('DEF-spine', 'DEF-hips', 'DEF-shoulder', 'DEF-breast', 'DEF-neck', 'DEF-pelvis'),
+          'L_shorts': ('DEF-hips', 'DEF-spine', 'DEF-thigh', 'DEF-pelvis'),
+          'L_sock': ('DEF-shin', 'DEF-foot'), 'L_shoe': ('DEF-shin', 'DEF-foot', 'DEF-toe')}
+def shortsWeights(o):
+    """the shorts are weighted by where a point is, not by the nearest skin (a leg of the shorts is wider than the thigh
+    and its inside is nearer the other leg, which crumpled it): above the hip joints they ride the hips, below they ride
+    their own thigh, with a soft band between, and at the crotch the two thighs share"""
+    hzL = head('DEF-thigh.L').z; xL = head('DEF-thigh.L').x
+    for vg in list(o.vertex_groups): o.vertex_groups.remove(vg)
+    G_ = {n: o.vertex_groups.new(name=n) for n in ('DEF-hips', 'DEF-spine.001', 'DEF-thigh.L', 'DEF-thigh.R')}
+    for q in o.data.vertices:
+        c = q.co
+        t = min(1.0, max(0.0, (hzL - 0.03 - c.z) / 0.18)); t = t * t * (3 - 2 * t)      # 0 at the waistband, 1 down the leg
+        s = min(1.0, max(0.0, 0.5 + c.x / (2 * abs(xL) * 0.55))); s = s * s * (3 - 2 * s)   # 1 on the left leg's side, 0 on the right
+        if xL < 0: s = 1 - s
+        # the seat and the fly (between the legs, above the hems) stay mostly with the hips, so a split stride stretches
+        # the cloth across instead of tearing it open between a leg swung forward and one swung back
+        mid = 1 - min(1.0, abs(c.x) / (abs(xL) * 0.9)); up = min(1.0, max(0.0, (c.z - (hzL - 0.24)) / 0.12))
+        t *= 1 - 0.65 * mid * up
+        top = 1 - t; sp = max(0.0, min(1.0, (c.z - (hzL + 0.08)) / 0.08)) * top
+        w = {'DEF-spine.001': sp, 'DEF-hips': top - sp, 'DEF-thigh.L': t * s, 'DEF-thigh.R': t * (1 - s)}
+        for k, v in w.items():
+            if v > 1e-3: G_[k].add([q.index], v, 'REPLACE')
+for o in bodyL:
+    if o is skinO: continue
+    if o.name == 'L_shorts': shortsWeights(o); continue
+    for q in bpy.data.objects: q.select_set(False)
+    o.select_set(True); bpy.context.view_layer.objects.active = o
+    dt = o.modifiers.new('Weights', 'DATA_TRANSFER'); dt.object = skinO; dt.use_object_transform = True
+    dt.use_vert_data = True; dt.data_types_verts = {'VGROUP_WEIGHTS'}; dt.vert_mapping = 'POLYINTERP_NEAREST'
+    dt.layers_vgroup_select_src = 'ALL'; dt.layers_vgroup_select_dst = 'NAME'
+    bpy.ops.object.datalayout_transfer(modifier='Weights')
+    bpy.ops.object.modifier_apply(modifier='Weights')
+    keep = FOLLOW[o.name]
+    for vg in list(o.vertex_groups):
+        if not vg.name.startswith(keep): o.vertex_groups.remove(vg)
+    # a vertex left with nothing it may follow (a jersey edge that only knew the arm) takes the nearest trunk bone
+    for q in o.data.vertices:
+        if not any(e.weight > 1e-4 for e in q.groups):
+            best = min((vg for vg in o.vertex_groups), key=lambda vg: (arm.data.bones[vg.name].head_local - q.co).length if vg.name in arm.data.bones else 9)
+            best.add([q.index], 1.0, 'REPLACE')
+    # soften it: cloth does not crease along a single row of triangles
+    nb = [[] for _ in o.data.vertices]
+    for e in o.data.edges: a_, b_ = e.vertices; nb[a_].append(b_); nb[b_].append(a_)
+    W = [{o.vertex_groups[g.group].name: g.weight for g in q.groups} for q in o.data.vertices]
+    for _ in range(3):
+        W2 = []
+        for i, w in enumerate(W):
+            acc = {k: v * 0.5 for k, v in w.items()}
+            if nb[i]:
+                f = 0.5 / len(nb[i])
+                for j in nb[i]:
+                    for k, v in W[j].items(): acc[k] = acc.get(k, 0) + v * f
+            else: acc = dict(w)
+            s_ = sum(acc.values()) or 1; W2.append({k: v / s_ for k, v in acc.items()})
+        W = W2
+    for vg in o.vertex_groups: vg.remove(list(range(len(o.data.vertices))))
+    for i, w in enumerate(W):
+        for k, v in w.items():
+            if v > 1e-3: o.vertex_groups[k].add([i], v, 'REPLACE')
+body = joined(bodyL, 'PocketBody'); headO = joined(headL, 'PocketHead')
 for o in bpy.data.objects: o.select_set(False)
 body.select_set(True); arm.select_set(True)
 bpy.context.view_layer.objects.active = arm
-bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+bpy.ops.object.parent_set(type='ARMATURE_NAME')   # the weights are already there: this only ties the mesh to the skeleton
+for md in list(body.modifiers):
+    if md.type == 'ARMATURE' and md.object is not arm: body.modifiers.remove(md)
+arms = [md for md in body.modifiers if md.type == 'ARMATURE']
+for md in arms[1:]: body.modifiers.remove(md)
 bpy.context.view_layer.objects.active = body
 bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
 bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
