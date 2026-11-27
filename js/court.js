@@ -1875,7 +1875,7 @@
     try {
       const W = size || 192, Hh = o.body ? Math.round(W * 1.6) : W;
       /* one off-screen renderer for every picture (a roster of ten would run out of WebGL contexts otherwise) */
-      if (!R._pr) { const cv = document.createElement('canvas'); R._pr = new T.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true, alpha: true }); R._pr.setPixelRatio(1); }
+      if (!R._pr) { const cv = document.createElement('canvas'); R._pr = new T.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true, alpha: true }); R._pr.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3)); }   // pictures as sharp as the screen they're shown on
       const rr = R._pr, cv = rr.domElement; rr.setSize(W, Hh, false); rr.setClearColor(0x000000, 0);
       const sc = new T.Scene();
       sc.add(new T.HemisphereLight(0xffffff, 0x303034, 1.15)); const k = new T.DirectionalLight(0xffffff, 0.85); k.position.set(3, 6, o.back ? -8 : 8); sc.add(k);
@@ -3022,41 +3022,16 @@
 
   R.swish = s => { for (const n of nets) if (n.s === s) n.swish = 1; };
   R.rimSnap = (s, k) => { for (const n of nets) if (n.s === s) n.snap = Math.max(n.snap, k || 1); };   // k: how hard (a dunk 1, a ball off the iron about half)
-  /* adaptive quality: if the phone cannot hold about 45 frames a second, draw fewer pixels (2x, then 1.5x), then
-     take the men off the bench, then 1.25x. That is as far as it goes on its own: the players keep their outlines and
-     the picture stays sharp enough to be the same game (it used to end at 1x with no outlines, which a hitchy first
-     few seconds could leave a good phone in for the whole session; Graphics: Low in the settings is still there for
-     an old phone). If none of it buys anything, the frame rate is being held down from outside (a phone in Low Power
-     Mode draws thirty frames a second whatever you ask of it): everything goes back to full quality and stays there.
-     Every game starts again from full quality. */
-  let ftAcc = 0, ftN = 0, ftLast = 0, prCap = 2, qLvl = 0, avg0 = 0, slow0 = 0, qLock = false;
-  R.quality = () => ({ level: qLvl, locked: qLock, base: Math.round(avg0) });
-  R._qReset = () => { qLock = false; slow0 = 0; avg0 = 0; ftAcc = 0; ftN = 0; ftLast = 0; setQuality(0); };   // each new game (R.build), and the tests
+  /* the picture is never made worse on its own: every game draws at the phone's full sharpness (all of its pixels,
+     up to 3x) with the outlines and the bench, however the frame rate goes. It used to step down (2x, 1.5x, the bench
+     off, 1.25x) when a game ran slow, and a hitchy start could leave a phone blurry for the whole session. The only way
+     down is Graphics: Low in the settings, which is the player's own choice. R.quality stays for the tests. */
+  const prCap = 3;
+  R.quality = () => ({ level: 0, locked: true, base: 0 });
+  R._qReset = () => { if (lite) { lite = false; for (const m of benchMesh) if (m.userData.pl) m.userData.pl.visible = true; } R.resize(); };   // each new game (R.build), and the tests
   R.lite = () => lite;
-  function setQuality(n) {
-    qLvl = n; prCap = n === 0 ? 2 : n < 3 ? 1.5 : 1.25;
-    const lt = n >= 2;
-    if (lt !== lite) { lite = lt; for (const m of benchMesh) if (m.userData.pl) m.userData.pl.visible = !lite; }
-    R.resize();
-  }
   R.render = menu => {
-    const now = performance.now();
-    /* a scene behind a menu runs at thirty frames a second on purpose: it says nothing about the phone, so it is not
-       measured (it used to be, and a few seconds on the title screen cost the whole session its sharpness) */
-    if (menu) { ftLast = 0; ftAcc = 0; ftN = 0; renderer.render(scene, cam); return; }
-    if (ftLast && now - ftLast < 80) { ftAcc += now - ftLast; ftN++; }   // a long frame is the game loading something, not the phone drawing slowly: it is left out
-    ftLast = now;
-    if (ftN >= 90) {
-      const avg = ftAcc / ftN; ftAcc = 0; ftN = 0;
-      if (!qLock && avg > 22) {
-        /* two slow stretches in a row at full quality before anything is given up (the first seconds of a game hitch
-           while it loads), and the better of the two is what the reductions have to beat */
-        if (qLvl === 0 && !slow0) { slow0 = avg; }
-        else if (qLvl === 0) { avg0 = Math.min(slow0, avg); setQuality(1); }
-        else if (qLvl < 3) setQuality(qLvl + 1);
-        else { if (avg > avg0 * 0.85) setQuality(0); qLock = true; }   // nothing helped: it was never the drawing
-      } else if (qLvl === 0) slow0 = 0;
-    }
+    if (menu) { renderer.render(scene, cam); return; }
     /* every matrix in the scene is brought up to date once, here (the renderer is told not to do it again): the
        code that poses the players reads through getWorldPosition and getWorldQuaternion, which bring the chain above
        a bone up to date themselves, so nothing before this point needs a whole skeleton recomputed */

@@ -1,7 +1,8 @@
-/* the adaptive quality logic against a fake clock: a frame cap from outside (33 ms whatever is drawn) must end back at full
-   quality; a phone that only speeds up at the last step must stay there, outlines still on; a fast phone must never change */
+/* the picture never gets worse on its own: against a fake clock, however slow the frames, the pixel cap stays at 3 and the
+   bench stays on. Prints FAILS. */
 const { chromium } = require('playwright');
 (async () => {
+  const fails = [];
   const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const srv = await require('./serve-test').serve();
   for (const [name, ms] of [['capped at 30 fps from outside', () => 33.3], ['slow until the last step', q => q.level >= 3 ? 15 : 40], ['a little faster at each step', q => [40, 30, 24, 17][q.level]], ['fast phone', () => 16.7], ['hitch at the start, then fast', (q, n) => n < 70 ? 60 : 16.7]]) {
@@ -12,7 +13,8 @@ const { chromium } = require('playwright');
     const r = await pg.evaluate(src => { const ms = eval(src); PB.Game.dbg.state().paused = true; let fake = 1e6, n = 0; performance.now = () => fake; PB.R._qReset(); const seen = [];
       for (; n < 90 * 7; n++) { fake += ms(PB.R.quality(), n); PB.R.render(); const q = PB.R.quality(); if (!seen.length || seen[seen.length - 1] !== q.level) seen.push(q.level); }
       return { levels: seen.join('>'), end: PB.R.quality(), cap: PB.R.pixelCap(), lite: PB.R.lite() }; }, ms.toString());
-    console.log(name.padEnd(34), JSON.stringify(r)); await pg.close();
+    console.log(name.padEnd(34), JSON.stringify(r)); if (r.cap !== 3 || r.lite || r.levels !== '0') fails.push(name); await pg.close();
   }
+  console.log('FAILS', fails.length, fails);
   await b.close(); process.exit(0);
 })();
