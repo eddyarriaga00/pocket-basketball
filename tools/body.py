@@ -144,8 +144,8 @@ for S, sg in (('L', 1), ('R', -1)):
         ((an.x, sy(0.44), 0.076), 0.070, 0.062), ((an.x, sy(0.62), 0.066), 0.076, 0.054), ((an.x, sy(0.82), 0.060), 0.074, 0.050),
         ((an.x, sy(0.95), 0.052), 0.060, 0.042)]), X, Z, seg=20, power=2.8))
     G['shoe'].append(ball('toecap' + S, (an.x, sy(0.90), 0.050), (0.070, 0.050, 0.040)))
-    G['shoe'].append(loft('ankle' + S, [((an.x, an.y + 0.016, 0.100), 0.066, 0.078), ((an.x, an.y + 0.014, 0.170), 0.066, 0.074), ((an.x, an.y + 0.012, 0.196), 0.060, 0.066)], X, Y, seg=18))
-    G['shoe'].append(ball('tongue' + S, (an.x, an.y - 0.060, 0.150), (0.040, 0.026, 0.058)))
+    G['shoe'].append(loft('ankle' + S, [((an.x, an.y + 0.016, 0.100), 0.066, 0.078), ((an.x, an.y + 0.014, 0.160), 0.066, 0.074), ((an.x, an.y + 0.012, 0.182), 0.061, 0.068)], X, Y, seg=18))
+    G['shoe'].append(ball('tongue' + S, (an.x, an.y - 0.056, 0.136), (0.040, 0.030, 0.046)))   # low and soft: it stood up over the collar like an ear
     # four fingers on the pad of the hand, a little apart at the tips and curling down
     wr = head(f'DEF-hand.{S}'); h0 = Vector((wr.x + sg * 0.015, wr.y, wr.z))
     for q, dy in enumerate((-0.050, -0.017, 0.017, 0.050)):
@@ -215,9 +215,9 @@ part('shut', 7, 31, [loft('lid', capped([(hv(sg * 0.052 - 0.020, -0.131, -0.010)
 part('band', 5, 24, [loft('band', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((0.034, 1.0), (0.040, 1.045), (0.078, 1.045), (0.084, 1.0))], X, Y, seg=40, power=2.35)])
 part('goggles', 5, 25, [hb(sg * 0.052, -0.126, -0.004, 0.036, 0.016, 0.038, 'lens') for sg in (1, -1)] + [loft('strap', [(hv(0, 0.004, z), 0.1385 * HS * k, 0.1425 * HS * k) for z, k in ((-0.014, 1.0), (-0.010, 1.03), (0.008, 1.03), (0.012, 1.0))], X, Y, seg=40, power=2.35)])
 
-B0 = {'hair_spiky': 1600, 'hair_braids': 1700, 'beard_mustache': 160, 'beard_chinstrap': 500, 'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 4200, 'shorts': 4000, 'shoe': 2200, 'sock': 500, 'head': 3200}
+B0 = {'hair_spiky': 1600, 'hair_braids': 1700, 'beard_mustache': 160, 'beard_chinstrap': 500, 'hair_twists': 1700, 'hair_rows': 1500, 'hair_curly': 2200, 'hair_long': 1300, 'hair_ponytail': 1000, 'skin': 5200, 'jersey': 4200, 'shorts': 4000, 'shoe': 3200, 'sock': 500, 'head': 3200}
 V0 = {'hair_spiky': 0.0055, 'hair_braids': 0.0045, 'beard_mustache': 0.004, 'hair_twists': 0.0055, 'hair_rows': 0.005, 'hair_curly': 0.0055, 'skin': 0.0068, 'jersey': 0.010, 'shorts': 0.010, 'shoe': 0.0065, 'sock': 0.009, 'head': 0.0065}
-S0 = {'hair_spiky': 1, 'hair_braids': 1, 'beard_mustache': 1, 'hair_twists': 1, 'hair_rows': 1, 'hair_curly': 1, 'skin': 4, 'jersey': 7, 'shorts': 6, 'shoe': 2, 'sock': 2, 'head': 6}
+S0 = {'hair_spiky': 1, 'hair_braids': 1, 'beard_mustache': 1, 'hair_twists': 1, 'hair_rows': 1, 'hair_curly': 1, 'skin': 4, 'jersey': 7, 'shorts': 6, 'shoe': 5, 'sock': 3, 'head': 6}
 part('yell', 7, 23, [hb(0, -0.127, -0.093, 0.021, 0.010, 0.019, 'yell')])   # an open mouth for a shout: it covers the small one
 kind = lambda g: 'hair' if g.startswith('hair') or g.startswith('beard') or g in ('band', 'goggles') else 'face' if g.startswith('face') or g.startswith('eyes') or g in ('shut', 'yell') else 'glint' if g.startswith('glint') else g
 BUDGET = lambda g: B0.get(g) or {'hair': 800, 'face': 420, 'glint': 60}[kind(g)]
@@ -236,6 +236,9 @@ for g, objs in G.items():
     bpy.ops.object.modifier_apply(modifier='Fuse')
     sm = o.modifiers.new('Smooth', 'SMOOTH'); sm.factor, sm.iterations = 0.5, SMOOTH(g)
     bpy.ops.object.modifier_apply(modifier='Smooth')
+    if g == 'jersey':   # the tops of the straps lie flat on the shoulders: cut thin by the neck and the armholes, their tips curled up into points
+        for q in o.data.vertices:
+            if q.co.z > shz + 0.034: q.co.z = shz + 0.034 + (q.co.z - shz - 0.034) * 0.3
     dc = o.modifiers.new('Light', 'DECIMATE'); dc.ratio = min(1.0, BUDGET(g) / max(1, sum(len(p.vertices) - 2 for p in o.data.polygons)))
     bpy.ops.object.modifier_apply(modifier='Light')
     # which layer a vertex belongs to rides along as a vertex color (red = the region number / 8): the game reads it
@@ -257,7 +260,9 @@ for g, objs in G.items():
         r = REGION[g]
         if g == 'skin':   # the body under the clothes takes their color, so nothing shows through when he bends: the trunk
             co = o.data.vertices[o.data.loops[li].vertex_index].co   # under the jersey, the hips and upper thighs under the shorts
-            if abs(co.x) < 0.215 and hz - 0.20 < co.z < shz - 0.11: r = 2 if co.z < hz + 0.02 else 1
+            # (by the triangle's middle, so each is one color; narrower up at the chest, where a wider patch stretched into
+            # shards under a raised arm)
+            if abs(px[li]) < (0.215 if pz[li] < shz - 0.24 else 0.15) and hz - 0.20 < pz[li] < shz - 0.11: r = 2 if pz[li] < hz + 0.02 else 1
             elif co.z < hz and pz[li] > CUT and abs(co.x) < 0.26 and not (abs(px[li]) < 0.045 and pz[li] < hz - 0.14): r = 2
             # (the insides of the thighs below the crotch stay skin: painted too, they filled the gap between the legs
             # of the shorts and the shorts read as a skirt)

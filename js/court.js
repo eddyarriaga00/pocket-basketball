@@ -1504,6 +1504,7 @@
      both at once) to where the body is going. Then the hips sit at `hk` of a leg's length and each leg is solved, hip to
      knee to ankle, with the knee out over the toe. `wide` is half the stance in leg lengths. */
   const _H = V3(), _A = V3(), _K = V3(), _u = V3(), _pl = V3(), _t3 = V3(), _fq = Q4();
+  const TOE_DIR = 1;   // which way the ankle bone turns to point the toes down
   function plant(p, m, G, dt, w, wide, hk) {
     const B = m.bones, f = p.face + (p.spinA || 0), fx = Math.sin(f), fz = Math.cos(f), rx = -fz, rz = fx;
     const legs = m.legs || (m.legs = ['L', 'R'].map(sd => ({ sd, s: (sd === 'R') === (TPL.sideR < 0) ? 1 : -1, th: B[bk(`DEF-thigh.${sd}`)], sh: B[bk(`DEF-shin.${sd}`)], ft: B[bk(`DEF-foot.${sd}`)], toe: B[bk(`DEF-toe.${sd}`)] })));
@@ -1658,6 +1659,12 @@
       idle.chest.rotateZ(0.045 * settle * Math.sin(G.t * 0.78 + idle.phase));
     }
     if (m.head) m.head.scale.setScalar(m.headS || HEAD);
+    /* off the floor the feet do not hang flat like a standing man's: the toes point down, most at the top of a leap, and
+       come level again just before he lands */
+    { const up = p.y > 0.3 ? Math.min(1, (p.y - 0.3) / 1.2) * ((p.vy || 0) < -6 && p.y < 1.4 ? p.y / 1.4 : 1) : 0;
+      m.toeP = (m.toeP || 0) + (up - (m.toeP || 0)) * Math.min(1, dt * 12);
+      if (m.toeP > 0.01 && !G.replay) { if (!m.feet) m.feet = ['L', 'R'].map(sd => m.bones[bk(`DEF-foot.${sd}`)]).filter(Boolean);
+        for (const f of m.feet) f.rotateX(TOE_DIR * 0.55 * m.toeP); } }
     /* down in a stance: the back flat and leaning in from the hips, the head up */
     { const bl = G.ball, rb = bl.state === 'loose' && bl.y > 5 && !p.ref && p.team !== undefined && Math.hypot(bl.x - p.x, bl.z - p.z) < 11 && G.phase === 'live'; m.rb = (m.rb || 0) + ((rb && !air ? 1 : 0) - (m.rb || 0)) * Math.min(1, dt * 8);
       const g = (p.pose === 'guard' || p.pose === 'reach' || p.pose === 'contest' || rb || (!p.pose && p.offD !== undefined && G.t - p.offD < 0.15 && sp < 9)) && !air && G.ball.holder !== p ? 1 : 0; m.gw = (m.gw || 0) + (g - (m.gw || 0)) * Math.min(1, dt * 9);
