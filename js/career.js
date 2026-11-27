@@ -91,6 +91,35 @@
     ['goat', 'The conversation', 'Reach the GOAT rank', C => rankOf(C.fans).i >= RANKS.length - 1],
     ['badges5', 'Decorated', 'Own five badges', C => Object.values(C.me.badges || {}).filter(t => t > 0).length >= 5],
     ['case5', 'Trophy case', 'Collect five trophies', C => C.trophies.length >= 5],
+    /* more to chase: bigger nights, career totals, the season's awards, the park */
+    ['g60', 'Sixty', 'Score 60 in a game', C => (C.highs || {}).pts >= 60],
+    ['tpm10', 'Splash zone', 'Ten threes in a game', C => (C.highs || {}).tpm >= 10],
+    ['reb20', 'Board man', 'Grab 20 rebounds in a game', C => (C.highs || {}).reb >= 20],
+    ['ast15', 'Dime dropper', 'Hand out 15 assists in a game', C => (C.highs || {}).ast >= 15],
+    ['stl7', 'Thief', 'Seven steals in a game', C => (C.highs || {}).stl >= 7],
+    ['blk8', 'Swat team', 'Eight blocks in a game', C => (C.highs || {}).blk >= 8],
+    ['pts1k', 'Four figures', 'Score 1,000 career points', C => ((C.totals || {}).pts || 0) >= 1000],
+    ['pts5k', 'Bucket getter', 'Score 5,000 career points', C => ((C.totals || {}).pts || 0) >= 5000],
+    ['pts10k', 'Ten thousand', 'Score 10,000 career points', C => ((C.totals || {}).pts || 0) >= 10000],
+    ['reb1k', 'Glass cleaner', 'Grab 1,000 career rebounds', C => ((C.totals || {}).reb || 0) >= 1000],
+    ['ast1k', 'Table setter', 'Hand out 1,000 career assists', C => ((C.totals || {}).ast || 0) >= 1000],
+    ['tpm500', 'Long range', 'Hit 500 career threes', C => ((C.totals || {}).tpm || 0) >= 500],
+    ['gp100', 'Century', 'Play 100 games', C => ((C.totals || {}).gp || 0) >= 100],
+    ['gp500', 'Iron man', 'Play 500 games', C => ((C.totals || {}).gp || 0) >= 500],
+    ['dpoy', 'Lockdown', 'Win Defensive Player of the Year', C => C.trophies.some(t => /Defensive Player of the Year/.test(t))],
+    ['sixth', 'Spark plug', 'Win Sixth Man of the Year', C => C.trophies.some(t => /Sixth Man/.test(t))],
+    ['mip', 'Glow up', 'Win Most Improved Player', C => C.trophies.some(t => /Most Improved/.test(t))],
+    ['clutch', 'The closer', 'Win Clutch Player of the Year', C => C.trophies.some(t => /Clutch Player/.test(t))],
+    ['allleague', 'First team', 'Make the All-League First Team', C => C.trophies.some(t => /All-League First Team/.test(t))],
+    ['alldef', 'All-Defense', 'Make an All-Defensive team', C => C.trophies.some(t => /All-Defensive/.test(t))],
+    ['allrookie', 'Fresh face', 'Make the All-Rookie team', C => C.trophies.some(t => /All-Rookie/.test(t))],
+    ['scoring', 'Scoring title', 'Lead the league in scoring', C => C.trophies.some(t => /Scoring champion/.test(t))],
+    ['rings3', 'Three-peat', 'Win three titles', C => C.trophies.filter(t => /^Champion,/.test(t)).length >= 3],
+    ['mvp3', 'Dynasty', 'Win three MVPs', C => C.trophies.filter(t => /^MVP/.test(t)).length >= 3],
+    ['park25', 'King of the park', 'Win 25 games at the park', C => ((C.park || {}).w || 0) >= 25],
+    ['parkrun', 'On a heater', 'Win five park games in a row', C => ((C.park || {}).best || 0) >= 5],
+    ['ovr99', 'Ninety-nine', 'Reach 99 overall', C => C.me.ovr >= 99],
+    ['m250', 'Generational', 'Earn $250M in a career', C => (C.earnings || 0) >= 250],
   ];
   function achCheck() {
     const got = load('pbb.ach') || {}, fresh = [];
@@ -153,7 +182,7 @@
     <p class="lsmall">${[...'POCKET'].map((c, i) => `<span style="--i:${i}">${c}</span>`).join('')}</p><h1 class="lbig">${[...'BASKETBALL'].map((c, i) => `<span style="--i:${i + 3}">${c}</span>`).join('')}</h1><i class="lshine"></i></div>`;
   function topBar() {
     const u = PB.account && PB.account.user(), nm = u && (u.name || u.email || '');
-    return `<div class="tbar"><span class="tver">v${esc(PB.VERSION)}</span><button class="tacct" id="tacct">${u ? `<i data-st="${esc(PB.account.status ? PB.account.status() : '')}">${esc(PB.account.initials ? PB.account.initials(nm) : nm.slice(0, 2).toUpperCase())}</i>${esc(nm.split('@')[0].slice(0, 14))}` : `${MIC.career}Sign in`}</button></div>`;
+    return `<div class="tbar"><span class="tver">v${esc(PB.VERSION)}</span>${netPill()}<button class="tacct" id="tacct">${u ? `<i data-st="${esc(PB.account.status ? PB.account.status() : '')}">${esc(PB.account.initials ? PB.account.initials(nm) : nm.slice(0, 2).toUpperCase())}</i>${esc(nm.split('@')[0].slice(0, 14))}` : `${MIC.career}Sign in`}</button></div>`;
   }
   function ticker() {
     const cur = openCur(), lines = (cur && cur.news ? cur.news.slice(0, 8) : []).filter(Boolean);
@@ -166,7 +195,20 @@
   function iconLinks(items) {
     return `<div class="tgrid">${items.filter(Boolean).map(([id, ic, label]) => `<button id="${id}">${ic}<span>${label}</span></button>`).join('')}</div>`;
   }
-  function wireTop(back) { if ($('#tacct')) $('#tacct').onclick = () => PB.account && PB.account.open(back); }
+  function wireTop(back) { if ($('#tacct')) $('#tacct').onclick = () => PB.account && PB.account.open(back); wireNetPill(); }
+  /* Online or offline, on the title: the park opens the way this says (Settings › Game: Online in the park). Online,
+     other people walk around in your park and can play you; offline it is you and the regulars. */
+  const netOk = () => !!(PB.net && PB.net.ready && PB.net.ready());
+  function netPill() {
+    if (!netOk() || !C || !C.me) return '';
+    const on = S.parkOnline !== 'Off';
+    return `<button class="tnet${on ? ' on' : ''}" id="tnet" role="switch" aria-checked="${on}" aria-label="Online in the park"><i></i><span>${on ? 'Online' : 'Offline'}</span></button>`;
+  }
+  function wireNetPill() {
+    const b = $('#tnet'); if (!b) return;
+    b.onclick = () => { S.parkOnline = S.parkOnline !== 'Off' ? 'Off' : 'On'; saveSettings(); if (S.parkOnline === 'Off' && NET.on) netOff();
+      b.outerHTML = netPill(); wireNetPill(); };
+  }
 
   function splash() {
     C = openCur();
@@ -260,19 +302,28 @@
     if ($('#achv')) $('#achv').onclick = achievements;
   }
   /* what changed since you last played: once per update, over the title */
-  const NEW_V = '2026-11-24a';
+  /* What's new, as snapshots: each update a short card (a name, a date, a few one-line changes tagged new, look, feel
+     or fix) from updates.json, newest first. The sheet on the title shows the newest one once; the News page shows
+     them all, with the long changelog folded away under them. */
+  const NEW_V = '2026-11-27a';
+  const TAGN = { new: 'New', look: 'Look', feel: 'Feel', fix: 'Fix' };
+  let snapsP = null;
+  const snaps = () => snapsP || (snapsP = fetch('updates.json').then(r => r.ok ? r.json() : Promise.reject()).then(a => Array.isArray(a) ? a : []).catch(() => { snapsP = null; return []; }));
+  const snapCard = (u, i) => `<div class="snap${i === 0 ? ' top' : ''}" style="--i:${i || 0}"><div class="snh"><span class="snv">v${esc(u.v || '')}</span><b>${esc(u.name || '')}</b><time>${esc(u.date || '')}</time></div>
+    <ul>${(u.lines || []).map(([k, t]) => `<li><i class="tg ${esc(k)}">${esc(TAGN[k] || k)}</i><span>${esc(t)}</span></li>`).join('')}</ul></div>`;
   function whatsNew() {
     if (load('pbb.seen') === NEW_V || (navigator.webdriver && !window.PBforceCut)) return;   // (the test tools drive the title by its buttons)
     if (!load('pbb.careers') && !load('pbb.settings.v1')) { store('pbb.seen', NEW_V); return; }   // a first visit has nothing to compare with
-    const items = [['Sign in with Google', 'Or GitHub, or email: a cleaner sign in, a password reset screen and your sync status'], ['Four ways in', 'Top prospect, first round, second round or undrafted, each with its own story and cutscenes'],
-      ['Social', 'Posts, callouts, polls, media day, and partners who follow your hype'], ['Chemistry and abilities', 'A bond with your running mate, and abilities you equip'], ['Head to head', 'Send a late-game challenge to a friend by link'], ['Dunks', 'Hold Shoot through them: no timing']];
-    const el = document.createElement('div'); el.className = 'wnsheet';
-    el.innerHTML = `<div class="wnbox"><p class="kick">What's new · v${esc(PB.VERSION)}</p><h3>New in Pocket Basketball</h3>${items.map(([a, b], i) => `<div class="wni" style="--i:${i}"><b>${a}</b><span>${b}</span></div>`).join('')}
-      <button class="big" id="newok">Let's go</button><button class="ghost sm" id="newall">Everything that changed</button></div>`;
-    document.body.appendChild(el);
-    const close = () => { store('pbb.seen', NEW_V); el.classList.add('out'); setTimeout(() => el.remove(), 250); };
-    el.querySelector('#newok').onclick = close; el.querySelector('#newall').onclick = () => { close(); PB.R && PB.R.showcase && PB.R.showcase(null); about(); };
-    el.onclick = e => { if (e.target === el) close(); };
+    snaps().then(list => {
+      const u = list[0]; if (!u || document.querySelector('.wnsheet') || !document.querySelector('.title')) return;
+      const el = document.createElement('div'); el.className = 'wnsheet';
+      el.innerHTML = `<div class="wnbox"><p class="kick">What's new</p>${snapCard(u, 0)}
+        <button class="big" id="newok">Let's go</button><button class="ghost sm" id="newall">Earlier updates</button></div>`;
+      document.body.appendChild(el);
+      const close = () => { store('pbb.seen', NEW_V); el.classList.add('out'); setTimeout(() => el.remove(), 250); };
+      el.querySelector('#newok').onclick = close; el.querySelector('#newall').onclick = () => { close(); PB.R && PB.R.showcase && PB.R.showcase(null); about(); };
+      el.onclick = e => { if (e.target === el) close(); };
+    });
   }
   /* the title over the arena: your player at center court (or tonight's featured player), the camera circling */
   let featured = null;
@@ -550,11 +601,13 @@
   }
   /* ---------- what's new: the top of the changelog, as shipped ---------- */
   function about() {
-    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>What's new</h2><div class="card" id="wn"><p class="mute">Loading…</p></div>
+    show(`<div class="page"><button class="back" id="bk">‹ Back</button><h2>What's new</h2><div id="snaps"><p class="mute">Loading…</p></div>
+      <details class="card wnall"><summary>Every change, in full</summary><div id="wn"><p class="mute">Loading…</p></div></details>
       <div class="card"><h3>About</h3><p>Pocket Basketball is a career game for your phone: one player, from draft night to the Hall of Fame. Every team and player is fictional. Nothing is sold here. Nothing leaves your device but the chat, if you use it, and your saves, if you make an account.</p><p class="mute">Without an account your careers are kept on this device only, and clearing this site's data in your browser erases them: Settings, More has an export to keep a copy. With an account (Sign in, on the main menu) a copy is kept with it, along with your email address, and you can play on any phone. Deleting the account deletes both.</p><p class="fine">Version ${PB.VERSION}</p></div></div>`);
     $('#bk').onclick = title;
+    snaps().then(list => { const e = $('#snaps'); if (e) e.innerHTML = list.length ? list.map(snapCard).join('') : '<p class="mute">The updates could not be loaded. Check your connection.</p>'; });
     fetch('CHANGELOG.md').then(r => r.ok ? r.text() : Promise.reject()).then(t => { const e = $('#wn'); if (!e) return;
-      const items = t.split('\n').filter(l => l.startsWith('- ')).slice(0, 14).map(l => l.slice(2).replace(/[<>&]/g, ''));
+      const items = t.split('\n').filter(l => l.startsWith('- ')).slice(0, 40).map(l => l.slice(2).replace(/[<>&]/g, ''));
       e.innerHTML = items.length ? `<ul class="wn">${items.map(i => { const k = i.search(/[.:] /); return `<li>${k > 0 && k < 70 ? `<b>${i.slice(0, k + 1)}</b>${i.slice(k + 1)}` : i}</li>`; }).join('')}</ul>` : '<p class="mute">Nothing to show.</p>'; })
       .catch(() => { const e = $('#wn'); if (e) e.innerHTML = '<p class="mute">The list of changes could not be loaded. Check your connection.</p>'; });
   }
@@ -899,13 +952,14 @@
       <div class="pmtop">${portrait() ? `<img class="face" src="${portrait()}" alt="" style="background:${t ? t.c1 : '#2a2a2e'}">` : ''}<div><b>${esc(PB.full(me))}</b><span>#${me.num} · ${me.pos} · ${me.ovr} OVR · ${t ? esc(t.name) : 'pre-draft'} · season ${C.year}</span></div>
         <button class="pmx" id="pmx" aria-label="Close the menu">✕</button></div>
       <div class="pmstats"><div><b>${rk.name}</b><span>Rank</span></div><div><b>${fmtFans(C.fans)}</b><span>Followers</span></div><div><b>${me.sp}</b><span>Skill pts</span></div><div><b>${P.w}-${P.l}</b><span>Park</span></div></div>
+      ${netOk() ? `<div class="pmnet${NET.on ? ' on' : ''}"><i></i><div><b>${NET.on ? (NET.room === 'PUBLIC' ? 'Online · public park' : NET.room === myRoom() ? 'Online · your park' : 'Online · park ' + esc(NET.room)) : NET.joining ? 'Going online…' : 'Offline'}</b><span>${NET.on ? `${Object.keys(NET.people).length} other${Object.keys(NET.people).length === 1 ? '' : 's'} here` : 'just you and the regulars'}</span></div>
+        <button class="pmnb" id="pmnetx">${NET.on ? 'Park & friends' : 'Options'}</button><button class="tog${S.parkOnline !== 'Off' ? ' on' : ''}" id="pmnet" role="switch" aria-checked="${S.parkOnline !== 'Off'}" aria-label="Online in the park"><i></i></button></div>` : ''}
       ${nx ? `<button class="big" data-go="next">Play next game<small>${esc(nx.label)} · vs ${esc(PB.team(nx.opp).name)}</small></button>` : `<button class="big" data-go="career">My Career<small>${esc(careerLine())}</small></button>`}
       ${(w => w.length ? `<h4>Waiting in My Career</h4><div class="pmwait">${w.map(t => `<button class="pmc" data-go="hub:home"><i>●</i>${esc(t)}</button>`).join('')}</div>` : '')(waiting())}
       ${todayCard()}
       ${C.phase === 'combine' ? '' : `<h4>My Career</h4>
       <div class="pmrow">${[['home', 'Home'], ['team', 'Team'], ['player', 'Player'], ['league', 'League'], ['log', 'Log']].map(([k, n]) => `<button class="pmn" data-go="hub:${k}">${nav(k)}<span>${n}</span>${k === 'player' && up ? '<i class="dot"></i>' : ''}</button>`).join('')}</div>`}
-      <h4>The park <small>tap a ring to go there</small></h4>
-      ${map}
+      <details class="pmmapd"${parkMenu.mapOpen ? ' open' : ''}><summary>The park map <small>tap a ring to go there</small></summary>${map}</details>
       <h4>Play</h4>
       <div class="pmgrid">${tile('quick', MIC.vs, 'Quick game', 'two teams, one game')}${tile('season', MIC.cup, 'Season', 'run a whole team')}${tile('blacktop', MIC.street, 'Blacktop', '1v1 to 3v3, your teams')}
         ${tile('classics', MIC.clock, 'Classics', 'the great nights')}${tile('daily', MIC.day, 'Daily' + (done ? ' ✓' : ''), done ? 'done today' : 'a new one every day')}${tile('gym', MIC.target, 'Gym', 'drills and contests')}
@@ -914,7 +968,12 @@
       <div class="pmgrid sm">${tile('closet', MIC.career, 'Closet')}${tile('players', MIC.list, 'My Player')}${tile('ach', MIC.cup, 'Achievements')}${tile('hall', MIC.clock, 'Record book')}
         ${tile('acct', MIC.career, PB.account && PB.account.user() ? 'Account' : 'Sign in')}${tile('h2h', MIC.vs, 'Head to head')}${tile('chat', MIC.chat, 'Chat')}${tile('how', MIC.target, 'How to play')}<button class="pmt" id="pmtut">${MIC.day}<b>Tutorial</b></button>${tile('settings', MIC.list, 'Settings')}</div>
       <button class="ghost" id="pmres">Back to the park</button></div>`;
-    $('#pmx').onclick = ctl.close; $('#pmres').onclick = ctl.close; $('#pmtut').onclick = () => { store('pbb.tut', 0); store('pbb.tutAt', 0); ctl.tutorial(); };
+    $('#pmx').onclick = ctl.close; $('#pmres').onclick = ctl.close;
+    { const d = ov.querySelector('.pmmapd'); if (d) d.ontoggle = () => { parkMenu.mapOpen = d.open; }; }
+    if ($('#pmnet')) $('#pmnet').onclick = () => { const on = S.parkOnline === 'Off'; S.parkOnline = on ? 'On' : 'Off'; saveSettings();
+      if (on) { NET.joining = true; netGo(load('pbb.netRoom') || 'PUBLIC').finally(() => { NET.joining = false; if (!ov.hidden && ov.querySelector('.pm')) parkMenu(ov, ctl); }); } else netOff();
+      parkMenu(ov, ctl); };
+    if ($('#pmnetx')) $('#pmnetx').onclick = () => { ctl.close(); netSheet(); }; $('#pmtut').onclick = () => { store('pbb.tut', 0); store('pbb.tutAt', 0); ctl.tutorial(); };
     ov.querySelectorAll('[data-go]').forEach(b => b.onclick = () => ctl.go(b.dataset.go));
     ov.querySelectorAll('[data-tr]').forEach(g => g.addEventListener('click', () => ctl.travel(g.dataset.tr)));
     ov.scrollTop = 0;

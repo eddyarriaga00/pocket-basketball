@@ -9,12 +9,13 @@
   --display:"Archivo","Helvetica Neue",Arial,system-ui,sans-serif;
   --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --sb:env(safe-area-inset-bottom,0px);
+  --st:env(safe-area-inset-top,0px);   /* the notch or Dynamic Island: for what sits on the page itself (inside #app it is already below it) */
 }
 html,body{height:100%;margin:0;background:var(--bg)}
 body{color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.4;overflow:hidden;overscroll-behavior:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-#app{position:fixed;top:env(safe-area-inset-top,0px);bottom:0;left:50%;transform:translateX(-50%);width:min(100vw,62vh);overflow:hidden;background:#0b0b0d}
+#app{--st:0px;position:fixed;top:env(safe-area-inset-top,0px);bottom:0;left:50%;transform:translateX(-50%);width:min(100vw,62vh);overflow:hidden;background:#0b0b0d}
 button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;touch-action:manipulation}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:10px;height:44px;padding:0 12px;width:100%;box-sizing:border-box;-webkit-user-select:text;user-select:text}
@@ -244,7 +245,7 @@ table.std tr.cut td{border-top:2px solid var(--acc)}table.std tr.cut2 td{border-
 #game.drill.empty #bC,#game.drill #bB,#game.drill:not(.dunk) #bC,#game.drill:not(.dunk) #stickzone,#game.drill:not(.dunk) #sc,#game.drill #feed,#game.drill #bD{display:none}
 .btn.d{width:48px;height:48px;right:136px;bottom:calc(112px + var(--sb));font-size:11px;display:none}
 .btn.d.on{display:block}
-#tipcard{position:absolute;left:12px;right:70px;top:calc(104px + env(safe-area-inset-top));background:rgba(10,14,22,.92);border:1px solid var(--acc);border-radius:14px;padding:11px 13px;font-size:13.5px;line-height:1.4;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#tipcard{position:absolute;left:12px;right:70px;top:calc(104px + var(--st));background:rgba(10,14,22,.92);border:1px solid var(--acc);border-radius:14px;padding:11px 13px;font-size:13.5px;line-height:1.4;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .meters .wide{grid-column:1/-1}
 .offer .of{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;text-align:left}
 .offer .of .tb{min-width:44px;height:44px;border-radius:12px}
@@ -463,7 +464,7 @@ input[type=color]{height:44px;padding:4px}
 .bug .side u.pop{animation:pop .45s}
 .bug .side i{min-width:6px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 @media (prefers-reduced-motion:reduce){.hubbody>*,.page>*{animation:none}}
-#achtoast{bottom:auto;top:calc(10px + env(safe-area-inset-top));transform:translate(-50%,-40px);opacity:0;pointer-events:none;transition:transform .3s,opacity .3s}#achtoast.on{opacity:1}
+#achtoast{bottom:auto;top:calc(10px + var(--st));transform:translate(-50%,-40px);opacity:0;pointer-events:none;transition:transform .3s,opacity .3s}#achtoast.on{opacity:1}
 details.help{margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:0 14px}
 details.help summary{list-style:none;cursor:pointer;font-family:var(--display);font-weight:800;font-size:15px;color:var(--ink);padding:13px 0;display:flex;align-items:center}
 details.help summary::-webkit-details-marker{display:none}
@@ -734,7 +735,7 @@ table.pbx td small{color:var(--mute)}
 #parkcard .pcb .ghost{height:32px;font-size:12px}
 #game:has(#pause:not([hidden])) #parkcard{visibility:hidden}
 #game.park .bug,#game.park #grade,#game.park #tko,#game.park #feed{display:none!important}
-#game.park #ftmsg{top:calc(14px + env(safe-area-inset-top,0px))}
+#game.park #ftmsg{top:calc(14px + var(--st))}
 
 /* the MyPLAYER builder's steps */
 .builder .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 12px}
@@ -764,7 +765,7 @@ table.pbx td small{color:var(--mute)}
 #game.park #pz::before{content:"";width:15px;height:2px;border-radius:1px;background:#fff;box-shadow:0 -5px #fff,0 5px #fff}
 #game.park #pz::after{content:"Menu"}
 #game.park #zm button{background:rgba(8,8,10,.86);border:1px solid rgba(255,255,255,.14);border-radius:999px;width:36px;height:36px}
-#game.park #ftmsg{top:calc(58px + env(safe-area-inset-top,0px));white-space:nowrap}
+#game.park #ftmsg{top:calc(58px + var(--st));white-space:nowrap}
 #game.park #radar{top:54px;right:12px;width:50px;height:88px;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
 #tut{position:absolute;left:12px;right:72px;top:54px;z-index:7;padding:10px 12px 11px;border-radius:14px;background:rgba(10,10,14,.92);border:1px solid rgba(255,255,255,.2);
   display:flex;flex-direction:column;gap:2px;pointer-events:auto;animation:pop .25s;transition:border-color .2s,box-shadow .2s}
@@ -851,17 +852,17 @@ table.pbx td small{color:var(--mute)}
 .pmc{display:flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.07);font-size:11.5px;font-weight:600;color:#d4d4da}
 .pmc i{font-style:normal;color:var(--mute)}.pmc.on{color:#fff}.pmc.on i{color:var(--green)}
 #game.horse .bug,#game.horse #bB,#game.horse #bC,#game.horse #bD{display:none!important}
-#game.horse #ftmsg{top:calc(54px + env(safe-area-inset-top,0px));white-space:pre-line;text-align:center;font-size:12.5px;line-height:1.35;border-radius:14px;max-width:calc(100% - 40px);width:max-content}
+#game.horse #ftmsg{top:calc(54px + var(--st));white-space:pre-line;text-align:center;font-size:12.5px;line-height:1.35;border-radius:14px;max-width:calc(100% - 40px);width:max-content}
 .pmwait{display:flex;flex-wrap:wrap;gap:6px}.pmwait .pmc{background:rgba(76,255,176,.12);color:#fff}.pmwait .pmc i{color:var(--green);font-size:9px}
 /* the visible height, as the phone reports it now: with Safari's bar tucked away a box pinned top and bottom could stop short */
 @supports (height:100dvh){#app{bottom:auto;height:calc(100dvh - env(safe-area-inset-top,0px))}}
 @keyframes gamein{0%{opacity:0}100%{opacity:1}}
 
 /* in the park a message is a pill under the top row, not big letters over the doors */
-#game.park #toast.call{left:50%;right:auto;top:calc(104px + env(safe-area-inset-top,0px));width:max-content;max-width:calc(100% - 96px);padding:9px 16px;border-radius:999px;background:rgba(10,10,14,.92);border:1px solid rgba(255,255,255,.2);
+#game.park #toast.call{left:50%;right:auto;top:calc(104px + var(--st));width:max-content;max-width:calc(100% - 96px);padding:9px 16px;border-radius:999px;background:rgba(10,10,14,.92);border:1px solid rgba(255,255,255,.2);
   font-family:var(--body);font-weight:700;font-size:13.5px;font-stretch:100%;letter-spacing:0;line-height:1.3;color:#fff;text-shadow:none;transform:translate(-50%,-8px);z-index:5}
 #game.park #toast.call.on{transform:translate(-50%,0)}
-#game:has(#parkcard:not([hidden])) #toast.call,#game:has(#tut:not([hidden])) #toast.call{top:calc(150px + env(safe-area-inset-top,0px))}
+#game:has(#parkcard:not([hidden])) #toast.call,#game:has(#tut:not([hidden])) #toast.call{top:calc(150px + var(--st))}
 /* sheets come up from below, the dark behind them fades in */
 @keyframes sheetin{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes dimin{from{background-color:rgba(4,4,6,0)}}
@@ -899,7 +900,7 @@ table.pbx td small{color:var(--mute)}
 #game.bigbtn.lefty .btn.b{right:auto;left:122px}#game.bigbtn.lefty .btn.c{right:auto;left:36px}#game.bigbtn.lefty .btn.d{right:auto;left:118px}
 #game.bigbtn #stickbase{width:108px;height:108px;margin:-54px 0 0 -54px}#game.bigbtn #knob{width:50px;height:50px}
 /* your phone: a notification slides in on the right */
-#notif{position:absolute;right:10px;top:calc(186px + env(safe-area-inset-top,0px));z-index:6;display:flex;align-items:flex-start;gap:8px;max-width:min(66%,270px);padding:8px 11px 9px 9px;border-radius:13px;text-align:left;
+#notif{position:absolute;right:10px;top:calc(186px + var(--st));z-index:6;display:flex;align-items:flex-start;gap:8px;max-width:min(66%,270px);padding:8px 11px 9px 9px;border-radius:13px;text-align:left;
   background:rgba(12,12,16,.92);border:1px solid rgba(255,255,255,.16);box-shadow:0 8px 22px rgba(0,0,0,.4);opacity:0;transform:translateX(18px);transition:opacity .25s,transform .3s cubic-bezier(.2,.8,.2,1);pointer-events:none}
 #notif.on{opacity:1;transform:none}#notif.on.go{pointer-events:auto}
 #notif i{flex:none;width:7px;height:7px;margin-top:5px;border-radius:50%;background:var(--green)}
@@ -967,7 +968,7 @@ button.big{padding-top:13px;padding-bottom:13px;font-size:15px}button.ghost{padd
 #intro .stgs{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#e6e8ee;margin-bottom:14px}
 @keyframes stgin{0%{transform:scale(1.5);opacity:0}100%{transform:scale(1);opacity:1}}
 
-#warmgo{position:absolute;left:50%;top:calc(132px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:auto;margin:0;padding:10px 22px;border-radius:999px;background:#fff;color:#000;border:0;font-family:var(--display);font-weight:900;font-size:14px;letter-spacing:.04em;text-transform:uppercase;z-index:4;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#warmgo{position:absolute;left:50%;top:calc(132px + var(--st));transform:translateX(-50%);width:auto;margin:0;padding:10px 22px;border-radius:999px;background:#fff;color:#000;border:0;font-family:var(--display);font-weight:900;font-size:14px;letter-spacing:.04em;text-transform:uppercase;z-index:4;box-shadow:0 6px 18px rgba(0,0,0,.45)}
 
 #pause:not([hidden])~#warmgo{display:none}
 
@@ -1158,7 +1159,7 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 @media (prefers-reduced-motion:reduce){.aseg>i,.ahero.load .aic svg,.askel i,.aic.pop,.st-wait .dot,.acctoast{animation:none;transition:none}}
 
 /* ---------- the title, redrawn (v1.1) ---------- */
-.title.v2{justify-content:flex-start;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.title.v2{justify-content:flex-start;padding-top:calc(10px + var(--st))}
 .tbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 6px;position:relative;z-index:2}
 .tver{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.55);padding:5px 9px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(0,0,0,.35)}
 .tacct{display:flex;align-items:center;gap:7px;width:auto;margin:0;padding:5px 12px 5px 5px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(10,10,12,.7);color:#fff;font-size:12.5px;font-weight:700;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -1240,7 +1241,7 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 /* Season two-way contracts: a row with a call-up / send-down button */
 .ros.two .ghost.sm{width:auto;margin:0;padding:8px 10px;font-size:12px;flex:none}
 /* The park, online: the Online button at the top, its sheet, a challenge that comes in */
-#netchip{display:none;position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:7;height:36px;padding:0 14px;border-radius:999px;background:rgba(8,8,10,.86);border:1px solid rgba(255,255,255,.22);
+#netchip{display:none;position:absolute;top:calc(10px + var(--st));left:50%;transform:translateX(-50%);z-index:7;height:36px;padding:0 14px;border-radius:999px;background:rgba(8,8,10,.86);border:1px solid rgba(255,255,255,.22);
   font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;align-items:center;gap:8px;color:#fff;pointer-events:auto}
 #game.park #netchip{display:flex}
 #netchip i{width:8px;height:8px;border-radius:50%;background:#6a6a72}
@@ -1256,7 +1257,7 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 #netsheet .njoin button{flex:1;margin:0}
 #netsheet .nrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.1)}#netsheet .nrow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #netsheet .nrow span{font-size:12px;color:var(--mute)}#netsheet .nrow .ghost.sm{width:auto;margin:0;padding:8px 12px}
-#netask{position:absolute;left:12px;right:12px;top:calc(56px + env(safe-area-inset-top,0px));z-index:21;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-radius:16px;background:#fff;color:#000;pointer-events:auto;animation:pop .25s}
+#netask{position:absolute;left:12px;right:12px;top:calc(56px + var(--st));z-index:21;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-radius:16px;background:#fff;color:#000;pointer-events:auto;animation:pop .25s}
 #netask[hidden]{display:none}
 #netask div{flex:1;min-width:0;display:flex;flex-direction:column}#netask b{font-family:var(--display);font-size:17px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#netask span{font-size:12px;opacity:.7}
 #netask .big,#netask .ghost{width:auto;margin:0;padding:10px 14px;font-size:14px}#netask .big{background:#000;color:#fff}#netask .ghost{background:transparent;border-color:rgba(0,0,0,.25);color:#000}
@@ -1271,3 +1272,65 @@ button.arow:active{background:rgba(255,255,255,.05)}.arow.sure b{color:#ff8a96}
 #netsheet .rchip.me{background:rgba(255,255,255,.14);color:#fff}
 #netsheet .asked{font-size:12px;color:var(--mute);padding:8px 4px}
 #netsheet button[disabled]{opacity:.4}
+
+/* online or offline, on the title (and the same pill in the park menu) */
+.tnet{display:flex;align-items:center;gap:7px;width:auto;margin:0;height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(10,10,12,.7);color:rgba(255,255,255,.75);font:800 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.tnet i{width:8px;height:8px;border-radius:50%;background:#6d6d75;flex:none}
+.tnet.on{color:#fff}.tnet.on i{background:var(--green);box-shadow:0 0 0 3px rgba(76,255,176,.18)}
+/* the park menu: a sheet from the bottom, not a whole screen. The map folds away, the tiles are one line each */
+#pause.pmenu{align-items:flex-end;padding:0;overflow:hidden}
+#pause .card.pm{max-width:480px;width:100%;margin:0 auto;max-height:84%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-radius:22px 22px 0 0;padding:8px 14px calc(14px + var(--sb));box-sizing:border-box}
+#pause .card.pm::before{content:"";display:block;width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);margin:0 auto 10px}
+.pm .pmtop .face{width:42px;height:42px;border-radius:12px}.pm .pmtop b{font-size:17px}
+.pm .pmstats{margin:10px 0}.pm .pmstats div{padding:5px 4px}.pm .pmstats b{font-size:13px}
+.pm h4{margin:12px 0 6px}
+.pm .big{min-height:46px}
+.pm .pmgrid{grid-template-columns:repeat(3,1fr);gap:6px}
+.pm .pmgrid .pmt{flex-direction:row;align-items:center;gap:7px;padding:8px;min-height:44px}
+.pm .pmgrid .pmt .mi{width:26px;height:26px;margin:0;flex:none}.pm .pmgrid .pmt .mi svg{width:14px;height:14px}
+.pm .pmgrid .pmt b{font-size:12px}.pm .pmgrid .pmt small{display:none}
+.pm .pmrow .pmn{padding:7px 0 6px}.pm .pmrow .pmn svg{width:19px;height:19px}
+.pm #pmres{display:none}
+.pmmapd{margin:12px 0 0;background:var(--panel2);border-radius:12px;padding:0 10px}
+.pmmapd summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;height:42px;font:800 12px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.pmmapd summary::-webkit-details-marker{display:none}
+.pmmapd summary small{font:400 11px var(--body);letter-spacing:0;text-transform:none;flex:1}
+.pmmapd summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s}
+.pmmapd[open] summary::after{transform:rotate(225deg)}
+.pmmapd .pmmap{height:min(44vh,300px);margin:0 auto 10px}
+.pmnet{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:8px 8px 8px 12px;border-radius:12px;background:var(--panel2)}
+.pmnet>i{width:9px;height:9px;border-radius:50%;background:#6d6d75;flex:none}
+.pmnet.on>i{background:var(--green);box-shadow:0 0 0 3px rgba(76,255,176,.18)}
+.pmnet>div{flex:1;min-width:0;display:flex;flex-direction:column}.pmnet b{font-size:13px}.pmnet span{font-size:11px;color:var(--mute)}
+.pmnb{width:auto;height:30px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:11.5px;font-weight:700;white-space:nowrap}
+.pmnet .tog{flex:none;width:46px;height:28px;border-radius:999px;background:var(--panel3);border:1px solid var(--line);position:relative;box-sizing:border-box;transition:background .15s}
+.pmnet .tog i{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#8a8a92;transition:transform .15s,background .15s}
+.pmnet .tog.on{background:#fff;border-color:#fff}.pmnet .tog.on i{transform:translateX(18px);background:#000}
+@keyframes pmup{from{transform:translateY(40%);opacity:.4}to{transform:none;opacity:1}}
+#pause.pmenu>.card.pm{animation:pmup .26s cubic-bezier(.2,.75,.2,1) both}
+/* the park's opening title never sits on top of a menu */
+#game:has(#pause:not([hidden])) #intro,#game:has(#pause:not([hidden])) #cine{display:none}
+/* the online chip on the park: small, tucked under the Menu button, not over the middle of the picture (the menu has
+   the full switch now) */
+#game.park #netchip{top:calc(54px + var(--st));left:10px;transform:none;height:26px;padding:0 10px;gap:6px;font-size:10px;letter-spacing:.08em;background:rgba(8,8,10,.62);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.8)}
+#game.park #netchip i{width:6px;height:6px}
+#game.park #netchip.on i{background:var(--green);box-shadow:0 0 0 2px rgba(76,255,176,.2)}
+#game.park #netchip small{font-size:10px}
+/* What's new, as snapshots: a card per update, one line per change with a tag */
+.snap{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px 10px;margin:0 0 10px;text-align:left;animation:tup .4s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 40ms)}
+.snap.top{border-color:rgba(255,255,255,.32)}
+.snh{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+.snh b{flex:1;min-width:0;font-family:var(--display);font-weight:900;font-size:17px;line-height:1.15}
+.snh time{font-size:11.5px;color:var(--mute);white-space:nowrap}
+.snv{font:800 10px/1 var(--display);letter-spacing:.08em;padding:5px 7px;border-radius:999px;background:#fff;color:#000;white-space:nowrap}
+.snap:not(.top) .snv{background:rgba(255,255,255,.1);color:#fff}
+.snap ul{list-style:none;margin:0;padding:0}
+.snap li{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-top:1px solid rgba(255,255,255,.06);font-size:13px;line-height:1.35}
+.snap li:first-child{border-top:0}
+.tg{flex:none;width:38px;text-align:center;font:800 9px/18px var(--display);letter-spacing:.08em;text-transform:uppercase;border-radius:5px;font-style:normal;background:rgba(255,255,255,.1);color:#fff}
+.tg.new{background:#fff;color:#000}.tg.fix{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);color:#d4d4da}.tg.feel{background:rgba(255,255,255,.18)}
+.wnbox .snap{background:transparent;border:0;padding:0;margin:4px 0 14px}
+.wnall summary{cursor:pointer;font-weight:700;list-style:none}.wnall summary::-webkit-details-marker{display:none}
+.wnall summary::after{content:" ›";color:var(--mute)}.wnall[open] summary{margin-bottom:10px}
+@media (prefers-reduced-motion:reduce){.snap{animation:none}}
+.pm .pmgrid .pmt b{min-width:0;overflow:hidden;text-overflow:ellipsis}

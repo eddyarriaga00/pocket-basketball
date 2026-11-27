@@ -1586,6 +1586,13 @@
     { const bt0 = p.beatT !== undefined ? G.t - p.beatT : 9;
       if (bt0 < 0.75 && fall <= 0 && p.y <= 0.05) { const k = Math.sin(Math.min(1, bt0 / 0.75) * Math.PI) * (p.beatAmt || 1);
         m.body.rotation.z += (p.beatSide || 1) * 0.5 * k; m.body.rotation.x += 0.26 * k; m.body.position.y -= 0.16 * k; } }
+    /* a landing that weighs what the jump did: the higher he went, the longer his knees take it (below) and the further
+       his chest comes over them, then he rises out of it (a dunk or a rebound lands hard, a hop barely shows) */
+    { if (p.y > 0.3) { m.pk = Math.max(m.pk || 0, p.y); m.lt0 = undefined; }
+      else if (p.y <= 0.02 && (m.pk || 0) > 0.3) { m.lt0 = G.t; m.lk = Math.min(1, 0.35 + m.pk / 3.2); m.pk = 0; }
+      const lt = m.lt0 !== undefined ? (G.t - m.lt0) / 0.36 : 9;
+      if (lt < 1 && fall <= 0 && !G.replay) { const k = Math.sin(Math.PI * Math.min(1, lt * 1.25)) * (1 - 0.35 * lt) * m.lk;
+        m.body.rotation.x += 0.16 * k; } }
     /* the blow-by: for the second after a move the handler drops his shoulder and leans into the run */
     if (p.burstT > G.t && G.ball.holder === p && p.y <= 0.05 && !p.shoot) { const k = Math.min(1, (p.burstT - G.t) / 0.35) * Math.min(1, Math.hypot(p.vx, p.vz) / 9); m.body.rotation.x += 0.2 * k; m.body.position.y -= 0.07 * k; }
     /* how fast he is really moving: a man held up by a body in his way does not run in place */
@@ -1661,7 +1668,7 @@
     /* over the ball: a dribbler who is standing or walking has his feet set and his knees bent too */
     /* the same for the dip before a jumper, and for every landing: the knees take it */
     { if (p.y > 0.12) m.airT = G.t;
-      m.land = !air && m.airT !== undefined && p.y <= 0.12 ? (G.t - m.airT) / 0.34 : 9; m.gath = p.shoot && p.y <= 0.02 && !p.inb && G.phase !== 'ft' ? 1 : 0;
+      m.land = !air && m.airT !== undefined && p.y <= 0.12 ? (G.t - m.airT) / (0.3 + 0.22 * (m.lt0 !== undefined && G.t - m.lt0 < 1 ? m.lk || 0 : 0)) : 9; m.gath = p.shoot && p.y <= 0.02 && !p.inb && G.phase !== 'ft' ? 1 : 0;
       const g = !air && fall <= 0 ? Math.max(drib ? 1 - smooth(5, 9, sp) : 0, m.gath, m.land < 1 ? 1 - smooth(8, 13, sp) : 0) : 0;
       m.dw = (m.dw || 0) + (g - (m.dw || 0)) * Math.min(1, dt * (m.land < 1 ? 30 : 8));
       /* off the ball on offense, standing: on the balls of his feet, hands ready for the pass */

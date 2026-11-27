@@ -1,0 +1,55 @@
+[
+  { "id": "2026-11-27a", "v": "1.2.0", "date": "Nov 27", "name": "Fits your phone", "lines": [
+    ["new", "Online or offline, right on the title screen"],
+    ["new", "28 new achievements to chase"],
+    ["new", "What's new is snapshots like this one"],
+    ["look", "Smaller park menu, the map folds away"],
+    ["look", "Online switch in the park menu, a small chip on the court"],
+    ["fix", "No extra gap under the notch on iPhone"],
+    ["feel", "Landings that weigh what the jump did"]
+  ] },
+  { "id": "2026-11-27", "v": "1.1.6", "date": "Nov 27", "name": "Proper shorts", "lines": [
+    ["look", "Shorts with two real legs, not a skirt"],
+    ["look", "Clothes bend smoothly in a stance"],
+    ["fix", "Shoes stay in one piece when you run"],
+    ["feel", "Defensive stance only when you are on someone"]
+  ] },
+  { "id": "2026-11-26", "v": "1.1.5", "date": "Nov 26", "name": "Full quality", "lines": [
+    ["look", "Always drawn at your screen's full sharpness"],
+    ["look", "Jerseys bend with the body"],
+    ["fix", "Readable names on two-tone jerseys"],
+    ["new", "Runs at the park: more than two in a game"],
+    ["new", "The park goes online by itself"]
+  ] },
+  { "id": "2026-11-25", "v": "1.1.4", "date": "Nov 25", "name": "Online at the park", "lines": [
+    ["new", "Public park or your own by code"],
+    ["new", "Challenge anyone: 1 on 1, 3 on 3, full game"],
+    ["new", "Season mode: trades you propose, two-way deals"],
+    ["feel", "Computer teams play zone now and then"],
+    ["new", "Arrows to opponents off the screen"]
+  ] },
+  { "id": "2026-11-24", "v": "1.1.3", "date": "Nov 24", "name": "The arena", "lines": [
+    ["look", "Photographers, a mascot, fans with signs"],
+    ["look", "Shorts that sway, a shot clock on every board"],
+    ["look", "Chain nets outdoors"],
+    ["new", "Sign in with Google or GitHub"]
+  ] },
+  { "id": "2026-11-23", "v": "1.1.0", "date": "Nov 23", "name": "New title screen", "lines": [
+    ["new", "Animated title, your player at center court"],
+    ["new", "Accounts: your save on any phone"],
+    ["feel", "Dunks: just hold Shoot"],
+    ["fix", "Shots in the park go up square to the rim"]
+  ] },
+  { "id": "2026-11-22", "v": "1.0.0", "date": "Nov 22", "name": "Your story", "lines": [
+    ["new", "Four ways into the league, with cutscenes"],
+    ["new", "Social: followers, posts, callouts, media day"],
+    ["new", "Head to head by link"],
+    ["feel", "The open man gets the ball"]
+  ] },
+  { "id": "2026-11-21", "v": "0.9", "date": "Nov 21", "name": "Big nights", "lines": [
+    ["new", "The Cup, the Finals and a pre-game shootaround"],
+    ["feel", "Dribbling you can win with, escape moves"],
+    ["new", "A 115-play playbook"],
+    ["look", "Comic effects and celebrations"]
+  ] }
+]
