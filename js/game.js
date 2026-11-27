@@ -9,6 +9,9 @@
   const $ = s => document.querySelector(s);
   const RIM = 41.75, GRAV = 32;
   const parkSide = () => (G.user && G.user.z < 0 ? -1 : 1);
+  /* past the plane of the backboard (it hangs 0.85 ft behind the middle of the rim), out toward the baseline: no dunk
+     from there, the board is in the way */
+  const behindBoard = (p, team) => { const hz = hoopZ(team); return (p.z - hz) * Math.sign(hz || 1) > 0.85; };
   const hoopZ = team => G && G.park ? RIM * parkSide() : G && (G.half || G.horse) ? RIM : team === 0 ? RIM : -RIM;      // the hoop a team attacks (on the blacktop both attack the same one)
   const dirOf = team => G && G.park ? parkSide() : G && (G.half || G.horse) ? 1 : team === 0 ? 1 : -1;
   const hyp = Math.hypot;
@@ -26,7 +29,7 @@
   const foulK = () => ({ Fewer: 0.5, More: 1.5 })[PB.settings && PB.settings.fouls] || 1;   // Settings › Game: how often the whistle blows
   const tired = () => !(PB.settings && PB.settings.fatigueOn === 'Off');
   const SHOTQ = 0.86;   // every jump shot is this much quicker than it was; the green band is that much wider on the meter, so it lasts as long as it did
-  const GREENK = 0.92;   // the green band, a shade narrower than it was (2026-11-23): a little harder to hit, on every shot and at the line
+  const GREENK = 0.85;   // the green band, narrower again (2026-11-23: 0.92, 2026-11-27: 0.85): a little harder to hit, on every shot and at the line
   const timingEase = () => GREENK * ({ Easy: 1.6, Normal: 1, Hard: 0.7 }[(PB.settings && PB.settings.timing) || 'Normal'] || 1) * (PB.settings && PB.settings.meterOn === 'Off' ? 1.15 : 1);   // no meter on screen: shooting by the look of the jump earns a wider window
   const clutchTime = () => G.q >= 4 && G.clock < 120 && Math.abs(G.score[0] - G.score[1]) <= 6;
 
@@ -912,8 +915,11 @@
       /* yours: at the rim, Shoot is a dunk every time (standing under it too), not a roll of the dice. Only a player with
          next to no dunking in him (under 35) lays it in */
       if (forUser && !(G.drill && G.drill.kind !== 'free') && (p.r.dunk || 0) >= 35 && d < (sp > 5 ? 7.5 + clamp(((p.r.vert || 70) - 70) * 0.05, 0, 1.4) : 5.5)) kind = 'dunk';
+      /* behind the backboard there is no dunk: the board is between him and the rim. A reverse layup under it */
+      if (kind === 'dunk' && behindBoard(p, p.team)) kind = 'layup';
     } else if (d < 13 && sp > 7 && !isThree(p.x, p.z, p.team)) kind = 'floater';   // a runner on the move: lofted over the bigs
     if (force) kind = force;
+    if (force === 'dunk' && behindBoard(p, p.team)) kind = 'layup';
     /* yours: a big who goes up contested in the paint shoots a hook; a jumper drifting away from the rim is a fadeaway */
     let fade = false;
     if (forUser && !force) {
@@ -3194,10 +3200,18 @@
       }
     }
     /* (a man who is outside the lines, the inbounder after his pass, steps back in: he is not put back in) */
-    const BX = G.park ? 33.5 : 24.6, BZ = G.park ? 60 : 46.6;
-    for (const p of G.pl) if (!p.inb) { const cx = clamp(p.x, -BX, BX), cz = clamp(p.z, G.half ? 0.5 : -BZ, BZ);
+    /* everyone stays inside the lines, except you with the ball: you can put a foot on the line, and that is out */
+    const BX = G.park ? 33.5 : 24.6, BZ = G.park ? 60 : 46.6, lines = !G.park && !G.drill && G.phase === 'live';
+    for (const p of G.pl) if (!p.inb) { const mine = lines && p.isUser && G.ball.holder === p, bx = mine ? 25.6 : BX, bz = mine ? 47.6 : BZ;
+      const cx = clamp(p.x, -bx, bx), cz = clamp(p.z, G.half ? 0.5 : -bz, bz);
       if (p.wasInb && (cx !== p.x || cz !== p.z)) { const m = dt * 13; p.x += clamp(cx - p.x, -m, m); p.z += clamp(cz - p.z, -m, m); } else { p.wasInb = false; p.x = cx; p.z = cz; } }
       else p.wasInb = true;
+    /* stepping out with the ball: a foot on or past a line, once he is down on the floor (a man in the air can still
+       save it, or shoot it), is a turnover; the other side takes it out where he went out */
+    { const h = G.ball.holder;
+      if (lines && h && !h.inb && !h.wasInb && !h.shoot && (h.y || 0) <= 0.05 && G.ball.state === 'held') {
+        const FOOT = 0.35, outX = Math.abs(h.x) + FOOT >= 25, outZ = !G.half && Math.abs(h.z) + FOOT >= 47;
+        if (outX || outZ) { toast('Out of bounds', ''); AU().play('whistle'); B('turnover', { prio: 2, follow: 0.3 }); turnover(h, 'Stepped out of bounds', 1 - h.team, { x: h.x, z: h.z }); } } }
     /* once the ball is over half court, the computer's players on offense stay over it: no drifting (or being
        pushed) back across the line for a violation of their own making */
     if (G.vio && G.vio.crossed && G.vio.n === G.possN && G.phase === 'live' && G.poss !== null && G.poss !== undefined && !G.drill && b.state !== 'loose')
@@ -3308,7 +3322,7 @@
       }
       if (u >= 1) {
         const r = b.to;
-        if (b.lob && hyp(r.x - b.x, r.z - b.z) < 6) {
+        if (b.lob && hyp(r.x - b.x, r.z - b.z) < 6 && !behindBoard(r, r.team)) {
           /* caught above the rim: thrown down in one motion */
           give(r); r.caughtT = G.t; r.caughtFrom = b.from; r.oopJ = false;
           if (r.y < 1) { r.jg = GRAV * 1.2; r.vy = Math.max(r.vy || 0, 9); } r.pose = 'celebrate';
@@ -3365,7 +3379,10 @@
       if (b.vy === 0) { b.vx *= 1 - dt * 1.5; b.vz *= 1 - dt * 1.5; }
       /* play is stopped: the ball stays in the building (it dies against the boards round the floor) */
       if (G.phase !== 'live') { if (Math.abs(b.x) > 28) { b.x = Math.sign(b.x) * 28; b.vx *= -0.3; } if (Math.abs(b.z) > 50.5) { b.z = Math.sign(b.z) * 50.5; b.vz *= -0.3; } return; }
-      if (Math.abs(b.x) > 25.3 || Math.abs(b.z) > 47.3 || (G.half && b.z < -0.3)) {
+      /* out of bounds the way the rule has it: the ball is out when it touches the floor on or past a line (the lines are
+         out), or the stands and the table beyond them; a ball still in the air over the line can be saved */
+      const pastX = Math.abs(b.x) > 25 - 0.39, pastZ = Math.abs(b.z) > 47 - 0.39, low = b.y < 0.62;
+      if (((pastX || pastZ) && low) || Math.abs(b.x) > 28 || Math.abs(b.z) > 50 || (G.half && b.z < -0.3)) {
         const to = 1 - (b.lastTouch === undefined ? 0 : b.lastTouch);
         toast('Out of bounds', ''); G.reb = null; AU().play('whistle'); B('turnover', { prio: 2, follow: 0.3 });
         turnover(null, 'Out of bounds', to, { x: b.x, z: b.z });

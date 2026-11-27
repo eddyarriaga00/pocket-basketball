@@ -305,7 +305,7 @@
   /* What's new, as snapshots: each update a short card (a name, a date, a few one-line changes tagged new, look, feel
      or fix) from updates.json, newest first. The sheet on the title shows the newest one once; the News page shows
      them all, with the long changelog folded away under them. */
-  const NEW_V = '2026-11-27a';
+  const NEW_V = '2026-11-27b';
   const TAGN = { new: 'New', look: 'Look', feel: 'Feel', fix: 'Fix' };
   let snapsP = null;
   const snaps = () => snapsP || (snapsP = fetch('updates.json').then(r => r.ok ? r.json() : Promise.reject()).then(a => Array.isArray(a) ? a : []).catch(() => { snapsP = null; return []; }));

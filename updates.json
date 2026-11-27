@@ -1,4 +1,10 @@
 [
+  { "id": "2026-11-27b", "v": "1.2.1", "date": "Nov 27", "name": "By the rules", "lines": [
+    ["feel", "The green window is a little smaller"],
+    ["fix", "No dunks from behind the backboard"],
+    ["fix", "Step on the line with the ball and it is out"],
+    ["fix", "A ball in the air over the line can be saved"]
+  ] },
   { "id": "2026-11-27a", "v": "1.2.0", "date": "Nov 27", "name": "Fits your phone", "lines": [
     ["new", "Online or offline, right on the title screen"],
     ["new", "28 new achievements to chase"],

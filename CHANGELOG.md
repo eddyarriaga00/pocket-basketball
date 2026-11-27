@@ -4,6 +4,7 @@ What changed, newest first. The full list is the git log; the order of work is [
 
 ## 2026-11-18 · the pocket player
 
+- By the rules: the green band is narrower again (0.92 to 0.85 of what it was, on every jump shot and at the line). No dunk from behind the backboard: past the plane of the board it is a reverse layup, and an alley-oop is not thrown down from back there. Out of bounds as the rule has it: you can put a foot on the line with the ball, and that is a turnover (once you are down on the floor: in the air you can still save it or shoot it); a loose ball is out when it touches the floor on or past a line, or the stands, not while it is still in the air over the line.
 - What's new as snapshots: each update is a short card (version, date, name) with one line per change, tagged New, Look, Feel or Fix, read from updates.json. The sheet on the title shows the newest one once; the News page shows them all, with the long changelog folded away underneath.
 - Online or offline on the title screen: a switch in the top bar (the park opens the way it says) and an Online row in the park menu with the switch and the park options. The chip on the court is small and sits under the Menu button instead of in the middle of the picture.
 - A smaller park menu: a sheet from the bottom, not a whole screen; the park map folds away (it remembers if you open it); tiles are one line each, three to a row. The park's opening title no longer draws over the menu.
